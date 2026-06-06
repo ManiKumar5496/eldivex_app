@@ -102,7 +102,6 @@ class SettingsController extends GetxController {
           (json) => CouponModel.fromJson(json),
         )
         .then((result) {
-          debugPrint("all users $result");
           getAllCuponsData.value = result ?? [];
           filteredCoupons.value = getAllCuponsData.value;
         })

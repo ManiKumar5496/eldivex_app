@@ -60,6 +60,7 @@ class BookingsController extends GetxController {
   final TextEditingController startTimeController = TextEditingController();
   final TextEditingController endTimeController = TextEditingController();
   final TextEditingController ageController = TextEditingController();
+  final RxString ageDisplay = ''.obs;
   final TextEditingController yearOfBirthController = TextEditingController();
   final TextEditingController weightController = TextEditingController();
   final TextEditingController emailController = TextEditingController();
@@ -415,12 +416,19 @@ class BookingsController extends GetxController {
 
   void _calculateAgeFromYob() {
     final yobText = yearOfBirthController.text.trim();
-    if (yobText.length == 4) {
-      final yob = int.tryParse(yobText);
-      if (yob != null && yob > 1900 && yob <= DateTime.now().year) {
-        final age = DateTime.now().year - yob;
-        ageController.text = age.toString();
-      }
+    if (yobText.length != 4) {
+      ageController.text = '';
+      ageDisplay.value = '';
+      return;
+    }
+    final yob = int.tryParse(yobText);
+    if (yob != null && yob > 1900 && yob <= DateTime.now().year) {
+      final age = (DateTime.now().year - yob).toString();
+      ageController.text = age;
+      ageDisplay.value = age;
+    } else {
+      ageController.text = '';
+      ageDisplay.value = '';
     }
   }
 
@@ -815,6 +823,7 @@ class BookingsController extends GetxController {
     phoneController.clear();
     emailController.clear();
     ageController.clear();
+    ageDisplay.value = '';
     yearOfBirthController.clear();
     weightController.clear();
     medicalConditionController.clear();
@@ -881,7 +890,12 @@ class BookingsController extends GetxController {
         Get.snackbar('Error', 'Invalid booking ID returned from API');
         return;
       }
-      final int bookingId = data['booking_id'];
+      final rawId = data['booking_id'];
+      final int? bookingId = rawId is int ? rawId : int.tryParse(rawId.toString());
+      if (bookingId == null) {
+        Get.snackbar('Error', 'Invalid booking ID returned from API');
+        return;
+      }
       HelperUi.showToast(message: 'Booking created successfully');
       getBookingsFromApi();
       Get.to(() => ManageBookingView(bookingId: bookingId));
@@ -1449,7 +1463,7 @@ class BookingsController extends GetxController {
       "followup_date": selectedFollowupDate.value != null
           ? DateFormat('yyyy-MM-dd').format(selectedFollowupDate.value!)
           : null,
-      "hp_manager": selectedCareManagerIdForBooking.value,
+      "hp_manager": selectedCareManagerIdForBooking.value == 0 ? null : selectedCareManagerIdForBooking.value,
     };
 
     baseApi

@@ -933,7 +933,7 @@ class BookingsView extends GetView<BookingsController> {
               ),
               SizedBox(height: SizeConfig.blockSizeVertical * 0.5),
               Text(
-                'Total: ${booking.finalRate?.toStringAsFixed(0)}' ?? "0",
+                'Total: ${(booking.finalRate ?? (double.tryParse(booking.baseRate) ?? 0) * days).toStringAsFixed(0)}',
                 style: TextStyle(
                   fontSize: SizeConfig.blockSizeHorizontal * 1,
                   fontWeight: FontWeight.w500,
@@ -1162,7 +1162,7 @@ class BookingsView extends GetView<BookingsController> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Total: ${booking.finalRate?.toStringAsFixed(0) ?? "0"}',
+                  'Total: ${(booking.finalRate ?? (double.tryParse(booking.baseRate) ?? 0) * days).toStringAsFixed(0)}',
                   style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: Colors.grey.shade700),
                 ),
               ],

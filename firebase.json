@@ -1,1 +1,42 @@
-{"flutter":{"platforms":{"dart":{"lib/firebase_options.dart":{"projectId":"eldivexweb","configurations":{"web":"1:219994717369:web:f5b8d8932d6295ef92af68"}}}}}}
+{
+  "flutter": {
+    "platforms": {
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "eldivexweb",
+          "configurations": {
+            "web": "1:219994717369:web:f5b8d8932d6295ef92af68"
+          }
+        }
+      }
+    }
+  },
+  "hosting": {
+    "public": "build/web",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ]
+  },
+  "firestore": {
+    "database": "(default)",
+    "location": "asia-south1",
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  },
+  "auth": {
+    "providers": {
+      "googleSignIn": {
+        "oAuthBrandDisplayName": "Eldivex App",
+        "supportEmail": "eldivexapp@gmail.com"
+      }
+    }
+  }
+}

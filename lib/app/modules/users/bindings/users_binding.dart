@@ -5,8 +5,8 @@ import '../controllers/users_controller.dart';
 class UsersBinding extends Bindings {
   @override
   void dependencies() {
-    Get.lazyPut<UsersController>(
-      () => UsersController(),
-    );
+    if (!Get.isRegistered<UsersController>()) {
+      Get.put<UsersController>(UsersController(), permanent: true);
+    }
   }
 }

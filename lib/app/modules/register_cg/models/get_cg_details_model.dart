@@ -27,7 +27,7 @@ class GetCgDetails {
   final String hpRegAddress;
   final DateTime? hpRegDob;
   final String hpRegExperience;   // stored as text e.g. "2" or "NA"
-  final int hpRegStatus;          // approval status: 0=pending,1=approved,2=rejected
+  final int hpRegStatus;          // 1=Pending,2=Approved,3=Rejected,4=Terminated,5=ActiveBooking,6=OTPBooking
 
   GetCgDetails({
     this.liveinPay,

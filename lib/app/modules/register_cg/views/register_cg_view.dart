@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:file_picker/file_picker.dart';
 
 import '../../../core/values/color_constants.dart';
 import '../../../core/values/size_configue.dart';
@@ -509,7 +508,7 @@ class RegisterCgView extends GetView<RegisterCgController> {
                             }
                           },
                           selectedColor:
-                              AppColor.cPrimaryButtonColor.withOpacity(0.2),
+                              AppColor.cPrimaryButtonColor.withValues(alpha:0.2),
                           checkmarkColor: AppColor.cPrimaryButtonColor,
                           labelStyle: TextStyle(
                             color: isSelected

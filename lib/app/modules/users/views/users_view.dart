@@ -79,6 +79,7 @@ class UsersView extends GetView<UsersController> {
           ),
           ElevatedButton.icon(
             onPressed: () {
+              controller.clearFilters();
               Get.toNamed(Routes.AddUser);
             },
             icon: Icon(Icons.add, size: isMobile ? 16 : SizeConfig.blockSizeHorizontal * 1.2, color: AppColor.whiteColor),
@@ -692,18 +693,58 @@ class UsersView extends GetView<UsersController> {
                     size: isMobile ? 18 : SizeConfig.blockSizeHorizontal * 1.4,
                     color: Colors.grey.shade600,
                   ),
-                  onPressed: () {},
+                  onPressed: () {
+                    controller.loadUserForEdit(user);
+                    Get.toNamed(Routes.AddUser);
+                  },
                   padding: EdgeInsets.zero,
                   constraints: const BoxConstraints(),
                 ),
                 SizedBox(width: isMobile ? 8 : SizeConfig.blockSizeHorizontal * 0.8),
                 IconButton(
                   icon: Icon(
-                    Icons.delete_outline,
+                    Icons.block,
                     size: isMobile ? 18 : SizeConfig.blockSizeHorizontal * 1.4,
-                    color: Colors.red.shade400,
+                    color: Colors.orange.shade600,
                   ),
-                  onPressed: () {},
+                  onPressed: () {
+                    Get.dialog(
+                      AlertDialog(
+                        title: const Text('Terminate User'),
+                        content: Text(
+                          'Are you sure you want to terminate ${user.userName}? This will deactivate their account.',
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Get.back(),
+                            child: const Text('Cancel'),
+                          ),
+                          Obx(() => ElevatedButton(
+                            onPressed: controller.isTerminateLoading.value
+                                ? null
+                                : () {
+                                    controller.terminateUser(user.id);
+                                    Get.back();
+                                  },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.red,
+                              foregroundColor: Colors.white,
+                            ),
+                            child: controller.isTerminateLoading.value
+                                ? const SizedBox(
+                                    height: 16,
+                                    width: 16,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                    ),
+                                  )
+                                : const Text('Terminate'),
+                          )),
+                        ],
+                      ),
+                    );
+                  },
                   padding: EdgeInsets.zero,
                   constraints: const BoxConstraints(),
                 ),

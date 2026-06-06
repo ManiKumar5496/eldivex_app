@@ -81,6 +81,17 @@ class HelperUi {
     );
   }
 
+  /// Navigates back safely on Flutter web. After a browser refresh the GetX
+  /// history stack is empty and Get.back() is a no-op. This falls back to
+  /// [fallbackRoute] in that case.
+  static void safeBack(String fallbackRoute) {
+    if (Get.previousRoute.isEmpty) {
+      Get.offAllNamed(fallbackRoute);
+    } else {
+      Get.back();
+    }
+  }
+
   static showImageDialog(BuildContext context, String imageUrl) {
     showDialog(
       context: context,

@@ -7,7 +7,8 @@ class ApiConstants {
   ///   Production : flutter build web --dart-define=API_BASE_URL=http://65.2.74.114:4000/api
   static const String baseURL = String.fromEnvironment(
     'API_BASE_URL',
-    defaultValue: 'http://localhost:4000/api',
+   // defaultValue: 'http://localhost:4000/api',
+    defaultValue: 'https://eldivexbe-production.up.railway.app/api',
   );
 
   ///End point
@@ -20,6 +21,7 @@ class ApiConstants {
   static const String getAllEmployees = "$baseURL/getWebEmpDetails";
   static const String createEmployee = "$baseURL/createUser";
   static const String updateEmployee = "$baseURL/update-user";
+  static const String terminateEmployee = "$baseURL/terminate-user";
   static const String createEmployeeRoles = "$baseURL/createRole";
   static const String createHp = "$baseURL/createHPProfile";
   static const String getHp = "$baseURL/getHPDetails";
@@ -69,6 +71,8 @@ class ApiConstants {
   static const String updateReceiptStatus  = '$baseURL/updateReceiptStatus';
   static const String getClientStatements  = '$baseURL/getClientStatements';
   static const String createWriteOff       = '$baseURL/createWriteOff';
+  static const String createWriteOffV2     = '$baseURL/createWriteOffV2';
+  static const String approveWriteOff      = '$baseURL/approveWriteOff';
   static const String updateWriteOffStatus = '$baseURL/updateWriteOffStatus';
 
   static String getReceipts({String? status, int? bookingId, String? periodFrom, String? periodTo, int limit = 200}) {
@@ -107,8 +111,24 @@ class ApiConstants {
 
   // ── Advanced Accounts — Credit Notes ──────────────────────────────────────
   static const String createCreditNote       = '$baseURL/createCreditNote';
-  static const String getCreditNotes         = '$baseURL/getCreditNotes';
   static const String updateCreditNoteStatus = '$baseURL/updateCreditNoteStatus';
+  static const String applyCreditNote        = '$baseURL/applyCreditNote';
+
+  static String getCreditNotes([String? bookingId, String? status]) {
+    final params = <String>[];
+    if (bookingId != null && bookingId.isNotEmpty) params.add('booking_id=$bookingId');
+    if (status    != null && status.isNotEmpty)    params.add('status=$status');
+    return params.isEmpty
+        ? '$baseURL/getCreditNotes'
+        : '$baseURL/getCreditNotes?${params.join('&')}';
+  }
+
+  static String getCreditNoteApplications([String? creditNoteId]) {
+    if (creditNoteId != null && creditNoteId.isNotEmpty) {
+      return '$baseURL/getCreditNoteApplications?credit_note_id=$creditNoteId';
+    }
+    return '$baseURL/getCreditNoteApplications';
+  }
 
   // ── Advanced Accounts — Cancellation Billing Preview ──────────────────────
   static String getCancellationBilling(int bookingId, {String? cancelDate}) {
@@ -136,6 +156,34 @@ class ApiConstants {
 
   // ── Advanced Accounts — Revenue Recognition ───────────────────────────────
   static const String getRevenueRecognition = '$baseURL/getRevenueRecognition';
+
+  // ── Advanced Accounts — Internal Transfers ────────────────────────────────
+  static const String createInternalTransfer  = '$baseURL/createInternalTransfer';
+  static const String approveInternalTransfer = '$baseURL/approveInternalTransfer';
+
+  static String getInternalTransfers({String? clientId, String? status, int limit = 200}) {
+    final params = <String>['limit=$limit'];
+    if (clientId != null) params.add('client_id=$clientId');
+    if (status   != null) params.add('status=$status');
+    return '$baseURL/getInternalTransfers?${params.join('&')}';
+  }
+
+  static String getClientOutstanding(int clientId)   => '$baseURL/clientOutstanding/$clientId';
+  static String getBookingOutstanding(int bookingId) => '$baseURL/bookingOutstanding/$bookingId';
+  static String getTransactionLedger(String params)  => '$baseURL/transactionLedger?$params';
+
+  // ── Advanced Accounts — Refunds ───────────────────────────────────────────
+  static const String createRefund  = '$baseURL/createRefund';
+  static const String approveRefund = '$baseURL/approveRefund';
+
+  static String getRefunds(String extra, {String? bookingId, String? status, int limit = 200}) {
+    final params = <String>['limit=$limit'];
+    if (bookingId != null && bookingId.isNotEmpty) params.add('booking_id=$bookingId');
+    if (status    != null && status.isNotEmpty)    params.add('status=$status');
+    return '$baseURL/getRefunds?${params.join('&')}';
+  }
+
+  static String getRefundById(int id) => '$baseURL/getRefundById/$id';
 
   // ── Advanced Accounts — Rate History ──────────────────────────────────────
   static String getRateHistory(int bookingId) => '$baseURL/getRateHistory?booking_id=$bookingId';

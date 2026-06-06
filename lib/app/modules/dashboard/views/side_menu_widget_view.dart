@@ -9,10 +9,8 @@ import 'package:eldivex_app/app/modules/accounts/views/manage_reciepts.dart';
 import 'package:eldivex_app/app/modules/accounts/views/revenue_recognition_view.dart';
 import 'package:eldivex_app/app/modules/bookings/views/bookings_extension_view.dart';
 import 'package:eldivex_app/app/modules/bookings/views/bookings_view.dart';
-import 'package:eldivex_app/app/modules/bookings/views/create_booking_screen.dart';
 import 'package:eldivex_app/app/modules/client_users/views/create_client_user.dart';
 import 'package:eldivex_app/app/modules/register_cg/views/register_cg_view.dart';
-import 'package:eldivex_app/app/modules/role/views/role_view.dart';
 import 'package:eldivex_app/app/modules/support/views/support_view.dart';
 import '../../../core/values/text_style_constants.dart';
 import '../../accounts/views/client_statement.dart';
@@ -34,11 +32,17 @@ import '../../audit_log/controllers/audit_log_controller.dart';
 import '../../audit_log/views/audit_log_view.dart';
 import '../../reports/controllers/reports_controller.dart';
 import '../../reports/views/reports_view.dart';
-import '../../organisations/controllers/organisations_controller.dart';
-import '../../organisations/views/organisations_view.dart';
-import '../../saas_accounts/bindings/saas_accounts_binding.dart';
-import '../../saas_accounts/controllers/saas_accounts_controller.dart';
-import '../../saas_accounts/views/saas_accounts_view.dart';
+import '../../settings/controllers/settings_controller.dart';
+import '../../accounts/controllers/write_off_controller.dart';
+import '../../accounts/controllers/refund_controller.dart';
+import '../../accounts/controllers/credit_note_controller.dart';
+import '../../accounts/controllers/internal_transfer_controller.dart';
+import '../../accounts/controllers/outstanding_controller.dart';
+import '../../accounts/views/write_off/write_off_list_view.dart';
+import '../../accounts/views/refund/refund_list_view.dart';
+import '../../accounts/views/credit_note/credit_note_list_view.dart';
+import '../../accounts/views/internal_transfer/transfer_list_view.dart';
+import '../../accounts/views/outstanding/outstanding_dashboard_view.dart';
 
 class SideMenuWidgetView extends StatefulWidget {
   const SideMenuWidgetView({super.key});
@@ -68,7 +72,7 @@ class _SideMenuWidgetViewState extends State<SideMenuWidgetView> {
     pageController = PageController(initialPage: _savedIndex);
 
     if (!Get.isRegistered<UsersController>()) {
-      Get.put(UsersController());
+      Get.put(UsersController(), permanent: true);
     }
     if (!Get.isRegistered<AuditLogController>()) {
       Get.lazyPut<AuditLogController>(() => AuditLogController());
@@ -76,13 +80,23 @@ class _SideMenuWidgetViewState extends State<SideMenuWidgetView> {
     if (!Get.isRegistered<ReportsController>()) {
       Get.lazyPut<ReportsController>(() => ReportsController());
     }
-    if (rolesController.roleId == 1 &&
-        !Get.isRegistered<OrganisationsController>()) {
-      Get.lazyPut<OrganisationsController>(() => OrganisationsController());
+    if (!Get.isRegistered<SettingsController>()) {
+      Get.lazyPut<SettingsController>(() => SettingsController(), fenix: true);
     }
-    if (rolesController.roleId == 1 &&
-        !Get.isRegistered<SaasAccountsController>()) {
-      SaasAccountsBinding().dependencies();
+    if (!Get.isRegistered<WriteOffController>()) {
+      Get.lazyPut<WriteOffController>(() => WriteOffController(), fenix: true);
+    }
+    if (!Get.isRegistered<RefundController>()) {
+      Get.lazyPut<RefundController>(() => RefundController(), fenix: true);
+    }
+    if (!Get.isRegistered<CreditNoteController>()) {
+      Get.lazyPut<CreditNoteController>(() => CreditNoteController(), fenix: true);
+    }
+    if (!Get.isRegistered<InternalTransferController>()) {
+      Get.lazyPut<InternalTransferController>(() => InternalTransferController(), fenix: true);
+    }
+    if (!Get.isRegistered<OutstandingController>()) {
+      Get.lazyPut<OutstandingController>(() => OutstandingController(), fenix: true);
     }
   }
 
@@ -122,6 +136,11 @@ class _SideMenuWidgetViewState extends State<SideMenuWidgetView> {
       final creditNotes       = pageIndex + 3;
       final insuranceClaims   = pageIndex + 4;
       final finDashboard      = pageIndex + 5;
+      final writeOffs         = pageIndex + 6;
+      final refunds           = pageIndex + 7;
+      final creditNotesList   = pageIndex + 8;
+      final internalTransfers = pageIndex + 9;
+      final outstanding       = pageIndex + 10;
 
       menuItems.add(
         MenuItemData(
@@ -129,12 +148,17 @@ class _SideMenuWidgetViewState extends State<SideMenuWidgetView> {
           icon: Icons.account_balance,
           hasSubmenu: true,
           children: [
-            MenuItemData(title: 'Reciepts',           pageIndex: reciepts),
-            MenuItemData(title: 'User Statement',     pageIndex: userStateMent),
-            MenuItemData(title: 'Invoice List',       pageIndex: invoiceList),
-            MenuItemData(title: 'Credit Notes',       pageIndex: creditNotes),
-            MenuItemData(title: 'Insurance Claims',   pageIndex: insuranceClaims),
-            MenuItemData(title: 'Finance Dashboard',  pageIndex: finDashboard),
+            MenuItemData(title: 'Reciepts',            pageIndex: reciepts),
+            MenuItemData(title: 'User Statement',      pageIndex: userStateMent),
+            MenuItemData(title: 'Invoice List',        pageIndex: invoiceList),
+            MenuItemData(title: 'Credit Notes',        pageIndex: creditNotes),
+            MenuItemData(title: 'Insurance Claims',    pageIndex: insuranceClaims),
+            MenuItemData(title: 'Finance Dashboard',   pageIndex: finDashboard),
+            MenuItemData(title: 'Write-offs',          pageIndex: writeOffs),
+            MenuItemData(title: 'Refunds',             pageIndex: refunds),
+            MenuItemData(title: 'Credit Note Mgmt',    pageIndex: creditNotesList),
+            MenuItemData(title: 'Internal Transfers',  pageIndex: internalTransfers),
+            MenuItemData(title: 'Outstanding',         pageIndex: outstanding),
           ],
         ),
       );
@@ -145,7 +169,12 @@ class _SideMenuWidgetViewState extends State<SideMenuWidgetView> {
       pages.add(const CreditNotesView());
       pages.add(const InsuranceClaimsView());
       pages.add(const RevenueRecognitionView());
-      pageIndex += 6;
+      pages.add(const WriteOffListView());
+      pages.add(const RefundListView());
+      pages.add(const CreditNoteListView());
+      pages.add(const TransferListView());
+      pages.add(const OutstandingDashboardView());
+      pageIndex += 11;
     }
 
     if (hasAccess('Users')) {
@@ -195,6 +224,9 @@ class _SideMenuWidgetViewState extends State<SideMenuWidgetView> {
       final manageCgIndex         = pageIndex + 1;
       final manageAttendanceIndex = pageIndex + 2;
       final cgPaymentIndex        = pageIndex + 3;
+
+      // Persist so RegisterCgController can navigate here after successful save
+      _storage.write('manage_hp_page_index', manageCgIndex);
 
       menuItems.add(
         MenuItemData(
@@ -284,25 +316,6 @@ class _SideMenuWidgetViewState extends State<SideMenuWidgetView> {
       pages.add(const BranchManagementView());
       pages.add(const ServicesManagementView());
       pageIndex += 7;
-    }
-
-    // ── Phase 5: Organisations & SaaS Accounts (superadmin only) ───────────
-    if (rolesController.roleId == 1) {
-      final organisationsIndex = pageIndex;
-      final saasAccountsIndex  = pageIndex + 1;
-
-      menuItems.add(MenuItemData(
-        title:    'Admin',
-        icon:     Icons.admin_panel_settings_outlined,
-        hasSubmenu: true,
-        children: [
-          MenuItemData(title: 'Organisations',  pageIndex: organisationsIndex),
-          MenuItemData(title: 'SaaS Accounts',  pageIndex: saasAccountsIndex),
-        ],
-      ));
-      pages.add(const OrganisationsView());
-      pages.add(const SaasAccountsView());
-      pageIndex += 2;
     }
 
     return {

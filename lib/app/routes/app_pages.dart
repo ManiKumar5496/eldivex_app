@@ -38,8 +38,28 @@ import '../modules/settings/views/branch_management_view.dart';
 import '../modules/settings/views/otp_cupon_generation.dart';
 import '../modules/register_cg/bindings/hp_payouts_binding.dart';
 import '../modules/register_cg/views/hp_payouts_view.dart';
-import '../modules/saas_accounts/bindings/saas_accounts_binding.dart';
-import '../modules/saas_accounts/views/saas_accounts_view.dart';
+// ── Financial Module ────────────────────────────────────────────────────────
+import '../modules/accounts/bindings/write_off_binding.dart';
+import '../modules/accounts/bindings/refund_binding.dart';
+import '../modules/accounts/bindings/credit_note_binding.dart';
+import '../modules/accounts/bindings/internal_transfer_binding.dart';
+import '../modules/accounts/bindings/outstanding_binding.dart';
+import '../modules/accounts/views/write_off/write_off_list_view.dart';
+import '../modules/accounts/views/write_off/create_write_off_view.dart';
+import '../modules/accounts/views/write_off/write_off_detail_view.dart';
+import '../modules/accounts/views/refund/refund_list_view.dart';
+import '../modules/accounts/views/refund/create_refund_view.dart';
+import '../modules/accounts/views/refund/refund_detail_view.dart';
+import '../modules/accounts/views/credit_note/credit_note_list_view.dart';
+import '../modules/accounts/views/credit_note/create_credit_note_view.dart';
+import '../modules/accounts/views/credit_note/credit_note_detail_view.dart';
+import '../modules/accounts/views/credit_note/apply_credit_note_view.dart';
+import '../modules/accounts/views/internal_transfer/transfer_list_view.dart';
+import '../modules/accounts/views/internal_transfer/create_transfer_view.dart';
+import '../modules/accounts/views/internal_transfer/transfer_detail_view.dart';
+import '../modules/accounts/views/outstanding/outstanding_dashboard_view.dart';
+import '../modules/accounts/views/outstanding/client_outstanding_detail.dart';
+import '../modules/accounts/views/outstanding/booking_outstanding_detail.dart';
 part 'app_routes.dart';
 
 class AppPages {
@@ -194,12 +214,95 @@ class AppPages {
       binding: HpPayoutsBinding(),
     ),
 
-    // ── SaaS Accounts Module ─────────────────────────────────────────────────
+    // ── Financial Module — Write-Offs ────────────────────────────────────────
     GetPage(
-      name: _Paths.SAAS_ACCOUNTS,
-      page: () => const SaasAccountsView(),
-      binding: SaasAccountsBinding(),
-      middlewares: [AuthMiddleware()],
+      name: Routes.WRITE_OFF_LIST,
+      page: () => const WriteOffListView(),
+      binding: WriteOffBinding(),
     ),
+    GetPage(
+      name: Routes.CREATE_WRITE_OFF,
+      page: () => const CreateWriteOffView(),
+      binding: WriteOffBinding(),
+    ),
+    GetPage(
+      name: Routes.WRITE_OFF_DETAIL,
+      page: () => const WriteOffDetailView(),
+      binding: WriteOffBinding(),
+    ),
+
+    // ── Financial Module — Refunds ───────────────────────────────────────────
+    GetPage(
+      name: Routes.REFUND_LIST,
+      page: () => const RefundListView(),
+      binding: RefundBinding(),
+    ),
+    GetPage(
+      name: Routes.CREATE_REFUND,
+      page: () => const CreateRefundView(),
+      binding: RefundBinding(),
+    ),
+    GetPage(
+      name: Routes.REFUND_DETAIL,
+      page: () => const RefundDetailView(),
+      binding: RefundBinding(),
+    ),
+
+    // ── Financial Module — Credit Notes ──────────────────────────────────────
+    GetPage(
+      name: Routes.CREDIT_NOTE_LIST,
+      page: () => const CreditNoteListView(),
+      binding: CreditNoteBinding(),
+    ),
+    GetPage(
+      name: Routes.CREATE_CREDIT_NOTE,
+      page: () => const CreateCreditNoteView(),
+      binding: CreditNoteBinding(),
+    ),
+    GetPage(
+      name: Routes.CREDIT_NOTE_DETAIL,
+      page: () => const CreditNoteDetailView(),
+      binding: CreditNoteBinding(),
+    ),
+    GetPage(
+      name: Routes.APPLY_CREDIT_NOTE,
+      page: () => const ApplyCreditNoteView(),
+      binding: CreditNoteBinding(),
+    ),
+
+    // ── Financial Module — Internal Transfers ────────────────────────────────
+    GetPage(
+      name: Routes.TRANSFER_LIST,
+      page: () => const TransferListView(),
+      binding: InternalTransferBinding(),
+    ),
+    GetPage(
+      name: Routes.CREATE_TRANSFER,
+      page: () => const CreateTransferView(),
+      binding: InternalTransferBinding(),
+    ),
+    GetPage(
+      name: Routes.TRANSFER_DETAIL,
+      page: () => const TransferDetailView(),
+      binding: InternalTransferBinding(),
+    ),
+
+    // ── Financial Module — Outstanding ───────────────────────────────────────
+    GetPage(
+      name: Routes.OUTSTANDING_DASHBOARD,
+      page: () => const OutstandingDashboardView(),
+      binding: OutstandingBinding(),
+    ),
+    GetPage(
+      name: Routes.CLIENT_OUTSTANDING,
+      page: () => const ClientOutstandingDetail(),
+      binding: OutstandingBinding(),
+    ),
+    GetPage(
+      name: Routes.BOOKING_OUTSTANDING,
+      page: () => const BookingOutstandingDetail(),
+      binding: OutstandingBinding(),
+    ),
+
   ];
 }

@@ -1,5 +1,6 @@
 import 'package:get/get.dart';
 import 'package:flutter/material.dart';
+import 'package:get_storage/get_storage.dart';
 import '../../../data/api_constant_url.dart';
 import '../../../data/base_api_services.dart';
 import '../../../routes/app_pages.dart';
@@ -74,9 +75,12 @@ class ClientUsersController extends GetxController {
 
     try {
       isSearchUserLoading.value = true;
+      final box = GetStorage();
+      final orgId = box.read("org_id") ?? 1;
       final response = await apiService.postRaw(ApiConstants.addClientUser, {
         "phone_number": rawPhone,
         "country_code": selectedCountryCode.value,
+        "org_id": orgId,
       });
       if (response != null && response.statusCode == 200) {
         final data = response.data as Map<String, dynamic>;
@@ -268,9 +272,10 @@ class ClientUsersController extends GetxController {
   Future<void> fetchClientUsers() async {
     try {
       isLoadingClientUsers.value = true;
+      final orgId = GetStorage().read("org_id") ?? 1;
 
       final result = await apiService.getList<ClientUserModel>(
-        ApiConstants.getClientUserDetails,
+        '${ApiConstants.getClientUserDetails}?org_id=$orgId',
             (json) => ClientUserModel.fromJson(json),
       );
 

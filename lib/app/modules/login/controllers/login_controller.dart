@@ -1,7 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:flutter/material.dart';
-import 'package:dio/dio.dart';
 import '../../../../main.dart';
 import '../../../data/api_constant_url.dart';
 import '../../../data/base_api_services.dart';
@@ -15,6 +14,7 @@ class LoginController extends GetxController {
   final passwordController = TextEditingController().obs;
   final isPasswordHidden = true.obs;
   final isLoginLoading = false.obs;
+  final RxString loginError = ''.obs;
   ApiService apiService = ApiService();
 
   //final GoogleSignIn _googleSignIn = GoogleSignIn(clientId:"");
@@ -56,6 +56,7 @@ class LoginController extends GetxController {
   }
 
   Future<void> login(String email, String password) async {
+    loginError.value = '';
     try {
       isLoginLoading.value = true;
       debugPrint("email in login $email");
@@ -93,39 +94,26 @@ class LoginController extends GetxController {
         await roleController.fetchRoleAndAccess();
         Get.offAllNamed(Routes.MAIN);
         HelperUi.showToast(message: "Login Successful");
-      } else if (response != null && response.statusCode == 429) {
-        HelperUi.showToast(
-          message: "Too many login attempts. Please wait 15 minutes and try again.",
-        );
-      } else if (response != null && response.statusCode == 401) {
-        HelperUi.showToast(message: "Invalid email or password.");
-      } else if (response != null && response.statusCode == 404) {
-        HelperUi.showToast(message: "No account found with this email.");
+      } else if (response != null) {
+        // Extract backend message; fall back to a generic per-status message.
+        final backendMsg = (response.data is Map)
+            ? (response.data['message'] as String?)
+            : null;
+        if (response.statusCode == 429) {
+          loginError.value = backendMsg ?? "Too many login attempts. Please wait 15 minutes and try again.";
+        } else if (response.statusCode == 401) {
+          loginError.value = backendMsg ?? "Invalid email or password.";
+        } else if (response.statusCode == 404) {
+          loginError.value = backendMsg ?? "No account found with this email address.";
+        } else {
+          loginError.value = backendMsg ?? "Something went wrong. Please try again.";
+        }
       } else {
-        HelperUi.showToast(message: "Login failed. Please try again.");
+        loginError.value = "Unable to connect. Please check your internet connection.";
       }
     } catch (error) {
       isLoginLoading.value = false;
-      // Dio throws exceptions for 4xx/5xx — extract the real status code
-      if (error is DioException) {
-        final statusCode = error.response?.statusCode;
-        if (statusCode == 429) {
-          HelperUi.showToast(
-            message: "Too many login attempts. Please wait 15 minutes and try again.",
-          );
-        } else if (statusCode == 401) {
-          HelperUi.showToast(message: "Invalid email or password.");
-        } else if (statusCode == 404) {
-          HelperUi.showToast(message: "No account found with this email.");
-        } else if (statusCode == 400) {
-          final msg = error.response?.data?['message'] ?? "Invalid request.";
-          HelperUi.showToast(message: msg);
-        } else {
-          HelperUi.showToast(message: "Login failed. Please try again.");
-        }
-      } else {
-        HelperUi.showToast(message: "Login failed. Please try again.");
-      }
+      loginError.value = "An unexpected error occurred. Please try again.";
     }
   }
 

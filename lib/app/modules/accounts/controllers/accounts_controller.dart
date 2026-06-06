@@ -1183,8 +1183,7 @@ class AccountsController extends GetxController {
   Future<void> fetchCreditNotes({int? bookingId}) async {
     isLoadingCreditNotes.value = true;
     try {
-      String url = ApiConstants.getCreditNotes;
-      if (bookingId != null) url += '?booking_id=$bookingId';
+      final url = ApiConstants.getCreditNotes(bookingId?.toString());
       final response = await _api.getRaw(url);
       if (response != null && response.statusCode == 200) {
         final data = response.data;

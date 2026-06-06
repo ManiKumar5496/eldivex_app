@@ -102,14 +102,7 @@ class CreateBookingsView extends GetView<BookingsController> {
             ),
             const SizedBox(height: 16),
 
-            FormTextField(
-              label: 'Age (auto-calculated)',
-              hint: 'Calculated from year of birth',
-              controller: controller.ageController,
-              keyboardType: TextInputType.number,
-              required: true,
-              readOnly: true,
-            ),
+            Obx(() => _buildAgeField(controller.ageDisplay.value)),
             const SizedBox(height: 16),
 
             Obx(
@@ -191,7 +184,7 @@ class CreateBookingsView extends GetView<BookingsController> {
             }),
 
             const SizedBox(height: 16),
-            _buildDropdown<int>(
+            Obx(() => _buildDropdown<int>(
               label: 'Service Address',
               hint: 'Select address',
               value: (controller.selectedAddressId.value == 1 ||
@@ -204,7 +197,7 @@ class CreateBookingsView extends GetView<BookingsController> {
               ],
               onChanged: (v) => controller.selectedAddressId.value = v ?? 0,
               required: true,
-            ),
+            )),
             const SizedBox(height: 16),
 
             Text(
@@ -535,6 +528,47 @@ class CreateBookingsView extends GetView<BookingsController> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildAgeField(String value) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        RichText(
+          text: const TextSpan(
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: Colors.black87,
+            ),
+            children: [
+              TextSpan(text: 'Age (auto-calculated)'),
+              TextSpan(
+                text: ' *',
+                style: TextStyle(color: Colors.red),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 8),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF9FAFB),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: const Color(0xFFE5E7EB)),
+          ),
+          child: Text(
+            value.isEmpty ? 'Calculated from year of birth' : value,
+            style: TextStyle(
+              color: value.isEmpty ? Colors.grey[400] : Colors.black87,
+              fontSize: 15,
+            ),
+          ),
+        ),
+      ],
     );
   }
 

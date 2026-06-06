@@ -188,10 +188,6 @@ class AttendanceListView extends GetView<RegisterCgController> {
   // ================= FILTER SECTION =================
 
   Widget _filterSection() {
-    final selectedDate = Rx<DateTime>(DateTime.now());
-    final selectedMonth = Rx<DateTime>(DateTime.now());
-    final filterType = RxString('date');
-
     return Row(
       children: [
         Expanded(
@@ -200,13 +196,13 @@ class AttendanceListView extends GetView<RegisterCgController> {
         ),
         const SizedBox(width: 16),
         Expanded(
-          child: Obx(() => _filterTypeToggle(filterType)),
+          child: Obx(() => _filterTypeToggle()),
         ),
         const SizedBox(width: 16),
         Expanded(
-          child: Obx(() => filterType.value == 'date'
-              ? _datePickerField(selectedDate)
-              : _monthPickerField(selectedMonth)),
+          child: Obx(() => controller.attendanceFilterType.value == 'date'
+              ? _datePickerField()
+              : _monthPickerField()),
         ),
         const SizedBox(width: 16),
         _statusFilter(),
@@ -215,22 +211,18 @@ class AttendanceListView extends GetView<RegisterCgController> {
   }
 
   Widget _filterSectionMobile() {
-    final selectedDate = Rx<DateTime>(DateTime.now());
-    final selectedMonth = Rx<DateTime>(DateTime.now());
-    final filterType = RxString('date');
-
     return Column(
       children: [
         _searchField(),
         const SizedBox(height: 8),
-        Obx(() => _filterTypeToggle(filterType)),
+        Obx(() => _filterTypeToggle()),
         const SizedBox(height: 8),
         Row(
           children: [
             Expanded(
-              child: Obx(() => filterType.value == 'date'
-                  ? _datePickerField(selectedDate)
-                  : _monthPickerField(selectedMonth)),
+              child: Obx(() => controller.attendanceFilterType.value == 'date'
+                  ? _datePickerField()
+                  : _monthPickerField()),
             ),
             const SizedBox(width: 8),
             _statusFilter(),
@@ -267,8 +259,9 @@ class AttendanceListView extends GetView<RegisterCgController> {
     );
   }
 
-  Widget _filterTypeToggle(RxString filterType) {
+  Widget _filterTypeToggle() {
     final isMobile = SizeConfig.isMobile;
+    final filterType = controller.attendanceFilterType.value;
     return Container(
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
@@ -280,11 +273,11 @@ class AttendanceListView extends GetView<RegisterCgController> {
         children: [
           Expanded(
             child: InkWell(
-              onTap: () => filterType.value = 'date',
+              onTap: () => controller.attendanceFilterType.value = 'date',
               child: Container(
                 padding: EdgeInsets.symmetric(vertical: isMobile ? 8 : 10),
                 decoration: BoxDecoration(
-                  color: filterType.value == 'date'
+                  color: filterType == 'date'
                       ? AppColor.cPrimaryButtonColor
                       : Colors.transparent,
                   borderRadius: BorderRadius.circular(8),
@@ -294,7 +287,7 @@ class AttendanceListView extends GetView<RegisterCgController> {
                     'By Date',
                     style: TextStyle(
                       fontSize: isMobile ? 13 : 14,
-                      color: filterType.value == 'date'
+                      color: filterType == 'date'
                           ? Colors.white
                           : AppColor.blackColor,
                       fontWeight: FontWeight.w500,
@@ -307,11 +300,11 @@ class AttendanceListView extends GetView<RegisterCgController> {
           const SizedBox(width: 4),
           Expanded(
             child: InkWell(
-              onTap: () => filterType.value = 'month',
+              onTap: () => controller.attendanceFilterType.value = 'month',
               child: Container(
                 padding: EdgeInsets.symmetric(vertical: isMobile ? 8 : 10),
                 decoration: BoxDecoration(
-                  color: filterType.value == 'month'
+                  color: filterType == 'month'
                       ? AppColor.cPrimaryButtonColor
                       : Colors.transparent,
                   borderRadius: BorderRadius.circular(8),
@@ -321,7 +314,7 @@ class AttendanceListView extends GetView<RegisterCgController> {
                     'By Month',
                     style: TextStyle(
                       fontSize: isMobile ? 13 : 14,
-                      color: filterType.value == 'month'
+                      color: filterType == 'month'
                           ? Colors.white
                           : AppColor.blackColor,
                       fontWeight: FontWeight.w500,
@@ -336,12 +329,12 @@ class AttendanceListView extends GetView<RegisterCgController> {
     );
   }
 
-  Widget _datePickerField(Rx<DateTime> selectedDate) {
+  Widget _datePickerField() {
     return Obx(() => InkWell(
           onTap: () async {
             final picked = await showDatePicker(
               context: Get.context!,
-              initialDate: selectedDate.value,
+              initialDate: controller.attendanceFilterDate.value,
               firstDate: DateTime(2020),
               lastDate: DateTime.now(),
               builder: (context, child) {
@@ -356,7 +349,7 @@ class AttendanceListView extends GetView<RegisterCgController> {
               },
             );
             if (picked != null) {
-              selectedDate.value = picked;
+              controller.attendanceFilterDate.value = picked;
               _fetchAttendanceByDate(picked);
             }
           },
@@ -371,7 +364,7 @@ class AttendanceListView extends GetView<RegisterCgController> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  DateFormat('dd MMM yyyy').format(selectedDate.value),
+                  DateFormat('dd MMM yyyy').format(controller.attendanceFilterDate.value),
                   style: AppTextStyles.regular14black,
                 ),
                 Icon(Icons.calendar_today,
@@ -382,12 +375,12 @@ class AttendanceListView extends GetView<RegisterCgController> {
         ));
   }
 
-  Widget _monthPickerField(Rx<DateTime> selectedMonth) {
+  Widget _monthPickerField() {
     return Obx(() => InkWell(
           onTap: () async {
             final picked = await showDatePicker(
               context: Get.context!,
-              initialDate: selectedMonth.value,
+              initialDate: controller.attendanceFilterMonth.value,
               firstDate: DateTime(2020),
               lastDate: DateTime.now(),
               initialDatePickerMode: DatePickerMode.year,
@@ -403,7 +396,7 @@ class AttendanceListView extends GetView<RegisterCgController> {
               },
             );
             if (picked != null) {
-              selectedMonth.value = picked;
+              controller.attendanceFilterMonth.value = picked;
               _fetchAttendanceByMonth(picked);
             }
           },
@@ -418,7 +411,7 @@ class AttendanceListView extends GetView<RegisterCgController> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  DateFormat('MMMM yyyy').format(selectedMonth.value),
+                  DateFormat('MMMM yyyy').format(controller.attendanceFilterMonth.value),
                   style: AppTextStyles.regular14black,
                 ),
                 Icon(Icons.calendar_today,
@@ -430,22 +423,25 @@ class AttendanceListView extends GetView<RegisterCgController> {
   }
 
   Widget _statusFilter() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        color: AppColor.whiteColor,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppColor.divColor),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text('All Status', style: AppTextStyles.regular14black),
-          const SizedBox(width: 8),
-          Icon(Icons.arrow_drop_down, size: 20, color: AppColor.fontColorGrey),
-        ],
-      ),
-    );
+    return Obx(() => SizedBox(
+          width: SizeConfig.isMobile ? null : 148,
+          child: AppDropdown<String>(
+            hint: 'All Status',
+            value: controller.attendanceStatusFilter.value == 'all'
+                ? null
+                : controller.attendanceStatusFilter.value,
+            items: const [
+              DropdownMenuItem(value: 'all', child: Text('All Status')),
+              DropdownMenuItem(value: 'present', child: Text('Present')),
+              DropdownMenuItem(value: 'absent', child: Text('Absent')),
+              DropdownMenuItem(value: 'half_day', child: Text('Half Day')),
+              DropdownMenuItem(value: 'leave', child: Text('Leave')),
+            ],
+            onChanged: (v) {
+              controller.attendanceStatusFilter.value = v ?? 'all';
+            },
+          ),
+        ));
   }
 
   // ================= SUMMARY =================
@@ -592,9 +588,11 @@ class AttendanceListView extends GetView<RegisterCgController> {
         return const ShimmerLoader.table();
       }
 
+      final statusFilter = controller.attendanceStatusFilter.value;
       final records = controller.attendanceList
           .whereType<Map<String, dynamic>>()
           .map((e) => AttendanceModel.fromJson(e))
+          .where((m) => statusFilter == 'all' || m.attDetails.status == statusFilter)
           .map(_toDisplayRecord)
           .toList();
 
@@ -664,9 +662,11 @@ class AttendanceListView extends GetView<RegisterCgController> {
         return const ShimmerLoader.cardList();
       }
 
+      final statusFilter = controller.attendanceStatusFilter.value;
       final records = controller.attendanceList
           .whereType<Map<String, dynamic>>()
           .map((e) => AttendanceModel.fromJson(e))
+          .where((m) => statusFilter == 'all' || m.attDetails.status == statusFilter)
           .map(_toDisplayRecord)
           .toList();
 

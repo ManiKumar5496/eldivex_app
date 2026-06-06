@@ -124,6 +124,11 @@ class ApiService {
       return response;
     } catch (e) {
       _logError('POST', endpoint, e);
+      // Return the HTTP error response (401, 404, 429…) so callers can read
+      // the status code and backend message. Only null for connection errors.
+      if (e is DioException && e.response != null) {
+        return e.response;
+      }
       return null;
     }
   }
@@ -162,6 +167,9 @@ class ApiService {
       return response;
     } catch (e) {
       _logError('POST', endpoint, e);
+      if (e is DioException && e.response != null) {
+        return e.response;
+      }
       return null;
     }
   }
@@ -181,6 +189,9 @@ class ApiService {
       return response;
     } catch (e) {
       _logError('PUT', endpoint, e);
+      if (e is DioException && e.response != null) {
+        return e.response;
+      }
       return null;
     }
   }

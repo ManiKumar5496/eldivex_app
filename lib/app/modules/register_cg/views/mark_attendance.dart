@@ -221,6 +221,7 @@ class MarkAttendanceView extends GetView<RegisterCgController> {
 
   Widget _searchField() {
     return TextField(
+      onChanged: (v) => controller.markAttendanceSearch.value = v,
       decoration: InputDecoration(
         hintText: 'Search by name, ID...',
         hintStyle: AppTextStyles.regular14Gre,
@@ -313,58 +314,62 @@ class MarkAttendanceView extends GetView<RegisterCgController> {
   // ================= SUMMARY =================
 
   Widget _summaryCards() {
-    final attendanceData = _getAttendanceSummary();
-    return Row(
-      children: [
-        _summaryCard('Total HP', controller.activeCgList.length,
-            Icons.people, AppColor.cPrimaryButtonColor),
-        _summaryCard('Present', attendanceData['present']!,
-            Icons.check_circle, AppColor.lightGreen),
-        _summaryCard('Absent', attendanceData['absent']!, Icons.cancel,
-            AppColor.calenderRed),
-        _summaryCard('Not Marked', attendanceData['notMarked']!,
-            Icons.remove_circle, Colors.grey),
-      ],
-    );
+    return Obx(() {
+      final attendanceData = _getAttendanceSummary();
+      return Row(
+        children: [
+          _summaryCard('Total HP', controller.activeCgList.length,
+              Icons.people, AppColor.cPrimaryButtonColor),
+          _summaryCard('Present', attendanceData['present']!,
+              Icons.check_circle, AppColor.lightGreen),
+          _summaryCard('Absent', attendanceData['absent']!, Icons.cancel,
+              AppColor.calenderRed),
+          _summaryCard('Not Marked', attendanceData['notMarked']!,
+              Icons.remove_circle, Colors.grey),
+        ],
+      );
+    });
   }
 
   Widget _summaryCardsMobile() {
-    final attendanceData = _getAttendanceSummary();
-    return Column(
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: _summaryCardMobile('Total HP',
-                  controller.activeCgList.length, Icons.people,
-                  AppColor.cPrimaryButtonColor),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: _summaryCardMobile('Present',
-                  attendanceData['present']!, Icons.check_circle,
-                  AppColor.lightGreen),
-            ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        Row(
-          children: [
-            Expanded(
-              child: _summaryCardMobile('Absent',
-                  attendanceData['absent']!, Icons.cancel,
-                  AppColor.calenderRed),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: _summaryCardMobile('Not Marked',
-                  attendanceData['notMarked']!, Icons.remove_circle,
-                  Colors.grey),
-            ),
-          ],
-        ),
-      ],
-    );
+    return Obx(() {
+      final attendanceData = _getAttendanceSummary();
+      return Column(
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: _summaryCardMobile('Total HP',
+                    controller.activeCgList.length, Icons.people,
+                    AppColor.cPrimaryButtonColor),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _summaryCardMobile('Present',
+                    attendanceData['present']!, Icons.check_circle,
+                    AppColor.lightGreen),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: _summaryCardMobile('Absent',
+                    attendanceData['absent']!, Icons.cancel,
+                    AppColor.calenderRed),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _summaryCardMobile('Not Marked',
+                    attendanceData['notMarked']!, Icons.remove_circle,
+                    Colors.grey),
+              ),
+            ],
+          ),
+        ],
+      );
+    });
   }
 
   Widget _summaryCard(String title, int count, IconData icon, Color color) {
@@ -471,7 +476,16 @@ class MarkAttendanceView extends GetView<RegisterCgController> {
         return const ShimmerLoader.table();
       }
 
-      if (controller.activeCgList.isEmpty) {
+      final q = controller.markAttendanceSearch.value.trim().toLowerCase();
+      final cgList = q.isEmpty
+          ? controller.activeCgList
+          : controller.activeCgList.where((cg) {
+              final name = '${cg.hpRegFirstName} ${cg.hpRegLastName}'.toLowerCase();
+              final id = 'hp-${cg.hpRegId.toString().padLeft(3, '0')}';
+              return name.contains(q) || id.contains(q) || cg.hpRegPhoneNumber.contains(q);
+            }).toList();
+
+      if (cgList.isEmpty) {
         return _emptyState();
       }
 
@@ -483,9 +497,9 @@ class MarkAttendanceView extends GetView<RegisterCgController> {
           border: Border.all(color: AppColor.divColor),
         ),
         child: ListView.builder(
-          itemCount: controller.activeCgList.length,
+          itemCount: cgList.length,
           itemBuilder: (context, index) {
-            final cg = controller.activeCgList[index];
+            final cg = cgList[index];
             return _attendanceRow(cg, index);
           },
         ),
@@ -494,15 +508,12 @@ class MarkAttendanceView extends GetView<RegisterCgController> {
   }
 
   Widget _attendanceRow(GetCgDetails cg, int index) {
-    // Init draft entry so state survives list scrolling
-    controller.attendanceDraft.putIfAbsent(cg.hpRegId, () => {
+    final draft = controller.attendanceDraft[cg.hpRegId] ?? {
       'status': 'not_marked',
       'shift_type': 'live_out',
       'check_in': null,
       'check_out': null,
-    });
-
-    final draft = controller.attendanceDraft[cg.hpRegId]!;
+    };
     final attendanceStatus = RxString(draft['status'] as String? ?? 'not_marked');
     final shiftType        = RxString(draft['shift_type'] as String? ?? 'live_out');
     final checkInTime      = Rx<TimeOfDay?>(_parseTime(draft['check_in'] as String?));
@@ -585,15 +596,24 @@ class MarkAttendanceView extends GetView<RegisterCgController> {
         return const ShimmerLoader.cardList();
       }
 
-      if (controller.activeCgList.isEmpty) {
+      final q = controller.markAttendanceSearch.value.trim().toLowerCase();
+      final cgList = q.isEmpty
+          ? controller.activeCgList
+          : controller.activeCgList.where((cg) {
+              final name = '${cg.hpRegFirstName} ${cg.hpRegLastName}'.toLowerCase();
+              final id = 'hp-${cg.hpRegId.toString().padLeft(3, '0')}';
+              return name.contains(q) || id.contains(q) || cg.hpRegPhoneNumber.contains(q);
+            }).toList();
+
+      if (cgList.isEmpty) {
         return _emptyState();
       }
 
       return ListView.separated(
-        itemCount: controller.activeCgList.length,
+        itemCount: cgList.length,
         separatorBuilder: (_, __) => const SizedBox(height: 10),
         itemBuilder: (context, index) {
-          final cg = controller.activeCgList[index];
+          final cg = cgList[index];
           return _attendanceCard(cg, index);
         },
       );
@@ -946,9 +966,13 @@ class MarkAttendanceView extends GetView<RegisterCgController> {
     int present = 0, absent = 0, notMarked = 0;
     for (final cg in controller.activeCgList) {
       final status = draft[cg.hpRegId]?['status'] as String? ?? 'not_marked';
-      if (status == 'present' || status == 'half_day') present++;
-      else if (status == 'absent' || status == 'leave') absent++;
-      else notMarked++;
+      if (status == 'present' || status == 'half_day') {
+        present++;
+      } else if (status == 'absent' || status == 'leave') {
+        absent++;
+      } else {
+        notMarked++;
+      }
     }
     return {'present': present, 'absent': absent, 'notMarked': notMarked};
   }
@@ -960,7 +984,7 @@ class MarkAttendanceView extends GetView<RegisterCgController> {
       TimeOfDay? checkIn,
       TimeOfDay? checkOut) {
     controller.markCgAttendance(
-      bookingId:      0,
+      bookingId:      controller.activeHpBookingIdMap[cg.hpRegId] ?? 0,
       attendanceDate: controller.markAttendanceSelectedDate.value,
       cgId:           cg.hpRegId.toString(),
       invoiceId:      0,
@@ -1038,7 +1062,7 @@ class MarkAttendanceView extends GetView<RegisterCgController> {
                               .firstWhereOrNull((c) => c.hpRegId == hpId);
                           if (cgMatch == null) continue;
                           controller.markCgAttendance(
-                            bookingId:      0,
+                            bookingId:      controller.activeHpBookingIdMap[hpId] ?? 0,
                             attendanceDate: controller.markAttendanceSelectedDate.value,
                             cgId:           hpId.toString(),
                             invoiceId:      0,
@@ -1084,13 +1108,28 @@ class MarkAttendanceView extends GetView<RegisterCgController> {
       '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
 
   Widget _footer() {
-    return Obx(() => Padding(
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          child: Text(
-            'Showing ${controller.activeCgList.length} health professionals',
-            style: AppTextStyles.regular14Gre,
-          ),
-        ));
+    return Obx(() {
+      final q = controller.markAttendanceSearch.value.trim().toLowerCase();
+      final total = controller.activeCgList.length;
+      final showing = q.isEmpty
+          ? total
+          : controller.activeCgList
+              .where((cg) {
+                final name = '${cg.hpRegFirstName} ${cg.hpRegLastName}'.toLowerCase();
+                final id = 'hp-${cg.hpRegId.toString().padLeft(3, '0')}';
+                return name.contains(q) || id.contains(q) || cg.hpRegPhoneNumber.contains(q);
+              })
+              .length;
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        child: Text(
+          q.isEmpty
+              ? 'Showing $total health professionals'
+              : 'Showing $showing of $total health professionals',
+          style: AppTextStyles.regular14Gre,
+        ),
+      );
+    });
   }
 }
 

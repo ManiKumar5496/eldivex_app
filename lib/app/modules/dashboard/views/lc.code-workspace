@@ -5,6 +5,15 @@
 		},
 		{
 			"path": "../../../../../../eldivix_be"
+		},
+		{
+			"path": "../../../../../../test_website"
+		},
+		{
+			"path": "../../../../../../eldivex_client"
+		},
+		{
+			"path": "../../../../../../owner_platform"
 		}
 	],
 	"settings": {}

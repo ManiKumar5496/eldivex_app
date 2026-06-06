@@ -67,7 +67,7 @@ class ManageCgView extends GetView<RegisterCgController> {
             children: [
               Expanded(
                 child: OutlinedButton.icon(
-                  onPressed: () {},
+                  onPressed: () => HelperUi.showToast(message: 'Export feature coming soon'),
                   icon: Icon(Icons.download, size: SizeConfig.iconSM),
                   label: Text(
                     'Export',
@@ -84,7 +84,7 @@ class ManageCgView extends GetView<RegisterCgController> {
               SizedBox(width: SizeConfig.spacingXS),
               Expanded(
                 child: ElevatedButton.icon(
-                  onPressed: () {},
+                  onPressed: () => Get.toNamed(Routes.REGISTER_CG),
                   icon: Icon(
                     Icons.add,
                     color: Colors.white,
@@ -133,7 +133,7 @@ class ManageCgView extends GetView<RegisterCgController> {
         Row(
           children: [
             OutlinedButton.icon(
-              onPressed: () {},
+              onPressed: () => HelperUi.showToast(message: 'Export feature coming soon'),
               icon: Icon(Icons.download, size: SizeConfig.iconSM),
               label: const Text('Export'),
               style: OutlinedButton.styleFrom(
@@ -199,6 +199,7 @@ class ManageCgView extends GetView<RegisterCgController> {
 
   Widget _searchField(String hint) {
     return TextField(
+      onChanged: (v) => controller.searchQueryManageCg.value = v,
       decoration: InputDecoration(
         hintText: hint,
         hintStyle: TextStyle(fontSize: SizeConfig.fontBody),
@@ -429,10 +430,25 @@ class ManageCgView extends GetView<RegisterCgController> {
   List<GetCgDetails> _filteredList() {
     final all = controller.getAllCgData.value;
     final tab = controller.selectedTab.value;
-    if (tab == 'null') return all;
-    final status = int.tryParse(tab);
-    if (status == null) return all;
-    return all.where((e) => e.hpRegStatus == status).toList();
+    final query = controller.searchQueryManageCg.value.trim().toLowerCase();
+
+    List<GetCgDetails> byTab;
+    if (tab == 'null') {
+      byTab = all;
+    } else {
+      final status = int.tryParse(tab);
+      byTab = status == null ? all : all.where((e) => e.hpRegStatus == status).toList();
+    }
+
+    if (query.isEmpty) return byTab;
+    return byTab.where((cg) {
+      final name = '${cg.hpRegFirstName} ${cg.hpRegLastName}'.toLowerCase();
+      final id = 'hp-${cg.hpRegId.toString().padLeft(3, '0')}';
+      return name.contains(query) ||
+          id.contains(query) ||
+          cg.hpRegEmail.toLowerCase().contains(query) ||
+          cg.hpRegPhoneNumber.contains(query);
+    }).toList();
   }
 
   // ═══════════════════════════════════════════════════════════════
@@ -822,7 +838,7 @@ class ManageCgView extends GetView<RegisterCgController> {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
           decoration: BoxDecoration(
-            color: AppColor.cPrimaryButtonColor.withOpacity(0.08),
+            color: AppColor.cPrimaryButtonColor.withValues(alpha:0.08),
             borderRadius: BorderRadius.circular(20),
           ),
           child: Text(

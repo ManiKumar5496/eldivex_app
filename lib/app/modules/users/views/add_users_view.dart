@@ -2,11 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../widgets/common_textfield.dart';
 import '../../../widgets/dropdown_common.dart';
-import '../../../widgets/common_file_upload.dart';
+// import '../../../widgets/common_file_upload.dart';
+import '../../../widgets/helper_ui.dart';
+import '../../../routes/app_pages.dart';
 import '../controllers/users_controller.dart';
 
 class AddUsersView extends GetView<UsersController> {
   const AddUsersView({super.key});
+
+  bool get isEditMode => controller.editingUser.value != null;
 
   @override
   Widget build(BuildContext context) {
@@ -17,21 +21,24 @@ class AddUsersView extends GetView<UsersController> {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () => Get.back(),
+          onPressed: () {
+            controller.clearFilters();
+            HelperUi.safeBack(Routes.MAIN);
+          },
         ),
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'User Management',
-              style: TextStyle(
+            Text(
+              isEditMode ? 'Edit User' : 'User Management',
+              style: const TextStyle(
                 color: Colors.black,
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
               ),
             ),
             Text(
-              'Create or edit user information',
+              isEditMode ? 'Update user information' : 'Create or edit user information',
               style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
             ),
           ],
@@ -154,21 +161,43 @@ class AddUsersView extends GetView<UsersController> {
                 Row(
                   children: [
                     Expanded(
-                      child: Obx(
-                            () => CommonDropdown(
-                          label: 'Branch',
-                          hint: 'Select City',
-                          value: controller.selectedCity.value.isEmpty
-                              ? null
-                              : controller.selectedCity.value,
-                          items: controller.dashboardController.getAllBranches
-                              .map((e) => e.brName)
-                              .toList(),
-                          onChanged: (value) {
-                            controller.selectedCity.value = value!;
-                          },
-                        ),
-                      ),
+                      child: Obx(() => CommonDropdown(
+                        label: 'Gender',
+                        hint: 'Select Gender',
+                        value: controller.userGender.value.isEmpty
+                            ? null
+                            : controller.userGender.value,
+                        items: const ['Male', 'Female', 'Other'],
+                        onChanged: (value) {
+                          controller.userGender.value = value ?? '';
+                        },
+                      )),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+
+                Row(
+                  children: [
+                    Expanded(
+                      child: Obx(() => CommonDropdown(
+                        label: 'Branch',
+                        hint: 'Select Branch',
+                        value: controller.selectedCity.value.isEmpty
+                            ? null
+                            : controller.selectedCity.value,
+                        items: controller.dashboardController.getAllBranches
+                            .map((e) => e.brName)
+                            .toList(),
+                        onChanged: (value) {
+                          controller.selectedCity.value = value ?? '';
+                          final branch = controller.dashboardController
+                              .getAllBranches
+                              .firstWhereOrNull((e) => e.brName == value);
+                          controller.selectedBranchIdForUser.value =
+                              branch?.brId ?? 0;
+                        },
+                      )),
                     ),
                   ],
                 ),
@@ -182,33 +211,28 @@ class AddUsersView extends GetView<UsersController> {
 
                 const SizedBox(height: 32),
 
-                // File Upload Section
-                CommonFileUpload(
-                  label: 'Documents Upload',
-                  hint: 'Click to upload or drag and drop',
-                  supportedFormats: 'PDF, DOC, JPG or PNG (Max 10MB each)',
-                  maxFileSizeMB: 10,
-                  allowMultiple: false,
-                  allowedExtensions: [ 'jpg', 'jpeg', 'png'],
-                  onFilesSelected: (files) {
-                    // Handle file selection
-                    controller.onDocumentsSelected(files);
-                    print('Files selected: ${files.map((f) => f.name).join(', ')}');
-                  },
-                  onFileRemoved: (file) {
-                    // Handle file removal
-                    controller.onDocumentRemoved(file);
-                    print('File removed: ${file.name}');
-                  },
-                ),
+                // CommonFileUpload(
+                //   label: 'Documents Upload',
+                //   hint: 'Click to upload or drag and drop',
+                //   supportedFormats: 'PDF, DOC, JPG or PNG (Max 10MB each)',
+                //   maxFileSizeMB: 10,
+                //   allowMultiple: false,
+                //   allowedExtensions: ['jpg', 'jpeg', 'png'],
+                //   onFilesSelected: (files) {
+                //     controller.onDocumentsSelected(files);
+                //   },
+                //   onFileRemoved: (file) {
+                //     controller.onDocumentRemoved(file);
+                //   },
+                // ),
 
-                const SizedBox(height: 32),
+                // const SizedBox(height: 32),
 
                 Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
                     OutlinedButton(
-                      onPressed: () => Get.back(),
+                      onPressed: () => HelperUi.safeBack(Routes.MAIN),
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 24,
@@ -220,9 +244,11 @@ class AddUsersView extends GetView<UsersController> {
                     const SizedBox(width: 12),
                     ElevatedButton(
                       onPressed: () {
-                        // Handle save logic here
-                        controller.createUser();
-                        print("Saving user...");
+                        if (isEditMode) {
+                          controller.updateUser();
+                        } else {
+                          controller.createUser();
+                        }
                       },
                       style: ElevatedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(
@@ -230,7 +256,21 @@ class AddUsersView extends GetView<UsersController> {
                           vertical: 16,
                         ),
                       ),
-                      child: const Text('Save Changes'),
+                      child: Obx(() {
+                        final loading = isEditMode
+                            ? controller.isUpdateLoading.value
+                            : controller.isCreateLoading.value;
+                        return loading
+                            ? const SizedBox(
+                                height: 18,
+                                width: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                ),
+                              )
+                            : Text(isEditMode ? 'Update User' : 'Save Changes');
+                      }),
                     ),
                   ],
                 ),

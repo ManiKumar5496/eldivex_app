@@ -145,7 +145,7 @@ class _CgReviewDetailScreenState extends State<CgReviewDetailScreen> {
           color: AppColor.whiteColor,
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withValues(alpha:0.05),
               blurRadius: 10,
               offset: const Offset(0, 2),
             ),
@@ -231,7 +231,7 @@ class _CgReviewDetailScreenState extends State<CgReviewDetailScreen> {
         color: AppColor.whiteColor,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha:0.05),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -340,7 +340,7 @@ class _CgReviewDetailScreenState extends State<CgReviewDetailScreen> {
                               vertical: isTablet ? 4 : SizeConfig.blockSizeVertical * 0.5,
                             ),
                             decoration: BoxDecoration(
-                              color: AppColor.cPrimaryButtonColor.withOpacity(0.1),
+                              color: AppColor.cPrimaryButtonColor.withValues(alpha:0.1),
                               borderRadius: BorderRadius.circular(20),
                             ),
                             child: Row(
@@ -378,7 +378,7 @@ class _CgReviewDetailScreenState extends State<CgReviewDetailScreen> {
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                     decoration: BoxDecoration(
-                      color: AppColor.cPrimaryButtonColor.withOpacity(0.1),
+                      color: AppColor.cPrimaryButtonColor.withValues(alpha:0.1),
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Row(
@@ -415,7 +415,7 @@ class _CgReviewDetailScreenState extends State<CgReviewDetailScreen> {
       onTap: hasPhoto ? () => _showImageDialog(cgDetails.hpRegPhoto, 'Profile Photo') : null,
       child: CircleAvatar(
         radius: radius,
-        backgroundColor: AppColor.cPrimaryButtonColor.withOpacity(0.1),
+        backgroundColor: AppColor.cPrimaryButtonColor.withValues(alpha:0.1),
         backgroundImage: hasPhoto ? NetworkImage(cgDetails.hpRegPhoto) : null,
         child: hasPhoto
             ? null
@@ -557,9 +557,9 @@ class _CgReviewDetailScreenState extends State<CgReviewDetailScreen> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.05),
+        color: color.withValues(alpha:0.05),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withOpacity(0.2)),
+        border: Border.all(color: color.withValues(alpha:0.2)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -590,9 +590,16 @@ class _CgReviewDetailScreenState extends State<CgReviewDetailScreen> {
   // ================= LANGUAGES SECTION =================
 
   Widget _buildLanguagesSection(DeviceType deviceType) {
-    final languages = cgDetails.hpRegLanguages.isNotEmpty
+    final controller = Get.find<RegisterCgController>();
+    final rawIds = cgDetails.hpRegLanguages.isNotEmpty
         ? cgDetails.hpRegLanguages.split(',').map((e) => e.trim()).toList()
         : <String>[];
+    final languages = rawIds.map((id) {
+      final match = controller.availableLanguages.firstWhereOrNull(
+        (lang) => lang['id'].toString() == id,
+      );
+      return match != null ? (match['name'] ?? id).toString() : id;
+    }).toList();
 
     return _buildSectionCard(
       title: 'Languages Known',
@@ -605,9 +612,9 @@ class _CgReviewDetailScreenState extends State<CgReviewDetailScreen> {
           return Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
             decoration: BoxDecoration(
-              color: AppColor.cPrimaryButtonColor.withOpacity(0.08),
+              color: AppColor.cPrimaryButtonColor.withValues(alpha:0.08),
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: AppColor.cPrimaryButtonColor.withOpacity(0.2)),
+              border: Border.all(color: AppColor.cPrimaryButtonColor.withValues(alpha:0.2)),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
@@ -744,8 +751,8 @@ class _CgReviewDetailScreenState extends State<CgReviewDetailScreen> {
           ),
           SizedBox(height: isMobile ? 16 : (isTablet ? 16 : SizeConfig.blockSizeVertical * 2)),
           _buildTimelineItem('Application Submitted', _formatDate(cgDetails.hpEffectDate), Icons.file_upload, true, deviceType),
-          _buildTimelineItem('Under Review', 'In Progress', Icons.rate_review, cgDetails.hpRegStatus == 0, deviceType),
-          _buildTimelineItem('Decision Made', cgDetails.hpRegStatus != 0 ? _getHPStatusText(cgDetails.hpRegStatus) : 'Pending', Icons.check_circle, cgDetails.hpRegStatus != 0, deviceType),
+          _buildTimelineItem('Under Review', 'In Progress', Icons.rate_review, cgDetails.hpRegStatus == 1, deviceType),
+          _buildTimelineItem('Decision Made', cgDetails.hpRegStatus > 1 ? _getHPStatusText(cgDetails.hpRegStatus) : 'Pending', Icons.check_circle, cgDetails.hpRegStatus > 1, deviceType),
         ],
       ),
     );
@@ -818,7 +825,7 @@ class _CgReviewDetailScreenState extends State<CgReviewDetailScreen> {
         color: AppColor.whiteColor,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withValues(alpha:0.1),
             blurRadius: 10,
             offset: const Offset(0, -2),
           ),
@@ -982,7 +989,7 @@ class _CgReviewDetailScreenState extends State<CgReviewDetailScreen> {
             width: isMobile ? 48 : 56,
             height: isMobile ? 48 : 56,
             decoration: BoxDecoration(
-              color: hasValidImage ? null : AppColor.cPrimaryButtonColor.withOpacity(0.1),
+              color: hasValidImage ? null : AppColor.cPrimaryButtonColor.withValues(alpha:0.1),
               borderRadius: BorderRadius.circular(8),
               border: Border.all(color: AppColor.divColor),
               image: hasValidImage
@@ -1038,20 +1045,26 @@ class _CgReviewDetailScreenState extends State<CgReviewDetailScreen> {
     late IconData icon;
 
     switch (status) {
-      case 1:
-        bg = AppColor.lightGreen.withOpacity(0.15);
+      case 2:
+        bg = AppColor.lightGreen.withValues(alpha:0.15);
         fg = AppColor.lightGreen;
         text = 'Approved';
         icon = Icons.check_circle;
         break;
-      case 2:
-        bg = Colors.red.withOpacity(0.15);
+      case 3:
+        bg = Colors.red.withValues(alpha:0.15);
         fg = Colors.red;
         text = 'Rejected';
         icon = Icons.cancel;
         break;
+      case 4:
+        bg = Colors.grey.withValues(alpha:0.15);
+        fg = Colors.grey;
+        text = 'Terminated';
+        icon = Icons.block;
+        break;
       default:
-        bg = AppColor.calenderRed.withOpacity(0.15);
+        bg = AppColor.calenderRed.withValues(alpha:0.15);
         fg = AppColor.calenderRed;
         text = isMobile ? 'Pending' : 'Pending Review';
         icon = Icons.access_time;
@@ -1086,20 +1099,26 @@ class _CgReviewDetailScreenState extends State<CgReviewDetailScreen> {
     late IconData icon;
 
     switch (status) {
-      case 1:
-        bg = AppColor.lightGreen.withOpacity(0.15);
+      case 2:
+        bg = AppColor.lightGreen.withValues(alpha:0.15);
         fg = AppColor.lightGreen;
         text = 'Approved';
         icon = Icons.check_circle;
         break;
-      case 2:
-        bg = Colors.red.withOpacity(0.15);
+      case 3:
+        bg = Colors.red.withValues(alpha:0.15);
         fg = Colors.red;
         text = 'Rejected';
         icon = Icons.cancel;
         break;
+      case 4:
+        bg = Colors.grey.withValues(alpha:0.15);
+        fg = Colors.grey;
+        text = 'Terminated';
+        icon = Icons.block;
+        break;
       default:
-        bg = AppColor.calenderRed.withOpacity(0.15);
+        bg = AppColor.calenderRed.withValues(alpha:0.15);
         fg = AppColor.calenderRed;
         text = 'Pending Review';
         icon = Icons.access_time;
@@ -1151,7 +1170,7 @@ class _CgReviewDetailScreenState extends State<CgReviewDetailScreen> {
           Container(
             padding: EdgeInsets.all(isMobile ? 6 : (isTablet ? 8 : SizeConfig.blockSizeHorizontal * 0.8)),
             decoration: BoxDecoration(
-              color: isActive ? AppColor.cPrimaryButtonColor.withOpacity(0.1) : Colors.grey.withOpacity(0.1),
+              color: isActive ? AppColor.cPrimaryButtonColor.withValues(alpha:0.1) : Colors.grey.withValues(alpha:0.1),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Icon(icon, size: isMobile ? 18 : 20, color: isActive ? AppColor.cPrimaryButtonColor : Colors.grey),
@@ -1179,15 +1198,19 @@ class _CgReviewDetailScreenState extends State<CgReviewDetailScreen> {
 
   // ================= HELPER METHODS =================
 
-  /// Returns the HP approval status label (0=Pending, 1=Approved, 2=Rejected).
+  /// Returns the HP approval status label (1=Pending, 2=Approved, 3=Rejected, 4=Terminated).
   String _getHPStatusText(int status) {
     switch (status) {
-      case 1:
-        return 'Approved';
       case 2:
+        return 'Approved';
+      case 3:
         return 'Rejected';
-      default:
+      case 4:
+        return 'Terminated';
+      case 1:
         return 'Pending';
+      default:
+        return 'Inactive';
     }
   }
 
@@ -1296,8 +1319,7 @@ class _CgReviewDetailScreenState extends State<CgReviewDetailScreen> {
           ElevatedButton(
             onPressed: () {
               Get.back();
-              controller.updateCgStatus(cgDetails.hpRegId, 1);
-              Get.back();
+              controller.updateCgStatus(cgDetails.hpRegId, 2, navigateToManageHp: true);
             },
             style: ElevatedButton.styleFrom(backgroundColor: AppColor.lightGreen),
             child: const Text('Approve'),
@@ -1340,8 +1362,7 @@ class _CgReviewDetailScreenState extends State<CgReviewDetailScreen> {
           ElevatedButton(
             onPressed: () {
               Get.back();
-              controller.updateCgStatus(cgDetails.hpRegId, 2);
-              Get.back();
+              controller.updateCgStatus(cgDetails.hpRegId, 3, navigateToManageHp: true);
             },
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             child: const Text('Reject', style: TextStyle(color: Colors.white)),
@@ -1537,12 +1558,14 @@ class _CgReviewDetailScreenState extends State<CgReviewDetailScreen> {
 
   PdfColor _getPdfStatusColor(int status) {
     switch (status) {
-      case 1:
-        return PdfColors.green;
       case 2:
-        return PdfColors.red;
+        return PdfColors.green;   // Approved
+      case 3:
+        return PdfColors.red;     // Rejected
+      case 4:
+        return PdfColors.grey700; // Terminated
       default:
-        return PdfColors.orange;
+        return PdfColors.orange;  // Pending (status 1) or unknown
     }
   }
 

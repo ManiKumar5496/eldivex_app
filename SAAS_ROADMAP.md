@@ -1,5 +1,118 @@
 # Eldivex — SaaS Product Roadmap & Master Context File
 
+---
+
+## 📊 Progress Audit — 2026-05-31
+
+> Audited by Claude Code. Based on actual code read across backend (`eldivix_be/`) and frontend (`eldivex_app/`). All findings verified against source files — no assumptions.
+
+### Overall Completion: **~82%**
+
+Phases 1–5 are fully implemented and verified. Phase 6 is ~40% done — two of its six items (`6.2` AI matching and `6.3` payment reminders) were shipped early as part of Phase 4 and the advanced accounts work. The remaining Phase 6 items (Socket.io, S3, Sentry, email uniqueness) are not yet started.
+
+---
+
+### Feature Status Table
+
+| Feature | Backend | Frontend | DB | Status |
+|---|---|---|---|---|
+| **Phase 1 — Security & Stability** | | | | |
+| JWT secret + env validator | ✅ | ✅ | — | DONE |
+| Rate limiting (auth: 10/15min, general: 200/15min) | ✅ | ✅ | — | DONE |
+| Input validation (Joi) | ✅ | — | — | DONE |
+| extendBooking auto-calculate invoice | ✅ | ✅ | — | DONE |
+| DB migrations — baseline 18 tables | ✅ | — | ✅ | DONE |
+| Transaction wrapping (multi-table ops) | ✅ | — | — | DONE |
+| CORS whitelist + env-based API URLs | ✅ | ✅ | — | DONE |
+| getSupportStats real API | ✅ | ✅ | — | DONE |
+| **Phase 2 — Core Features** | | | | |
+| Email notifications (all 5 triggers) | ✅ | — | — | DONE |
+| SMS/OTP delivery via Fast2SMS | ✅ | — | — | DONE |
+| Forgot password / reset password flow | ✅ | ✅ | — | DONE |
+| Accounts module (receipts, write-offs, statement) | ✅ | ✅ | ✅ | DONE |
+| Service management CRUD | ✅ | ✅ | — | DONE |
+| Branch management CRUD | ✅ | ✅ | — | DONE |
+| HP payout tracking | ✅ | ✅ | ✅ | DONE |
+| **Phase 4 — Advanced Admin** | | | | |
+| Server-side dashboard aggregation (7 parallel queries) | ✅ | ✅ | — | DONE |
+| Audit log (10 mutation sites, paginated viewer) | ✅ | ✅ | ✅ | DONE |
+| Reports (4 types, CSV, weekly email cron) | ✅ | ✅ | — | DONE |
+| HP matching (100-pt scoring, AI Suggested tab) | ✅ | ✅ | — | DONE |
+| **Phase 5 — Multi-tenancy & Subscription** | | | | |
+| org_id on all 27 tables, withOrg/orgQuery helpers | ✅ | — | ✅ | DONE |
+| Subscription plan tiers (Starter/Growth/Enterprise) | ✅ | ✅ | ✅ | DONE |
+| planGate middleware (Reports gated at Growth+) | ✅ | — | — | DONE |
+| Organisations admin panel (superadmin only) | ✅ | ✅ | ✅ | DONE |
+| Subscription status in Settings | ✅ | ✅ | — | DONE |
+| Razorpay billing | — | — | — | 🔒 Deferred |
+| API key management | — | — | — | 🔒 Deferred |
+| **Phase 6 — Intelligence & Scale** | | | | |
+| 6.0 Email uniqueness (UNIQUE constraint decision) | ❌ | — | ❌ | NOT STARTED |
+| 6.1 Socket.io real-time updates | ❌ | ❌ | — | NOT STARTED |
+| 6.2 AI caregiver matching (rule-based scoring) | ✅ | ✅ | — | DONE (shipped in Ph4) |
+| 6.3 Payment reminders (email + SMS cron) | ✅ | — | ✅ | DONE (shipped early) |
+| 6.4 S3 cloud file storage | ❌ | — | — | NOT STARTED |
+| 6.5 Sentry error tracking | ❌ | ❌ | — | NOT STARTED |
+| 6.5 Health endpoint (`GET /health`) | ❌ | — | — | NOT STARTED |
+
+---
+
+### Extra Features Built Beyond Roadmap
+
+These were implemented and are fully functional but do not appear in any phase plan:
+
+- **Advanced Accounts** — credit notes (`edx_credit_notes`), insurance claims (`edx_insurance_claims`), period closing (`edx_period_closing`), revenue recognition, AR aging report, payment links, Razorpay webhook handler — `eldivix_be/controllers/web_app/accountsController.js`, `eldivix_be/routes/accountsRoutes.js`
+- **SaaS Accounts Admin Module** — superadmin billing panel with slug/email availability checks, org usage metrics, subscription history, downgrade viability, SaaS invoice generation and payment — `eldivix_be/routes/saasAccountsRoutes.js`, `eldivex_app/lib/app/modules/saas_accounts/`
+- **4 extra DB migrations** — `20260527_006_accounts_advanced.js`, `20260528_007_services_market_rate.js`, `20260529_006_branch_city_state.js`, `20260530_008_saas_invoices.js`
+
+---
+
+### Critical Fixes Needed
+
+#### 🔴 Critical
+
+| # | Issue | Location | Fix |
+|---|---|---|---|
+| C1 | No `UNIQUE` constraint on `edx_web_app_users.user_email` — login query silently picks lowest-ID row on collision; JWT gets wrong `org_id`, breaking Phase 6 socket rooms | `eldivix_be/migrations/20260524_001_initial_schema.js` | Add new migration with `ALTER TABLE edx_web_app_users ADD UNIQUE INDEX (user_email)` — resolve Option A vs B from roadmap first |
+| C2 | No `GET /api/health` endpoint — load balancers and uptime monitors have no way to verify server is alive | `eldivix_be/index.js` | Add `app.get('/health', (req, res) => res.json({ status: 'ok', uptime: process.uptime() }))` before route registration |
+| C3 | Root-level `userRoutes.js` is stale and unreferenced — has broken import path `../../middlewares/upload`; confusing for anyone reading the codebase | `eldivix_be/userRoutes.js` | Delete the file |
+| C4 | Phase 6.0 email uniqueness not decided or implemented — this is a stated pre-gate for all other Phase 6 work | — | Decide Option A or B (see roadmap §Current State Summary), create migration, start Phase 6 |
+
+#### 🟡 Medium
+
+| # | Issue | Location | Fix |
+|---|---|---|---|
+| M1 | `AuthController` is a scaffold stub with `//TODO: Implement AuthController` — dead code in a production app | `eldivex_app/lib/app/modules/auth/controllers/auth_controller.dart` | Delete or implement; auth logic already lives in `LoginController` + `RoleController` |
+| M2 | Hardcoded plan ID mapping `'Starter' ? 1 : 'Growth' ? 2 : 3` — breaks if plans table IDs change | `eldivex_app/lib/app/modules/organisations/controllers/organisations_controller.dart` ~line 96 | Load plan list from `getPlans()` API and look up ID by name |
+| M3 | Report schedule config (`_scheduleConfig`) stored in-memory — lost on every server restart; scheduled reports stop working silently | `eldivix_be/controllers/web_app/reportsController.js` | Persist to DB table `edx_report_schedules` (add migration); load on startup |
+| M4 | No Sentry — production errors (crashes, unhandled exceptions) have no remote visibility | `eldivix_be/index.js`, `eldivex_app/lib/main.dart` | Add `@sentry/node` to backend; `sentry_flutter` to pubspec; init in both entry points |
+| M5 | Files stored on local disk (`uploads/`) — lost on server restart or redeploy; Phase 6.4 S3 migration not started | `eldivix_be/middlewares/upload.js` | Implement `config/storageProvider.js` abstraction + `multer-s3` for production |
+
+#### 🟢 Minor
+
+| # | Issue | Location |
+|---|---|---|
+| N1 | `console.*` calls throughout controllers — should use `logger.*` from `logger.js` for structured JSON logs | `eldivix_be/controllers/web_app/*.js` |
+| N2 | `upload1.js` appears to be a leftover duplicate upload middleware | `eldivix_be/middlewares/upload1.js` |
+| N3 | `TextEditingController` inflation in `bookings_controller.dart` (70+ controllers, comment mentions prior UI bug) | `eldivex_app/lib/app/modules/bookings/controllers/bookings_controller.dart` ~line 75 |
+
+---
+
+### Recommended Next Steps (Priority Order)
+
+1. **[P0 — Blocker]** Resolve Phase 6.0: decide email uniqueness strategy (Option A is simpler), create the migration, run it. This unlocks all of Phase 6.
+2. **[P0 — Ops]** Add `GET /health` endpoint to `index.js` (5 min, one line).
+3. **[P0 — Cleanup]** Delete `eldivix_be/userRoutes.js` (stale, broken imports).
+4. **[P1 — Stability]** Persist report schedule config to DB so weekly cron survives restarts.
+5. **[P1 — Phase 6]** Install `socket.io` (backend) + `socket_io_client` or `web_socket_channel` (Flutter); implement `socketEmitter.js` + `websocket_service.dart`.
+6. **[P1 — Monitoring]** Add Sentry to both backend and Flutter; add DSNs to `.env` / `--dart-define`.
+7. **[P1 — Storage]** Implement S3 storage provider; run `scripts/migrateFilesToS3.js` for existing uploads.
+8. **[P2 — Quality]** Fix hardcoded plan IDs in `organisations_controller.dart`; delete or implement `auth_controller.dart` stub.
+9. **[P2 — Quality]** Replace `console.*` with `logger.*` across all controllers.
+10. **[P3 — Future]** Once Phase 6 is complete and verified, begin planning Phase 3 (client mobile app).
+
+---
+
 > **How to use this file:** This is the single source of truth for all planned work.  
 > Work **phase by phase** — complete and verify a phase fully before moving to the next.  
 > Before starting any phase, re-read its section and run the verification checklist from the previous phase.  
@@ -682,3 +795,109 @@ All passed — 2026-05-24:
 - [ ] `NODE_ENV=production`
 - [ ] `email_test.js` deleted from repo
 - [ ] `knex migrate:latest` runs clean on production DB
+
+---
+
+## 🔄 Rebrand Audit — 2026-06-01
+
+**Summary:** Complete rename from `thrivewell_client` / `ThriveWell` → `eldivex_client` / `Eldivex` across the Flutter mobile app at `eldivex_client/`.
+
+**Total files changed: 17**
+
+| File | Change |
+|---|---|
+| `pubspec.yaml` | `name: thrivewell_client` → `name: eldivex_client` |
+| `README.md` | Project title updated |
+| `lib/main.dart` | Class `ThriveWellClient` → `EldivexClient`; app title `'ThriveWell'` → `'Eldivex'` |
+| `lib/firebase_options.dart` | `iosBundleId` updated to `com.eldivex.client` |
+| `lib/app/services/razorpay_payment_service.dart` | Brand strings + package import |
+| `lib/app/widgets/payment_gateway_sheeet.dart` | `appSchema` URL (3 occurrences) + package import |
+| `lib/app/modules/home/controllers/service_details_controller.dart` | Package import |
+| `lib/app/modules/home/views/service_details_view.dart` | Package imports (3) |
+| `lib/app/modules/payments/controllers/payments_controller.dart` | Package import |
+| `lib/app/modules/payments/views/payments_view.dart` | Package import |
+| `lib/app/modules/bookings/views/bookings_view.dart` | Package imports (3) |
+| `lib/app/modules/login/views/login_view.dart` | Package import |
+| `lib/app/modules/login/views/otp_screen.dart` | Package import |
+| `lib/app/modules/onboarding/views/onboarding_view.dart` | Package import |
+| `lib/app/services/phone_pe_payment_service.dart` | Package import |
+| `lib/app/widgets/bottom_bar.dart` | Package import |
+| `test/widget_test.dart` | Package import + class name `ThriveWellClient` → `EldivexClient` |
+| `android/app/build.gradle.kts` | `namespace` + `applicationId` → `com.eldivex.client` |
+| `android/app/src/main/AndroidManifest.xml` | `package` + `android:label` → `Eldivex` |
+| `android/app/google-services.json` | `package_name` → `com.eldivex.client` |
+| `android/app/src/main/kotlin/com/eldivex/client/MainActivity.kt` | New file (old `com/thrivewell/` dirs removed) |
+| `ios/Runner/Info.plist` | `CFBundleDisplayName` → `Eldivex`; `CFBundleName` → `eldivex_client` |
+| `ios/Runner.xcodeproj/project.pbxproj` | `PRODUCT_BUNDLE_IDENTIFIER` (6 occurrences) → `com.eldivex.client` |
+
+**Intentionally skipped (Firebase live project IDs — changing would break all backend connections):**
+- `lib/firebase_options.dart` → `projectId: 'thrivewell-e5dab'` and `storageBucket` kept as-is
+- `android/app/google-services.json` → `project_id` and `storage_bucket` kept as-is
+
+**New identifiers after rebrand:**
+- Android package / applicationId: `com.eldivex.client`
+- iOS Bundle Identifier: `com.eldivex.client`
+- Flutter package name: `eldivex_client`
+- App display name (Android + iOS): `Eldivex`
+
+**Post-rebrand verification:**
+- `flutter pub get` — ran successfully ✅
+- Final grep scan for `thrivewell` (excluding Firebase project IDs) — **zero results** ✅
+- iOS `.pbxproj` requires manual Xcode open to confirm bundle ID is reflected in scheme settings
+
+---
+
+## 📱 Mobile App Screen Audit — 2026-06-01
+
+### Screen Status
+
+| Screen / Module | Route | UI | API | Status | Notes |
+|---|---|---|---|---|---|
+| Splash | `SPLASH` | ✅ | — | **DONE** | Token check → login or home |
+| Login | `LOGIN` | ✅ | Partial | **PARTIAL** | Firebase OTP + custom API `/login` endpoint |
+| OTP Screen | `OTPSCREEN` | ✅ | Firebase | **PARTIAL** | Firebase `verifyPhoneNumber` — no backend OTP |
+| Onboarding | `ONBOARDING` | ✅ | ✅ | **DONE** | `PUT /saveUser` with FormData + image upload |
+| Home | `bottomBar` | ✅ | ✅ | **DONE** | `GET /masterServices` + `/masterServicesTypes` |
+| Service Details | `serviceDetailsPage` | ✅ | Via Home | **DONE** | Reads from Home controller's loaded data |
+| Book Service Form | `bookServiceForm` | ✅ | ✅ | **DONE** | `POST /createBooking` — 4 service-specific form variants |
+| Bookings List | `BOOKINGS` | ✅ | ✅ | **DONE** | `GET /getUserBookings` |
+| Booking Detail | `bookingDetailedScreen` | ✅ | — | **DONE** | Display-only from booking list data |
+| Payments | `PAYMENTS` | ✅ | ❌ | **NOT STARTED** | Mock data only — no API endpoints defined |
+| Support | `SUPPORT` | ✅ | ❌ | **NOT STARTED** | Placeholder controller (23 lines, TODO only) |
+| Settings | `SETTINGS` | ✅ | — | **DONE** | Local: language switch + logout |
+
+### API Endpoints Integrated
+
+| Endpoint | Method | Module | Status |
+|---|---|---|---|
+| `/login` | POST | Login | ✅ |
+| `/saveUser` | PUT | Onboarding | ✅ |
+| `/masterServices` | GET | Home | ✅ |
+| `/masterServicesTypes` | GET | Home | ✅ |
+| `/getUserBookings` | GET | Bookings | ✅ |
+| `/createBooking` | POST | Bookings | ✅ |
+| Payments endpoints | — | Payments | ❌ Not defined |
+| Support endpoints | — | Support | ❌ Not defined |
+
+### State Management & Architecture Observations
+
+- **State management**: GetX throughout — consistent ✅
+- **HTTP client**: Dio with Bearer token auth and PrettyDioLogger ✅
+- **Local storage**: GetStorage (token, userId, isNewUser flag) ✅
+- **Authentication**: Firebase for phone OTP → custom backend JWT for subsequent calls ✅
+- **Error handling**: Basic try-catch in all controllers; limited user-facing error detail
+- **Push notifications (FCM)**: `firebase_messaging` **NOT in pubspec.yaml** ❌
+- **No strings.xml**: Android doesn't have `res/values/strings.xml` (app name in manifest only)
+
+### Priority Build List
+
+| Priority | Task |
+|---|---|
+| P0 | Add `firebase_messaging` + FCM setup (token registration, notification handling) |
+| P0 | Payments API — define backend endpoints and wire `/payments`, `/invoices` |
+| P1 | Support module — create ticket API, care manager fetch, form submission |
+| P1 | OTP verification — evaluate moving to backend OTP instead of Firebase (consistency) |
+| P2 | Booking detail — add status-update action (cancel, reschedule) |
+| P2 | Settings → Profile edit screen (currently view-only; `PUT /saveUser` already exists) |
+| P3 | Improve API error messages shown to users (currently generic toast messages) |
+| P3 | Address management (addresses referenced in booking payload but no address screen) |

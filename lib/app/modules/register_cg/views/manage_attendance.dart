@@ -9,11 +9,10 @@ import 'mark_attendance.dart';
 class ManageAttendance extends GetView<RegisterCgController> {
   const ManageAttendance({super.key});
   @override
-  @override
   Widget build(BuildContext context) {
     final data = Get.arguments ?? 0; // Default to 0 if null
-    final cgController = Get.put(RegisterCgController());
-    SizeConfig.init(context); // Initialize screen size config
+    Get.put(RegisterCgController());
+    SizeConfig.init(context);
 
     return DefaultTabController(
       initialIndex: data, // Start with the first tab

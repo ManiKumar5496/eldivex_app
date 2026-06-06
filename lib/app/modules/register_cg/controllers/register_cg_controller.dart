@@ -4,7 +4,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:get/get.dart';
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart' as dio;
-import 'package:image_picker/image_picker.dart';
+
 import 'package:intl/intl.dart';
 import 'package:eldivex_app/app/routes/app_pages.dart';
 
@@ -13,6 +13,7 @@ import '../../../data/api_constant_url.dart';
 import '../../../data/base_api_services.dart';
 import '../../../widgets/helper_ui.dart';
 import '../models/get_cg_details_model.dart';
+import '../../bookings/models/get_booking_hp_model.dart';
 import '../../dashboard/controllers/dashboard_controller.dart';
 
 class RegisterCgController extends GetxController {
@@ -71,10 +72,23 @@ class RegisterCgController extends GetxController {
   RxBool isAttendanceListLoading = false.obs;
   RxList<dynamic> attendanceList = <dynamic>[].obs;
   final RxMap<int, Map<String, dynamic>> attendanceDraft = <int, Map<String, dynamic>>{}.obs;
+
+  // hpRegId → bkngId for active (status=4) HP assignments
+  final RxMap<int, int> activeHpBookingIdMap = <int, int>{}.obs;
+  // hpRegId → {in_time, out_time} from the booking assignment
+  final RxMap<int, Map<String, String?>> activeHpShiftMap = <int, Map<String, String?>>{}.obs;
   Rx<DateTime> markAttendanceSelectedDate = DateTime.now().obs;
   final RxInt currentPage = 0.obs;
   final RxInt rowsPerPage = 20.obs;
   final RxString selectedTab = 'null'.obs;  // 'null' = All
+
+  // ── Search / Filter State ────────────────────────────────────────────────
+  final RxString searchQueryManageCg = ''.obs;
+  final RxString attendanceStatusFilter = 'all'.obs;
+  final RxString attendanceFilterType = 'date'.obs;
+  final Rx<DateTime> attendanceFilterDate = DateTime.now().obs;
+  final Rx<DateTime> attendanceFilterMonth = DateTime.now().obs;
+  final RxString markAttendanceSearch = ''.obs;
 
   /// FILE UPLOAD
   final RxList<PlatformFile> hpUploadedDocuments = <PlatformFile>[].obs;
@@ -139,9 +153,10 @@ class RegisterCgController extends GetxController {
     }
   }
 
-  /// FILTERED LIST — only CGs with status 5
-  List<GetCgDetails> get activeCgList =>
-      getAllCgData.value.where((cg) => cg.hpRegStatus == 5).toList();
+  /// Only HPs with an active booking assignment (status=4 in edx_booking_hp)
+  List<GetCgDetails> get activeCgList => getAllCgData.value
+      .where((cg) => activeHpBookingIdMap.containsKey(cg.hpRegId))
+      .toList();
 
   /// LIFECYCLE
   @override
@@ -211,13 +226,60 @@ class RegisterCgController extends GetxController {
           ApiConstants.getHp,
           (json) => GetCgDetails.fromJson(json),
         )
-        .then((result) {
+        .then((result) async {
           getAllCgData.value = result ?? [];
+          await fetchActiveHpBookings();
         })
         .catchError((e) {
           debugPrint("Get HP error: $e");
+          _initAttendanceDrafts();
         })
         .whenComplete(() => getAllCGLoading.value = false);
+  }
+
+  Future<void> fetchActiveHpBookings() async {
+    try {
+      final result = await apiService.getList<GetBookingHpModel>(
+        '${ApiConstants.getBookingsHpApi}?status=4',
+        (json) => GetBookingHpModel.fromJson(json),
+      );
+      if (result != null) {
+        for (final hp in result) {
+          final regId = hp.hpRegId;
+          if (regId == null || regId == 0) continue;
+          activeHpBookingIdMap[regId] = hp.bkngId;
+          activeHpShiftMap[regId] = {
+            'in_time': _trimToHHMM(hp.inTime),
+            'out_time': _trimToHHMM(hp.outTime),
+          };
+        }
+      }
+    } catch (e) {
+      debugPrint('fetchActiveHpBookings error: $e');
+    }
+    _initAttendanceDrafts();
+  }
+
+  /// Trims "HH:MM:SS" → "HH:MM" so _parseTime in the view can parse it.
+  String? _trimToHHMM(String? t) {
+    if (t == null || t.isEmpty) return null;
+    final parts = t.split(':');
+    if (parts.length < 2) return null;
+    return '${parts[0]}:${parts[1]}';
+  }
+
+  void _initAttendanceDrafts() {
+    for (final cg in activeCgList) {
+      if (!attendanceDraft.containsKey(cg.hpRegId)) {
+        final shift = activeHpShiftMap[cg.hpRegId];
+        attendanceDraft[cg.hpRegId] = {
+          'status': 'present',
+          'shift_type': 'live_out',
+          'check_in': shift?['in_time'],
+          'check_out': shift?['out_time'],
+        };
+      }
+    }
   }
 
   /// VALIDATE MANDATORY FIELDS
@@ -315,8 +377,7 @@ class RegisterCgController extends GetxController {
         "hp_reg_city": hpCity.value,
         "hp_reg_state": hpState.value,
         "hp_reg_pin_code": hpPinCodeController.text.trim(),
-        "hp_reg_emergency_contact_phone": hpEmergencyPhoneController.text
-            .trim(),
+        "hp_reg_emergency_contact_phone": hpEmergencyPhoneController.text.trim(),
         "hp_reg_languages": hpSelectedLanguageIds.join(','),
         "hp_reg_branch_id": _branchNameToId(hpBranchId.value),
         "hp_reg_marital_status": _maritalStatusToId(hpMaritalStatus.value),
@@ -325,14 +386,14 @@ class RegisterCgController extends GetxController {
         "hp_reg_father_occupation": hpFatherOccupationController.text.trim(),
         "hp_reg_mother_name": hpMotherNameController.text.trim(),
         "hp_reg_identity_proof_type": hpIdentityProofType.value,
-        "hp_reg_identity_proof_number": hpIdentityProofNumberController.text
-            .trim(),
+        "hp_reg_identity_proof_number": hpIdentityProofNumberController.text.trim(),
         "hp_reg_education": hpEducation.value,
         "livein_pay": liveInPayController.text.trim(),
         "liveout_pay": liveOutPayController.text.trim(),
         "monthly_livein_pay": monthlyLiveInPayController.text.trim(),
         "monthly_liveout_pay": monthlyLiveOutPayController.text.trim(),
         "hp_effect_date": DateTime.now().toIso8601String(),
+        "org_id": box.read("org_id") ?? 1,
       });
 
       if (hpUploadedDocuments.isNotEmpty) {
@@ -386,6 +447,9 @@ class RegisterCgController extends GetxController {
         HelperUi.showToast(message: "Health Professional Created Successfully");
         clearFilters();
         getAllCgFromApi();
+        // Jump to Manage HP page (index saved by SideMenuWidgetView when built)
+        final targetIndex = box.read<int>('manage_hp_page_index') ?? 0;
+        box.write('selected_page_index', targetIndex);
         Get.offAllNamed(Routes.MAIN);
       } else {
         HelperUi.showToast(
@@ -434,7 +498,7 @@ class RegisterCgController extends GetxController {
   }
 
 
-  void updateCgStatus( int cgId,int status) {
+  void updateCgStatus(int cgId, int status, {bool navigateToManageHp = false}) {
     manageCgStatusLoading.value = true;
 
     apiService
@@ -452,20 +516,17 @@ class RegisterCgController extends GetxController {
       debugPrint("Response from updateCgStatus: $responseData");
 
       if (response.statusCode == 200) {
-        if (statusMessage == 'Updated successfully.') {
-          HelperUi.showToast(message: "Health Professional status updated successfully.");
-                  onInit();
-
-        } else {
-          HelperUi.showToast(message: statusMessage);
+        HelperUi.showToast(message: "Health Professional status updated successfully.");
+        getAllCgFromApi();
+        if (navigateToManageHp) {
+          final targetIndex = box.read<int>('manage_hp_page_index') ?? 0;
+          box.write('selected_page_index', targetIndex);
+          Get.offAllNamed(Routes.MAIN);
         }
-        onInit();
       } else if (response.statusCode == 401) {
-        HelperUi.showToast(
-            message: "Unauthorized access. Please log in again.");
+        HelperUi.showToast(message: "Unauthorized access. Please log in again.");
       } else {
-        HelperUi.showToast(
-            message: "Failed to update status. Status: ${response.statusCode}");
+        HelperUi.showToast(message: statusMessage);
       }
     }).catchError((error) {
       manageCgStatusLoading.value = false;
@@ -502,19 +563,27 @@ class RegisterCgController extends GetxController {
     };
 
     final body = <String, dynamic>{
-      'booking_id':  bookingId.toString(),
-      'inv_id':      invoiceId.toString(),
+      'booking_id':  bookingId == 0 ? '0' : bookingId.toString(),
+      'inv_id':      invoiceId == 0 ? '0' : invoiceId.toString(),
       'from_date':   DateFormat('yyyy-MM-dd').format(attendanceDate),
       'att_details': jsonEncode(attDetails),
       'hp_id':       cgId,
     };
 
     try {
-      await apiService.postRaw(ApiConstants.markCgAttendance, body);
-      HelperUi.showToast(message: 'Attendance marked successfully');
+      final resp = await apiService.postRaw(ApiConstants.markCgAttendance, body);
+      if (resp != null && resp.statusCode == 201) {
+        HelperUi.showToast(message: 'Attendance marked successfully');
+        getAttendanceListFromApi();
+      } else {
+        final msg = resp?.data?['error'] ?? resp?.data?['message'] ?? 'Unknown error';
+        HelperUi.showToast(
+            message: 'Failed: $msg', backgroundColor: Colors.red);
+      }
     } catch (e) {
+      debugPrint('markCgAttendance error: $e');
       HelperUi.showToast(
-          message: 'Attendance marking failed: $e',
+          message: 'Attendance marking failed. Check logs.',
           backgroundColor: Colors.red);
     } finally {
       isMarkCgAttendanceLoading.value = false;

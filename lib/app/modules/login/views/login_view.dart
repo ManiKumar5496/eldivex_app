@@ -34,8 +34,8 @@ class LoginView extends GetView<LoginController> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 SizedBox(
-                  width: 80,
-                  height: 80,
+                  width: 120,
+                  height: 120,
                   child: Center(
                     child: Image.asset("assets/images/e_logo.png"),
                   ),
@@ -74,7 +74,7 @@ class LoginView extends GetView<LoginController> {
                         prefixIcon: const Icon(
                           Icons.email_outlined,
                           color: Color(0xFF9CA3AF),
-                          size: 20,
+                          size: 24,
                         ),
                         filled: true,
                         fillColor: const Color(0xFFF9FAFB),
@@ -132,7 +132,7 @@ class LoginView extends GetView<LoginController> {
                           prefixIcon: const Icon(
                             Icons.lock_outline,
                             color: Color(0xFF9CA3AF),
-                            size: 20,
+                            size: 24,
                           ),
                           suffixIcon: IconButton(
                             icon: Icon(
@@ -140,7 +140,7 @@ class LoginView extends GetView<LoginController> {
                                   ? Icons.visibility_outlined
                                   : Icons.visibility_off_outlined,
                               color: const Color(0xFF9CA3AF),
-                              size: 20,
+                              size: 24,
                             ),
                             onPressed: () {
                               controller.isPasswordHidden.value =
@@ -200,25 +200,82 @@ class LoginView extends GetView<LoginController> {
                 ),
                 const SizedBox(height: 24),
 
-                // Login Button
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      controller.login(
-                        controller.emailController.value.text,
-                        controller.passwordController.value.text,
-                      );
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColor.cPrimaryButtonColor,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      elevation: 0,
+                // Inline error banner
+                Obx(() {
+                  final err = controller.loginError.value;
+                  if (err.isEmpty) return const SizedBox.shrink();
+                  return Container(
+                    width: double.infinity,
+                    margin: const EdgeInsets.only(bottom: 16),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 12,
                     ),
-                    child: Text('Login', style: AppTextStyles.regular14white),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFEF2F2),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: const Color(0xFFFCA5A5)),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Icon(
+                          Icons.error_outline,
+                          color: Color(0xFFDC2626),
+                          size: 20,
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            err,
+                            style: const TextStyle(
+                              color: Color(0xFFDC2626),
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }),
+
+                // Login Button
+                Obx(
+                  () => SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: controller.isLoginLoading.value
+                          ? null
+                          : () {
+                              controller.login(
+                                controller.emailController.value.text,
+                                controller.passwordController.value.text,
+                              );
+                            },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColor.cPrimaryButtonColor,
+                        disabledBackgroundColor:
+                            AppColor.cPrimaryButtonColor.withValues(alpha: 0.7),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        elevation: 0,
+                      ),
+                      child: controller.isLoginLoading.value
+                          ? const SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  Colors.white,
+                                ),
+                              ),
+                            )
+                          : Text('Login', style: AppTextStyles.regular14white),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 24),
