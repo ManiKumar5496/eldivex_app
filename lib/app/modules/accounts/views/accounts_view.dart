@@ -55,7 +55,12 @@ class AccountsView extends GetView<AccountsController> {
 
   Widget _buildHeader(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
+      padding: EdgeInsets.fromLTRB(
+        SizeConfig.pagePadding.left,
+        SizeConfig.spacingMD,
+        SizeConfig.pagePadding.right,
+        0,
+      ),
       decoration: BoxDecoration(
         color: AppColor.whiteColor,
         boxShadow: [
@@ -69,52 +74,99 @@ class AccountsView extends GetView<AccountsController> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ── Title row + KPI stats + Period Close ──
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Accounts', style: AppTextStyles.heading),
-              const SizedBox(width: 16),
-              _buildPeriodCloseButton(context),
-              const Spacer(),
-              _buildKpiStats(),
-            ],
-          ),
-          const SizedBox(height: 16),
-          // ── Tabs ──
-          TabBar(
-            labelColor: AppColor.cPrimaryButtonColor,
-            unselectedLabelColor: AppColor.fontColorGrey,
-            indicatorColor: AppColor.cPrimaryButtonColor,
-            indicatorWeight: 3,
-            isScrollable: true,
-            tabAlignment: TabAlignment.start,
-            labelStyle: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-            ),
-            unselectedLabelStyle: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w400,
-            ),
-            tabs: const [
-              Tab(text: 'Active Clients'),
-              Tab(text: 'Invoices'),
-              Tab(text: 'Provisional Receipts'),
-              Tab(text: 'Client Statements'),
-              Tab(text: 'Write-Off'),
-              Tab(text: 'Credit Notes'),
-              Tab(text: 'Insurance Claims'),
-              Tab(text: 'Revenue Recognition'),
-            ],
-          ),
+          SizeConfig.isMobile
+              ? _buildMobileHeaderTop(context)
+              : _buildDesktopHeaderTop(context),
+          SizedBox(height: SizeConfig.spacingMD),
+          _buildTabBar(),
         ],
       ),
     );
   }
 
+  // Mobile: title + period-close icon | KPI horizontal scroll below
+  Widget _buildMobileHeaderTop(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Text('Accounts',
+                style: TextStyle(
+                    fontSize: SizeConfig.fontH2,
+                    fontWeight: FontWeight.w700,
+                    color: AppColor.cPrimaryHeadingColor)),
+            const Spacer(),
+            _buildPeriodCloseButton(context),
+          ],
+        ),
+        SizedBox(height: SizeConfig.spacingSM),
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: _buildKpiStats(),
+        ),
+      ],
+    );
+  }
+
+  // Tablet/Desktop: Row(title + period-close + Spacer + KPI Wrap)
+  Widget _buildDesktopHeaderTop(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Accounts', style: AppTextStyles.heading),
+        SizedBox(width: SizeConfig.spacingMD),
+        _buildPeriodCloseButton(context),
+        const Spacer(),
+        _buildKpiStats(),
+      ],
+    );
+  }
+
+  Widget _buildTabBar() {
+    final tabLabels = SizeConfig.isMobile
+        ? const [
+            'Clients',
+            'Invoices',
+            'Receipts',
+            'Statements',
+            'Write-Off',
+            'Credits',
+            'Insurance',
+            'Revenue',
+          ]
+        : const [
+            'Active Clients',
+            'Invoices',
+            'Provisional Receipts',
+            'Client Statements',
+            'Write-Off',
+            'Credit Notes',
+            'Insurance Claims',
+            'Revenue Recognition',
+          ];
+
+    return TabBar(
+      labelColor: AppColor.cPrimaryButtonColor,
+      unselectedLabelColor: AppColor.fontColorGrey,
+      indicatorColor: AppColor.cPrimaryButtonColor,
+      indicatorWeight: 3,
+      isScrollable: true,
+      tabAlignment: TabAlignment.start,
+      labelStyle: TextStyle(
+        fontSize: SizeConfig.fontBody,
+        fontWeight: FontWeight.w600,
+      ),
+      unselectedLabelStyle: TextStyle(
+        fontSize: SizeConfig.fontBody,
+        fontWeight: FontWeight.w400,
+      ),
+      tabs: tabLabels.map((l) => Tab(text: l)).toList(),
+    );
+  }
+
   // ─────────────────────────────────────────────
-  // KPI stats — wired to real controller data
+  // KPI stats
   // ─────────────────────────────────────────────
   Widget _buildKpiStats() {
     return Obx(() {
@@ -123,10 +175,10 @@ class AccountsView extends GetView<AccountsController> {
           children: List.generate(
             4,
             (_) => Padding(
-              padding: const EdgeInsets.only(left: 12),
+              padding: EdgeInsets.only(left: SizeConfig.spacingSM),
               child: Container(
-                width: 130,
-                height: 56,
+                width: 120,
+                height: 52,
                 decoration: BoxDecoration(
                   color: Colors.grey.shade100,
                   borderRadius: BorderRadius.circular(10),
@@ -137,8 +189,8 @@ class AccountsView extends GetView<AccountsController> {
         );
       }
       return Wrap(
-        spacing: 10,
-        runSpacing: 8,
+        spacing: SizeConfig.spacingSM,
+        runSpacing: SizeConfig.spacingXS,
         children: [
           _kpiCard(
             label: 'Total Outstanding',
@@ -179,7 +231,8 @@ class AccountsView extends GetView<AccountsController> {
     String? subtitle,
   }) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      padding: EdgeInsets.symmetric(
+          horizontal: SizeConfig.spacingMD, vertical: SizeConfig.spacingXS),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.07),
         borderRadius: BorderRadius.circular(10),
@@ -188,23 +241,25 @@ class AccountsView extends GetView<AccountsController> {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 18, color: color),
-          const SizedBox(width: 8),
+          Icon(icon, size: SizeConfig.iconSM, color: color),
+          SizedBox(width: SizeConfig.spacingXS),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(label,
                   style: TextStyle(
-                      fontSize: 11, color: Colors.grey.shade600)),
+                      fontSize: SizeConfig.fontCaption,
+                      color: Colors.grey.shade600)),
               Text(value,
                   style: TextStyle(
-                      fontSize: 16,
+                      fontSize: SizeConfig.fontBody,
                       fontWeight: FontWeight.w700,
                       color: color)),
               if (subtitle != null)
                 Text(subtitle,
                     style: TextStyle(
-                        fontSize: 10, color: Colors.grey.shade500)),
+                        fontSize: SizeConfig.fontCaption,
+                        color: Colors.grey.shade500)),
             ],
           ),
         ],
@@ -213,20 +268,37 @@ class AccountsView extends GetView<AccountsController> {
   }
 
   // ─────────────────────────────────────────────
-  // Period Close button + dialog
+  // Period Close button
   // ─────────────────────────────────────────────
   Widget _buildPeriodCloseButton(BuildContext context) {
     final now = DateTime.now();
     return Obx(() {
       final isClosed = controller.isPeriodClosed(now.month, now.year);
+      if (SizeConfig.isMobile) {
+        return Tooltip(
+          message: isClosed
+              ? 'Period ${now.month}/${now.year} is closed'
+              : 'Close period ${now.month}/${now.year}',
+          child: IconButton(
+            onPressed:
+                isClosed ? null : () => _showPeriodCloseDialog(context),
+            icon: Icon(
+              isClosed ? Icons.lock : Icons.lock_open,
+              size: SizeConfig.iconMD,
+              color: isClosed ? Colors.grey : Colors.indigo,
+            ),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
+          ),
+        );
+      }
       return Tooltip(
         message: isClosed
             ? 'Period ${now.month}/${now.year} is closed'
             : 'Close current period (${now.month}/${now.year})',
         child: OutlinedButton.icon(
-          onPressed: isClosed
-              ? null
-              : () => _showPeriodCloseDialog(context),
+          onPressed:
+              isClosed ? null : () => _showPeriodCloseDialog(context),
           icon: Icon(
             isClosed ? Icons.lock : Icons.lock_open,
             size: 15,
@@ -235,7 +307,7 @@ class AccountsView extends GetView<AccountsController> {
           label: Text(
             isClosed ? 'Period Closed' : 'Close Period',
             style: TextStyle(
-              fontSize: 13,
+              fontSize: SizeConfig.fontBodySmall,
               color: isClosed ? Colors.grey : Colors.indigo,
             ),
           ),
@@ -245,8 +317,8 @@ class AccountsView extends GetView<AccountsController> {
                   ? Colors.grey.shade300
                   : Colors.indigo.withValues(alpha: 0.4),
             ),
-            padding:
-                const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            padding: EdgeInsets.symmetric(
+                horizontal: SizeConfig.spacingSM, vertical: SizeConfig.spacingXS),
             shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8)),
           ),
@@ -268,30 +340,32 @@ class AccountsView extends GetView<AccountsController> {
     Get.dialog(
       StatefulBuilder(
         builder: (ctx, setState) => AlertDialog(
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16)),
           title: Row(
             children: [
               const Icon(Icons.lock_clock, color: Colors.indigo, size: 22),
               const SizedBox(width: 8),
-              Text(
-                'Close Financial Period',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: AppColor.cPrimaryHeadingColor,
+              Expanded(
+                child: Text(
+                  'Close Financial Period',
+                  style: TextStyle(
+                    fontSize: SizeConfig.fontBody,
+                    fontWeight: FontWeight.w600,
+                    color: AppColor.cPrimaryHeadingColor,
+                  ),
                 ),
               ),
             ],
           ),
           content: SizedBox(
-            width: 380,
+            width: SizeConfig.isMobile ? double.maxFinite : 380,
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Container(
-                  padding: const EdgeInsets.all(12),
+                  padding: EdgeInsets.all(SizeConfig.spacingSM),
                   decoration: BoxDecoration(
                     color: Colors.amber.shade50,
                     borderRadius: BorderRadius.circular(8),
@@ -302,21 +376,21 @@ class AccountsView extends GetView<AccountsController> {
                     children: [
                       Icon(Icons.warning_amber,
                           color: Colors.amber.shade700, size: 18),
-                      const SizedBox(width: 8),
+                      SizedBox(width: SizeConfig.spacingXS),
                       Expanded(
                         child: Text(
                           'Closing a period locks all invoices and receipts '
                           'for that month. No backdated entries will be '
                           'allowed. This action cannot be undone.',
                           style: TextStyle(
-                              fontSize: 12,
+                              fontSize: SizeConfig.fontBodySmall,
                               color: Colors.amber.shade900),
                         ),
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(height: 20),
+                SizedBox(height: SizeConfig.spacingLG),
                 Row(
                   children: [
                     Expanded(
@@ -325,14 +399,14 @@ class AccountsView extends GetView<AccountsController> {
                         children: [
                           Text('Month',
                               style: TextStyle(
-                                  fontSize: 13,
+                                  fontSize: SizeConfig.fontBodySmall,
                                   fontWeight: FontWeight.w500,
                                   color: AppColor.cPrimarySubHeadingColorGrey)),
-                          const SizedBox(height: 6),
+                          SizedBox(height: SizeConfig.spacingXS),
                           Container(
                             height: 44,
-                            padding:
-                                const EdgeInsets.symmetric(horizontal: 12),
+                            padding: EdgeInsets.symmetric(
+                                horizontal: SizeConfig.spacingSM),
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(10),
                               border: Border.all(
@@ -347,7 +421,8 @@ class AccountsView extends GetView<AccountsController> {
                                   (i) => DropdownMenuItem(
                                     value: i + 1,
                                     child: Text(months[i],
-                                        style: const TextStyle(fontSize: 13)),
+                                        style: TextStyle(
+                                            fontSize: SizeConfig.fontBodySmall)),
                                   ),
                                 ),
                                 onChanged: (v) =>
@@ -358,21 +433,21 @@ class AccountsView extends GetView<AccountsController> {
                         ],
                       ),
                     ),
-                    const SizedBox(width: 12),
+                    SizedBox(width: SizeConfig.spacingSM),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text('Year',
                               style: TextStyle(
-                                  fontSize: 13,
+                                  fontSize: SizeConfig.fontBodySmall,
                                   fontWeight: FontWeight.w500,
                                   color: AppColor.cPrimarySubHeadingColorGrey)),
-                          const SizedBox(height: 6),
+                          SizedBox(height: SizeConfig.spacingXS),
                           Container(
                             height: 44,
-                            padding:
-                                const EdgeInsets.symmetric(horizontal: 12),
+                            padding: EdgeInsets.symmetric(
+                                horizontal: SizeConfig.spacingSM),
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(10),
                               border: Border.all(
@@ -386,8 +461,9 @@ class AccountsView extends GetView<AccountsController> {
                                     .map((y) => DropdownMenuItem(
                                           value: y,
                                           child: Text('$y',
-                                              style: const TextStyle(
-                                                  fontSize: 13)),
+                                              style: TextStyle(
+                                                  fontSize:
+                                                      SizeConfig.fontBodySmall)),
                                         ))
                                     .toList(),
                                 onChanged: (v) =>
@@ -400,8 +476,7 @@ class AccountsView extends GetView<AccountsController> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 16),
-                // Closed periods indicator
+                SizedBox(height: SizeConfig.spacingMD),
                 Obx(() {
                   if (controller.closedPeriods.isEmpty) {
                     return const SizedBox.shrink();
@@ -411,8 +486,9 @@ class AccountsView extends GetView<AccountsController> {
                     children: [
                       Text('Already closed:',
                           style: TextStyle(
-                              fontSize: 12, color: AppColor.fontColorGrey)),
-                      const SizedBox(height: 6),
+                              fontSize: SizeConfig.fontBodySmall,
+                              color: AppColor.fontColorGrey)),
+                      SizedBox(height: SizeConfig.spacingXS),
                       Wrap(
                         spacing: 6,
                         runSpacing: 4,
@@ -425,12 +501,11 @@ class AccountsView extends GetView<AccountsController> {
                             decoration: BoxDecoration(
                               color: Colors.grey.shade100,
                               borderRadius: BorderRadius.circular(20),
-                              border:
-                                  Border.all(color: Colors.grey.shade300),
+                              border: Border.all(color: Colors.grey.shade300),
                             ),
                             child: Text('$m/$y',
-                                style: const TextStyle(
-                                    fontSize: 11,
+                                style: TextStyle(
+                                    fontSize: SizeConfig.fontCaption,
                                     color: Colors.grey)),
                           );
                         }).toList(),
@@ -492,14 +567,18 @@ class AccountsView extends GetView<AccountsController> {
                   children: [
                     Icon(Icons.people_outline,
                         size: 64, color: Colors.grey.shade300),
-                    const SizedBox(height: 12),
+                    SizedBox(height: SizeConfig.spacingSM),
                     Text('No active clients found',
                         style: AppTextStyles.regular16Gre),
                   ],
                 ),
               );
             }
-            return _buildClientTable();
+            return SizeConfig.adaptiveLayout(
+              mobile: _buildMobileClientList(),
+              tablet: _buildScrollableClientTable(),
+              desktop: _buildScrollableClientTable(),
+            );
           }),
         ),
       ],
@@ -508,7 +587,7 @@ class AccountsView extends GetView<AccountsController> {
 
   Widget _buildClientSearchBar() {
     return Padding(
-      padding: const EdgeInsets.all(20),
+      padding: SizeConfig.pagePadding,
       child: Row(
         children: [
           Expanded(
@@ -522,26 +601,29 @@ class AccountsView extends GetView<AccountsController> {
               child: TextField(
                 controller: controller.searchClientController,
                 onChanged: controller.searchClients,
-                style: const TextStyle(fontSize: 14),
+                style: TextStyle(fontSize: SizeConfig.fontBody),
                 decoration: InputDecoration(
-                  hintText:
-                      'Search by client name, mobile, patient, booking ID...',
+                  hintText: SizeConfig.isMobile
+                      ? 'Search clients...'
+                      : 'Search by client name, mobile, patient, booking ID...',
                   hintStyle: TextStyle(
-                      color: AppColor.fontColorGrey, fontSize: 14),
+                      color: AppColor.fontColorGrey,
+                      fontSize: SizeConfig.fontBody),
                   prefixIcon: Icon(Icons.search,
-                      color: AppColor.fontColorGrey, size: 20),
+                      color: AppColor.fontColorGrey, size: SizeConfig.iconMD),
                   border: InputBorder.none,
                   contentPadding: const EdgeInsets.symmetric(vertical: 12),
                 ),
               ),
             ),
           ),
-          const SizedBox(width: 12),
+          SizedBox(width: SizeConfig.spacingSM),
           InkWell(
             onTap: () => controller.isFilterVisible.toggle(),
+            borderRadius: BorderRadius.circular(12),
             child: Container(
               height: 44,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
+              padding: EdgeInsets.symmetric(horizontal: SizeConfig.spacingMD),
               decoration: BoxDecoration(
                 color: AppColor.whiteColor,
                 borderRadius: BorderRadius.circular(12),
@@ -550,11 +632,14 @@ class AccountsView extends GetView<AccountsController> {
               child: Row(
                 children: [
                   Icon(Icons.filter_list,
-                      color: AppColor.cPrimaryButtonColor, size: 20),
-                  const SizedBox(width: 8),
-                  Text('Filters',
-                      style: TextStyle(
-                          color: AppColor.cPrimaryButtonColor, fontSize: 14)),
+                      color: AppColor.cPrimaryButtonColor, size: SizeConfig.iconMD),
+                  if (!SizeConfig.isMobile) ...[
+                    SizedBox(width: SizeConfig.spacingXS),
+                    Text('Filters',
+                        style: TextStyle(
+                            color: AppColor.cPrimaryButtonColor,
+                            fontSize: SizeConfig.fontBody)),
+                  ],
                 ],
               ),
             ),
@@ -566,122 +651,361 @@ class AccountsView extends GetView<AccountsController> {
 
   Widget _buildClientFilters() {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20),
-      padding: const EdgeInsets.all(16),
+      margin: EdgeInsets.symmetric(horizontal: SizeConfig.pagePadding.left),
+      padding: SizeConfig.cardPadding,
       decoration: BoxDecoration(
         color: AppColor.whiteColor,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: Colors.grey.shade200),
       ),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: CommonTextField(
-                  label: 'Booking ID',
-                  hint: 'Enter booking ID',
-                  controller: controller.filterBookingIdController,
+      child: SizeConfig.isMobile
+          ? _buildMobileFilters()
+          : _buildDesktopFilters(),
+    );
+  }
+
+  Widget _buildMobileFilters() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        CommonTextField(
+          label: 'Booking ID',
+          hint: 'Enter booking ID',
+          controller: controller.filterBookingIdController,
+        ),
+        SizedBox(height: SizeConfig.spacingSM),
+        CommonTextField(
+          label: 'Client Name',
+          hint: 'Enter client name',
+          controller: controller.filterClientNameController,
+        ),
+        SizedBox(height: SizeConfig.spacingSM),
+        CommonTextField(
+          label: 'Mobile',
+          hint: 'Enter mobile number',
+          controller: controller.filterMobileController,
+        ),
+        SizedBox(height: SizeConfig.spacingSM),
+        Text('Status',
+            style: TextStyle(
+                fontSize: SizeConfig.fontBodySmall,
+                fontWeight: FontWeight.w500,
+                color: AppColor.cPrimarySubHeadingColorGrey)),
+        SizedBox(height: SizeConfig.spacingXS),
+        Obx(() => Container(
+              height: 44,
+              padding: EdgeInsets.symmetric(horizontal: SizeConfig.spacingSM),
+              decoration: BoxDecoration(
+                color: AppColor.whiteColor,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: AppColor.textFieldBorderColor),
+              ),
+              child: DropdownButtonHideUnderline(
+                child: DropdownButton<String>(
+                  isExpanded: true,
+                  value: controller.filterStatus.value.isEmpty
+                      ? null
+                      : controller.filterStatus.value,
+                  hint: Text('Select status',
+                      style: TextStyle(
+                          color: AppColor.fontColorGrey,
+                          fontSize: SizeConfig.fontBody)),
+                  items: controller.statusOptions
+                      .map((s) => DropdownMenuItem(value: s, child: Text(s)))
+                      .toList(),
+                  onChanged: (v) => controller.filterStatus.value = v ?? '',
                 ),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: CommonTextField(
-                  label: 'Client Name',
-                  hint: 'Enter client name',
-                  controller: controller.filterClientNameController,
+            )),
+        SizedBox(height: SizeConfig.spacingMD),
+        Row(
+          children: [
+            Expanded(
+              child: SizedBox(
+                height: 44,
+                child: ElevatedButton(
+                  onPressed: controller.applyClientFilters,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColor.cPrimaryButtonColor,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10)),
+                  ),
+                  child: Text('Apply',
+                      style: TextStyle(
+                          color: Colors.white, fontSize: SizeConfig.fontBody)),
                 ),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: CommonTextField(
-                  label: 'Mobile',
-                  hint: 'Enter mobile number',
-                  controller: controller.filterMobileController,
+            ),
+            SizedBox(width: SizeConfig.spacingSM),
+            Expanded(
+              child: SizedBox(
+                height: 44,
+                child: OutlinedButton(
+                  onPressed: controller.clearFilters,
+                  style: OutlinedButton.styleFrom(
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10)),
+                  ),
+                  child: Text('Clear', style: TextStyle(fontSize: SizeConfig.fontBody)),
                 ),
               ),
-            ],
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDesktopFilters() {
+    return Column(
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: CommonTextField(
+                label: 'Booking ID',
+                hint: 'Enter booking ID',
+                controller: controller.filterBookingIdController,
+              ),
+            ),
+            SizedBox(width: SizeConfig.spacingSM),
+            Expanded(
+              child: CommonTextField(
+                label: 'Client Name',
+                hint: 'Enter client name',
+                controller: controller.filterClientNameController,
+              ),
+            ),
+            SizedBox(width: SizeConfig.spacingSM),
+            Expanded(
+              child: CommonTextField(
+                label: 'Mobile',
+                hint: 'Enter mobile number',
+                controller: controller.filterMobileController,
+              ),
+            ),
+          ],
+        ),
+        SizedBox(height: SizeConfig.spacingSM),
+        Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Status',
+                      style: TextStyle(
+                          fontSize: SizeConfig.fontBody,
+                          fontWeight: FontWeight.w500,
+                          color: AppColor.cPrimarySubHeadingColorGrey)),
+                  SizedBox(height: SizeConfig.spacingXS),
+                  Obx(() => Container(
+                        height: 44,
+                        padding: EdgeInsets.symmetric(
+                            horizontal: SizeConfig.spacingSM),
+                        decoration: BoxDecoration(
+                          color: AppColor.whiteColor,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                              color: AppColor.textFieldBorderColor),
+                        ),
+                        child: DropdownButtonHideUnderline(
+                          child: DropdownButton<String>(
+                            isExpanded: true,
+                            value: controller.filterStatus.value.isEmpty
+                                ? null
+                                : controller.filterStatus.value,
+                            hint: Text('Select status',
+                                style: TextStyle(
+                                    color: AppColor.fontColorGrey,
+                                    fontSize: SizeConfig.fontBody)),
+                            items: controller.statusOptions
+                                .map((s) =>
+                                    DropdownMenuItem(value: s, child: Text(s)))
+                                .toList(),
+                            onChanged: (v) =>
+                                controller.filterStatus.value = v ?? '',
+                          ),
+                        ),
+                      )),
+                ],
+              ),
+            ),
+            SizedBox(width: SizeConfig.spacingSM),
+            const Expanded(child: SizedBox()),
+            SizedBox(width: SizeConfig.spacingSM),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SizedBox(height: 28),
+                Row(
+                  children: [
+                    ElevatedButton(
+                      onPressed: controller.applyClientFilters,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColor.cPrimaryButtonColor,
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10)),
+                        padding: EdgeInsets.symmetric(
+                            horizontal: SizeConfig.spacingLG,
+                            vertical: SizeConfig.spacingSM),
+                      ),
+                      child: Text('Apply',
+                          style: const TextStyle(color: Colors.white)),
+                    ),
+                    SizedBox(width: SizeConfig.spacingXS),
+                    OutlinedButton(
+                      onPressed: controller.clearFilters,
+                      style: OutlinedButton.styleFrom(
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10)),
+                        padding: EdgeInsets.symmetric(
+                            horizontal: SizeConfig.spacingLG,
+                            vertical: SizeConfig.spacingSM),
+                      ),
+                      child: const Text('Clear'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  // ─────────────────────────────────────────────
+  // Mobile: card list
+  // ─────────────────────────────────────────────
+  Widget _buildMobileClientList() {
+    return Obx(() => ListView.builder(
+          padding: EdgeInsets.symmetric(
+              horizontal: SizeConfig.pagePadding.left,
+              vertical: SizeConfig.spacingXS),
+          itemCount: controller.filteredClients.length,
+          itemBuilder: (_, i) =>
+              _buildMobileClientCard(controller.filteredClients[i]),
+        ));
+  }
+
+  Widget _buildMobileClientCard(ActiveBookingClient client) {
+    final initials = client.clientName.isNotEmpty
+        ? client.clientName
+            .split(' ')
+            .take(2)
+            .map((s) => s.isNotEmpty ? s[0].toUpperCase() : '')
+            .join()
+        : '?';
+
+    return Container(
+      margin: EdgeInsets.only(bottom: SizeConfig.spacingSM),
+      padding: SizeConfig.cardPadding,
+      decoration: BoxDecoration(
+        color: AppColor.whiteColor,
+        borderRadius: BorderRadius.circular(SizeConfig.radiusMD),
+        border: Border.all(color: Colors.grey.shade200),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
           ),
-          const SizedBox(height: 12),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Row 1: Avatar + name/mobile | status + action menu
           Row(
             children: [
+              CircleAvatar(
+                radius: 20,
+                backgroundColor:
+                    AppColor.cPrimaryButtonColor.withValues(alpha: 0.1),
+                child: Text(initials,
+                    style: TextStyle(
+                        color: AppColor.cPrimaryButtonColor,
+                        fontWeight: FontWeight.w700,
+                        fontSize: SizeConfig.fontBody)),
+              ),
+              SizedBox(width: SizeConfig.spacingSM),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Status',
+                    Text(client.clientName,
                         style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                            color: AppColor.cPrimarySubHeadingColorGrey)),
-                    const SizedBox(height: 8),
-                    Obx(() => Container(
-                          height: 44,
-                          padding: const EdgeInsets.symmetric(horizontal: 12),
-                          decoration: BoxDecoration(
-                            color: AppColor.whiteColor,
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(
-                                color: AppColor.textFieldBorderColor),
-                          ),
-                          child: DropdownButtonHideUnderline(
-                            child: DropdownButton<String>(
-                              isExpanded: true,
-                              value: controller.filterStatus.value.isEmpty
-                                  ? null
-                                  : controller.filterStatus.value,
-                              hint: Text('Select status',
-                                  style: TextStyle(
-                                      color: AppColor.fontColorGrey,
-                                      fontSize: 14)),
-                              items: controller.statusOptions
-                                  .map((s) => DropdownMenuItem(
-                                      value: s, child: Text(s)))
-                                  .toList(),
-                              onChanged: (v) =>
-                                  controller.filterStatus.value = v ?? '',
-                            ),
-                          ),
-                        )),
+                            fontWeight: FontWeight.w600,
+                            fontSize: SizeConfig.fontBody,
+                            color: AppColor.cPrimaryHeadingColor)),
+                    Text(client.clientMobile,
+                        style: TextStyle(
+                            fontSize: SizeConfig.fontCaption,
+                            color: AppColor.fontColorGrey)),
                   ],
                 ),
               ),
-              const SizedBox(width: 12),
-              const Expanded(child: SizedBox()),
-              const SizedBox(width: 12),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SizedBox(height: 28),
-                  Row(
-                    children: [
-                      ElevatedButton(
-                        onPressed: controller.applyClientFilters,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColor.cPrimaryButtonColor,
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10)),
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 24, vertical: 12),
-                        ),
-                        child: const Text('Apply',
-                            style: TextStyle(color: Colors.white)),
-                      ),
-                      const SizedBox(width: 8),
-                      OutlinedButton(
-                        onPressed: controller.clearFilters,
-                        style: OutlinedButton.styleFrom(
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10)),
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 24, vertical: 12),
-                        ),
-                        child: const Text('Clear'),
-                      ),
-                    ],
-                  ),
-                ],
+              _buildStatusChip(client.status),
+              SizedBox(width: SizeConfig.spacingXS),
+              _buildClientActions(client),
+            ],
+          ),
+          Divider(height: SizeConfig.spacingLG, color: Colors.grey.shade100),
+
+          // Row 2: Booking # + service name
+          Row(
+            children: [
+              Container(
+                padding: EdgeInsets.symmetric(
+                    horizontal: SizeConfig.spacingSM, vertical: 3),
+                decoration: BoxDecoration(
+                  color: AppColor.cPrimaryButtonColor.withValues(alpha: 0.07),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text('#${client.bookingId}',
+                    style: TextStyle(
+                        fontSize: SizeConfig.fontCaption,
+                        color: AppColor.cPrimaryButtonColor,
+                        fontWeight: FontWeight.w500)),
               ),
+              SizedBox(width: SizeConfig.spacingXS),
+              Expanded(
+                child: Text(
+                  client.serviceName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontSize: SizeConfig.fontBodySmall),
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: SizeConfig.spacingXS),
+
+          // Row 3: patient • city
+          Text(
+            '${client.patientName} • ${client.city}',
+            style: TextStyle(
+                fontSize: SizeConfig.fontBodySmall,
+                color: AppColor.fontColorGrey),
+          ),
+          Divider(height: SizeConfig.spacingLG, color: Colors.grey.shade100),
+
+          // Row 4: Billed / Paid / Outstanding
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _mobileAmountLabel('Billed',
+                  controller.formatCurrency(client.totalBilled),
+                  Colors.grey.shade700),
+              _mobileAmountLabel(
+                  'Paid',
+                  controller.formatCurrency(client.totalPaid),
+                  Colors.green),
+              _mobileAmountLabel(
+                  'Outstanding',
+                  controller.formatCurrency(client.outstandingAmount),
+                  client.outstandingAmount > 0 ? Colors.red : Colors.green),
             ],
           ),
         ],
@@ -689,9 +1013,29 @@ class AccountsView extends GetView<AccountsController> {
     );
   }
 
-  Widget _buildClientTable() {
+  Widget _mobileAmountLabel(String label, String value, Color color) {
+    return Column(
+      children: [
+        Text(value,
+            style: TextStyle(
+                fontSize: SizeConfig.fontBody,
+                fontWeight: FontWeight.w700,
+                color: color)),
+        Text(label,
+            style: TextStyle(
+                fontSize: SizeConfig.fontCaption,
+                color: AppColor.fontColorGrey)),
+      ],
+    );
+  }
+
+  // ─────────────────────────────────────────────
+  // Tablet/Desktop: scrollable DataTable
+  // ─────────────────────────────────────────────
+  Widget _buildScrollableClientTable() {
     return Obx(() => SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
+          padding: EdgeInsets.symmetric(
+              horizontal: SizeConfig.pagePadding.left, vertical: 4),
           child: Container(
             width: double.infinity,
             decoration: BoxDecoration(
@@ -699,79 +1043,89 @@ class AccountsView extends GetView<AccountsController> {
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: Colors.grey.shade200),
             ),
-            child: DataTable(
-              headingRowColor: WidgetStateProperty.all(Colors.grey.shade50),
-              headingTextStyle: TextStyle(
-                fontWeight: FontWeight.w600,
-                fontSize: 13,
-                color: AppColor.cPrimaryHeadingColor,
-              ),
-              dataTextStyle: const TextStyle(fontSize: 13),
-              columnSpacing: 20,
-              horizontalMargin: 16,
-              columns: const [
-                DataColumn(label: Text('Booking ID')),
-                DataColumn(label: Text('Client Name')),
-                DataColumn(label: Text('Patient')),
-                DataColumn(label: Text('Service')),
-                DataColumn(label: Text('City')),
-                DataColumn(label: Text('Billed')),
-                DataColumn(label: Text('Paid')),
-                DataColumn(label: Text('Outstanding')),
-                DataColumn(label: Text('Status')),
-                DataColumn(label: Text('Actions')),
-              ],
-              rows: controller.filteredClients.map((client) {
-                return DataRow(cells: [
-                  DataCell(Text('#${client.bookingId}',
-                      style: AppTextStyles.regular14black)),
-                  DataCell(Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(client.clientName,
-                          style: const TextStyle(
-                              fontWeight: FontWeight.w500, fontSize: 13)),
-                      Text(client.clientMobile,
-                          style: TextStyle(
-                              fontSize: 12, color: AppColor.fontColorGrey)),
-                    ],
-                  )),
-                  DataCell(Text(client.patientName)),
-                  DataCell(Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(client.serviceName,
-                          style: const TextStyle(fontSize: 13)),
-                      if (client.serviceTypeName != null)
-                        Text(client.serviceTypeName!,
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: DataTable(
+                headingRowColor:
+                    WidgetStateProperty.all(Colors.grey.shade50),
+                headingTextStyle: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  fontSize: SizeConfig.fontBodySmall,
+                  color: AppColor.cPrimaryHeadingColor,
+                ),
+                dataTextStyle:
+                    TextStyle(fontSize: SizeConfig.fontBodySmall),
+                columnSpacing: SizeConfig.spacingMD,
+                horizontalMargin: SizeConfig.spacingMD,
+                columns: const [
+                  DataColumn(label: Text('Booking ID')),
+                  DataColumn(label: Text('Client Name')),
+                  DataColumn(label: Text('Patient')),
+                  DataColumn(label: Text('Service')),
+                  DataColumn(label: Text('City')),
+                  DataColumn(label: Text('Billed')),
+                  DataColumn(label: Text('Paid')),
+                  DataColumn(label: Text('Outstanding')),
+                  DataColumn(label: Text('Status')),
+                  DataColumn(label: Text('Actions')),
+                ],
+                rows: controller.filteredClients.map((client) {
+                  return DataRow(cells: [
+                    DataCell(Text('#${client.bookingId}',
+                        style: AppTextStyles.regular14black)),
+                    DataCell(Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(client.clientName,
                             style: TextStyle(
-                                fontSize: 11, color: AppColor.fontColorGrey)),
-                    ],
-                  )),
-                  DataCell(Text(client.city)),
-                  DataCell(Text(
-                      controller.formatCurrency(client.totalBilled),
-                      style: const TextStyle(fontSize: 13))),
-                  DataCell(Text(
-                      controller.formatCurrency(client.totalPaid),
-                      style: const TextStyle(
-                          fontSize: 13, color: Colors.green))),
-                  DataCell(Text(
-                    controller.formatCurrency(client.outstandingAmount),
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: client.outstandingAmount > 0
-                          ? Colors.red
-                          : Colors.green,
-                    ),
-                  )),
-                  DataCell(_buildStatusChip(client.status)),
-                  DataCell(_buildClientActions(client)),
-                ]);
-              }).toList(),
+                                fontWeight: FontWeight.w500,
+                                fontSize: SizeConfig.fontBodySmall)),
+                        Text(client.clientMobile,
+                            style: TextStyle(
+                                fontSize: SizeConfig.fontCaption,
+                                color: AppColor.fontColorGrey)),
+                      ],
+                    )),
+                    DataCell(Text(client.patientName)),
+                    DataCell(Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(client.serviceName,
+                            style: TextStyle(
+                                fontSize: SizeConfig.fontBodySmall)),
+                        if (client.serviceTypeName != null)
+                          Text(client.serviceTypeName!,
+                              style: TextStyle(
+                                  fontSize: SizeConfig.fontCaption,
+                                  color: AppColor.fontColorGrey)),
+                      ],
+                    )),
+                    DataCell(Text(client.city)),
+                    DataCell(Text(
+                        controller.formatCurrency(client.totalBilled),
+                        style: TextStyle(fontSize: SizeConfig.fontBodySmall))),
+                    DataCell(Text(
+                        controller.formatCurrency(client.totalPaid),
+                        style: TextStyle(
+                            fontSize: SizeConfig.fontBodySmall,
+                            color: Colors.green))),
+                    DataCell(Text(
+                      controller.formatCurrency(client.outstandingAmount),
+                      style: TextStyle(
+                        fontSize: SizeConfig.fontBodySmall,
+                        fontWeight: FontWeight.w600,
+                        color: client.outstandingAmount > 0
+                            ? Colors.red
+                            : Colors.green,
+                      ),
+                    )),
+                    DataCell(_buildStatusChip(client.status)),
+                    DataCell(_buildClientActions(client)),
+                  ]);
+                }).toList(),
+              ),
             ),
           ),
         ));
@@ -780,7 +1134,8 @@ class AccountsView extends GetView<AccountsController> {
   Widget _buildStatusChip(String status) {
     final color = controller.getStatusColor(status);
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      padding: EdgeInsets.symmetric(
+          horizontal: SizeConfig.spacingSM, vertical: 4),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(20),
@@ -788,14 +1143,17 @@ class AccountsView extends GetView<AccountsController> {
       child: Text(
         status,
         style: TextStyle(
-            color: color, fontSize: 12, fontWeight: FontWeight.w500),
+            color: color,
+            fontSize: SizeConfig.fontCaption,
+            fontWeight: FontWeight.w500),
       ),
     );
   }
 
   Widget _buildClientActions(ActiveBookingClient client) {
     return PopupMenuButton<String>(
-      icon: Icon(Icons.more_vert, color: AppColor.fontColorGrey, size: 20),
+      icon: Icon(Icons.more_vert,
+          color: AppColor.fontColorGrey, size: SizeConfig.iconMD),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       onSelected: (value) {
         switch (value) {
@@ -825,22 +1183,25 @@ class AccountsView extends GetView<AccountsController> {
             enabled: !isCancelled,
             child: Row(
               children: [
-                Icon(Icons.receipt_long, size: 18,
+                Icon(Icons.receipt_long,
+                    size: SizeConfig.iconSM,
                     color: isCancelled ? Colors.grey.shade400 : Colors.blue),
-                const SizedBox(width: 8),
+                SizedBox(width: SizeConfig.spacingXS),
                 Text('Raise Receipt',
                     style: TextStyle(
-                        color: isCancelled ? Colors.grey.shade400 : null)),
+                        color:
+                            isCancelled ? Colors.grey.shade400 : null)),
               ],
             ),
           ),
-          const PopupMenuItem(
+          PopupMenuItem(
             value: 'statement',
             child: Row(
               children: [
-                Icon(Icons.account_balance_wallet, size: 18, color: Colors.green),
-                SizedBox(width: 8),
-                Text('View Statement'),
+                Icon(Icons.account_balance_wallet,
+                    size: SizeConfig.iconSM, color: Colors.green),
+                SizedBox(width: SizeConfig.spacingXS),
+                const Text('View Statement'),
               ],
             ),
           ),
@@ -849,22 +1210,24 @@ class AccountsView extends GetView<AccountsController> {
             enabled: !isCancelled,
             child: Row(
               children: [
-                Icon(Icons.money_off, size: 18,
+                Icon(Icons.money_off,
+                    size: SizeConfig.iconSM,
                     color: isCancelled ? Colors.grey.shade400 : Colors.orange),
-                const SizedBox(width: 8),
+                SizedBox(width: SizeConfig.spacingXS),
                 Text('Write-Off',
                     style: TextStyle(
                         color: isCancelled ? Colors.grey.shade400 : null)),
               ],
             ),
           ),
-          const PopupMenuItem(
+          PopupMenuItem(
             value: 'claim',
             child: Row(
               children: [
-                Icon(Icons.health_and_safety, size: 18, color: Colors.indigo),
-                SizedBox(width: 8),
-                Text('Insurance Claim'),
+                Icon(Icons.health_and_safety,
+                    size: SizeConfig.iconSM, color: Colors.indigo),
+                SizedBox(width: SizeConfig.spacingXS),
+                const Text('Insurance Claim'),
               ],
             ),
           ),

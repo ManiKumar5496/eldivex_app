@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:eldivex_app/app/core/values/color_constants.dart';
 import 'package:eldivex_app/app/core/values/text_style_constants.dart';
+import 'package:eldivex_app/app/core/values/size_configue.dart';
 import '../../../widgets/shimmer_loader.dart';
 import '../controllers/accounts_controller.dart';
 import '../models/client_statement_model.dart';
@@ -11,10 +12,11 @@ class ClientStatementView extends GetView<AccountsController> {
 
   @override
   Widget build(BuildContext context) {
+    SizeConfig.init(context);
     Get.put(AccountsController());
     return Column(
       children: [
-        _buildStatementSearchBar(),
+        _buildStatementSearchBar(context),
         Expanded(
           child: Obx(() {
             final selected = controller.selectedStatement.value;
@@ -28,9 +30,9 @@ class ClientStatementView extends GetView<AccountsController> {
     );
   }
 
-  Widget _buildStatementSearchBar() {
+  Widget _buildStatementSearchBar(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.all(20),
+      padding: SizeConfig.pagePadding,
       child: Row(
         children: [
           Expanded(
@@ -44,13 +46,13 @@ class ClientStatementView extends GetView<AccountsController> {
               child: TextField(
                 controller: controller.searchStatementController,
                 onChanged: controller.searchStatements,
-                style: const TextStyle(fontSize: 14),
+                style: TextStyle(fontSize: SizeConfig.fontBody),
                 decoration: InputDecoration(
                   hintText: 'Search by client name, mobile, booking ID...',
-                  hintStyle:
-                      TextStyle(color: AppColor.fontColorGrey, fontSize: 14),
+                  hintStyle: TextStyle(
+                      color: AppColor.fontColorGrey, fontSize: SizeConfig.fontBody),
                   prefixIcon: Icon(Icons.search,
-                      color: AppColor.fontColorGrey, size: 20),
+                      color: AppColor.fontColorGrey, size: SizeConfig.iconMD),
                   border: InputBorder.none,
                   contentPadding: const EdgeInsets.symmetric(vertical: 12),
                 ),
@@ -60,18 +62,28 @@ class ClientStatementView extends GetView<AccountsController> {
           Obx(() {
             if (controller.selectedStatement.value != null) {
               return Padding(
-                padding: const EdgeInsets.only(left: 12),
-                child: OutlinedButton.icon(
-                  onPressed: controller.closeStatementDetail,
-                  icon: const Icon(Icons.arrow_back, size: 18),
-                  label: const Text('Back to List'),
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 12),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10)),
-                  ),
-                ),
+                padding: EdgeInsets.only(left: SizeConfig.spacingSM),
+                child: SizeConfig.isMobile
+                    ? IconButton(
+                        onPressed: controller.closeStatementDetail,
+                        icon: Icon(Icons.arrow_back,
+                            size: SizeConfig.iconMD,
+                            color: AppColor.cPrimaryButtonColor),
+                        tooltip: 'Back to List',
+                      )
+                    : OutlinedButton.icon(
+                        onPressed: controller.closeStatementDetail,
+                        icon: Icon(Icons.arrow_back, size: SizeConfig.iconSM),
+                        label: const Text('Back to List'),
+                        style: OutlinedButton.styleFrom(
+                          padding: EdgeInsets.symmetric(
+                              horizontal: SizeConfig.spacingLG,
+                              vertical: SizeConfig.spacingSM),
+                          shape: RoundedRectangleBorder(
+                              borderRadius:
+                                  BorderRadius.circular(SizeConfig.radiusSM)),
+                        ),
+                      ),
               );
             }
             return const SizedBox.shrink();
@@ -94,122 +106,184 @@ class ClientStatementView extends GetView<AccountsController> {
             children: [
               Icon(Icons.account_balance_wallet_outlined,
                   size: 64, color: Colors.grey.shade300),
-              const SizedBox(height: 12),
+              SizedBox(height: SizeConfig.spacingSM),
               Text('No statements found', style: AppTextStyles.regular16Gre),
             ],
           ),
         );
       }
       return ListView.builder(
-        padding: const EdgeInsets.symmetric(horizontal: 20),
+        padding: EdgeInsets.symmetric(horizontal: SizeConfig.pagePadding.left),
         itemCount: groups.length,
-        itemBuilder: (context, index) => _buildGroupedStatementCard(groups[index]),
+        itemBuilder: (context, index) =>
+            _buildGroupedStatementCard(groups[index]),
       );
     });
   }
 
   Widget _buildGroupedStatementCard(GroupedClient group) {
     final hasMultiple = group.bookings.length > 1;
-    return InkWell(
-      onTap: () => controller.viewStatementForUser(group),
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: AppColor.whiteColor,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.grey.shade200),
+
+    Widget avatar = Container(
+      width: 48,
+      height: 48,
+      decoration: BoxDecoration(
+        color: AppColor.cPrimaryButtonColor.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(24),
+      ),
+      child: Center(
+        child: Text(
+          group.clientName.isNotEmpty ? group.clientName[0].toUpperCase() : '?',
+          style: TextStyle(
+              color: AppColor.cPrimaryButtonColor,
+              fontSize: SizeConfig.fontH3,
+              fontWeight: FontWeight.w600),
         ),
-        child: Row(
+      ),
+    );
+
+    Widget clientInfo = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
           children: [
-            Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                color: AppColor.cPrimaryButtonColor.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(24),
-              ),
-              child: Center(
-                child: Text(
-                  group.clientName.isNotEmpty
-                      ? group.clientName[0].toUpperCase()
-                      : '?',
+            Flexible(
+              child: Text(group.clientName,
                   style: TextStyle(
+                      fontWeight: FontWeight.w600, fontSize: SizeConfig.fontBody),
+                  overflow: TextOverflow.ellipsis),
+            ),
+            if (hasMultiple) ...[
+              SizedBox(width: SizeConfig.spacingXS),
+              Container(
+                padding: EdgeInsets.symmetric(
+                    horizontal: SizeConfig.spacingSM, vertical: 2),
+                decoration: BoxDecoration(
+                  color: AppColor.cPrimaryButtonColor.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  '${group.bookings.length} bookings',
+                  style: TextStyle(
+                      fontSize: SizeConfig.fontCaption,
                       color: AppColor.cPrimaryButtonColor,
-                      fontSize: 20,
-                      fontWeight: FontWeight.w600),
+                      fontWeight: FontWeight.w500),
                 ),
               ),
+            ],
+          ],
+        ),
+        SizedBox(height: SizeConfig.spacingXS),
+        if (hasMultiple)
+          ...group.bookings.map((b) => Padding(
+                padding: EdgeInsets.only(top: SizeConfig.spacingXS / 2),
+                child: Text(
+                  'Bkg #${b.bookingId} · ${b.patientName} · ${b.serviceName}',
+                  style: TextStyle(
+                      fontSize: SizeConfig.fontBodySmall,
+                      color: AppColor.fontColorGrey),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ))
+        else
+          Text(
+            'Booking #${group.bookings.first.bookingId} | ${group.bookings.first.patientName}',
+            style: TextStyle(
+                fontSize: SizeConfig.fontBodySmall, color: AppColor.fontColorGrey),
+            overflow: TextOverflow.ellipsis,
+          ),
+      ],
+    );
+
+    Widget summaryRow = Row(
+      children: [
+        Expanded(
+          child: _buildStatSummaryItem(
+              'Billed',
+              controller.formatCurrency(group.totalBilled),
+              AppColor.cPrimaryHeadingColor),
+        ),
+        Expanded(
+          child: _buildStatSummaryItem(
+              'Received',
+              controller.formatCurrency(group.totalReceived),
+              Colors.green),
+        ),
+        Expanded(
+          child: _buildStatSummaryItem(
+              'Balance',
+              controller.formatCurrency(group.closingBalance),
+              group.closingBalance > 0 ? Colors.red : Colors.green),
+        ),
+      ],
+    );
+
+    return InkWell(
+      onTap: () => controller.viewStatementForUser(group),
+      borderRadius: BorderRadius.circular(SizeConfig.radiusMD),
+      child: Container(
+        margin: EdgeInsets.only(bottom: SizeConfig.spacingSM),
+        padding: SizeConfig.cardPadding,
+        decoration: BoxDecoration(
+          color: AppColor.whiteColor,
+          borderRadius: BorderRadius.circular(SizeConfig.radiusMD),
+          border: Border.all(color: Colors.grey.shade200),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.03),
+              blurRadius: 4,
+              offset: const Offset(0, 1),
             ),
-            const SizedBox(width: 16),
-            Expanded(
-              flex: 3,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+          ],
+        ),
+        child: SizeConfig.adaptiveLayout(
+          mobile: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
                 children: [
-                  Row(
-                    children: [
-                      Text(group.clientName,
-                          style: const TextStyle(
-                              fontWeight: FontWeight.w600, fontSize: 15)),
-                      if (hasMultiple) ...[
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: AppColor.cPrimaryButtonColor
-                                .withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Text(
-                            '${group.bookings.length} bookings',
-                            style: TextStyle(
-                                fontSize: 11,
-                                color: AppColor.cPrimaryButtonColor,
-                                fontWeight: FontWeight.w500),
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  if (hasMultiple)
-                    ...group.bookings.map((b) => Padding(
-                          padding: const EdgeInsets.only(top: 2),
-                          child: Text(
-                            'Bkg #${b.bookingId} · ${b.patientName} · ${b.serviceName}',
-                            style: TextStyle(
-                                fontSize: 12, color: AppColor.fontColorGrey),
-                          ),
-                        ))
-                  else
-                    Text(
-                      'Booking #${group.bookings.first.bookingId} | ${group.bookings.first.patientName} | ${group.bookings.first.serviceName}',
-                      style: TextStyle(
-                          fontSize: 13, color: AppColor.fontColorGrey),
-                    ),
+                  avatar,
+                  SizedBox(width: SizeConfig.spacingSM),
+                  Expanded(child: clientInfo),
+                  Icon(Icons.chevron_right, color: AppColor.fontColorGrey),
                 ],
               ),
-            ),
-            _buildStatSummaryItem(
-                'Billed',
-                controller.formatCurrency(group.totalBilled),
-                AppColor.cPrimaryHeadingColor),
-            const SizedBox(width: 24),
-            _buildStatSummaryItem(
-                'Received',
-                controller.formatCurrency(group.totalReceived),
-                Colors.green),
-            const SizedBox(width: 24),
-            _buildStatSummaryItem(
-                'Balance',
-                controller.formatCurrency(group.closingBalance),
-                group.closingBalance > 0 ? Colors.red : Colors.green),
-            const SizedBox(width: 16),
-            Icon(Icons.chevron_right, color: AppColor.fontColorGrey),
-          ],
+              SizedBox(height: SizeConfig.spacingSM),
+              Container(
+                padding: EdgeInsets.all(SizeConfig.spacingSM),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade50,
+                  borderRadius:
+                      BorderRadius.circular(SizeConfig.radiusSM),
+                ),
+                child: summaryRow,
+              ),
+            ],
+          ),
+          tablet: Row(
+            children: [
+              avatar,
+              SizedBox(width: SizeConfig.spacingMD),
+              Expanded(flex: 3, child: clientInfo),
+              SizedBox(width: SizeConfig.spacingMD),
+              _buildStatSummaryItem(
+                  'Billed',
+                  controller.formatCurrency(group.totalBilled),
+                  AppColor.cPrimaryHeadingColor),
+              SizedBox(width: SizeConfig.spacingLG),
+              _buildStatSummaryItem(
+                  'Received',
+                  controller.formatCurrency(group.totalReceived),
+                  Colors.green),
+              SizedBox(width: SizeConfig.spacingLG),
+              _buildStatSummaryItem(
+                  'Balance',
+                  controller.formatCurrency(group.closingBalance),
+                  group.closingBalance > 0 ? Colors.red : Colors.green),
+              SizedBox(width: SizeConfig.spacingMD),
+              Icon(Icons.chevron_right, color: AppColor.fontColorGrey),
+            ],
+          ),
         ),
       ),
     );
@@ -217,80 +291,118 @@ class ClientStatementView extends GetView<AccountsController> {
 
   Widget _buildStatSummaryItem(String label, String value, Color color) {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.end,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Text(label,
-            style: TextStyle(fontSize: 11, color: AppColor.fontColorGrey)),
-        const SizedBox(height: 4),
+            style: TextStyle(
+                fontSize: SizeConfig.fontCaption, color: AppColor.fontColorGrey)),
+        SizedBox(height: SizeConfig.spacingXS),
         Text(value,
             style: TextStyle(
-                fontSize: 14, fontWeight: FontWeight.w600, color: color)),
+                fontSize: SizeConfig.fontBody,
+                fontWeight: FontWeight.w600,
+                color: color)),
       ],
     );
   }
 
-  // ─────────────────────────────────────────────
-  // Statement Detail View
-  // ─────────────────────────────────────────────
   Widget _buildStatementDetail(ClientStatement statement) {
+    final summaryBoxes = [
+      _buildSummaryBox('Total Billed', statement.totalBilled, Colors.blue),
+      _buildSummaryBox('Total Received', statement.totalReceived, Colors.green),
+      _buildSummaryBox('Write-Off', statement.totalWriteOff, Colors.orange),
+      _buildSummaryBox('Closing Balance', statement.closingBalance, Colors.red),
+    ];
+
     return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
+      padding: EdgeInsets.symmetric(horizontal: SizeConfig.pagePadding.left),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Client Info Header
           Container(
-            padding: const EdgeInsets.all(20),
+            padding: SizeConfig.cardPadding,
             decoration: BoxDecoration(
               color: AppColor.whiteColor,
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(SizeConfig.radiusMD),
               border: Border.all(color: Colors.grey.shade200),
             ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Statement of Account',
-                          style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w700,
-                              color: AppColor.cPrimaryHeadingColor)),
-                      const SizedBox(height: 8),
-                      Text(statement.clientName,
-                          style: const TextStyle(
-                              fontSize: 16, fontWeight: FontWeight.w500)),
-                      const SizedBox(height: 4),
-                      Text(
-                          statement.bookingId == 0
-                              ? '${statement.clientMobile} | All Bookings (${statement.serviceName})'
-                              : '${statement.clientMobile} | Booking #${statement.bookingId}',
-                          style: TextStyle(
-                              fontSize: 13, color: AppColor.fontColorGrey)),
-                      if (statement.bookingId != 0)
-                        Text(
-                            'Patient: ${statement.patientName} | Service: ${statement.serviceName}',
-                            style: TextStyle(
-                                fontSize: 13, color: AppColor.fontColorGrey)),
-                    ],
+            child: SizeConfig.adaptiveLayout(
+              mobile: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Statement of Account',
+                      style: TextStyle(
+                          fontSize: SizeConfig.fontH2,
+                          fontWeight: FontWeight.w700,
+                          color: AppColor.cPrimaryHeadingColor)),
+                  SizedBox(height: SizeConfig.spacingSM),
+                  Text(statement.clientName,
+                      style: TextStyle(
+                          fontSize: SizeConfig.fontBody,
+                          fontWeight: FontWeight.w500)),
+                  SizedBox(height: SizeConfig.spacingXS),
+                  Text(
+                      statement.bookingId == 0
+                          ? '${statement.clientMobile} | All Bookings'
+                          : '${statement.clientMobile} | Booking #${statement.bookingId}',
+                      style: TextStyle(
+                          fontSize: SizeConfig.fontBodySmall,
+                          color: AppColor.fontColorGrey)),
+                  SizedBox(height: SizeConfig.spacingMD),
+                  GridView.count(
+                    crossAxisCount: 2,
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    mainAxisSpacing: SizeConfig.spacingSM,
+                    crossAxisSpacing: SizeConfig.spacingSM,
+                    childAspectRatio: 2.2,
+                    children: summaryBoxes,
                   ),
-                ),
-                _buildSummaryBox(
-                    'Total Billed', statement.totalBilled, Colors.blue),
-                const SizedBox(width: 12),
-                _buildSummaryBox(
-                    'Total Received', statement.totalReceived, Colors.green),
-                const SizedBox(width: 12),
-                _buildSummaryBox(
-                    'Write-Off', statement.totalWriteOff, Colors.orange),
-                const SizedBox(width: 12),
-                _buildSummaryBox(
-                    'Closing Balance', statement.closingBalance, Colors.red),
-              ],
+                ],
+              ),
+              tablet: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Statement of Account',
+                            style: TextStyle(
+                                fontSize: SizeConfig.fontH2,
+                                fontWeight: FontWeight.w700,
+                                color: AppColor.cPrimaryHeadingColor)),
+                        SizedBox(height: SizeConfig.spacingXS),
+                        Text(statement.clientName,
+                            style: TextStyle(
+                                fontSize: SizeConfig.fontBodyLarge,
+                                fontWeight: FontWeight.w500)),
+                        SizedBox(height: SizeConfig.spacingXS),
+                        Text(
+                            statement.bookingId == 0
+                                ? '${statement.clientMobile} | All Bookings (${statement.serviceName})'
+                                : '${statement.clientMobile} | Booking #${statement.bookingId}',
+                            style: TextStyle(
+                                fontSize: SizeConfig.fontBodySmall,
+                                color: AppColor.fontColorGrey)),
+                        if (statement.bookingId != 0)
+                          Text(
+                              'Patient: ${statement.patientName} | Service: ${statement.serviceName}',
+                              style: TextStyle(
+                                  fontSize: SizeConfig.fontBodySmall,
+                                  color: AppColor.fontColorGrey)),
+                      ],
+                    ),
+                  ),
+                  ...summaryBoxes.map((box) => Padding(
+                        padding: EdgeInsets.only(left: SizeConfig.spacingSM),
+                        child: box,
+                      )),
+                ],
+              ),
             ),
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: SizeConfig.spacingMD),
 
           // Transactions Table
           SingleChildScrollView(
@@ -298,19 +410,19 @@ class ClientStatementView extends GetView<AccountsController> {
             child: Container(
               decoration: BoxDecoration(
                 color: AppColor.whiteColor,
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(SizeConfig.radiusMD),
                 border: Border.all(color: Colors.grey.shade200),
               ),
               child: DataTable(
                 headingRowColor: WidgetStateProperty.all(Colors.grey.shade50),
                 headingTextStyle: TextStyle(
                   fontWeight: FontWeight.w600,
-                  fontSize: 13,
+                  fontSize: SizeConfig.fontBodySmall,
                   color: AppColor.cPrimaryHeadingColor,
                 ),
-                dataTextStyle: const TextStyle(fontSize: 13),
-                columnSpacing: 24,
-                horizontalMargin: 16,
+                dataTextStyle: TextStyle(fontSize: SizeConfig.fontBodySmall),
+                columnSpacing: SizeConfig.spacingLG,
+                horizontalMargin: SizeConfig.spacingMD,
                 columns: [
                   if (statement.bookingId == 0)
                     const DataColumn(label: Text('Booking')),
@@ -329,29 +441,31 @@ class ClientStatementView extends GetView<AccountsController> {
                       DataCell(Text(
                         'Bkg #${txn.bookingId}',
                         style: TextStyle(
-                            fontSize: 12,
+                            fontSize: SizeConfig.fontBodySmall,
                             color: AppColor.cPrimaryButtonColor,
                             fontWeight: FontWeight.w500),
                       )),
-                    DataCell(Text(controller.formatDate(txn.date))),
+                    DataCell(Text(controller.formatDate(txn.date),
+                        style: TextStyle(fontSize: SizeConfig.fontBodySmall))),
                     DataCell(Text(txn.description,
-                        style: const TextStyle(fontSize: 13))),
+                        style: TextStyle(fontSize: SizeConfig.fontBodySmall))),
                     DataCell(Text(txn.referenceNumber ?? '-',
                         style: TextStyle(
-                            fontSize: 12,
+                            fontSize: SizeConfig.fontBodySmall,
                             color: AppColor.cPrimaryButtonColor))),
                     DataCell(Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 3),
+                      padding: EdgeInsets.symmetric(
+                          horizontal: SizeConfig.spacingSM, vertical: 3),
                       decoration: BoxDecoration(
                         color: isPayment
                             ? Colors.green.withValues(alpha: 0.1)
                             : Colors.blue.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius:
+                            BorderRadius.circular(SizeConfig.radiusSM),
                       ),
                       child: Text(txn.type,
                           style: TextStyle(
-                              fontSize: 11,
+                              fontSize: SizeConfig.fontCaption,
                               fontWeight: FontWeight.w500,
                               color: isPayment ? Colors.green : Colors.blue)),
                     )),
@@ -379,7 +493,7 @@ class ClientStatementView extends GetView<AccountsController> {
               ),
             ),
           ),
-          const SizedBox(height: 20),
+          SizedBox(height: SizeConfig.spacingLG),
         ],
       ),
     );
@@ -387,21 +501,26 @@ class ClientStatementView extends GetView<AccountsController> {
 
   Widget _buildSummaryBox(String label, double amount, Color color) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: SizeConfig.cardPadding,
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.06),
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(SizeConfig.radiusSM),
         border: Border.all(color: color.withValues(alpha: 0.15)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Text(label,
-              style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
-          const SizedBox(height: 6),
+              style: TextStyle(
+                  fontSize: SizeConfig.fontCaption,
+                  color: Colors.grey.shade600)),
+          SizedBox(height: SizeConfig.spacingXS),
           Text(controller.formatCurrency(amount),
               style: TextStyle(
-                  fontSize: 16, fontWeight: FontWeight.w700, color: color)),
+                  fontSize: SizeConfig.fontH3,
+                  fontWeight: FontWeight.w700,
+                  color: color)),
         ],
       ),
     );
