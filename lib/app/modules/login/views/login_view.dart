@@ -20,7 +20,7 @@ class LoginView extends GetView<LoginController> {
             margin: const EdgeInsets.symmetric(horizontal: 24),
             padding: const EdgeInsets.all(40),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: AppColor.whiteColor,
               borderRadius: BorderRadius.circular(16),
               boxShadow: [
                 BoxShadow(
@@ -67,27 +67,27 @@ class LoginView extends GetView<LoginController> {
                       controller: controller.emailController.value,
                       decoration: InputDecoration(
                         hintText: 'Enter your email',
-                        hintStyle: const TextStyle(
-                          color: Color(0xFF9CA3AF),
+                        hintStyle: TextStyle(
+                          color: AppColor.lightGrey,
                           fontSize: 14,
                         ),
-                        prefixIcon: const Icon(
+                        prefixIcon: Icon(
                           Icons.email_outlined,
-                          color: Color(0xFF9CA3AF),
+                          color: AppColor.lightGrey,
                           size: 24,
                         ),
                         filled: true,
-                        fillColor: const Color(0xFFF9FAFB),
+                        fillColor: AppColor.fieldColorGrey,
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(
-                            color: Color(0xFFE5E7EB),
+                          borderSide: BorderSide(
+                            color: AppColor.divColor,
                           ),
                         ),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(
-                            color: Color(0xFFE5E7EB),
+                          borderSide: BorderSide(
+                            color: AppColor.divColor,
                           ),
                         ),
                         focusedBorder: OutlineInputBorder(
@@ -125,13 +125,13 @@ class LoginView extends GetView<LoginController> {
                         },
                         decoration: InputDecoration(
                           hintText: 'Enter your password',
-                          hintStyle: const TextStyle(
-                            color: Color(0xFF9CA3AF),
+                          hintStyle: TextStyle(
+                            color: AppColor.lightGrey,
                             fontSize: 14,
                           ),
-                          prefixIcon: const Icon(
+                          prefixIcon: Icon(
                             Icons.lock_outline,
-                            color: Color(0xFF9CA3AF),
+                            color: AppColor.lightGrey,
                             size: 24,
                           ),
                           suffixIcon: IconButton(
@@ -139,7 +139,7 @@ class LoginView extends GetView<LoginController> {
                               controller.isPasswordHidden.value
                                   ? Icons.visibility_outlined
                                   : Icons.visibility_off_outlined,
-                              color: const Color(0xFF9CA3AF),
+                              color: AppColor.lightGrey,
                               size: 24,
                             ),
                             onPressed: () {
@@ -148,17 +148,17 @@ class LoginView extends GetView<LoginController> {
                             },
                           ),
                           filled: true,
-                          fillColor: const Color(0xFFF9FAFB),
+                          fillColor: AppColor.fieldColorGrey,
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(8),
-                            borderSide: const BorderSide(
-                              color: Color(0xFFE5E7EB),
+                            borderSide: BorderSide(
+                              color: AppColor.divColor,
                             ),
                           ),
                           enabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(8),
-                            borderSide: const BorderSide(
-                              color: Color(0xFFE5E7EB),
+                            borderSide: BorderSide(
+                              color: AppColor.divColor,
                             ),
                           ),
                           focusedBorder: OutlineInputBorder(
@@ -264,13 +264,13 @@ class LoginView extends GetView<LoginController> {
                         elevation: 0,
                       ),
                       child: controller.isLoginLoading.value
-                          ? const SizedBox(
+                          ? SizedBox(
                               height: 20,
                               width: 20,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
                                 valueColor: AlwaysStoppedAnimation<Color>(
-                                  Colors.white,
+                                  AppColor.buttonTextWhite,
                                 ),
                               ),
                             )
@@ -283,8 +283,8 @@ class LoginView extends GetView<LoginController> {
                 // Divider
                 Row(
                   children: [
-                    const Expanded(
-                      child: Divider(color: Color(0xFFE5E7EB), thickness: 1),
+                    Expanded(
+                      child: Divider(color: AppColor.divColor, thickness: 1),
                     ),
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -315,7 +315,7 @@ class LoginView extends GetView<LoginController> {
                     },
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 12),
-                      side: const BorderSide(color: Color(0xFFE5E7EB)),
+                      side: BorderSide(color: AppColor.divColor),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
                       ),

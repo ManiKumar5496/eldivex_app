@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:eldivex_app/app/core/values/color_constants.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import '../../../data/api_constant_url.dart';
@@ -1447,7 +1448,7 @@ class AccountsController extends GetxController {
       case 'rejected':
         return Colors.red;
       default:
-        return Colors.grey;
+        return AppColor.fontColorGrey;
     }
   }
 }

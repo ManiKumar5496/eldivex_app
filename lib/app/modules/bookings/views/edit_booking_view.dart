@@ -31,7 +31,7 @@ class EditBookingView extends GetView<BookingsController> {
     return Scaffold(
       backgroundColor: AppColor.cAppBackgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: AppColor.whiteColor,
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.black),
@@ -86,7 +86,7 @@ class EditBookingView extends GetView<BookingsController> {
               style: TextStyle(
                 fontSize: isMobile ? 18 : SizeConfig.blockSizeHorizontal * 1.5,
                 fontWeight: FontWeight.w600,
-                color: Colors.black87,
+                color: AppColor.fontColorBlack,
               ),
             ),
           ),
@@ -360,17 +360,17 @@ class EditBookingView extends GetView<BookingsController> {
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.green.shade600,
-                        foregroundColor: Colors.white,
+                        foregroundColor: AppColor.buttonTextWhite,
                         padding: _buttonPadding(),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                       ),
                       child: controller.isUpdateUserLoading.value
-                          ? const SizedBox(
+                          ? SizedBox(
                         width: 20,
                         height: 20,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                          valueColor: AlwaysStoppedAnimation<Color>(AppColor.buttonTextWhite),
                         ),
                       )
                           : const Text('Save Changes'),
@@ -434,7 +434,7 @@ class EditBookingView extends GetView<BookingsController> {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('Language', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.black87)),
+                      Text('Language', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColor.fontColorBlack)),
                       const SizedBox(height: 6),
                       Obx(() => Wrap(
                         spacing: 6,
@@ -442,7 +442,7 @@ class EditBookingView extends GetView<BookingsController> {
                         children: ['English', 'Telugu', 'Hindi', 'Tamil'].map((lang) {
                           final selected = tempLanguages.contains(lang);
                           return FilterChip(
-                            label: Text(lang, style: TextStyle(fontSize: 12, color: selected ? Colors.blue.shade700 : Colors.black87)),
+                            label: Text(lang, style: TextStyle(fontSize: 12, color: selected ? Colors.blue.shade700 : AppColor.fontColorBlack)),
                             selected: selected,
                             onSelected: (v) {
                               if (v) tempLanguages.add(lang);
@@ -450,8 +450,8 @@ class EditBookingView extends GetView<BookingsController> {
                             },
                             selectedColor: Colors.blue.shade100,
                             checkmarkColor: Colors.blue.shade700,
-                            side: BorderSide(color: selected ? Colors.blue.shade300 : Colors.grey.shade300),
-                            backgroundColor: Colors.white,
+                            side: BorderSide(color: selected ? Colors.blue.shade300 : AppColor.divColor),
+                            backgroundColor: AppColor.whiteColor,
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                           );
                         }).toList(),
@@ -497,17 +497,17 @@ class EditBookingView extends GetView<BookingsController> {
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.blue.shade600,
-                        foregroundColor: Colors.white,
+                        foregroundColor: AppColor.buttonTextWhite,
                         padding: _buttonPadding(),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                       ),
                       child: controller.isUpdatePatientLoading.value
-                          ? const SizedBox(
+                          ? SizedBox(
                         width: 20,
                         height: 20,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                          valueColor: AlwaysStoppedAnimation<Color>(AppColor.buttonTextWhite),
                         ),
                       )
                           : const Text('Save Changes'),
@@ -562,7 +562,7 @@ class EditBookingView extends GetView<BookingsController> {
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.purple.shade600,
-                      foregroundColor: Colors.white,
+                      foregroundColor: AppColor.buttonTextWhite,
                       padding: _buttonPadding(),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                     ),
@@ -673,17 +673,17 @@ class EditBookingView extends GetView<BookingsController> {
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.blue.shade600,
-                        foregroundColor: Colors.white,
+                        foregroundColor: AppColor.buttonTextWhite,
                         padding: _buttonPadding(),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                       ),
                       child: controller.isUpdateAddressLoading.value
-                          ? const SizedBox(
+                          ? SizedBox(
                         width: 20,
                         height: 20,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                          valueColor: AlwaysStoppedAnimation<Color>(AppColor.buttonTextWhite),
                         ),
                       )
                           : const Text('Save Address'),
@@ -760,17 +760,17 @@ class EditBookingView extends GetView<BookingsController> {
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.teal.shade600,
-                        foregroundColor: Colors.white,
+                        foregroundColor: AppColor.buttonTextWhite,
                         padding: _buttonPadding(),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                       ),
                       child: controller.isUpdateBookingLoading.value
-                          ? const SizedBox(
+                          ? SizedBox(
                         width: 20,
                         height: 20,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                          valueColor: AlwaysStoppedAnimation<Color>(AppColor.buttonTextWhite),
                         ),
                       )
                           : const Text('Save Changes'),
@@ -831,7 +831,7 @@ class EditBookingView extends GetView<BookingsController> {
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.orange.shade700,
-                        foregroundColor: Colors.white,
+                        foregroundColor: AppColor.buttonTextWhite,
                         padding: _buttonPadding(),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                       ),
@@ -868,7 +868,7 @@ class EditBookingView extends GetView<BookingsController> {
                 style: TextStyle(
                     fontSize: isMobile ? 14 : SizeConfig.blockSizeHorizontal * 1.1,
                     fontWeight: FontWeight.w500,
-                    color: Colors.grey.shade700)),
+                    color: AppColor.fontColorGrey)),
             SizedBox(height: SizeConfig.blockSizeVertical * 0.5),
             Container(
               padding: EdgeInsets.symmetric(
@@ -877,7 +877,7 @@ class EditBookingView extends GetView<BookingsController> {
               ),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.grey.shade300),
+                border: Border.all(color: AppColor.divColor),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -888,11 +888,11 @@ class EditBookingView extends GetView<BookingsController> {
                         : 'Select time',
                     style: TextStyle(
                       fontSize: isMobile ? 14 : SizeConfig.blockSizeHorizontal * 1.1,
-                      color: timeRx.value != null ? Colors.black87 : Colors.grey.shade500,
+                      color: timeRx.value != null ? AppColor.fontColorBlack : AppColor.fontColorGrey,
                     ),
                   ),
                   Icon(Icons.access_time,
-                      size: isMobile ? 20 : SizeConfig.blockSizeHorizontal * 1.5, color: Colors.grey.shade600),
+                      size: isMobile ? 20 : SizeConfig.blockSizeHorizontal * 1.5, color: AppColor.fontColorGrey),
                 ],
               ),
             ),
@@ -932,9 +932,9 @@ class EditBookingView extends GetView<BookingsController> {
   Widget _sectionCard({required Widget child}) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColor.whiteColor,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: AppColor.divColor),
       ),
       padding: EdgeInsets.all(SizeConfig.isMobile ? 12 : SizeConfig.blockSizeHorizontal * 2),
       child: child,
@@ -952,7 +952,7 @@ class EditBookingView extends GetView<BookingsController> {
               style: TextStyle(
                   fontSize: isMobile ? 18 : SizeConfig.blockSizeHorizontal * 1.5,
                   fontWeight: FontWeight.w600,
-                  color: Colors.black87)),
+                  color: AppColor.fontColorBlack)),
         ),
         ElevatedButton.icon(
           onPressed: onTap,
@@ -961,7 +961,7 @@ class EditBookingView extends GetView<BookingsController> {
               style: TextStyle(fontSize: isMobile ? 13 : SizeConfig.blockSizeHorizontal * 1.1)),
           style: ElevatedButton.styleFrom(
             backgroundColor: btnColor,
-            foregroundColor: Colors.white,
+            foregroundColor: AppColor.buttonTextWhite,
             padding: EdgeInsets.symmetric(
               horizontal: isMobile ? 12 : SizeConfig.blockSizeHorizontal * 1.5,
               vertical: isMobile ? 10 : SizeConfig.blockSizeVertical * 1,
@@ -1003,7 +1003,7 @@ class EditBookingView extends GetView<BookingsController> {
             style: TextStyle(
                 fontSize: isMobile ? 14 : SizeConfig.blockSizeHorizontal * 1.1,
                 fontWeight: FontWeight.w500,
-                color: Colors.grey.shade700)),
+                color: AppColor.fontColorGrey)),
         SizedBox(height: SizeConfig.blockSizeVertical * 0.5),
         Container(
           padding: EdgeInsets.symmetric(
@@ -1011,9 +1011,9 @@ class EditBookingView extends GetView<BookingsController> {
             vertical: isMobile ? 12 : SizeConfig.blockSizeVertical * 1.2,
           ),
           decoration: BoxDecoration(
-            color: Colors.grey.shade50,
+            color: AppColor.fieldColorGrey,
             borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: Colors.grey.shade200),
+            border: Border.all(color: AppColor.divColor),
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1022,10 +1022,10 @@ class EditBookingView extends GetView<BookingsController> {
                 value.isEmpty ? '—' : value,
                 style: TextStyle(
                     fontSize: isMobile ? 14 : SizeConfig.blockSizeHorizontal * 1.1,
-                    color: value.isEmpty ? Colors.grey.shade500 : Colors.grey.shade700),
+                    color: value.isEmpty ? AppColor.fontColorGrey : AppColor.fontColorGrey),
               ),
               Icon(Icons.keyboard_arrow_down,
-                  size: isMobile ? 20 : SizeConfig.blockSizeHorizontal * 1.5, color: Colors.grey.shade400),
+                  size: isMobile ? 20 : SizeConfig.blockSizeHorizontal * 1.5, color: AppColor.lightGrey),
             ],
           ),
         ),
@@ -1066,7 +1066,7 @@ class EditBookingView extends GetView<BookingsController> {
             style: TextStyle(
                 fontSize: isMobile ? 14 : SizeConfig.blockSizeHorizontal * 1.1,
                 fontWeight: FontWeight.w500,
-                color: Colors.grey.shade700)),
+                color: AppColor.fontColorGrey)),
         SizedBox(height: SizeConfig.blockSizeVertical * 0.5),
         TextField(
           controller: controller,
@@ -1076,19 +1076,19 @@ class EditBookingView extends GetView<BookingsController> {
             contentPadding: EdgeInsets.all(isMobile ? 12 : SizeConfig.blockSizeHorizontal * 1.5),
             border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
-                borderSide: BorderSide(color: Colors.grey.shade300)),
+                borderSide: BorderSide(color: AppColor.divColor)),
             enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
-                borderSide: BorderSide(color: Colors.grey.shade300)),
+                borderSide: BorderSide(color: AppColor.divColor)),
             disabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
-                borderSide: BorderSide(color: Colors.grey.shade200)),
+                borderSide: BorderSide(color: AppColor.divColor)),
             filled: !enabled,
-            fillColor: enabled ? Colors.white : Colors.grey.shade50,
+            fillColor: enabled ? AppColor.whiteColor : AppColor.fieldColorGrey,
           ),
           style: TextStyle(
               fontSize: isMobile ? 14 : SizeConfig.blockSizeHorizontal * 1.1,
-              color: enabled ? Colors.black87 : Colors.grey.shade600),
+              color: enabled ? AppColor.fontColorBlack : AppColor.fontColorGrey),
         ),
       ],
     );
@@ -1097,8 +1097,8 @@ class EditBookingView extends GetView<BookingsController> {
   Widget _cancelButton() => OutlinedButton(
     onPressed: () => Get.back(),
     style: OutlinedButton.styleFrom(
-      foregroundColor: Colors.grey.shade700,
-      side: BorderSide(color: Colors.grey.shade300),
+      foregroundColor: AppColor.fontColorGrey,
+      side: BorderSide(color: AppColor.divColor),
       padding: _buttonPadding(),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
     ),

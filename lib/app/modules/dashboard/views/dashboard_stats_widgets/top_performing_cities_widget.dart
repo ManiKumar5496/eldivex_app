@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:eldivex_app/app/core/values/color_constants.dart';
+import 'package:eldivex_app/app/routes/app_pages.dart';
 import 'package:get/get.dart';
 
 import '../../controllers/dashboard_controller.dart';
@@ -20,7 +22,7 @@ class TopPerformingCitiesWidget extends GetView<DashboardController> {
         child: Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: AppColor.whiteColor,
             borderRadius: BorderRadius.circular(12),
           ),
           child: Column(
@@ -29,7 +31,7 @@ class TopPerformingCitiesWidget extends GetView<DashboardController> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Column(
+                  Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
@@ -37,7 +39,7 @@ class TopPerformingCitiesWidget extends GetView<DashboardController> {
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w600,
-                          color: Color(0xFF1A1A1A),
+                          color: AppColor.fontColorBlack,
                         ),
                       ),
                       SizedBox(height: 4),
@@ -45,14 +47,14 @@ class TopPerformingCitiesWidget extends GetView<DashboardController> {
                         'Revenue and bookings by location',
                         style: TextStyle(
                           fontSize: 13,
-                          color: Color(0xFF9E9E9E),
+                          color: AppColor.lightGrey,
                           fontWeight: FontWeight.w400,
                         ),
                       ),
                     ],
                   ),
                   TextButton(
-                    onPressed: () {},
+                    onPressed: () => Get.toNamed(Routes.branchManagement),
                     child: const Text(
                       'View All',
                       style: TextStyle(
@@ -67,13 +69,13 @@ class TopPerformingCitiesWidget extends GetView<DashboardController> {
               const SizedBox(height: 20),
 
               if (cities.isEmpty)
-                const Padding(
+                Padding(
                   padding: EdgeInsets.all(30),
                   child: Center(
                     child: Text(
                       'No city data available',
                       style:
-                          TextStyle(color: Color(0xFF9E9E9E), fontSize: 14),
+                          TextStyle(color: AppColor.lightGrey, fontSize: 14),
                     ),
                   ),
                 )
@@ -81,12 +83,12 @@ class TopPerformingCitiesWidget extends GetView<DashboardController> {
                 // Table Header
                 Container(
                   padding: const EdgeInsets.symmetric(vertical: 10),
-                  decoration: const BoxDecoration(
-                    color: Color(0xFFF5F7FA),
+                  decoration: BoxDecoration(
+                    color: AppColor.fieldColorGrey,
                     borderRadius:
                         BorderRadius.vertical(top: Radius.circular(8)),
                   ),
-                  child: const Row(
+                  child: Row(
                     children: [
                       SizedBox(
                           width: 50,
@@ -118,8 +120,8 @@ class TopPerformingCitiesWidget extends GetView<DashboardController> {
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
                   itemCount: cities.length,
-                  separatorBuilder: (context, index) => const Divider(
-                      height: 1, thickness: 1, color: Color(0xFFF0F0F0)),
+                  separatorBuilder: (context, index) => Divider(
+                      height: 1, thickness: 1, color: AppColor.fieldColorGrey),
                   itemBuilder: (context, index) {
                     final city = cities[index];
                     return Padding(
@@ -135,8 +137,8 @@ class TopPerformingCitiesWidget extends GetView<DashboardController> {
                               backgroundColor: _getRankColor(city.rank),
                               child: Text(
                                 '${city.rank}',
-                                style: const TextStyle(
-                                  color: Colors.white,
+                                style: TextStyle(
+                                  color: AppColor.buttonTextWhite,
                                   fontWeight: FontWeight.w600,
                                   fontSize: 14,
                                 ),
@@ -148,10 +150,10 @@ class TopPerformingCitiesWidget extends GetView<DashboardController> {
                             flex: 3,
                             child: Text(
                               city.city,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w500,
-                                color: Color(0xFF1A1A1A),
+                                color: AppColor.fontColorBlack,
                               ),
                             ),
                           ),
@@ -161,9 +163,9 @@ class TopPerformingCitiesWidget extends GetView<DashboardController> {
                             child: Text(
                               '${city.bookings}',
                               textAlign: TextAlign.center,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 14,
-                                color: Color(0xFF424242),
+                                color: AppColor.cPrimarySubHeadingColorGrey,
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
@@ -174,9 +176,9 @@ class TopPerformingCitiesWidget extends GetView<DashboardController> {
                             child: Text(
                               '₹${city.revenue.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]},')}',
                               textAlign: TextAlign.center,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 14,
-                                color: Color(0xFF424242),
+                                color: AppColor.cPrimarySubHeadingColorGrey,
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
@@ -191,7 +193,7 @@ class TopPerformingCitiesWidget extends GetView<DashboardController> {
                                   Container(
                                     height: 8,
                                     decoration: BoxDecoration(
-                                      color: const Color(0xFFE0E0E0),
+                                      color: AppColor.divColor,
                                       borderRadius:
                                           BorderRadius.circular(4),
                                     ),
@@ -219,9 +221,9 @@ class TopPerformingCitiesWidget extends GetView<DashboardController> {
                           // Progress Percentage
                           Text(
                             '${(city.progress * 100).toInt()}%',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 13,
-                              color: Color(0xFF424242),
+                              color: AppColor.cPrimarySubHeadingColorGrey,
                               fontWeight: FontWeight.w500,
                             ),
                           ),
@@ -238,9 +240,9 @@ class TopPerformingCitiesWidget extends GetView<DashboardController> {
     });
   }
 
-  static const _headerStyle = TextStyle(
+  static final _headerStyle = TextStyle(
     fontSize: 12,
-    color: Color(0xFF757575),
+    color: AppColor.fontColorGrey,
     fontWeight: FontWeight.w500,
   );
 
@@ -253,7 +255,7 @@ class TopPerformingCitiesWidget extends GetView<DashboardController> {
       case 3:
         return const Color(0xFFCD7F32);
       default:
-        return const Color(0xFFE0E0E0);
+        return AppColor.divColor;
     }
   }
 }

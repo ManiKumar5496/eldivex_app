@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:eldivex_app/app/core/values/color_constants.dart';
 
 class UsageProgressBar extends StatelessWidget {
   const UsageProgressBar({
@@ -31,7 +32,7 @@ class UsageProgressBar extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(label,
-                style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                style: TextStyle(fontSize: 12, color: AppColor.fontColorGrey)),
             Text('$used / $limitLabel',
                 style: TextStyle(
                     fontSize: 12, fontWeight: FontWeight.w600, color: color)),

@@ -57,9 +57,9 @@ class InsuranceClaimsView extends GetView<AccountsController> {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _showClaimFormSheet(context),
         backgroundColor: Colors.blue.shade700,
-        icon: const Icon(Icons.add, color: Colors.white),
-        label: const Text('New Claim',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+        icon: Icon(Icons.add, color: AppColor.buttonTextWhite),
+        label: Text('New Claim',
+            style: TextStyle(color: AppColor.buttonTextWhite, fontWeight: FontWeight.w600)),
       ),
       body: Column(
         children: [
@@ -108,7 +108,7 @@ class InsuranceClaimsView extends GetView<AccountsController> {
               height: 4,
               margin: const EdgeInsets.only(top: 12),
               decoration: BoxDecoration(
-                color: Colors.grey.shade300,
+                color: AppColor.divColor,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -272,7 +272,7 @@ class InsuranceClaimsView extends GetView<AccountsController> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Icon(Icons.health_and_safety_outlined,
-                  size: 64, color: Colors.grey.shade300),
+                  size: 64, color: AppColor.divColor),
               SizedBox(height: SizeConfig.spacingSM),
               Text('No insurance claims found',
                   style: AppTextStyles.regular16Gre),
@@ -281,7 +281,7 @@ class InsuranceClaimsView extends GetView<AccountsController> {
                 'Tap the button below to add\na new insurance claim.',
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                    fontSize: SizeConfig.fontBody, color: Colors.grey.shade500),
+                    fontSize: SizeConfig.fontBody, color: AppColor.fontColorGrey),
               ),
             ],
           ),
@@ -309,7 +309,7 @@ class InsuranceClaimsView extends GetView<AccountsController> {
       decoration: BoxDecoration(
         color: AppColor.whiteColor,
         borderRadius: BorderRadius.circular(SizeConfig.radiusMD),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: AppColor.divColor),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.04),
@@ -346,7 +346,7 @@ class InsuranceClaimsView extends GetView<AccountsController> {
               ),
             ],
           ),
-          Divider(height: SizeConfig.spacingLG, color: Colors.grey.shade100),
+          Divider(height: SizeConfig.spacingLG, color: AppColor.fieldColorGrey),
 
           // Row 2: Client / Patient
           Text(claim.clientName ?? '-',
@@ -435,7 +435,7 @@ class InsuranceClaimsView extends GetView<AccountsController> {
                           fontWeight: FontWeight.w600,
                           color: claim.settledAmount != null
                               ? Colors.green
-                              : Colors.grey),
+                              : AppColor.fontColorGrey),
                     ),
                   ],
                 ),
@@ -445,7 +445,7 @@ class InsuranceClaimsView extends GetView<AccountsController> {
 
           // Bottom: Status action button
           if (nextList.isNotEmpty) ...[
-            Divider(height: SizeConfig.spacingLG, color: Colors.grey.shade100),
+            Divider(height: SizeConfig.spacingLG, color: AppColor.fieldColorGrey),
             SizedBox(
               width: double.infinity,
               height: 44,
@@ -482,7 +482,7 @@ class InsuranceClaimsView extends GetView<AccountsController> {
             height: 4,
             margin: const EdgeInsets.only(top: 12, bottom: 8),
             decoration: BoxDecoration(
-              color: Colors.grey.shade300,
+              color: AppColor.divColor,
               borderRadius: BorderRadius.circular(2),
             ),
           ),
@@ -534,7 +534,7 @@ class InsuranceClaimsView extends GetView<AccountsController> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Icon(Icons.health_and_safety_outlined,
-                  size: 64, color: Colors.grey.shade300),
+                  size: 64, color: AppColor.divColor),
               SizedBox(height: SizeConfig.spacingSM),
               Text('No insurance claims found',
                   style: AppTextStyles.regular16Gre),
@@ -543,7 +543,7 @@ class InsuranceClaimsView extends GetView<AccountsController> {
                 'Use the form on the right to link\na TPA/insurance claim to a booking.',
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                    fontSize: SizeConfig.fontBody, color: Colors.grey.shade500),
+                    fontSize: SizeConfig.fontBody, color: AppColor.fontColorGrey),
               ),
             ],
           ),
@@ -559,12 +559,12 @@ class InsuranceClaimsView extends GetView<AccountsController> {
           decoration: BoxDecoration(
             color: AppColor.whiteColor,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.grey.shade200),
+            border: Border.all(color: AppColor.divColor),
           ),
           child: SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: DataTable(
-              headingRowColor: WidgetStateProperty.all(Colors.grey.shade50),
+              headingRowColor: WidgetStateProperty.all(AppColor.fieldColorGrey),
               headingTextStyle: TextStyle(
                 fontWeight: FontWeight.w600,
                 fontSize: SizeConfig.fontBodySmall,
@@ -630,7 +630,7 @@ class InsuranceClaimsView extends GetView<AccountsController> {
             : '-',
         style: TextStyle(
             fontSize: SizeConfig.fontBodySmall,
-            color: claim.settledAmount != null ? Colors.green : Colors.grey),
+            color: claim.settledAmount != null ? Colors.green : AppColor.fontColorGrey),
       )),
       DataCell(Container(
         padding: EdgeInsets.symmetric(
@@ -647,7 +647,7 @@ class InsuranceClaimsView extends GetView<AccountsController> {
       )),
       DataCell(nextList.isEmpty
           ? Icon(Icons.lock_outline,
-              size: SizeConfig.iconSM, color: Colors.grey.shade400)
+              size: SizeConfig.iconSM, color: AppColor.lightGrey)
           : _buildStatusActions(claim, nextList)),
     ]);
   }
@@ -725,7 +725,7 @@ class InsuranceClaimsView extends GetView<AccountsController> {
                     BorderRadius.circular(SizeConfig.radiusSM)),
           ),
           child: Text(newStatus,
-              style: const TextStyle(color: Colors.white)),
+              style: TextStyle(color: AppColor.buttonTextWhite)),
         ),
       ],
     ));
@@ -775,8 +775,8 @@ class InsuranceClaimsView extends GetView<AccountsController> {
             shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(SizeConfig.radiusSM)),
           ),
-          child: const Text('Mark Settled',
-              style: TextStyle(color: Colors.white)),
+          child: Text('Mark Settled',
+              style: TextStyle(color: AppColor.buttonTextWhite)),
         ),
       ],
     ));
@@ -791,7 +791,7 @@ class InsuranceClaimsView extends GetView<AccountsController> {
         decoration: BoxDecoration(
           color: AppColor.whiteColor,
           borderRadius: BorderRadius.circular(SizeConfig.radiusMD),
-          border: Border.all(color: Colors.grey.shade200),
+          border: Border.all(color: AppColor.divColor),
         ),
         child: _buildFormContent(),
       ),
@@ -970,15 +970,15 @@ class InsuranceClaimsView extends GetView<AccountsController> {
                           BorderRadius.circular(SizeConfig.radiusSM)),
                 ),
                 child: controller.isLoadingClaims.value
-                    ? const SizedBox(
+                    ? SizedBox(
                         height: 20,
                         width: 20,
                         child: CircularProgressIndicator(
-                            color: Colors.white, strokeWidth: 2),
+                            color: AppColor.buttonTextWhite, strokeWidth: 2),
                       )
                     : Text('Submit Insurance Claim',
                         style: TextStyle(
-                            color: Colors.white,
+                            color: AppColor.buttonTextWhite,
                             fontSize: SizeConfig.fontBody,
                             fontWeight: FontWeight.w600)),
               ),

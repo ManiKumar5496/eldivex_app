@@ -53,7 +53,7 @@ class CreateBanners extends GetView<BannersController> {
                     : controller.createBanner,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColor.cPrimaryButtonColor,
-                  foregroundColor: Colors.white,
+                  foregroundColor: AppColor.buttonTextWhite,
                   elevation: 0,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(14),
@@ -64,14 +64,14 @@ class CreateBanners extends GetView<BannersController> {
                 child: controller.createBannersLoading.value
                     ? Row(
                   mainAxisAlignment: MainAxisAlignment.center,
-                  children: const [
+                  children: [
                     SizedBox(
                       height: 18,
                       width: 18,
                       child: CircularProgressIndicator(
                         strokeWidth: 2,
                         valueColor:
-                        AlwaysStoppedAnimation<Color>(Colors.white),
+                        AlwaysStoppedAnimation<Color>(AppColor.buttonTextWhite),
                       ),
                     ),
                     SizedBox(width: 12),
@@ -104,7 +104,7 @@ class CreateBanners extends GetView<BannersController> {
         style: TextStyle(
           fontSize: 16,
           fontWeight: FontWeight.w600,
-          color: Colors.grey.shade800,
+          color: AppColor.fontColorGrey,
         ),
       ),
     );

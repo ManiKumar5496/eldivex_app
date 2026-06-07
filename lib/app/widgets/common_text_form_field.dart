@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:eldivex_app/app/core/values/color_constants.dart';
 import 'package:flutter/services.dart';
 
 class FormTextField extends StatelessWidget {
@@ -36,7 +37,7 @@ class FormTextField extends StatelessWidget {
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w600,
-              color: Colors.black87,
+              color: AppColor.fontColorBlack,
             ),
             children: [
               TextSpan(text: label),
@@ -58,25 +59,25 @@ class FormTextField extends StatelessWidget {
           decoration: InputDecoration(
             hintText: hint,
             hintStyle: TextStyle(
-              color: Colors.grey[400],
+              color: AppColor.lightGrey,
               fontSize: 15,
             ),
             prefixIcon: prefixIcon != null
-                ? Icon(prefixIcon, size: 20, color: Colors.grey[600])
+                ? Icon(prefixIcon, size: 20, color: AppColor.fontColorGrey)
                 : null,
             filled: true,
-            fillColor: Color(0xFFF9FAFB),
+            fillColor: AppColor.fieldColorGrey,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: Color(0xFFE5E7EB)),
+              borderSide: BorderSide(color: AppColor.divColor),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: Color(0xFFE5E7EB)),
+              borderSide: BorderSide(color: AppColor.divColor),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: Color(0xFF2563EB), width: 2),
+              borderSide: BorderSide(color: AppColor.cPrimaryButtonColor, width: 2),
             ),
             errorBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),

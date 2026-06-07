@@ -38,7 +38,7 @@ class OrganisationsView extends GetView<OrganisationsController> {
                     label: const Text('New Org'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColor.cPrimaryButtonColor,
-                      foregroundColor: Colors.white,
+                      foregroundColor: AppColor.buttonTextWhite,
                       padding: const EdgeInsets.symmetric(
                           horizontal: 20, vertical: 14),
                       shape: RoundedRectangleBorder(
@@ -122,7 +122,7 @@ class OrganisationsView extends GetView<OrganisationsController> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColor.whiteColor,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: AppColor.divColor),
       ),
@@ -241,13 +241,13 @@ class OrganisationsView extends GetView<OrganisationsController> {
                       },
                 style: ElevatedButton.styleFrom(
                     backgroundColor: AppColor.cPrimaryButtonColor,
-                    foregroundColor: Colors.white),
+                    foregroundColor: AppColor.buttonTextWhite),
                 child: controller.saving.value
-                    ? const SizedBox(
+                    ? SizedBox(
                         width: 16,
                         height: 16,
                         child: CircularProgressIndicator(
-                            strokeWidth: 2, color: Colors.white))
+                            strokeWidth: 2, color: AppColor.buttonTextWhite))
                     : Text(isEdit ? 'Save' : 'Create'),
               )),
         ],
@@ -281,7 +281,7 @@ class _PlanChip extends StatelessWidget {
         ? Colors.purple
         : plan == 'Growth'
             ? Colors.blue
-            : Colors.grey;
+            : AppColor.fontColorGrey;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(

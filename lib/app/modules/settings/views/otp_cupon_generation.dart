@@ -213,16 +213,16 @@ class OtpCouponGeneration extends GetView<SettingsController> {
                         ),
                         child: Row(
                           children: [
-                            const Icon(
+                            Icon(
                               Icons.send,
-                              color: Colors.white,
+                              color: AppColor.buttonTextWhite,
                               size: 20,
                             ),
                             const SizedBox(width: 8),
                             Text(
                               'Go',
                               style: AppTextStyles.regular16blue.copyWith(
-                                color: Colors.white,
+                                color: AppColor.whiteColor,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
@@ -403,26 +403,26 @@ class OtpCouponGeneration extends GetView<SettingsController> {
                     ),
                   ),
                   child: controller.isCreateCuponLoading.value
-                      ? const SizedBox(
+                      ? SizedBox(
                           height: 20,
                           width: 20,
                           child: CircularProgressIndicator(
-                            color: Colors.white,
+                            color: AppColor.buttonTextWhite,
                             strokeWidth: 2,
                           ),
                         )
                       : Row(
                           children: [
-                            const Icon(
+                            Icon(
                               Icons.add_circle,
-                              color: Colors.white,
+                              color: AppColor.buttonTextWhite,
                               size: 20,
                             ),
                             const SizedBox(width: 8),
                             Text(
                               'Create',
                               style: AppTextStyles.regular16blue.copyWith(
-                                color: Colors.white,
+                                color: AppColor.whiteColor,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
@@ -469,7 +469,7 @@ class OtpCouponGeneration extends GetView<SettingsController> {
               ElevatedButton(
                 onPressed: () => _showCouponsDialog(),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.grey[700],
+                  backgroundColor: AppColor.fontColorGrey,
                   padding: const EdgeInsets.symmetric(
                     horizontal: 32,
                     vertical: 16,
@@ -481,12 +481,12 @@ class OtpCouponGeneration extends GetView<SettingsController> {
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.list_alt, color: Colors.white, size: 20),
+                    Icon(Icons.list_alt, color: AppColor.buttonTextWhite, size: 20),
                     const SizedBox(width: 8),
                     Text(
                       'View Coupons',
                       style: AppTextStyles.regular16blue.copyWith(
-                        color: Colors.white,
+                        color: AppColor.whiteColor,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -688,7 +688,7 @@ class OtpCouponGeneration extends GetView<SettingsController> {
                   child: Text(
                     'Close',
                     style: AppTextStyles.regular16blue.copyWith(
-                      color: Colors.white,
+                      color: AppColor.whiteColor,
                       fontWeight: FontWeight.w600,
                     ),
                   ),

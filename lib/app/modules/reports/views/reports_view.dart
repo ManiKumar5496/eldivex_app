@@ -50,7 +50,7 @@ class ReportsView extends GetView<ReportsController> {
         vertical:   SizeConfig.spacingMD,
       ),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColor.whiteColor,
         border: Border(
           bottom: BorderSide(color: AppColor.divColor.withValues(alpha: 0.5)),
         ),
@@ -84,7 +84,7 @@ class ReportsView extends GetView<ReportsController> {
                   : Switch(
                       value: controller.scheduleEnabled.value,
                       onChanged: controller.toggleSchedule,
-                      activeThumbColor: Colors.white,
+                      activeThumbColor: AppColor.buttonTextWhite,
                       activeTrackColor: AppColor.cPrimaryButtonColor,
                     ),
             ],
@@ -100,7 +100,7 @@ class ReportsView extends GetView<ReportsController> {
     return Container(
       padding: EdgeInsets.all(SizeConfig.spacingLG),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColor.whiteColor,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
@@ -148,12 +148,12 @@ class ReportsView extends GetView<ReportsController> {
                 child: ElevatedButton.icon(
                   onPressed: controller.loading.value ? null : controller.fetchReport,
                   icon: controller.loading.value
-                      ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                      ? SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: AppColor.buttonTextWhite))
                       : const Icon(Icons.search, size: 18),
                   label: const Text('Generate Preview'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColor.cPrimaryButtonColor,
-                    foregroundColor: Colors.white,
+                    foregroundColor: AppColor.buttonTextWhite,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                     elevation: 0,
                   ),
@@ -296,7 +296,7 @@ class ReportsView extends GetView<ReportsController> {
             data: Theme.of(ctx).copyWith(
               colorScheme: ColorScheme.light(
                 primary: AppColor.cPrimaryButtonColor,
-                onPrimary: Colors.white,
+                onPrimary: AppColor.buttonTextWhite,
               ),
             ),
             child: child!,
@@ -352,7 +352,7 @@ class ReportsView extends GetView<ReportsController> {
 
       return Container(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppColor.whiteColor,
           borderRadius: BorderRadius.circular(12),
           boxShadow: [
             BoxShadow(
@@ -435,7 +435,7 @@ class ReportsView extends GetView<ReportsController> {
         final isEven  = e.key.isEven;
         return DataRow(
           color: WidgetStateProperty.all(
-            isEven ? Colors.white : AppColor.cAppBackgroundColor.withValues(alpha: 0.5),
+            isEven ? AppColor.whiteColor : AppColor.cAppBackgroundColor.withValues(alpha: 0.5),
           ),
           cells: headers
               .map((h) => DataCell(

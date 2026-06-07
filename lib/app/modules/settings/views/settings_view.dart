@@ -90,6 +90,13 @@ class SettingsView extends GetView<SettingsController> {
                         onTap: () => Get.toNamed(Routes.ROLE),
                       ),
                       _SettingsTile(
+                        icon: Icons.palette_outlined,
+                        iconColor: AppColor.cPrimaryButtonColor,
+                        title: 'Appearance',
+                        subtitle: 'Theme mode and brand color',
+                        onTap: () => Get.toNamed(Routes.appearance),
+                      ),
+                      _SettingsTile(
                         icon: Icons.workspace_premium_outlined,
                         iconColor: Colors.deepPurple,
                         title: 'Subscription',
@@ -176,7 +183,7 @@ class SettingsView extends GetView<SettingsController> {
           Text(value,
               style: TextStyle(
                   fontWeight: FontWeight.w600,
-                  color: valueColor ?? Colors.black87)),
+                  color: valueColor ?? AppColor.fontColorBlack)),
         ],
       ),
     );
@@ -190,14 +197,14 @@ class SettingsView extends GetView<SettingsController> {
           Icon(
             enabled ? Icons.check_circle_outline : Icons.cancel_outlined,
             size: 16,
-            color: enabled ? Colors.green : Colors.grey,
+            color: enabled ? Colors.green : AppColor.fontColorGrey,
           ),
           const SizedBox(width: 8),
           Text(
             name[0].toUpperCase() + name.substring(1),
             style: TextStyle(
                 fontSize: 13,
-                color: enabled ? Colors.black87 : Colors.grey),
+                color: enabled ? AppColor.fontColorBlack : AppColor.fontColorGrey),
           ),
         ],
       ),

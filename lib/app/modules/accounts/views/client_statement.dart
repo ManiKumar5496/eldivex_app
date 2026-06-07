@@ -105,7 +105,7 @@ class ClientStatementView extends GetView<AccountsController> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Icon(Icons.account_balance_wallet_outlined,
-                  size: 64, color: Colors.grey.shade300),
+                  size: 64, color: AppColor.divColor),
               SizedBox(height: SizeConfig.spacingSM),
               Text('No statements found', style: AppTextStyles.regular16Gre),
             ],
@@ -227,7 +227,7 @@ class ClientStatementView extends GetView<AccountsController> {
         decoration: BoxDecoration(
           color: AppColor.whiteColor,
           borderRadius: BorderRadius.circular(SizeConfig.radiusMD),
-          border: Border.all(color: Colors.grey.shade200),
+          border: Border.all(color: AppColor.divColor),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.03),
@@ -252,7 +252,7 @@ class ClientStatementView extends GetView<AccountsController> {
               Container(
                 padding: EdgeInsets.all(SizeConfig.spacingSM),
                 decoration: BoxDecoration(
-                  color: Colors.grey.shade50,
+                  color: AppColor.fieldColorGrey,
                   borderRadius:
                       BorderRadius.circular(SizeConfig.radiusSM),
                 ),
@@ -324,7 +324,7 @@ class ClientStatementView extends GetView<AccountsController> {
             decoration: BoxDecoration(
               color: AppColor.whiteColor,
               borderRadius: BorderRadius.circular(SizeConfig.radiusMD),
-              border: Border.all(color: Colors.grey.shade200),
+              border: Border.all(color: AppColor.divColor),
             ),
             child: SizeConfig.adaptiveLayout(
               mobile: Column(
@@ -411,10 +411,10 @@ class ClientStatementView extends GetView<AccountsController> {
               decoration: BoxDecoration(
                 color: AppColor.whiteColor,
                 borderRadius: BorderRadius.circular(SizeConfig.radiusMD),
-                border: Border.all(color: Colors.grey.shade200),
+                border: Border.all(color: AppColor.divColor),
               ),
               child: DataTable(
-                headingRowColor: WidgetStateProperty.all(Colors.grey.shade50),
+                headingRowColor: WidgetStateProperty.all(AppColor.fieldColorGrey),
                 headingTextStyle: TextStyle(
                   fontWeight: FontWeight.w600,
                   fontSize: SizeConfig.fontBodySmall,
@@ -514,7 +514,7 @@ class ClientStatementView extends GetView<AccountsController> {
           Text(label,
               style: TextStyle(
                   fontSize: SizeConfig.fontCaption,
-                  color: Colors.grey.shade600)),
+                  color: AppColor.fontColorGrey)),
           SizedBox(height: SizeConfig.spacingXS),
           Text(controller.formatCurrency(amount),
               style: TextStyle(

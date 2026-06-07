@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:eldivex_app/app/core/values/color_constants.dart';
 import 'package:shimmer/shimmer.dart';
 
 class DashboardShimmer {
   static Widget _shimmerBase({required Widget child}) {
     return Shimmer.fromColors(
-      baseColor: Colors.grey.shade200,
-      highlightColor: Colors.grey.shade50,
+      baseColor: AppColor.divColor,
+      highlightColor: AppColor.fieldColorGrey,
       child: child,
     );
   }
@@ -19,19 +20,19 @@ class DashboardShimmer {
       width: width,
       height: height,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColor.whiteColor,
         borderRadius: BorderRadius.circular(radius),
       ),
     );
   }
 
-  /// Shimmer for DashboardStatsSection (6 stat cards)
+  /// Shimmer for DashboardStatsSection (7 stat cards)
   static Widget statsSection() {
     return _shimmerBase(
       child: Wrap(
         spacing: 20,
         runSpacing: 20,
-        children: List.generate(6, (_) => _statCard()),
+        children: List.generate(7, (_) => _statCard()),
       ),
     );
   }
@@ -41,7 +42,7 @@ class DashboardShimmer {
       width: 360,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColor.whiteColor,
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
@@ -54,8 +55,8 @@ class DashboardShimmer {
               Container(
                 width: 42,
                 height: 42,
-                decoration: const BoxDecoration(
-                  color: Colors.white,
+                decoration: BoxDecoration(
+                  color: AppColor.whiteColor,
                   shape: BoxShape.circle,
                 ),
               ),
@@ -75,7 +76,7 @@ class DashboardShimmer {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColor.whiteColor,
         borderRadius: BorderRadius.circular(12),
       ),
       child: _shimmerBase(
@@ -99,7 +100,7 @@ class DashboardShimmer {
                         heightFactor: heights[i % heights.length],
                         child: Container(
                           decoration: BoxDecoration(
-                            color: Colors.white,
+                            color: AppColor.whiteColor,
                             borderRadius: BorderRadius.circular(4),
                           ),
                         ),
@@ -120,7 +121,7 @@ class DashboardShimmer {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColor.whiteColor,
         borderRadius: BorderRadius.circular(12),
       ),
       child: _shimmerBase(
@@ -161,7 +162,7 @@ class DashboardShimmer {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColor.whiteColor,
         borderRadius: BorderRadius.circular(16),
       ),
       child: _shimmerBase(
@@ -176,7 +177,7 @@ class DashboardShimmer {
                 height: 180,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white, width: 30),
+                  border: Border.all(color: AppColor.whiteColor, width: 30),
                 ),
               ),
             ),
@@ -191,8 +192,8 @@ class DashboardShimmer {
                     Container(
                       width: 12,
                       height: 12,
-                      decoration: const BoxDecoration(
-                        color: Colors.white,
+                      decoration: BoxDecoration(
+                        color: AppColor.whiteColor,
                         shape: BoxShape.circle,
                       ),
                     ),
@@ -213,7 +214,7 @@ class DashboardShimmer {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColor.whiteColor,
         borderRadius: BorderRadius.circular(16),
       ),
       child: _shimmerBase(
@@ -233,14 +234,14 @@ class DashboardShimmer {
                 margin: const EdgeInsets.only(bottom: 12),
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  border: Border.all(color: Colors.grey.shade100),
+                  border: Border.all(color: AppColor.fieldColorGrey),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Row(
                   children: [
-                    const CircleAvatar(
+                    CircleAvatar(
                       radius: 22,
-                      backgroundColor: Colors.white,
+                      backgroundColor: AppColor.whiteColor,
                     ),
                     const SizedBox(width: 14),
                     Expanded(
@@ -276,7 +277,7 @@ class DashboardShimmer {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColor.whiteColor,
         borderRadius: BorderRadius.circular(12),
       ),
       child: _shimmerBase(
@@ -302,7 +303,7 @@ class DashboardShimmer {
             Container(
               padding: const EdgeInsets.symmetric(vertical: 10),
               decoration: BoxDecoration(
-                color: Colors.grey.shade50,
+                color: AppColor.fieldColorGrey,
                 borderRadius:
                     const BorderRadius.vertical(top: Radius.circular(8)),
               ),
@@ -326,7 +327,7 @@ class DashboardShimmer {
                       width: 50,
                       child: CircleAvatar(
                         radius: 14,
-                        backgroundColor: Colors.grey.shade100,
+                        backgroundColor: AppColor.fieldColorGrey,
                       ),
                     ),
                     Expanded(flex: 3, child: _box(width: 80, height: 14)),

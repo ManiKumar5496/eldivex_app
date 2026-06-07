@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:eldivex_app/app/core/values/color_constants.dart';
 import 'package:get/get_state_manager/src/simple/get_view.dart';
 import 'package:intl/intl.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
@@ -26,7 +27,7 @@ class RevenueBookingsTrendWidget extends GetView<DashboardController> {
       child: Container(
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppColor.whiteColor,
           borderRadius: BorderRadius.circular(12),
         ),
         child: Column(
@@ -35,7 +36,7 @@ class RevenueBookingsTrendWidget extends GetView<DashboardController> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Column(
+                Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
@@ -43,7 +44,7 @@ class RevenueBookingsTrendWidget extends GetView<DashboardController> {
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w600,
-                        color: Color(0xFF1A1A1A),
+                        color: AppColor.fontColorBlack,
                       ),
                     ),
                     SizedBox(height: 4),
@@ -51,7 +52,7 @@ class RevenueBookingsTrendWidget extends GetView<DashboardController> {
                       'Monthly performance overview',
                       style: TextStyle(
                         fontSize: 13,
-                        color: Color(0xFF9E9E9E),
+                        color: AppColor.lightGrey,
                         fontWeight: FontWeight.w400,
                       ),
                     ),
@@ -80,14 +81,14 @@ class RevenueBookingsTrendWidget extends GetView<DashboardController> {
                 plotAreaBorderWidth: 0,
                 margin: const EdgeInsets.only(left: 10, right: 20, bottom: 40),
                 primaryXAxis: CategoryAxis(
-                  majorGridLines: const MajorGridLines(
+                  majorGridLines: MajorGridLines(
                     width: 1,
-                    color: Color(0xFFF0F0F0),
+                    color: AppColor.fieldColorGrey,
                     dashArray: [5, 5],
                   ),
                   axisLine: const AxisLine(width: 0),
-                  labelStyle: const TextStyle(
-                    color: Color(0xFF757575),
+                  labelStyle: TextStyle(
+                    color: AppColor.fontColorGrey,
                     fontSize: 12,
                   ),
                   majorTickLines: const MajorTickLines(width: 0),
@@ -98,13 +99,13 @@ class RevenueBookingsTrendWidget extends GetView<DashboardController> {
                   interval: 25000,
                   numberFormat:
                   NumberFormat.compactCurrency(symbol: '', decimalDigits: 0),
-                  majorGridLines: const MajorGridLines(
+                  majorGridLines: MajorGridLines(
                     width: 1,
-                    color: Color(0xFFF0F0F0),
+                    color: AppColor.fieldColorGrey,
                   ),
                   axisLine: const AxisLine(width: 0),
-                  labelStyle: const TextStyle(
-                    color: Color(0xFFBDBDBD),
+                  labelStyle: TextStyle(
+                    color: AppColor.lightGrey,
                     fontSize: 11,
                   ),
                   majorTickLines: const MajorTickLines(width: 0),
@@ -115,9 +116,9 @@ class RevenueBookingsTrendWidget extends GetView<DashboardController> {
                   orientation: LegendItemOrientation.horizontal,
                   overflowMode: LegendItemOverflowMode.wrap,
                   itemPadding: 24,
-                  textStyle: const TextStyle(
+                  textStyle: TextStyle(
                     fontSize: 13,
-                    color: Color(0xFF424242),
+                    color: AppColor.cPrimarySubHeadingColorGrey,
                   ),
                 ),
                 series: <CartesianSeries>[
@@ -147,8 +148,8 @@ class RevenueBookingsTrendWidget extends GetView<DashboardController> {
                 tooltipBehavior: TooltipBehavior(
                   enable: true,
                   format: 'point.x : \$point.y',
-                  color: const Color(0xFF1A1A1A),
-                  textStyle: const TextStyle(color: Colors.white),
+                  color: AppColor.fontColorBlack,
+                  textStyle: TextStyle(color: AppColor.buttonTextWhite),
                 ),
               ),
             ),
@@ -170,7 +171,7 @@ class RevenueBookingsTrendWidget extends GetView<DashboardController> {
         style: TextStyle(
           fontSize: 13,
           fontWeight: FontWeight.w500,
-          color: isSelected ? Colors.white : const Color(0xFF424242),
+          color: isSelected ? AppColor.buttonTextWhite : AppColor.cPrimarySubHeadingColorGrey,
         ),
       ),
     );

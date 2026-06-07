@@ -34,9 +34,9 @@ class WriteOffView extends GetView<AccountsController> {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _showWriteOffFormSheet(context),
         backgroundColor: Colors.orange.shade700,
-        icon: const Icon(Icons.add, color: Colors.white),
-        label: const Text('New Write-Off',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+        icon: Icon(Icons.add, color: AppColor.buttonTextWhite),
+        label: Text('New Write-Off',
+            style: TextStyle(color: AppColor.buttonTextWhite, fontWeight: FontWeight.w600)),
       ),
       body: _buildMobileWriteOffList(),
     );
@@ -70,7 +70,7 @@ class WriteOffView extends GetView<AccountsController> {
               height: 4,
               margin: const EdgeInsets.only(top: 12),
               decoration: BoxDecoration(
-                color: Colors.grey.shade300,
+                color: AppColor.divColor,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -153,7 +153,7 @@ class WriteOffView extends GetView<AccountsController> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Icon(Icons.money_off_outlined,
-                  size: 64, color: Colors.grey.shade300),
+                  size: 64, color: AppColor.divColor),
               SizedBox(height: SizeConfig.spacingSM),
               Text('No write-offs found', style: AppTextStyles.regular16Gre),
             ],
@@ -182,7 +182,7 @@ class WriteOffView extends GetView<AccountsController> {
       decoration: BoxDecoration(
         color: AppColor.whiteColor,
         borderRadius: BorderRadius.circular(SizeConfig.radiusMD),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: AppColor.divColor),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.04),
@@ -222,7 +222,7 @@ class WriteOffView extends GetView<AccountsController> {
               ),
             ],
           ),
-          Divider(height: SizeConfig.spacingLG, color: Colors.grey.shade100),
+          Divider(height: SizeConfig.spacingLG, color: AppColor.fieldColorGrey),
 
           // Row 2: Client / Service
           Row(
@@ -287,7 +287,7 @@ class WriteOffView extends GetView<AccountsController> {
 
           // Bottom: Action buttons for Pending
           if (isPending) ...[
-            Divider(height: SizeConfig.spacingLG, color: Colors.grey.shade100),
+            Divider(height: SizeConfig.spacingLG, color: AppColor.fieldColorGrey),
             Row(
               children: [
                 Expanded(
@@ -316,10 +316,10 @@ class WriteOffView extends GetView<AccountsController> {
                     child: ElevatedButton.icon(
                       onPressed: () => controller.approveWriteOff(wo.id),
                       icon: Icon(Icons.check,
-                          size: SizeConfig.iconSM, color: Colors.white),
+                          size: SizeConfig.iconSM, color: AppColor.buttonTextWhite),
                       label: Text('Approve',
                           style: TextStyle(
-                              color: Colors.white, fontSize: SizeConfig.fontBody)),
+                              color: AppColor.buttonTextWhite, fontSize: SizeConfig.fontBody)),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.green,
                         shape: RoundedRectangleBorder(
@@ -348,7 +348,7 @@ class WriteOffView extends GetView<AccountsController> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Icon(Icons.money_off_outlined,
-                  size: 64, color: Colors.grey.shade300),
+                  size: 64, color: AppColor.divColor),
               SizedBox(height: SizeConfig.spacingSM),
               Text('No write-offs found', style: AppTextStyles.regular16Gre),
             ],
@@ -364,12 +364,12 @@ class WriteOffView extends GetView<AccountsController> {
           decoration: BoxDecoration(
             color: AppColor.whiteColor,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.grey.shade200),
+            border: Border.all(color: AppColor.divColor),
           ),
           child: SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: DataTable(
-              headingRowColor: WidgetStateProperty.all(Colors.grey.shade50),
+              headingRowColor: WidgetStateProperty.all(AppColor.fieldColorGrey),
               headingTextStyle: TextStyle(
                 fontWeight: FontWeight.w600,
                 fontSize: SizeConfig.fontBodySmall,
@@ -492,7 +492,7 @@ class WriteOffView extends GetView<AccountsController> {
                           ],
                         )
                       : Icon(Icons.check_circle_outline,
-                          size: SizeConfig.iconSM, color: Colors.grey.shade400)),
+                          size: SizeConfig.iconSM, color: AppColor.lightGrey)),
                 ]);
               }).toList(),
             ),
@@ -511,7 +511,7 @@ class WriteOffView extends GetView<AccountsController> {
         decoration: BoxDecoration(
           color: AppColor.whiteColor,
           borderRadius: BorderRadius.circular(SizeConfig.radiusMD),
-          border: Border.all(color: Colors.grey.shade200),
+          border: Border.all(color: AppColor.divColor),
         ),
         child: _buildWriteOffFormContent(),
       ),
@@ -726,7 +726,7 @@ class WriteOffView extends GetView<AccountsController> {
             ),
             child: Text('Submit Write-Off',
                 style: TextStyle(
-                    color: Colors.white,
+                    color: AppColor.buttonTextWhite,
                     fontSize: SizeConfig.fontBody,
                     fontWeight: FontWeight.w600)),
           ),

@@ -51,7 +51,7 @@ class CreateBookingsView extends GetView<BookingsController> {
             _buildSectionTitle('Patient Information'),
             Text(
               'Please provide accurate patient details',
-              style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+              style: TextStyle(fontSize: 13, color: AppColor.fontColorGrey),
             ),
             const SizedBox(height: 20),
 
@@ -133,12 +133,12 @@ class CreateBookingsView extends GetView<BookingsController> {
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
+                  Text(
                     'Preferred Language *',
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
-                      color: Colors.black87,
+                      color: AppColor.fontColorBlack,
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -164,15 +164,15 @@ class CreateBookingsView extends GetView<BookingsController> {
                         labelStyle: TextStyle(
                           color: isSelected
                               ? AppColor.cPrimaryButtonColor
-                              : Colors.black87,
+                              : AppColor.fontColorBlack,
                           fontSize: 13,
                         ),
                         side: BorderSide(
                           color: isSelected
                               ? AppColor.cPrimaryButtonColor
-                              : Colors.grey.shade300,
+                              : AppColor.divColor,
                         ),
-                        backgroundColor: Colors.white,
+                        backgroundColor: AppColor.whiteColor,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(20),
                         ),
@@ -202,10 +202,10 @@ class CreateBookingsView extends GetView<BookingsController> {
 
             Text(
               'Patient stays alone? *',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
-                color: Colors.black87,
+                color: AppColor.fontColorBlack,
               ),
             ),
             const SizedBox(height: 8),
@@ -267,7 +267,7 @@ class CreateBookingsView extends GetView<BookingsController> {
             _buildSectionTitle('Service Information'),
             Text(
               'Select branch, category and specific service',
-              style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+              style: TextStyle(fontSize: 13, color: AppColor.fontColorGrey),
             ),
             const SizedBox(height: 20),
 
@@ -379,7 +379,7 @@ class CreateBookingsView extends GetView<BookingsController> {
             _buildSectionTitle('Service Schedule'),
             Text(
               'Choose your preferred dates and time',
-              style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+              style: TextStyle(fontSize: 13, color: AppColor.fontColorGrey),
             ),
             const SizedBox(height: 20),
 
@@ -494,8 +494,8 @@ class CreateBookingsView extends GetView<BookingsController> {
                       ? null
                       : controller.createBooking,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF2563EB),
-                    foregroundColor: Colors.white,
+                    backgroundColor: AppColor.cPrimaryButtonColor,
+                    foregroundColor: AppColor.buttonTextWhite,
                     elevation: 0,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14),
@@ -505,13 +505,13 @@ class CreateBookingsView extends GetView<BookingsController> {
                     ).withOpacity(0.6),
                   ),
                   child: controller.isCreateBookingLoading.value
-                      ? const SizedBox(
+                      ? SizedBox(
                           height: 20,
                           width: 20,
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
                             valueColor: AlwaysStoppedAnimation<Color>(
-                              Colors.white,
+                              AppColor.buttonTextWhite,
                             ),
                           ),
                         )
@@ -536,11 +536,11 @@ class CreateBookingsView extends GetView<BookingsController> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         RichText(
-          text: const TextSpan(
+          text: TextSpan(
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w600,
-              color: Colors.black87,
+              color: AppColor.fontColorBlack,
             ),
             children: [
               TextSpan(text: 'Age (auto-calculated)'),
@@ -556,14 +556,14 @@ class CreateBookingsView extends GetView<BookingsController> {
           width: double.infinity,
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           decoration: BoxDecoration(
-            color: const Color(0xFFF9FAFB),
+            color: AppColor.fieldColorGrey,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: const Color(0xFFE5E7EB)),
+            border: Border.all(color: AppColor.divColor),
           ),
           child: Text(
             value.isEmpty ? 'Calculated from year of birth' : value,
             style: TextStyle(
-              color: value.isEmpty ? Colors.grey[400] : Colors.black87,
+              color: value.isEmpty ? AppColor.lightGrey : AppColor.fontColorBlack,
               fontSize: 15,
             ),
           ),
@@ -575,10 +575,10 @@ class CreateBookingsView extends GetView<BookingsController> {
   Widget _buildSectionTitle(String title) {
     return Text(
       title,
-      style: const TextStyle(
+      style: TextStyle(
         fontSize: 18,
         fontWeight: FontWeight.bold,
-        color: Colors.black87,
+        color: AppColor.fontColorBlack,
       ),
     );
   }
@@ -597,10 +597,10 @@ class CreateBookingsView extends GetView<BookingsController> {
           children: [
             Text(
               label,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
-                color: Colors.black87,
+                color: AppColor.fontColorBlack,
               ),
             ),
             if (required)
@@ -624,12 +624,12 @@ class CreateBookingsView extends GetView<BookingsController> {
                   vertical: 10,
                 ),
                 decoration: BoxDecoration(
-                  color: isSelected ? const Color(0xFF2563EB) : Colors.white,
+                  color: isSelected ? AppColor.cPrimaryButtonColor : AppColor.whiteColor,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
                     color: isSelected
-                        ? const Color(0xFF2563EB)
-                        : Colors.grey.shade300,
+                        ? AppColor.cPrimaryButtonColor
+                        : AppColor.divColor,
                     width: 1.5,
                   ),
                 ),
@@ -638,7 +638,7 @@ class CreateBookingsView extends GetView<BookingsController> {
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
-                    color: isSelected ? Colors.white : Colors.black87,
+                    color: isSelected ? AppColor.buttonTextWhite : AppColor.fontColorBlack,
                   ),
                 ),
               ),
@@ -655,10 +655,10 @@ class CreateBookingsView extends GetView<BookingsController> {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 12),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF2563EB) : Colors.white,
+          color: isSelected ? AppColor.cPrimaryButtonColor : AppColor.whiteColor,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isSelected ? const Color(0xFF2563EB) : Colors.grey.shade300,
+            color: isSelected ? AppColor.cPrimaryButtonColor : AppColor.divColor,
             width: 1.5,
           ),
         ),
@@ -668,7 +668,7 @@ class CreateBookingsView extends GetView<BookingsController> {
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w500,
-              color: isSelected ? Colors.white : Colors.black87,
+              color: isSelected ? AppColor.buttonTextWhite : AppColor.fontColorBlack,
             ),
           ),
         ),
@@ -690,10 +690,10 @@ class CreateBookingsView extends GetView<BookingsController> {
           children: [
             Text(
               label,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
-                color: Colors.black87,
+                color: AppColor.fontColorBlack,
               ),
             ),
             if (required)
@@ -708,9 +708,9 @@ class CreateBookingsView extends GetView<BookingsController> {
           onTap: onTap,
           child: Container(
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: AppColor.whiteColor,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.grey.shade300),
+              border: Border.all(color: AppColor.divColor),
             ),
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             child: Row(
@@ -720,12 +720,12 @@ class CreateBookingsView extends GetView<BookingsController> {
                   selectedTime != null ? _formatTime(selectedTime) : hint,
                   style: TextStyle(
                     color: selectedTime != null
-                        ? Colors.black87
-                        : Colors.grey[600],
+                        ? AppColor.fontColorBlack
+                        : AppColor.fontColorGrey,
                     fontSize: 14,
                   ),
                 ),
-                Icon(Icons.access_time, color: Colors.grey[600], size: 18),
+                Icon(Icons.access_time, color: AppColor.fontColorGrey, size: 18),
               ],
             ),
           ),
@@ -774,13 +774,13 @@ class CreateBookingsView extends GetView<BookingsController> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Row(
+        Row(
           children: [
             Text('Select Service',
                 style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
-                    color: Colors.black87)),
+                    color: AppColor.fontColorBlack)),
             Text(' *', style: TextStyle(color: Colors.red, fontSize: 14)),
           ],
         ),
@@ -794,9 +794,9 @@ class CreateBookingsView extends GetView<BookingsController> {
             width: double.infinity,
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: AppColor.whiteColor,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.grey.shade300),
+              border: Border.all(color: AppColor.divColor),
             ),
             child: Row(
               children: [
@@ -833,9 +833,9 @@ class CreateBookingsView extends GetView<BookingsController> {
                         )
                       : Text('Choose a service',
                           style: TextStyle(
-                              color: Colors.grey[600], fontSize: 14)),
+                              color: AppColor.fontColorGrey, fontSize: 14)),
                 ),
-                Icon(Icons.keyboard_arrow_down, color: Colors.grey[600]),
+                Icon(Icons.keyboard_arrow_down, color: AppColor.fontColorGrey),
               ],
             ),
           ),
@@ -854,8 +854,8 @@ class CreateBookingsView extends GetView<BookingsController> {
         constraints: BoxConstraints(
           maxHeight: Get.height * 0.6,
         ),
-        decoration: const BoxDecoration(
-          color: Colors.white,
+        decoration: BoxDecoration(
+          color: AppColor.whiteColor,
           borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         ),
         child: Column(
@@ -866,7 +866,7 @@ class CreateBookingsView extends GetView<BookingsController> {
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: Colors.grey[300],
+                color: AppColor.divColor,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -896,7 +896,7 @@ class CreateBookingsView extends GetView<BookingsController> {
                     },
                     child: Container(
                       color: isSelected
-                          ? const Color(0xFF2563EB).withOpacity(0.05)
+                          ? AppColor.cPrimaryButtonColor.withOpacity(0.05)
                           : null,
                       padding: const EdgeInsets.symmetric(
                           horizontal: 16, vertical: 12),
@@ -911,13 +911,13 @@ class CreateBookingsView extends GetView<BookingsController> {
                                       fontSize: 15,
                                       fontWeight: FontWeight.w600,
                                       color: isSelected
-                                          ? const Color(0xFF2563EB)
-                                          : Colors.black87,
+                                          ? AppColor.cPrimaryButtonColor
+                                          : AppColor.fontColorBlack,
                                     )),
                               ),
                               if (isSelected)
-                                const Icon(Icons.check_circle,
-                                    color: Color(0xFF2563EB), size: 20),
+                                Icon(Icons.check_circle,
+                                    color: AppColor.cPrimaryButtonColor, size: 20),
                             ],
                           ),
                           const SizedBox(height: 6),
@@ -942,7 +942,7 @@ class CreateBookingsView extends GetView<BookingsController> {
                             const SizedBox(height: 4),
                             Text(service.description,
                                 style: TextStyle(
-                                    fontSize: 12, color: Colors.grey[600]),
+                                    fontSize: 12, color: AppColor.fontColorGrey),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis),
                           ],

@@ -53,7 +53,7 @@ class _TransferListViewState extends State<TransferListView> {
       case 'PENDING_APPROVAL':
         return Colors.orange;
       default:
-        return Colors.grey;
+        return AppColor.fontColorGrey;
     }
   }
 
@@ -68,7 +68,7 @@ class _TransferListViewState extends State<TransferListView> {
       case 'SERVICE_SWITCH':
         return Colors.deepPurple;
       default:
-        return Colors.grey;
+        return AppColor.fontColorGrey;
     }
   }
 
@@ -234,10 +234,10 @@ class _TransferListViewState extends State<TransferListView> {
           // New Transfer button
           ElevatedButton.icon(
             onPressed: () => Get.toNamed('/accounts/internal-transfer/create'),
-            icon: const Icon(Icons.add, color: Colors.white, size: 18),
-            label: const Text(
+            icon: Icon(Icons.add, color: AppColor.buttonTextWhite, size: 18),
+            label: Text(
               'New Transfer',
-              style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+              style: TextStyle(color: AppColor.buttonTextWhite, fontWeight: FontWeight.w600),
             ),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColor.cPrimaryButtonColor,
@@ -265,14 +265,14 @@ class _TransferListViewState extends State<TransferListView> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.swap_horiz_outlined, size: 64, color: Colors.grey.shade300),
+              Icon(Icons.swap_horiz_outlined, size: 64, color: AppColor.divColor),
               const SizedBox(height: 12),
               Text('No internal transfers found', style: AppTextStyles.regular16Gre),
               const SizedBox(height: 8),
               Text(
                 'Internal transfers move credit balances between bookings\nof the same client.',
                 textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 13, color: Colors.grey.shade500),
+                style: TextStyle(fontSize: 13, color: AppColor.fontColorGrey),
               ),
             ],
           ),
@@ -285,10 +285,10 @@ class _TransferListViewState extends State<TransferListView> {
           decoration: BoxDecoration(
             color: AppColor.whiteColor,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.grey.shade200),
+            border: Border.all(color: AppColor.divColor),
           ),
           child: DataTable(
-            headingRowColor: WidgetStateProperty.all(Colors.grey.shade50),
+            headingRowColor: WidgetStateProperty.all(AppColor.fieldColorGrey),
             headingTextStyle: TextStyle(
               fontWeight: FontWeight.w600,
               fontSize: 13,

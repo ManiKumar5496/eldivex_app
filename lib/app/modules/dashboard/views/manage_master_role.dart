@@ -48,7 +48,7 @@ class ManageMasterRoles extends GetView<DashboardController> {
   Widget _buildHeader() {
     final isMobile = SizeConfig.isMobile;
     return Container(
-      color: Colors.white,
+      color: AppColor.whiteColor,
       padding: EdgeInsets.symmetric(
         horizontal: isMobile ? 12 : SizeConfig.blockSizeHorizontal * 2,
         vertical: isMobile ? 12 : SizeConfig.blockSizeVertical * 2,
@@ -76,18 +76,18 @@ class ManageMasterRoles extends GetView<DashboardController> {
             icon: Icon(
               Icons.add,
               size: isMobile ? 16 : SizeConfig.blockSizeHorizontal * 1.2,
-              color: AppColor.whiteColor,
+              color: AppColor.buttonTextWhite,
             ),
             label: Text(
               'Add Role',
               style: TextStyle(
                 fontSize: isMobile ? 13 : SizeConfig.blockSizeHorizontal * 1,
-                color: AppColor.whiteColor,
+                color: AppColor.buttonTextWhite,
               ),
             ),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColor.cPrimaryButtonColor,
-              foregroundColor: Colors.white,
+              foregroundColor: AppColor.buttonTextWhite,
               padding: EdgeInsets.symmetric(
                 horizontal: isMobile ? 12 : SizeConfig.blockSizeHorizontal * 2,
                 vertical: isMobile ? 10 : SizeConfig.blockSizeVertical * 1.5,
@@ -107,9 +107,9 @@ class ManageMasterRoles extends GetView<DashboardController> {
     final isMobile = SizeConfig.isMobile;
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColor.whiteColor,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: AppColor.divColor),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.05),
@@ -130,7 +130,7 @@ class ManageMasterRoles extends GetView<DashboardController> {
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(12),
                 ),
-                headingRowColor: WidgetStateProperty.all(Colors.grey.shade50),
+                headingRowColor: WidgetStateProperty.all(AppColor.cAppBackgroundColor),
                 columnSpacing: isMobile ? 20 : SizeConfig.blockSizeHorizontal * 3,
                 horizontalMargin: isMobile ? 12 : SizeConfig.blockSizeHorizontal * 2,
                 columns: [
@@ -142,7 +142,7 @@ class ManageMasterRoles extends GetView<DashboardController> {
                           style: TextStyle(
                             fontSize: isMobile ? 13 : SizeConfig.blockSizeHorizontal * 1.1,
                             fontWeight: FontWeight.w600,
-                            color: Colors.grey.shade700,
+                            color: AppColor.fontColorGrey,
                           ),
                         ),
                       ],
@@ -154,7 +154,7 @@ class ManageMasterRoles extends GetView<DashboardController> {
                       style: TextStyle(
                         fontSize: isMobile ? 13 : SizeConfig.blockSizeHorizontal * 1.1,
                         fontWeight: FontWeight.w600,
-                        color: Colors.grey.shade700,
+                        color: AppColor.fontColorGrey,
                       ),
                     ),
                   ),
@@ -164,7 +164,7 @@ class ManageMasterRoles extends GetView<DashboardController> {
                       style: TextStyle(
                         fontSize: isMobile ? 13 : SizeConfig.blockSizeHorizontal * 1.1,
                         fontWeight: FontWeight.w600,
-                        color: Colors.grey.shade700,
+                        color: AppColor.fontColorGrey,
                       ),
                     ),
                   ),
@@ -175,7 +175,7 @@ class ManageMasterRoles extends GetView<DashboardController> {
                       style: TextStyle(
                         fontSize: isMobile ? 13 : SizeConfig.blockSizeHorizontal * 1.1,
                         fontWeight: FontWeight.w600,
-                        color: Colors.grey.shade700,
+                        color: AppColor.fontColorGrey,
                       ),
                     ),
                   ),
@@ -194,7 +194,7 @@ class ManageMasterRoles extends GetView<DashboardController> {
                               child: Text(
                                 _getInitials(role.id.toString()),
                                 style: TextStyle(
-                                  color: Colors.white,
+                                  color: AppColor.buttonTextWhite,
                                   fontSize: isMobile ? 12 : SizeConfig.blockSizeHorizontal * 1.1,
                                   fontWeight: FontWeight.w600,
                                 ),
@@ -206,7 +206,7 @@ class ManageMasterRoles extends GetView<DashboardController> {
                               style: TextStyle(
                                 fontSize: isMobile ? 13 : SizeConfig.blockSizeHorizontal * 1.1,
                                 fontWeight: FontWeight.w500,
-                                color: Colors.black87,
+                                color: AppColor.fontColorBlack,
                               ),
                             ),
                           ],
@@ -217,7 +217,7 @@ class ManageMasterRoles extends GetView<DashboardController> {
                           role.roleName ?? 'N/A',
                           style: TextStyle(
                             fontSize: isMobile ? 13 : SizeConfig.blockSizeHorizontal * 1.1,
-                            color: Colors.black87,
+                            color: AppColor.fontColorBlack,
                           ),
                         ),
                       ),
@@ -230,7 +230,7 @@ class ManageMasterRoles extends GetView<DashboardController> {
                             role.modules ?? 'No access list',
                             style: TextStyle(
                               fontSize: isMobile ? 12 : SizeConfig.blockSizeHorizontal * 1,
-                              color: Colors.grey.shade700,
+                              color: AppColor.fontColorGrey,
                             ),
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
@@ -246,7 +246,7 @@ class ManageMasterRoles extends GetView<DashboardController> {
                               icon: Icon(
                                 Icons.edit_outlined,
                                 size: isMobile ? 18 : SizeConfig.blockSizeHorizontal * 1.4,
-                                color: Colors.grey.shade600,
+                                color: AppColor.fontColorGrey,
                               ),
                               onPressed: () {
                                 // Handle edit action
@@ -292,14 +292,14 @@ class ManageMasterRoles extends GetView<DashboardController> {
         vertical: isMobile ? 10 : SizeConfig.blockSizeVertical * 1.2,
       ),
       decoration: BoxDecoration(
-        border: Border(top: BorderSide(color: Colors.grey.shade200)),
+        border: Border(top: BorderSide(color: AppColor.divColor)),
       ),
       child: Obx(
         () => Text(
           'Showing ${controller.getMasterRolesData.length} roles',
           style: TextStyle(
             fontSize: isMobile ? 12 : SizeConfig.blockSizeHorizontal * 1.1,
-            color: Colors.grey.shade600,
+            color: AppColor.fontColorGrey,
           ),
         ),
       ),
@@ -314,8 +314,8 @@ class ManageMasterRoles extends GetView<DashboardController> {
         OutlinedButton(
           onPressed: () {},
           style: OutlinedButton.styleFrom(
-            foregroundColor: Colors.grey.shade700,
-            side: BorderSide(color: Colors.grey.shade300),
+            foregroundColor: AppColor.fontColorGrey,
+            side: BorderSide(color: AppColor.divColor),
             padding: EdgeInsets.symmetric(
               horizontal: isMobile ? 16 : SizeConfig.blockSizeHorizontal * 2,
               vertical: isMobile ? 10 : SizeConfig.blockSizeVertical * 1.2,
@@ -334,7 +334,7 @@ class ManageMasterRoles extends GetView<DashboardController> {
           onPressed: () {},
           style: ElevatedButton.styleFrom(
             backgroundColor: AppColor.cPrimaryButtonColor,
-            foregroundColor: Colors.white,
+            foregroundColor: AppColor.buttonTextWhite,
             padding: EdgeInsets.symmetric(
               horizontal: isMobile ? 16 : SizeConfig.blockSizeHorizontal * 2,
               vertical: isMobile ? 10 : SizeConfig.blockSizeVertical * 1.2,

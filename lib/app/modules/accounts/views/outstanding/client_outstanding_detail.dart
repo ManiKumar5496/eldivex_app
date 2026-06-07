@@ -77,7 +77,7 @@ class ClientOutstandingDetail extends GetView<OutstandingController> {
       decoration: BoxDecoration(
         color: AppColor.whiteColor,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: AppColor.divColor),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -192,7 +192,7 @@ class ClientOutstandingDetail extends GetView<OutstandingController> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
+          Text(label, style: TextStyle(fontSize: 11, color: AppColor.fontColorGrey)),
           const SizedBox(height: 6),
           Text(value,
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: color)),
@@ -280,7 +280,7 @@ class ClientOutstandingDetail extends GetView<OutstandingController> {
               padding: const EdgeInsets.all(32),
               child: Column(
                 children: [
-                  Icon(Icons.calendar_today_outlined, size: 48, color: Colors.grey.shade300),
+                  Icon(Icons.calendar_today_outlined, size: 48, color: AppColor.divColor),
                   const SizedBox(height: 12),
                   Text('No booking data available', style: AppTextStyles.regular16Gre),
                 ],
@@ -292,12 +292,12 @@ class ClientOutstandingDetail extends GetView<OutstandingController> {
             decoration: BoxDecoration(
               color: AppColor.whiteColor,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.grey.shade200),
+              border: Border.all(color: AppColor.divColor),
             ),
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: DataTable(
-                headingRowColor: WidgetStateProperty.all(Colors.grey.shade50),
+                headingRowColor: WidgetStateProperty.all(AppColor.fieldColorGrey),
                 headingTextStyle: TextStyle(
                   fontWeight: FontWeight.w600,
                   fontSize: 13,

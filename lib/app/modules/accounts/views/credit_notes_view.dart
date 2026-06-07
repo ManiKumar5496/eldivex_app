@@ -30,7 +30,7 @@ class CreditNotesView extends GetView<AccountsController> {
       case 'overpayment':
         return Colors.purple;
       default:
-        return Colors.grey;
+        return AppColor.fontColorGrey;
     }
   }
 
@@ -182,7 +182,7 @@ class CreditNotesView extends GetView<AccountsController> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Icon(Icons.note_alt_outlined,
-                  size: 64, color: Colors.grey.shade300),
+                  size: 64, color: AppColor.divColor),
               SizedBox(height: SizeConfig.spacingSM),
               Text('No credit notes found', style: AppTextStyles.regular16Gre),
               SizedBox(height: SizeConfig.spacingXS),
@@ -190,7 +190,7 @@ class CreditNotesView extends GetView<AccountsController> {
                 'Credit notes are auto-created when a booking is put\non hold or cancelled.',
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                    fontSize: SizeConfig.fontBody, color: Colors.grey.shade500),
+                    fontSize: SizeConfig.fontBody, color: AppColor.fontColorGrey),
               ),
             ],
           ),
@@ -223,7 +223,7 @@ class CreditNotesView extends GetView<AccountsController> {
       decoration: BoxDecoration(
         color: AppColor.whiteColor,
         borderRadius: BorderRadius.circular(SizeConfig.radiusMD),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: AppColor.divColor),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.04),
@@ -250,7 +250,7 @@ class CreditNotesView extends GetView<AccountsController> {
               _statusBadge(note.status, statusColor),
             ],
           ),
-          Divider(height: SizeConfig.spacingLG, color: Colors.grey.shade100),
+          Divider(height: SizeConfig.spacingLG, color: AppColor.fieldColorGrey),
 
           // Row 2: Booking badge + Type chip
           Row(
@@ -345,7 +345,7 @@ class CreditNotesView extends GetView<AccountsController> {
 
           // Bottom: Action buttons for Pending notes
           if (note.status == 'Pending') ...[
-            Divider(height: SizeConfig.spacingLG, color: Colors.grey.shade100),
+            Divider(height: SizeConfig.spacingLG, color: AppColor.fieldColorGrey),
             Row(
               children: [
                 Expanded(
@@ -388,10 +388,10 @@ class CreditNotesView extends GetView<AccountsController> {
                         onConfirm: () => controller.approveCreditNote(note.id),
                       ),
                       icon: Icon(Icons.check,
-                          size: SizeConfig.iconSM, color: Colors.white),
+                          size: SizeConfig.iconSM, color: AppColor.buttonTextWhite),
                       label: Text('Approve',
                           style: TextStyle(
-                              color: Colors.white, fontSize: SizeConfig.fontBody)),
+                              color: AppColor.buttonTextWhite, fontSize: SizeConfig.fontBody)),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.green,
                         shape: RoundedRectangleBorder(
@@ -436,12 +436,12 @@ class CreditNotesView extends GetView<AccountsController> {
         decoration: BoxDecoration(
           color: AppColor.whiteColor,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.grey.shade200),
+          border: Border.all(color: AppColor.divColor),
         ),
         child: SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           child: DataTable(
-            headingRowColor: WidgetStateProperty.all(Colors.grey.shade50),
+            headingRowColor: WidgetStateProperty.all(AppColor.fieldColorGrey),
             headingTextStyle: TextStyle(
               fontWeight: FontWeight.w600,
               fontSize: SizeConfig.fontBodySmall,
@@ -537,7 +537,7 @@ class CreditNotesView extends GetView<AccountsController> {
   Widget _buildActions(CreditNoteModel note) {
     if (note.status != 'Pending') {
       return Icon(Icons.check_circle_outline,
-          size: SizeConfig.iconSM, color: Colors.grey.shade400);
+          size: SizeConfig.iconSM, color: AppColor.lightGrey);
     }
     return Row(
       mainAxisSize: MainAxisSize.min,
@@ -639,7 +639,7 @@ class CreditNotesView extends GetView<AccountsController> {
                   borderRadius: BorderRadius.circular(SizeConfig.radiusSM)),
             ),
             child: Text(confirmLabel,
-                style: const TextStyle(color: Colors.white)),
+                style: TextStyle(color: AppColor.buttonTextWhite)),
           ),
         ],
       ),

@@ -27,6 +27,7 @@ abstract class Routes {
   static const branchManagement   = _Paths.branchManagement;
   static const hpPayouts          = _Paths.hpPayouts;
   static const settingsOtpCoupon  = _Paths.settingsOtpCoupon;
+  static const appearance         = _Paths.appearance;
 
   // ── Financial Module ─────────────────────────────────────────────────────────
   static const String WRITE_OFF_LIST       = '/accounts/write-off';
@@ -73,4 +74,5 @@ abstract class _Paths {
   static const branchManagement   = '/branch-management';
   static const hpPayouts          = '/hp-payouts';
   static const settingsOtpCoupon  = '/settings/otp-coupon';
+  static const appearance         = '/settings/appearance';
 }

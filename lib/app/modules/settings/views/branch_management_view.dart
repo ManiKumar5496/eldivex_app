@@ -73,7 +73,7 @@ class _Header extends StatelessWidget {
         const SizedBox(width: 16),
         ElevatedButton.icon(
           onPressed: () => _showBranchDialog(context, controller),
-          icon: const Icon(Icons.add, size: 18, color: Colors.white),
+          icon: Icon(Icons.add, size: 18, color: AppColor.buttonTextWhite),
           label: Text('Add Branch', style: AppTextStyles.regular14white),
           style: ElevatedButton.styleFrom(
             backgroundColor: AppColor.cPrimaryButtonColor,
@@ -405,12 +405,12 @@ void _showBranchDialog(
                 elevation: 0,
               ),
               child: loading
-                  ? const SizedBox(
+                  ? SizedBox(
                       width: 18,
                       height: 18,
                       child: CircularProgressIndicator(
                         strokeWidth: 2,
-                        color: Colors.white,
+                        color: AppColor.buttonTextWhite,
                       ),
                     )
                   : Text(

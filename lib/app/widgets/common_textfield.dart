@@ -52,12 +52,12 @@ class CommonTextField extends StatelessWidget {
         const SizedBox(height: 8),
         Container(
           decoration: BoxDecoration(
-            color: enabled ? AppColor.whiteColor : Colors.grey.shade100,
+            color: enabled ? AppColor.whiteColor : AppColor.fieldColorGrey,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
               color: enabled
                   ? AppColor.textFieldBorderColor
-                  : Colors.grey.shade300,
+                  : AppColor.divColor,
             ),
           ),
           child: TextField(
@@ -67,7 +67,7 @@ class CommonTextField extends StatelessWidget {
             enabled: enabled,
             onChanged: onChanged,
             style: TextStyle(
-              color: enabled ? Colors.black87 : Colors.grey.shade600,
+              color: enabled ? AppColor.fontColorBlack : AppColor.lightGrey,
               fontSize: 14,
             ),
             decoration: InputDecoration(
@@ -75,7 +75,7 @@ class CommonTextField extends StatelessWidget {
               hintStyle: TextStyle(
                 color: enabled
                     ? AppColor.fontColorGrey
-                    : Colors.grey.shade400,
+                    : AppColor.lightGrey,
                 fontSize: 14,
               ),
               prefixIcon: prefixIcon != null
@@ -83,7 +83,7 @@ class CommonTextField extends StatelessWidget {
                 prefixIcon,
                 color: enabled
                     ? AppColor.prefixIconColor
-                    : Colors.grey.shade400,
+                    : AppColor.lightGrey,
                 size: 20,
               )
                   : null,

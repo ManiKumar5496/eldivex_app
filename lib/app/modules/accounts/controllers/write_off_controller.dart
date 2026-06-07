@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:eldivex_app/app/core/values/color_constants.dart';
 import '../../../data/api_constant_url.dart';
 import '../../../data/base_api_services.dart';
 import '../../../widgets/helper_ui.dart';
@@ -167,7 +168,7 @@ class WriteOffController extends GetxController {
           'Success',
           'Write-off created successfully.',
           backgroundColor: Colors.green,
-          colorText: Colors.white,
+          colorText: AppColor.buttonTextWhite,
           snackPosition: SnackPosition.BOTTOM,
         );
       } else {
@@ -177,7 +178,7 @@ class WriteOffController extends GetxController {
           'Error',
           msg.toString(),
           backgroundColor: Colors.red,
-          colorText: Colors.white,
+          colorText: AppColor.buttonTextWhite,
           snackPosition: SnackPosition.BOTTOM,
         );
       }
@@ -186,7 +187,7 @@ class WriteOffController extends GetxController {
         'Error',
         'Error creating write-off: $e',
         backgroundColor: Colors.red,
-        colorText: Colors.white,
+        colorText: AppColor.whiteColor,
         snackPosition: SnackPosition.BOTTOM,
       );
     } finally {
@@ -214,7 +215,7 @@ class WriteOffController extends GetxController {
           'Success',
           'Write-off ${action == 'approve' ? 'approved' : 'rejected'} successfully.',
           backgroundColor: Colors.green,
-          colorText: Colors.white,
+          colorText: AppColor.buttonTextWhite,
           snackPosition: SnackPosition.BOTTOM,
         );
       } else {
@@ -223,7 +224,7 @@ class WriteOffController extends GetxController {
           'Error',
           msg.toString(),
           backgroundColor: Colors.red,
-          colorText: Colors.white,
+          colorText: AppColor.buttonTextWhite,
           snackPosition: SnackPosition.BOTTOM,
         );
       }
@@ -232,7 +233,7 @@ class WriteOffController extends GetxController {
         'Error',
         'Error updating write-off: $e',
         backgroundColor: Colors.red,
-        colorText: Colors.white,
+        colorText: AppColor.whiteColor,
         snackPosition: SnackPosition.BOTTOM,
       );
     } finally {

@@ -98,11 +98,11 @@ class _WriteOffListViewState extends State<WriteOffListView> {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: ElevatedButton.icon(
               onPressed: () => Get.toNamed('/create-write-off'),
-              icon: const Icon(Icons.add, size: 18, color: Colors.white),
-              label: const Text(
+              icon: Icon(Icons.add, size: 18, color: AppColor.buttonTextWhite),
+              label: Text(
                 'New Write-off',
                 style: TextStyle(
-                  color: Colors.white,
+                  color: AppColor.buttonTextWhite,
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
                 ),
@@ -193,7 +193,7 @@ class _WriteOffListViewState extends State<WriteOffListView> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.money_off_outlined, size: 64, color: Colors.grey.shade300),
+              Icon(Icons.money_off_outlined, size: 64, color: AppColor.divColor),
               const SizedBox(height: 12),
               Text('No write-offs found', style: AppTextStyles.regular16Gre),
             ],
@@ -208,10 +208,10 @@ class _WriteOffListViewState extends State<WriteOffListView> {
           decoration: BoxDecoration(
             color: AppColor.whiteColor,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.grey.shade200),
+            border: Border.all(color: AppColor.divColor),
           ),
           child: DataTable(
-            headingRowColor: WidgetStateProperty.all(Colors.grey.shade50),
+            headingRowColor: WidgetStateProperty.all(AppColor.fieldColorGrey),
             headingTextStyle: TextStyle(
               fontWeight: FontWeight.w600,
               fontSize: 13,
@@ -312,7 +312,7 @@ class _WriteOffListViewState extends State<WriteOffListView> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: Colors.grey.shade100,
+        color: AppColor.fieldColorGrey,
         borderRadius: BorderRadius.circular(6),
       ),
       child: Text(

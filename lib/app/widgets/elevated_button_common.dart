@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:eldivex_app/app/core/values/color_constants.dart';
 
 class ElevatedButtonCommon extends StatefulWidget {
   Color buttonColor;
@@ -30,8 +31,8 @@ class _ElevatedButtonCommonState extends State<ElevatedButtonCommon> {
             )),
         child: Text(
           widget.buttonText,
-          style: const TextStyle(
-            color: Colors.white,
+          style: TextStyle(
+            color: AppColor.buttonTextWhite,
             fontWeight: FontWeight.bold,
             fontFamily: "poppins_regular",
           ),

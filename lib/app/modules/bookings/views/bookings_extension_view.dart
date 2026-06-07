@@ -38,7 +38,7 @@ class _BookingsExtensionViewState extends State<BookingsExtensionView> {
     final isMobile = SizeConfig.isMobile;
 
     return Scaffold(
-      backgroundColor: Colors.grey.shade50,
+      backgroundColor: AppColor.fieldColorGrey,
       body: Column(
         children: [
           _buildHeader(context),
@@ -74,7 +74,7 @@ class _BookingsExtensionViewState extends State<BookingsExtensionView> {
   Widget _buildHeader(BuildContext context) {
     final isMobile = SizeConfig.isMobile;
     return Container(
-      color: Colors.white,
+      color: AppColor.whiteColor,
       padding: EdgeInsets.symmetric(
         horizontal: isMobile ? 12 : SizeConfig.blockSizeHorizontal * 2,
         vertical: isMobile ? 12 : SizeConfig.blockSizeVertical * 2,
@@ -86,7 +86,7 @@ class _BookingsExtensionViewState extends State<BookingsExtensionView> {
             icon: Icon(
               Icons.arrow_back,
               size: isMobile ? 24 : SizeConfig.blockSizeHorizontal * 2.5,
-              color: Colors.black87,
+              color: AppColor.fontColorBlack,
             ),
           ),
           SizedBox(width: isMobile ? 4 : 0),
@@ -174,7 +174,7 @@ class _BookingsExtensionViewState extends State<BookingsExtensionView> {
         tabColor = Colors.purple.shade600;
         break;
       default:
-        tabColor = Colors.grey.shade600;
+        tabColor = AppColor.fontColorGrey;
     }
 
     return GestureDetector(
@@ -188,7 +188,7 @@ class _BookingsExtensionViewState extends State<BookingsExtensionView> {
           color: isSelected ? tabColor.withValues(alpha: 0.1) : Colors.transparent,
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
-            color: isSelected ? tabColor : Colors.grey.shade300,
+            color: isSelected ? tabColor : AppColor.divColor,
             width: isSelected ? 1.5 : 1,
           ),
         ),
@@ -200,7 +200,7 @@ class _BookingsExtensionViewState extends State<BookingsExtensionView> {
               style: TextStyle(
                 fontSize: isMobile ? 13 : SizeConfig.blockSizeHorizontal * 1.1,
                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-                color: isSelected ? tabColor : Colors.grey.shade600,
+                color: isSelected ? tabColor : AppColor.fontColorGrey,
               ),
             ),
             SizedBox(width: isMobile ? 6 : SizeConfig.blockSizeHorizontal * 0.5),
@@ -210,7 +210,7 @@ class _BookingsExtensionViewState extends State<BookingsExtensionView> {
                 vertical: isMobile ? 2 : SizeConfig.blockSizeVertical * 0.2,
               ),
               decoration: BoxDecoration(
-                color: isSelected ? tabColor : Colors.grey.shade400,
+                color: isSelected ? tabColor : AppColor.lightGrey,
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Text(
@@ -218,7 +218,7 @@ class _BookingsExtensionViewState extends State<BookingsExtensionView> {
                 style: TextStyle(
                   fontSize: isMobile ? 11 : SizeConfig.blockSizeHorizontal * 0.9,
                   fontWeight: FontWeight.w600,
-                  color: Colors.white,
+                  color: AppColor.buttonTextWhite,
                 ),
               ),
             ),
@@ -327,14 +327,14 @@ class _BookingsExtensionViewState extends State<BookingsExtensionView> {
                   style: TextStyle(
                     fontSize: isMobile ? 20 : SizeConfig.blockSizeHorizontal * 1.8,
                     fontWeight: FontWeight.w700,
-                    color: Colors.black87,
+                    color: AppColor.fontColorBlack,
                   ),
                 ),
                 Text(
                   data.label,
                   style: TextStyle(
                     fontSize: isMobile ? 11 : SizeConfig.blockSizeHorizontal * 0.9,
-                    color: Colors.grey.shade600,
+                    color: AppColor.fontColorGrey,
                   ),
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -365,14 +365,14 @@ class _BookingsExtensionViewState extends State<BookingsExtensionView> {
                 Icon(
                   Icons.extension_off,
                   size: isMobile ? 48 : SizeConfig.blockSizeHorizontal * 5,
-                  color: Colors.grey.shade400,
+                  color: AppColor.lightGrey,
                 ),
                 SizedBox(height: isMobile ? 16 : SizeConfig.blockSizeVertical * 2),
                 Text(
                   'No extension bookings found',
                   style: TextStyle(
                     fontSize: isMobile ? 16 : SizeConfig.blockSizeHorizontal * 1.5,
-                    color: Colors.grey.shade600,
+                    color: AppColor.fontColorGrey,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -406,12 +406,12 @@ class _BookingsExtensionViewState extends State<BookingsExtensionView> {
         vertical: SizeConfig.blockSizeVertical * 1.2,
       ),
       decoration: BoxDecoration(
-        color: Colors.grey.shade50,
+        color: AppColor.fieldColorGrey,
         borderRadius: const BorderRadius.only(
           topLeft: Radius.circular(8),
           topRight: Radius.circular(8),
         ),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: AppColor.divColor),
       ),
       child: Row(
         children: [
@@ -436,7 +436,7 @@ class _BookingsExtensionViewState extends State<BookingsExtensionView> {
         style: TextStyle(
           fontSize: SizeConfig.blockSizeHorizontal * 1.1,
           fontWeight: FontWeight.w600,
-          color: Colors.grey.shade700,
+          color: AppColor.fontColorGrey,
         ),
       ),
     );
@@ -449,11 +449,11 @@ class _BookingsExtensionViewState extends State<BookingsExtensionView> {
         vertical: SizeConfig.blockSizeVertical * 1.5,
       ),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColor.whiteColor,
         border: Border(
-          left: BorderSide(color: Colors.grey.shade200),
-          right: BorderSide(color: Colors.grey.shade200),
-          bottom: BorderSide(color: Colors.grey.shade200),
+          left: BorderSide(color: AppColor.divColor),
+          right: BorderSide(color: AppColor.divColor),
+          bottom: BorderSide(color: AppColor.divColor),
         ),
       ),
       child: Row(
@@ -474,7 +474,7 @@ class _BookingsExtensionViewState extends State<BookingsExtensionView> {
                 style: TextStyle(
                   fontSize: SizeConfig.blockSizeHorizontal * 0.95,
                   fontWeight: FontWeight.w600,
-                  color: Colors.white,
+                  color: AppColor.buttonTextWhite,
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -490,14 +490,14 @@ class _BookingsExtensionViewState extends State<BookingsExtensionView> {
                   style: TextStyle(
                     fontSize: SizeConfig.blockSizeHorizontal * 1.1,
                     fontWeight: FontWeight.w500,
-                    color: Colors.black87,
+                    color: AppColor.fontColorBlack,
                   ),
                 ),
                 Text(
                   'Age: ${booking.patientAge ?? '-'}',
                   style: TextStyle(
                     fontSize: SizeConfig.blockSizeHorizontal * 0.9,
-                    color: Colors.grey.shade600,
+                    color: AppColor.fontColorGrey,
                   ),
                 ),
               ],
@@ -512,7 +512,7 @@ class _BookingsExtensionViewState extends State<BookingsExtensionView> {
                   booking.serviceName ?? '-',
                   style: TextStyle(
                     fontSize: SizeConfig.blockSizeHorizontal * 1.1,
-                    color: Colors.black87,
+                    color: AppColor.fontColorBlack,
                   ),
                 ),
                 _buildServiceTypeBadge(booking.serviceTypeName),
@@ -525,7 +525,7 @@ class _BookingsExtensionViewState extends State<BookingsExtensionView> {
               _formatDate(booking.serviceEndDate),
               style: TextStyle(
                 fontSize: SizeConfig.blockSizeHorizontal * 1.1,
-                color: Colors.black87,
+                color: AppColor.fontColorBlack,
               ),
             ),
           ),
@@ -535,7 +535,7 @@ class _BookingsExtensionViewState extends State<BookingsExtensionView> {
               booking.city ?? '-',
               style: TextStyle(
                 fontSize: SizeConfig.blockSizeHorizontal * 1.1,
-                color: Colors.grey.shade700,
+                color: AppColor.fontColorGrey,
               ),
             ),
           ),
@@ -549,7 +549,7 @@ class _BookingsExtensionViewState extends State<BookingsExtensionView> {
               booking.careManagerName ?? '-',
               style: TextStyle(
                 fontSize: SizeConfig.blockSizeHorizontal * 1.1,
-                color: Colors.black87,
+                color: AppColor.fontColorBlack,
               ),
             ),
           ),
@@ -594,10 +594,10 @@ class _BookingsExtensionViewState extends State<BookingsExtensionView> {
                   ),
                   child: Text(
                     'BK-${booking.id}',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
-                      color: Colors.white,
+                      color: AppColor.buttonTextWhite,
                     ),
                   ),
                 ),
@@ -639,16 +639,16 @@ class _BookingsExtensionViewState extends State<BookingsExtensionView> {
   Widget _mobileField(IconData icon, String label, String value) {
     return Row(
       children: [
-        Icon(icon, size: 16, color: Colors.grey.shade500),
+        Icon(icon, size: 16, color: AppColor.fontColorGrey),
         const SizedBox(width: 6),
         Text(
           '$label: ',
-          style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+          style: TextStyle(fontSize: 13, color: AppColor.fontColorGrey),
         ),
         Expanded(
           child: Text(
             value,
-            style: const TextStyle(fontSize: 13, color: Colors.black87, fontWeight: FontWeight.w500),
+            style: TextStyle(fontSize: 13, color: AppColor.fontColorBlack, fontWeight: FontWeight.w500),
             overflow: TextOverflow.ellipsis,
           ),
         ),
@@ -691,8 +691,8 @@ class _BookingsExtensionViewState extends State<BookingsExtensionView> {
         textColor = Colors.blue.shade700;
         break;
       default:
-        bgColor = Colors.grey.shade100;
-        textColor = Colors.grey.shade700;
+        bgColor = AppColor.fieldColorGrey;
+        textColor = AppColor.fontColorGrey;
     }
 
     return Container(
@@ -738,9 +738,9 @@ class _BookingsExtensionViewState extends State<BookingsExtensionView> {
   }
 
   BoxDecoration _cardDecoration() => BoxDecoration(
-    color: Colors.white,
+    color: AppColor.whiteColor,
     borderRadius: BorderRadius.circular(12),
-    border: Border.all(color: Colors.grey.shade200),
+    border: Border.all(color: AppColor.divColor),
     boxShadow: [
       BoxShadow(
         color: Colors.black.withOpacity(0.05),

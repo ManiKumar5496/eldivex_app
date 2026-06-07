@@ -104,9 +104,9 @@ class ViewBanners extends GetView<BannersController> {
                             [Colors.green[800]!],
                             [Colors.red[800]!]
                           ],
-                          activeFgColor: Colors.white,
-                          inactiveBgColor: Colors.grey,
-                          inactiveFgColor: Colors.white,
+                          activeFgColor: AppColor.whiteColor,
+                          inactiveBgColor: AppColor.fontColorGrey,
+                          inactiveFgColor: AppColor.whiteColor,
                           initialLabelIndex:
                           banners.bannerStatus == 1 ? 0 : 1,
                           totalSwitches: 2,
@@ -153,18 +153,18 @@ class ViewBanners extends GetView<BannersController> {
                 WidgetStateProperty.all<Color>(Colors.black12),
                 //dataRowColor: MaterialStateProperty.all<Color>(),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: AppColor.whiteColor,
                   borderRadius: BorderRadius.circular(8),
                 ),
                 columnSpacing: 12,
                 horizontalMargin: 12,
                 border: TableBorder(
                   horizontalInside: BorderSide(
-                    color: Colors.grey.shade300,
+                    color: AppColor.divColor,
                     width: 0.5,
                   ),
                   verticalInside: BorderSide(
-                    color: Colors.grey.shade300,
+                    color: AppColor.divColor,
                     width: 0.5,
                   ),
                 ),

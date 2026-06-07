@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:eldivex_app/app/core/values/color_constants.dart';
 import 'package:get/get.dart';
 import '../../../widgets/common_textfield.dart';
 import '../../../widgets/dropdown_common.dart';
@@ -15,9 +16,9 @@ class AddUsersView extends GetView<UsersController> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA),
+      backgroundColor: AppColor.fieldColorGrey,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: AppColor.whiteColor,
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.black),
@@ -39,7 +40,7 @@ class AddUsersView extends GetView<UsersController> {
             ),
             Text(
               isEditMode ? 'Update user information' : 'Create or edit user information',
-              style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+              style: TextStyle(color: AppColor.fontColorGrey, fontSize: 13),
             ),
           ],
         ),
@@ -49,9 +50,9 @@ class AddUsersView extends GetView<UsersController> {
           padding: const EdgeInsets.all(24),
           child: Container(
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: AppColor.whiteColor,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.grey.shade200),
+              border: Border.all(color: AppColor.divColor),
             ),
             padding: const EdgeInsets.all(24),
             child: Column(
@@ -63,7 +64,7 @@ class AddUsersView extends GetView<UsersController> {
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
-                    color: Colors.grey.shade800,
+                    color: AppColor.fontColorGrey,
                   ),
                 ),
                 const SizedBox(height: 20),
@@ -261,12 +262,12 @@ class AddUsersView extends GetView<UsersController> {
                             ? controller.isUpdateLoading.value
                             : controller.isCreateLoading.value;
                         return loading
-                            ? const SizedBox(
+                            ? SizedBox(
                                 height: 18,
                                 width: 18,
                                 child: CircularProgressIndicator(
                                   strokeWidth: 2,
-                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                  valueColor: AlwaysStoppedAnimation<Color>(AppColor.buttonTextWhite),
                                 ),
                               )
                             : Text(isEditMode ? 'Update User' : 'Save Changes');

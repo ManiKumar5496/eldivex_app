@@ -132,7 +132,7 @@ class _DestructiveActionDialogState extends State<DestructiveActionDialog> {
                 Padding(
                   padding: const EdgeInsets.only(bottom: 16),
                   child: Text(widget.body,
-                      style: const TextStyle(fontSize: 14, color: Colors.black87)),
+                      style: TextStyle(fontSize: 14, color: AppColor.fontColorBlack)),
                 ),
               if (widget.requireReason) ...[
                 const Text('Reason *',
@@ -198,7 +198,7 @@ class _DestructiveActionDialogState extends State<DestructiveActionDialog> {
                 : null,
             style: ElevatedButton.styleFrom(
               backgroundColor: _btnColor,
-              foregroundColor: Colors.white,
+              foregroundColor: AppColor.buttonTextWhite,
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8)),
             ),

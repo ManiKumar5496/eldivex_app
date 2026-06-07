@@ -21,7 +21,7 @@ class AccountHealthView extends GetView<SaasAccountsController> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(Icons.health_and_safety_outlined,
-                  size: 48, color: Colors.grey.shade300),
+                  size: 48, color: AppColor.divColor),
               const SizedBox(height: 12),
               Text('No health data yet.', style: AppTextStyles.regular14Gre),
               const SizedBox(height: 12),
@@ -29,7 +29,7 @@ class AccountHealthView extends GetView<SaasAccountsController> {
                 onPressed: controller.fetchHealthSummary,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColor.cPrimaryButtonColor,
-                  foregroundColor: Colors.white,
+                  foregroundColor: AppColor.buttonTextWhite,
                 ),
                 child: const Text('Refresh'),
               ),
@@ -151,8 +151,8 @@ class _KpiTile extends StatelessWidget {
                         fontWeight: FontWeight.w700,
                         color: color)),
                 Text(label,
-                    style: const TextStyle(
-                        fontSize: 12, color: Colors.grey)),
+                    style: TextStyle(
+                        fontSize: 12, color: AppColor.fontColorGrey)),
               ],
             ),
           ],
@@ -186,7 +186,7 @@ class _HealthCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColor.whiteColor,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
             color: alerts.isEmpty
@@ -270,7 +270,7 @@ class _HealthCard extends StatelessWidget {
                           ? Colors.red
                           : daysToExp <= 30
                               ? Colors.orange
-                              : Colors.grey),
+                              : AppColor.fontColorGrey),
             ),
           ],
         ],

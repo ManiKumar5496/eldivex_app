@@ -45,7 +45,7 @@ class SaasAccountsView extends GetView<SaasAccountsController> {
                       label: const Text('New Account'),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColor.cPrimaryButtonColor,
-                        foregroundColor: Colors.white,
+                        foregroundColor: AppColor.buttonTextWhite,
                         padding: const EdgeInsets.symmetric(
                             horizontal: 20, vertical: 14),
                         shape: RoundedRectangleBorder(
@@ -82,7 +82,7 @@ class SaasAccountsView extends GetView<SaasAccountsController> {
                           value: '${controller.expiringOrgs.value}',
                           color: controller.expiringOrgs.value > 0
                               ? Colors.red
-                              : Colors.grey,
+                              : AppColor.fontColorGrey,
                         ),
                       ],
                     )),
@@ -91,7 +91,7 @@ class SaasAccountsView extends GetView<SaasAccountsController> {
                 // ── Tab bar ───────────────────────────────────────────────
                 Container(
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: AppColor.whiteColor,
                     borderRadius: BorderRadius.circular(10),
                     border: Border.all(color: AppColor.divColor),
                   ),
@@ -121,9 +121,9 @@ class SaasAccountsView extends GetView<SaasAccountsController> {
                                     ),
                                     child: Text(
                                       '${controller.healthSummary.where((h) => (h['alerts'] as List).isNotEmpty).length}',
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                           fontSize: 10,
-                                          color: Colors.white,
+                                          color: AppColor.buttonTextWhite,
                                           fontWeight: FontWeight.w700),
                                     ),
                                   ),
@@ -182,7 +182,7 @@ class _KpiCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppColor.whiteColor,
           borderRadius: BorderRadius.circular(10),
           border: Border.all(color: AppColor.divColor),
         ),

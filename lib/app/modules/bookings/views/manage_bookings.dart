@@ -120,7 +120,7 @@ class _ManageBookingViewState extends State<ManageBookingView> {
     final isMobile = SizeConfig.isMobile;
 
     return Container(
-      color: Colors.white,
+      color: AppColor.whiteColor,
       padding: EdgeInsets.symmetric(
         horizontal: isMobile ? 12 : SizeConfig.blockSizeHorizontal * 2,
         vertical: isMobile ? 12 : SizeConfig.blockSizeVertical * 2,
@@ -132,7 +132,7 @@ class _ManageBookingViewState extends State<ManageBookingView> {
             icon: Icon(
               Icons.arrow_back,
               size: isMobile ? 24 : SizeConfig.blockSizeHorizontal * 2.5,
-              color: Colors.black87,
+              color: AppColor.fontColorBlack,
             ),
           ),
           SizedBox(width: isMobile ? 4 : 0),
@@ -157,7 +157,7 @@ class _ManageBookingViewState extends State<ManageBookingView> {
               isMobile ? 'Edit' : 'Edit Booking',
               style: TextStyle(
                 fontSize: isMobile ? 13 : SizeConfig.blockSizeHorizontal * 1.2,
-                color: AppColor.whiteColor,
+                color: AppColor.buttonTextWhite,
               ),
             ),
             style: ElevatedButton.styleFrom(
@@ -225,7 +225,7 @@ class _ManageBookingViewState extends State<ManageBookingView> {
             style: TextStyle(
               fontSize: isMobile ? 18 : SizeConfig.blockSizeHorizontal * 1.5,
               fontWeight: FontWeight.w600,
-              color: Colors.black87,
+              color: AppColor.fontColorBlack,
             ),
           ),
           SizedBox(height: isMobile ? 16 : SizeConfig.blockSizeVertical * 2),
@@ -290,7 +290,7 @@ class _ManageBookingViewState extends State<ManageBookingView> {
                   style: TextStyle(
                     fontSize: isMobile ? 18 : SizeConfig.blockSizeHorizontal * 1.5,
                     fontWeight: FontWeight.w600,
-                    color: Colors.black87,
+                    color: AppColor.fontColorBlack,
                   ),
                 ),
               ),
@@ -340,12 +340,12 @@ class _ManageBookingViewState extends State<ManageBookingView> {
                   spacing: 8,
                   runSpacing: 8,
                   children: [
-                    _actionButton('View History', Icons.history, null, Colors.grey.shade700, BorderSide(color: Colors.grey.shade300), () {}),
+                    _actionButton('View History', Icons.history, null, AppColor.fontColorGrey, BorderSide(color: AppColor.divColor), () {}),
                     Obx(() {
                       if (controller.bookingsByBookingId.value.isEmpty) return const SizedBox.shrink();
                       final bk = controller.bookingsByBookingId.value.first;
                       if (bk.holdTicketOpen == 0) return const SizedBox.shrink();
-                      return _actionButton('Hold', Icons.pause_circle_outline, Colors.orange.shade500, Colors.white, null, () {
+                      return _actionButton('Hold', Icons.pause_circle_outline, Colors.orange.shade500, AppColor.whiteColor, null, () {
                         Get.to(() => const CreateSupportTicket(), arguments: {
                           'bookingId': widget.bookingId,
                           'userId': bk.userId,
@@ -357,7 +357,7 @@ class _ManageBookingViewState extends State<ManageBookingView> {
                       if (controller.bookingsByBookingId.value.isEmpty) return const SizedBox.shrink();
                       final bk = controller.bookingsByBookingId.value.first;
                       if (bk.cancellationTicketOpen == 0) return const SizedBox.shrink();
-                      return _actionButton('Cancel', Icons.cancel, Colors.red.shade500, Colors.white, null, () {
+                      return _actionButton('Cancel', Icons.cancel, Colors.red.shade500, AppColor.whiteColor, null, () {
                         Get.to(() => const CreateSupportTicket(), arguments: {
                           'bookingId': widget.bookingId,
                           'userId': bk.userId,
@@ -371,7 +371,7 @@ class _ManageBookingViewState extends State<ManageBookingView> {
                       if (bk.extensionStatus == 0) return const SizedBox.shrink();
                       final show = bk.serviceEndDate != null && !DateTime.now().isBefore(bk.serviceEndDate!);
                       if (!show) return const SizedBox.shrink();
-                      return _actionButton('Extend', Icons.calendar_month, Colors.green.shade500, Colors.white, null, _showExtendServiceDialog);
+                      return _actionButton('Extend', Icons.calendar_month, Colors.green.shade500, AppColor.whiteColor, null, _showExtendServiceDialog);
                     }),
                   ],
                 )
@@ -382,8 +382,8 @@ class _ManageBookingViewState extends State<ManageBookingView> {
                       icon: Icon(Icons.history, size: SizeConfig.blockSizeHorizontal * 1.4),
                       label: Text('View History', style: TextStyle(fontSize: SizeConfig.blockSizeHorizontal * 1.1)),
                       style: OutlinedButton.styleFrom(
-                        foregroundColor: Colors.grey.shade700,
-                        side: BorderSide(color: Colors.grey.shade300),
+                        foregroundColor: AppColor.fontColorGrey,
+                        side: BorderSide(color: AppColor.divColor),
                         padding: EdgeInsets.symmetric(horizontal: SizeConfig.blockSizeHorizontal * 2, vertical: SizeConfig.blockSizeVertical * 1.2),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                       ),
@@ -405,7 +405,7 @@ class _ManageBookingViewState extends State<ManageBookingView> {
                             icon: Icon(Icons.pause_circle_outline, size: SizeConfig.blockSizeHorizontal * 1.4),
                             label: Text('Hold Booking', style: TextStyle(fontSize: SizeConfig.blockSizeHorizontal * 1.1)),
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.orange.shade500, foregroundColor: Colors.white,
+                              backgroundColor: Colors.orange.shade500, foregroundColor: AppColor.buttonTextWhite,
                               padding: EdgeInsets.symmetric(horizontal: SizeConfig.blockSizeHorizontal * 2, vertical: SizeConfig.blockSizeVertical * 1.2),
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)), elevation: 0,
                             ),
@@ -430,7 +430,7 @@ class _ManageBookingViewState extends State<ManageBookingView> {
                             icon: Icon(Icons.cancel, size: SizeConfig.blockSizeHorizontal * 1.4),
                             label: Text('Cancel Booking', style: TextStyle(fontSize: SizeConfig.blockSizeHorizontal * 1.1)),
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.red.shade500, foregroundColor: Colors.white,
+                              backgroundColor: Colors.red.shade500, foregroundColor: AppColor.buttonTextWhite,
                               padding: EdgeInsets.symmetric(horizontal: SizeConfig.blockSizeHorizontal * 2, vertical: SizeConfig.blockSizeVertical * 1.2),
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)), elevation: 0,
                             ),
@@ -453,7 +453,7 @@ class _ManageBookingViewState extends State<ManageBookingView> {
                             icon: Icon(Icons.calendar_month, size: SizeConfig.blockSizeHorizontal * 1.4),
                             label: Text('Extend Service', style: TextStyle(fontSize: SizeConfig.blockSizeHorizontal * 1.1)),
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.green.shade500, foregroundColor: Colors.white,
+                              backgroundColor: Colors.green.shade500, foregroundColor: AppColor.buttonTextWhite,
                               padding: EdgeInsets.symmetric(horizontal: SizeConfig.blockSizeHorizontal * 2, vertical: SizeConfig.blockSizeVertical * 1.2),
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)), elevation: 0,
                             ),
@@ -514,7 +514,7 @@ class _ManageBookingViewState extends State<ManageBookingView> {
                   style: TextStyle(
                     fontSize: isMobile ? 18 : SizeConfig.blockSizeHorizontal * 1.5,
                     fontWeight: FontWeight.w600,
-                    color: Colors.black87,
+                    color: AppColor.fontColorBlack,
                   ),
                 ),
               ),
@@ -535,7 +535,7 @@ class _ManageBookingViewState extends State<ManageBookingView> {
                 ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.blue.shade600,
-                  foregroundColor: Colors.white,
+                  foregroundColor: AppColor.buttonTextWhite,
                   padding: EdgeInsets.symmetric(
                     horizontal: isMobile ? 12 : SizeConfig.blockSizeHorizontal * 2,
                     vertical: isMobile ? 10 : SizeConfig.blockSizeVertical * 1.2,
@@ -601,7 +601,7 @@ class _ManageBookingViewState extends State<ManageBookingView> {
           style: TextStyle(
             fontSize: isMobile ? 13 : SizeConfig.blockSizeHorizontal * 1.1,
             fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-            color: isSelected ? Colors.blue.shade600 : Colors.grey.shade600,
+            color: isSelected ? Colors.blue.shade600 : AppColor.fontColorGrey,
           ),
         ),
       ),
@@ -627,7 +627,7 @@ class _ManageBookingViewState extends State<ManageBookingView> {
             'No data found',
             style: TextStyle(
               fontSize: isMobile ? 14 : SizeConfig.blockSizeHorizontal * 1.1,
-              color: Colors.grey.shade500,
+              color: AppColor.fontColorGrey,
             ),
           ),
         ),
@@ -648,7 +648,7 @@ class _ManageBookingViewState extends State<ManageBookingView> {
             vertical: SizeConfig.blockSizeVertical * 1.2,
           ),
           decoration: BoxDecoration(
-            color: Colors.grey.shade50,
+            color: AppColor.fieldColorGrey,
             borderRadius: const BorderRadius.only(
               topLeft: Radius.circular(8),
               topRight: Radius.circular(8),
@@ -680,7 +680,7 @@ class _ManageBookingViewState extends State<ManageBookingView> {
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: AppColor.divColor),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Column(
@@ -696,11 +696,11 @@ class _ManageBookingViewState extends State<ManageBookingView> {
                     style: TextStyle(fontSize: 14, color: Colors.blue.shade600, fontWeight: FontWeight.w500),
                   ),
                   const SizedBox(width: 8),
-                  Text('HP${hp.hpRegFirstName}', style: const TextStyle(fontSize: 14, color: Colors.black87)),
+                  Text('HP${hp.hpRegFirstName}', style: TextStyle(fontSize: 14, color: AppColor.fontColorBlack)),
                 ],
               ),
               PopupMenuButton<String>(
-                icon: Icon(Icons.more_vert, color: Colors.grey.shade600, size: 22),
+                icon: Icon(Icons.more_vert, color: AppColor.fontColorGrey, size: 22),
                 onSelected: (value) {
                   if (value == 'view') {
                     Get.to(() => CgReviewDetailScreen(bookingId: widget.bookingId, hp: hp));
@@ -709,8 +709,8 @@ class _ManageBookingViewState extends State<ManageBookingView> {
                   }
                 },
                 itemBuilder: (_) => [
-                  _popupItem('view', Icons.visibility_outlined, 'View', Colors.black87),
-                  _popupItem('edit', Icons.edit_outlined, 'Edit', Colors.black87),
+                  _popupItem('view', Icons.visibility_outlined, 'View', AppColor.fontColorBlack),
+                  _popupItem('edit', Icons.edit_outlined, 'Edit', AppColor.fontColorBlack),
                   _popupItem('delete', Icons.delete_outline, 'Delete', Colors.red.shade400),
                   _popupItem('release', Icons.logout_outlined, 'Release HP', Colors.orange.shade700),
                 ],
@@ -733,8 +733,8 @@ class _ManageBookingViewState extends State<ManageBookingView> {
   Widget _mobileHPField(String label, String value) {
     return Row(
       children: [
-        Text('$label: ', style: TextStyle(fontSize: 13, color: Colors.grey.shade600)),
-        Text(value, style: const TextStyle(fontSize: 13, color: Colors.black87)),
+        Text('$label: ', style: TextStyle(fontSize: 13, color: AppColor.fontColorGrey)),
+        Text(value, style: TextStyle(fontSize: 13, color: AppColor.fontColorBlack)),
       ],
     );
   }
@@ -748,14 +748,14 @@ class _ManageBookingViewState extends State<ManageBookingView> {
             style: TextStyle(
               fontSize: SizeConfig.blockSizeHorizontal * 1.1,
               fontWeight: FontWeight.w600,
-              color: Colors.grey.shade700,
+              color: AppColor.fontColorGrey,
             ),
           ),
           SizedBox(width: SizeConfig.blockSizeHorizontal * 0.5),
           Icon(
             Icons.unfold_more,
             size: SizeConfig.blockSizeHorizontal * 1.2,
-            color: Colors.grey.shade500,
+            color: AppColor.fontColorGrey,
           ),
         ],
       ),
@@ -774,7 +774,7 @@ class _ManageBookingViewState extends State<ManageBookingView> {
         vertical: SizeConfig.blockSizeVertical * 1.5,
       ),
       decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: Colors.grey.shade200)),
+        border: Border(bottom: BorderSide(color: AppColor.divColor)),
       ),
       child: Row(
         children: [
@@ -795,7 +795,7 @@ class _ManageBookingViewState extends State<ManageBookingView> {
               'HP${hp.hpRegFirstName}',           // Replace with hp name if you have it from API
               style: TextStyle(
                 fontSize: SizeConfig.blockSizeHorizontal * 1.1,
-                color: Colors.black87,
+                color: AppColor.fontColorBlack,
               ),
             ),
           ),
@@ -805,7 +805,7 @@ class _ManageBookingViewState extends State<ManageBookingView> {
               formatDate(hp.reportingDatePlanned),  // Planned Start Date
               style: TextStyle(
                 fontSize: SizeConfig.blockSizeHorizontal * 1.1,
-                color: Colors.grey.shade700,
+                color: AppColor.fontColorGrey,
               ),
             ),
           ),
@@ -815,7 +815,7 @@ class _ManageBookingViewState extends State<ManageBookingView> {
               formatDate(hp.endDatePlanned),        // Planned End Date
               style: TextStyle(
                 fontSize: SizeConfig.blockSizeHorizontal * 1.1,
-                color: Colors.grey.shade700,
+                color: AppColor.fontColorGrey,
               ),
             ),
           ),
@@ -825,7 +825,7 @@ class _ManageBookingViewState extends State<ManageBookingView> {
               formatDate(hp.reportingDateActual),   // Actual Start Date
               style: TextStyle(
                 fontSize: SizeConfig.blockSizeHorizontal * 1.1,
-                color: Colors.grey.shade700,
+                color: AppColor.fontColorGrey,
               ),
             ),
           ),
@@ -838,7 +838,7 @@ class _ManageBookingViewState extends State<ManageBookingView> {
             child: PopupMenuButton<String>(
               icon: Icon(
                 Icons.more_vert,
-                color: Colors.grey.shade600,
+                color: AppColor.fontColorGrey,
                 size: SizeConfig.blockSizeHorizontal * 1.5,
               ),
               onSelected: (value) {
@@ -852,8 +852,8 @@ class _ManageBookingViewState extends State<ManageBookingView> {
                 }
               },
               itemBuilder: (_) => [
-                _popupItem('view', Icons.visibility_outlined, 'View', Colors.black87),
-                _popupItem('edit', Icons.edit_outlined, 'Edit', Colors.black87),
+                _popupItem('view', Icons.visibility_outlined, 'View', AppColor.fontColorBlack),
+                _popupItem('edit', Icons.edit_outlined, 'Edit', AppColor.fontColorBlack),
                 _popupItem('delete', Icons.delete_outline, 'Delete', Colors.red.shade400),
                 _popupItem('release', Icons.logout_outlined, 'Release HP', Colors.orange.shade700),
               ],
@@ -902,7 +902,7 @@ class _ManageBookingViewState extends State<ManageBookingView> {
           Obx(() => ElevatedButton(
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.orange.shade700,
-              foregroundColor: Colors.white,
+              foregroundColor: AppColor.buttonTextWhite,
             ),
             onPressed: controller.isUpdateHPBookingLoading.value
                 ? null
@@ -914,12 +914,12 @@ class _ManageBookingViewState extends State<ManageBookingView> {
                     );
                   },
             child: controller.isUpdateHPBookingLoading.value
-                ? const SizedBox(
+                ? SizedBox(
                     width: 16,
                     height: 16,
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
-                      color: Colors.white,
+                      color: AppColor.buttonTextWhite,
                     ),
                   )
                 : const Text('Release HP'),
@@ -938,7 +938,7 @@ class _ManageBookingViewState extends State<ManageBookingView> {
         children: [
           Text(
             'Showing $count of $count health professionals',
-            style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+            style: TextStyle(fontSize: 13, color: AppColor.fontColorGrey),
           ),
           const SizedBox(height: 10),
           Row(
@@ -949,7 +949,7 @@ class _ManageBookingViewState extends State<ManageBookingView> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(color: Colors.blue.shade600, borderRadius: BorderRadius.circular(8)),
-                child: const Text('1', style: TextStyle(fontSize: 13, color: Colors.white, fontWeight: FontWeight.w600)),
+                child: Text('1', style: TextStyle(fontSize: 13, color: AppColor.buttonTextWhite, fontWeight: FontWeight.w600)),
               ),
               const SizedBox(width: 6),
               _paginationButton('Next', () {}),
@@ -966,7 +966,7 @@ class _ManageBookingViewState extends State<ManageBookingView> {
           'Showing $count of $count health professionals',
           style: TextStyle(
             fontSize: SizeConfig.blockSizeHorizontal * 1.1,
-            color: Colors.grey.shade600,
+            color: AppColor.fontColorGrey,
           ),
         ),
         Row(
@@ -986,7 +986,7 @@ class _ManageBookingViewState extends State<ManageBookingView> {
                 '1',
                 style: TextStyle(
                   fontSize: SizeConfig.blockSizeHorizontal * 1.1,
-                  color: Colors.white,
+                  color: AppColor.buttonTextWhite,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -1003,8 +1003,8 @@ class _ManageBookingViewState extends State<ManageBookingView> {
     return OutlinedButton(
       onPressed: onPressed,
       style: OutlinedButton.styleFrom(
-        foregroundColor: Colors.grey.shade700,
-        side: BorderSide(color: Colors.grey.shade300),
+        foregroundColor: AppColor.fontColorGrey,
+        side: BorderSide(color: AppColor.divColor),
         padding: EdgeInsets.symmetric(
           horizontal: isMobile ? 14 : SizeConfig.blockSizeHorizontal * 1.5,
           vertical: isMobile ? 8 : SizeConfig.blockSizeVertical * 1,
@@ -1032,7 +1032,7 @@ class _ManageBookingViewState extends State<ManageBookingView> {
             'Coupon',
             style: TextStyle(
               fontSize: isMobile ? 13 : SizeConfig.blockSizeHorizontal * 1,
-              color: Colors.black54,
+              color: AppColor.fontColorGrey,
             ),
           ),
           SizedBox(height: SizeConfig.blockSizeVertical * 0.5),
@@ -1053,7 +1053,7 @@ class _ManageBookingViewState extends State<ManageBookingView> {
                 minimumSize: Size.zero,
                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
-              child: const Text('Clear', style: TextStyle(color: Colors.white)),
+              child: Text('Clear', style: TextStyle(color: AppColor.buttonTextWhite)),
             ),
         ],
       );
@@ -1070,7 +1070,7 @@ class _ManageBookingViewState extends State<ManageBookingView> {
             style: TextStyle(
               fontSize: isMobile ? 18 : SizeConfig.blockSizeHorizontal * 1.5,
               fontWeight: FontWeight.w600,
-              color: Colors.black87,
+              color: AppColor.fontColorBlack,
             ),
           ),
           SizedBox(height: isMobile ? 16 : SizeConfig.blockSizeVertical * 2),
@@ -1137,8 +1137,8 @@ class _ManageBookingViewState extends State<ManageBookingView> {
         textColor = Colors.orange.shade700;
         break;
       case 'released':
-        bgColor = Colors.grey.shade100;
-        textColor = Colors.grey.shade700;
+        bgColor = AppColor.fieldColorGrey;
+        textColor = AppColor.fontColorGrey;
         break;
       case 'confirmed':
         bgColor = Colors.green.shade50;
@@ -1157,8 +1157,8 @@ class _ManageBookingViewState extends State<ManageBookingView> {
         textColor = Colors.teal.shade700;
         break;
       default:
-        bgColor = Colors.grey.shade100;
-        textColor = Colors.grey.shade700;
+        bgColor = AppColor.fieldColorGrey;
+        textColor = AppColor.fontColorGrey;
     }
 
     return Container(
@@ -1211,7 +1211,7 @@ class _ManageBookingViewState extends State<ManageBookingView> {
                 'Extend the service period by providing new dates:',
                 style: TextStyle(
                   fontSize: isMobile ? 14 : SizeConfig.blockSizeHorizontal * 1.1,
-                  color: Colors.grey.shade700,
+                  color: AppColor.fontColorGrey,
                 ),
               ),
               SizedBox(height: isMobile ? 16 : SizeConfig.blockSizeVertical * 2),
@@ -1273,7 +1273,7 @@ class _ManageBookingViewState extends State<ManageBookingView> {
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.green.shade600,
-                      foregroundColor: Colors.white,
+                      foregroundColor: AppColor.buttonTextWhite,
                       padding: _buttonPadding(),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
@@ -1310,7 +1310,7 @@ class _ManageBookingViewState extends State<ManageBookingView> {
             style: TextStyle(
               fontSize: isMobile ? 18 : SizeConfig.blockSizeHorizontal * 1.5,
               fontWeight: FontWeight.w600,
-              color: Colors.black87,
+              color: AppColor.fontColorBlack,
             ),
           ),
         ),
@@ -1338,7 +1338,7 @@ class _ManageBookingViewState extends State<ManageBookingView> {
           style: TextStyle(
             fontSize: isMobile ? 14 : SizeConfig.blockSizeHorizontal * 1.1,
             fontWeight: FontWeight.w500,
-            color: Colors.grey.shade700,
+            color: AppColor.fontColorGrey,
           ),
         ),
         SizedBox(height: SizeConfig.blockSizeVertical * 0.5),
@@ -1352,11 +1352,11 @@ class _ManageBookingViewState extends State<ManageBookingView> {
             ),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide(color: Colors.grey.shade300),
+              borderSide: BorderSide(color: AppColor.divColor),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide(color: Colors.grey.shade300),
+              borderSide: BorderSide(color: AppColor.divColor),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
@@ -1374,8 +1374,8 @@ class _ManageBookingViewState extends State<ManageBookingView> {
     return OutlinedButton(
       onPressed: () => Get.back(),
       style: OutlinedButton.styleFrom(
-        foregroundColor: Colors.grey.shade700,
-        side: BorderSide(color: Colors.grey.shade300),
+        foregroundColor: AppColor.fontColorGrey,
+        side: BorderSide(color: AppColor.divColor),
         padding: _buttonPadding(),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       ),
@@ -1407,9 +1407,9 @@ class _ManageBookingViewState extends State<ManageBookingView> {
   // Card Decoration
   // ─────────────────────────────────────────────
   BoxDecoration _cardDecoration() => BoxDecoration(
-    color: Colors.white,
+    color: AppColor.whiteColor,
     borderRadius: BorderRadius.circular(12),
-    border: Border.all(color: Colors.grey.shade200),
+    border: Border.all(color: AppColor.divColor),
     boxShadow: [
       BoxShadow(
         color: Colors.black.withOpacity(0.05),
@@ -1448,7 +1448,7 @@ class _ManageBookingViewState extends State<ManageBookingView> {
             style: TextStyle(
               fontSize: isMobile ? 18 : SizeConfig.blockSizeHorizontal * 1.5,
               fontWeight: FontWeight.w600,
-              color: Colors.black87,
+              color: AppColor.fontColorBlack,
             ),
           ),
           SizedBox(height: isMobile ? 16 : SizeConfig.blockSizeVertical * 2),
@@ -1500,9 +1500,9 @@ class _ManageBookingViewState extends State<ManageBookingView> {
   Widget _sectionCard({required Widget child}) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColor.whiteColor,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: AppColor.divColor),
       ),
       padding: EdgeInsets.all(SizeConfig.isMobile ? 12 : SizeConfig.blockSizeHorizontal * 2),
       child: child,
@@ -1520,7 +1520,7 @@ class _ManageBookingViewState extends State<ManageBookingView> {
             style: TextStyle(
               fontSize: isMobile ? 18 : SizeConfig.blockSizeHorizontal * 1.5,
               fontWeight: FontWeight.w600,
-              color: Colors.black87,
+              color: AppColor.fontColorBlack,
             ),
           ),
           SizedBox(height: isMobile ? 16 : SizeConfig.blockSizeVertical * 2),
@@ -1535,14 +1535,14 @@ class _ManageBookingViewState extends State<ManageBookingView> {
                   vertical: isMobile ? 14 : SizeConfig.blockSizeVertical * 1.8,
                 ),
                 decoration: BoxDecoration(
-                  border: Border.all(color: Colors.grey.shade300),
+                  border: Border.all(color: AppColor.divColor),
                   borderRadius: BorderRadius.circular(6),
-                  color: Colors.grey.shade50,
+                  color: AppColor.fieldColorGrey,
                 ),
                 child: Text(
                   'No care managers available',
                   style: TextStyle(
-                    color: Colors.grey.shade500,
+                    color: AppColor.fontColorGrey,
                     fontSize: isMobile ? 14 : SizeConfig.blockSizeHorizontal * 1.1,
                   ),
                 ),

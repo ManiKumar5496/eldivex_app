@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:eldivex_app/app/core/values/color_constants.dart';
 import 'package:get/get.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
 import '../../controllers/dashboard_controller.dart';
@@ -23,26 +24,26 @@ class WeeklyBookingsWidget extends GetView<DashboardController> {
       return Container(
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppColor.whiteColor,
           borderRadius: BorderRadius.circular(12),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               'Weekly Bookings',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
-                color: Color(0xFF1A1A1A),
+                color: AppColor.fontColorBlack,
               ),
             ),
             const SizedBox(height: 4),
-            const Text(
+            Text(
               'Last 7 days performance',
               style: TextStyle(
                 fontSize: 13,
-                color: Color(0xFF9E9E9E),
+                color: AppColor.lightGrey,
                 fontWeight: FontWeight.w400,
               ),
             ),
@@ -55,8 +56,8 @@ class WeeklyBookingsWidget extends GetView<DashboardController> {
                 primaryXAxis: CategoryAxis(
                   majorGridLines: const MajorGridLines(width: 0),
                   axisLine: const AxisLine(width: 0),
-                  labelStyle: const TextStyle(
-                    color: Color(0xFF757575),
+                  labelStyle: TextStyle(
+                    color: AppColor.fontColorGrey,
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
                   ),
@@ -65,13 +66,13 @@ class WeeklyBookingsWidget extends GetView<DashboardController> {
                   minimum: 0,
                   maximum: yMax > 0 ? yMax : 180,
                   interval: yMax > 0 ? yMax / 4 : 45,
-                  majorGridLines: const MajorGridLines(
+                  majorGridLines: MajorGridLines(
                     width: 1,
-                    color: Color(0xFFF5F5F5),
+                    color: AppColor.fieldColorGrey,
                   ),
                   axisLine: const AxisLine(width: 0),
-                  labelStyle: const TextStyle(
-                    color: Color(0xFFBDBDBD),
+                  labelStyle: TextStyle(
+                    color: AppColor.lightGrey,
                     fontSize: 11,
                   ),
                 ),
@@ -89,9 +90,9 @@ class WeeklyBookingsWidget extends GetView<DashboardController> {
                 tooltipBehavior: TooltipBehavior(
                   enable: true,
                   format: 'point.x: point.y bookings',
-                  color: const Color(0xFF1A1A1A),
-                  textStyle: const TextStyle(
-                    color: Colors.white,
+                  color: AppColor.fontColorBlack,
+                  textStyle: TextStyle(
+                    color: AppColor.buttonTextWhite,
                     fontSize: 12,
                   ),
                 ),

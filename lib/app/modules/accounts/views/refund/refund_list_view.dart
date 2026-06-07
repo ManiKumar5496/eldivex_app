@@ -24,7 +24,7 @@ class RefundListView extends GetView<RefundController> {
   Color _statusColor(String status) {
     switch (status) {
       case 'DRAFT':
-        return Colors.grey;
+        return AppColor.fontColorGrey;
       case 'PENDING_APPROVAL':
         return Colors.orange;
       case 'APPROVED':
@@ -36,7 +36,7 @@ class RefundListView extends GetView<RefundController> {
       case 'REJECTED':
         return Colors.red;
       default:
-        return Colors.grey;
+        return AppColor.fontColorGrey;
     }
   }
 
@@ -78,11 +78,11 @@ class RefundListView extends GetView<RefundController> {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => Get.toNamed('/create-refund'),
         backgroundColor: AppColor.cPrimaryButtonColor,
-        icon: const Icon(Icons.add, color: Colors.white),
-        label: const Text(
+        icon: Icon(Icons.add, color: AppColor.buttonTextWhite),
+        label: Text(
           'New Refund',
           style: TextStyle(
-            color: Colors.white,
+            color: AppColor.buttonTextWhite,
             fontSize: 14,
             fontWeight: FontWeight.w600,
           ),
@@ -112,7 +112,7 @@ class RefundListView extends GetView<RefundController> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Icon(Icons.receipt_long_outlined,
-                          size: 64, color: Colors.grey.shade300),
+                          size: 64, color: AppColor.divColor),
                       const SizedBox(height: 12),
                       Text('No refunds found', style: AppTextStyles.regular16Gre),
                     ],
@@ -127,11 +127,11 @@ class RefundListView extends GetView<RefundController> {
                   decoration: BoxDecoration(
                     color: AppColor.whiteColor,
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.grey.shade200),
+                    border: Border.all(color: AppColor.divColor),
                   ),
                   child: DataTable(
                     headingRowColor:
-                        WidgetStateProperty.all(Colors.grey.shade50),
+                        WidgetStateProperty.all(AppColor.fieldColorGrey),
                     headingTextStyle: TextStyle(
                       fontWeight: FontWeight.w600,
                       fontSize: 13,

@@ -24,7 +24,7 @@ class InvoiceListView extends StatelessWidget {
     SizeConfig.init(context);
 
     return Scaffold(
-      backgroundColor: Colors.grey.shade50,
+      backgroundColor: AppColor.fieldColorGrey,
       body: Column(
         children: [
           _buildHeader(ctrl),
@@ -43,7 +43,7 @@ class InvoiceListView extends StatelessWidget {
                       Icon(
                         Icons.receipt_long_outlined,
                         size: 64,
-                        color: Colors.grey.shade300,
+                        color: AppColor.divColor,
                       ),
                       const SizedBox(height: 12),
                       Text(
@@ -57,7 +57,7 @@ class InvoiceListView extends StatelessWidget {
                         label: const Text('Refresh'),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColor.cPrimaryButtonColor,
-                          foregroundColor: Colors.white,
+                          foregroundColor: AppColor.buttonTextWhite,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(10),
                           ),
@@ -93,11 +93,11 @@ class InvoiceListView extends StatelessWidget {
             ? null
             : () => _showBulkGenerateDialog(ctrl),
         icon: ctrl.isBulkGenerating.value
-            ? const SizedBox(
+            ? SizedBox(
                 width: 16,
                 height: 16,
                 child: CircularProgressIndicator(
-                    strokeWidth: 2, color: Colors.white),
+                    strokeWidth: 2, color: AppColor.buttonTextWhite),
               )
             : Icon(Icons.auto_awesome, size: SizeConfig.iconSM),
         label: Text(
@@ -106,7 +106,7 @@ class InvoiceListView extends StatelessWidget {
         ),
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColor.cPrimaryButtonColor,
-          foregroundColor: Colors.white,
+          foregroundColor: AppColor.buttonTextWhite,
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
           padding: EdgeInsets.symmetric(
@@ -125,7 +125,7 @@ class InvoiceListView extends StatelessWidget {
           color: AppColor.whiteColor,
           boxShadow: [
             BoxShadow(
-              color: Colors.grey.shade200,
+              color: AppColor.divColor,
               blurRadius: 4,
               offset: const Offset(0, 2),
             ),
@@ -215,7 +215,7 @@ class InvoiceListView extends StatelessWidget {
             label,
             style: TextStyle(
               fontSize: SizeConfig.fontCaption,
-              color: Colors.grey.shade600,
+              color: AppColor.fontColorGrey,
             ),
           ),
           SizedBox(height: SizeConfig.spacingXS),
@@ -337,7 +337,7 @@ class InvoiceListView extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w500,
-                  color: selected ? Colors.white : AppColor.fontColorGrey,
+                  color: selected ? AppColor.buttonTextWhite : AppColor.fontColorGrey,
                 ),
               ),
             ),
@@ -368,16 +368,16 @@ class InvoiceListView extends StatelessWidget {
         margin: const EdgeInsets.fromLTRB(16, 0, 16, 8),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppColor.whiteColor,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.grey.shade200),
+          border: Border.all(color: AppColor.divColor),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
-                Icon(Icons.bar_chart, size: 16, color: Colors.grey.shade600),
+                Icon(Icons.bar_chart, size: 16, color: AppColor.fontColorGrey),
                 const SizedBox(width: 6),
                 Text(
                   'AR Aging',
@@ -390,7 +390,7 @@ class InvoiceListView extends StatelessWidget {
                 const SizedBox(width: 6),
                 Text(
                   '(days overdue)',
-                  style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
+                  style: TextStyle(fontSize: 11, color: AppColor.fontColorGrey),
                 ),
               ],
             ),
@@ -402,7 +402,7 @@ class InvoiceListView extends StatelessWidget {
                   final label = bucket['label'] as String? ?? '';
                   final count = bucket['count'] ?? 0;
                   final amount = (bucket['amount'] ?? 0).toDouble();
-                  final color = bucketColors[label] ?? Colors.grey;
+                  final color = bucketColors[label] ?? AppColor.fontColorGrey;
                   final fmt = NumberFormat.compactCurrency(
                     locale: 'en_IN',
                     symbol: '₹',
@@ -442,7 +442,7 @@ class InvoiceListView extends StatelessWidget {
                           '$count invoice${count == 1 ? '' : 's'}',
                           style: TextStyle(
                             fontSize: 10,
-                            color: Colors.grey.shade600,
+                            color: AppColor.fontColorGrey,
                           ),
                         ),
                       ],
@@ -471,10 +471,10 @@ class InvoiceListView extends StatelessWidget {
           decoration: BoxDecoration(
             color: AppColor.whiteColor,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.grey.shade200),
+            border: Border.all(color: AppColor.divColor),
           ),
           child: DataTable(
-            headingRowColor: WidgetStateProperty.all(Colors.grey.shade50),
+            headingRowColor: WidgetStateProperty.all(AppColor.fieldColorGrey),
             headingTextStyle: TextStyle(
               fontWeight: FontWeight.w600,
               fontSize: SizeConfig.fontBodySmall,
@@ -637,7 +637,7 @@ class InvoiceListView extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColor.whiteColor,
         borderRadius: BorderRadius.circular(SizeConfig.radiusMD),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: AppColor.divColor),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -744,7 +744,7 @@ class InvoiceListView extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _amountItem('Total', inv.totalAmount, Colors.black87, fmt),
+              _amountItem('Total', inv.totalAmount, AppColor.fontColorBlack, fmt),
               _amountItem('Paid', inv.paidAmount, Colors.green, fmt),
               _amountItem(
                 'Balance',
@@ -770,7 +770,7 @@ class InvoiceListView extends StatelessWidget {
       children: [
         Text(
           label,
-          style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+          style: TextStyle(fontSize: 11, color: AppColor.fontColorGrey),
         ),
         const SizedBox(height: 2),
         Text(
@@ -818,7 +818,7 @@ class InvoiceListView extends StatelessWidget {
       case 'Pending':
         return Colors.blue;
       default:
-        return Colors.grey;
+        return AppColor.fontColorGrey;
     }
   }
 
@@ -1014,7 +1014,7 @@ class InvoiceListView extends StatelessWidget {
                         'No receipts recorded yet',
                         style: TextStyle(
                           fontSize: 13,
-                          color: Colors.grey.shade500,
+                          color: AppColor.fontColorGrey,
                           fontStyle: FontStyle.italic,
                         ),
                       ),
@@ -1047,7 +1047,7 @@ class InvoiceListView extends StatelessWidget {
                         label: const Text('Raise Receipt'),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.teal,
-                          foregroundColor: Colors.white,
+                          foregroundColor: AppColor.buttonTextWhite,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(10),
                           ),
@@ -1297,7 +1297,7 @@ class InvoiceListView extends StatelessWidget {
                         },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColor.cPrimaryButtonColor,
-                          foregroundColor: Colors.white,
+                          foregroundColor: AppColor.buttonTextWhite,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(10),
                           ),

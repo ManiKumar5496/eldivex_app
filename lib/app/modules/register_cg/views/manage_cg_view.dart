@@ -87,7 +87,7 @@ class ManageCgView extends GetView<RegisterCgController> {
                   onPressed: () => Get.toNamed(Routes.REGISTER_CG),
                   icon: Icon(
                     Icons.add,
-                    color: Colors.white,
+                    color: AppColor.buttonTextWhite,
                     size: SizeConfig.iconSM,
                   ),
                   label: Text(
@@ -147,10 +147,10 @@ class ManageCgView extends GetView<RegisterCgController> {
               },
               icon: Icon(
                 Icons.add,
-                color: Colors.white,
+                color: AppColor.buttonTextWhite,
                 size: SizeConfig.iconSM,
               ),
-              label: Text(SizeConfig.isTablet ? 'New' : 'New Registration',style: TextStyle(color: AppColor.whiteColor),),
+              label: Text(SizeConfig.isTablet ? 'New' : 'New Registration',style: TextStyle(color: AppColor.buttonTextWhite),),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColor.cPrimaryButtonColor,
                 padding: SizeConfig.buttonPadding,
@@ -272,7 +272,7 @@ class ManageCgView extends GetView<RegisterCgController> {
         _StatItem('Pending', _countByStatus(1), const Color(0xFFE65100)),
         _StatItem('Approved', _countByStatus(2), const Color(0xFF2E7D32)),
         _StatItem('Rejected', _countByStatus(3), const Color(0xFFC62828)),
-        _StatItem('Terminated', _countByStatus(4), const Color(0xFF616161)),
+        _StatItem('Terminated', _countByStatus(4), AppColor.fontColorGrey),
       ];
 
       return Row(
@@ -286,7 +286,7 @@ class ManageCgView extends GetView<RegisterCgController> {
               ),
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: AppColor.whiteColor,
                 borderRadius: BorderRadius.circular(SizeConfig.radiusMD),
                 border: Border.all(color: AppColor.divColor),
               ),
@@ -307,7 +307,7 @@ class ManageCgView extends GetView<RegisterCgController> {
                       style: TextStyle(
                         fontFamily: 'poppins_regular',
                         fontSize: SizeConfig.fontCaption,
-                        color: Colors.grey.shade600,
+                        color: AppColor.fontColorGrey,
                       ),
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -377,7 +377,7 @@ class ManageCgView extends GetView<RegisterCgController> {
                   fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
                   color: selected
                       ? AppColor.cPrimaryButtonColor
-                      : Colors.grey.shade500,
+                      : AppColor.fontColorGrey,
                 ),
               ),
             ),
@@ -408,7 +408,7 @@ class ManageCgView extends GetView<RegisterCgController> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.people_outline, size: 64, color: Colors.grey.shade300),
+              Icon(Icons.people_outline, size: 64, color: AppColor.divColor),
               SizedBox(height: SizeConfig.spacingMD),
               Text(
                 'No records found',
@@ -466,7 +466,7 @@ class ManageCgView extends GetView<RegisterCgController> {
     return Container(
       margin: EdgeInsets.only(bottom: SizeConfig.spacingSM),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColor.whiteColor,
         borderRadius: BorderRadius.circular(SizeConfig.radiusMD),
         border: Border.all(color: AppColor.divColor),
       ),
@@ -535,14 +535,14 @@ class ManageCgView extends GetView<RegisterCgController> {
   Widget _infoRow(IconData icon, String text, {bool bold = false}) {
     return Row(
       children: [
-        Icon(icon, size: SizeConfig.iconSM, color: Colors.grey.shade400),
+        Icon(icon, size: SizeConfig.iconSM, color: AppColor.lightGrey),
         SizedBox(width: SizeConfig.spacingXS),
         Expanded(
           child: Text(
             text,
             style: AppTextStyles.regular14Gre.copyWith(
               fontSize: SizeConfig.fontBodySmall,
-              color: bold ? Colors.black87 : null,
+              color: bold ? AppColor.fontColorBlack : null,
               fontWeight: bold ? FontWeight.w600 : null,
             ),
             overflow: TextOverflow.ellipsis,
@@ -595,23 +595,23 @@ class ManageCgView extends GetView<RegisterCgController> {
                       message:
                           'Are you sure you want to terminate ${cg.hpRegFirstName} ${cg.hpRegLastName}?',
                       confirmLabel: 'Terminate',
-                      confirmColor: const Color(0xFF616161),
+                      confirmColor: AppColor.fontColorGrey,
                       onConfirm: () => controller.updateCgStatus(cg.hpRegId, 4),
                     ),
-                    icon: const Icon(
+                    icon: Icon(
                       Icons.block,
-                      color: Colors.white,
+                      color: AppColor.buttonTextWhite,
                       size: 15,
                     ),
                     label: Text(
                       'Terminate',
                       style: TextStyle(
-                        color: Colors.white,
+                        color: AppColor.buttonTextWhite,
                         fontSize: SizeConfig.fontBodySmall,
                       ),
                     ),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF616161),
+                      backgroundColor: AppColor.fontColorGrey,
                       padding: EdgeInsets.symmetric(
                         vertical: SizeConfig.spacingSM,
                       ),
@@ -638,15 +638,15 @@ class ManageCgView extends GetView<RegisterCgController> {
                           onConfirm: () =>
                               controller.updateCgStatus(cg.hpRegId, 2),
                         ),
-                        icon: const Icon(
+                        icon: Icon(
                           Icons.check,
-                          color: Colors.white,
+                          color: AppColor.buttonTextWhite,
                           size: 15,
                         ),
                         label: Text(
                           'Approve',
                           style: TextStyle(
-                            color: Colors.white,
+                            color: AppColor.buttonTextWhite,
                             fontSize: SizeConfig.fontBodySmall,
                           ),
                         ),
@@ -677,15 +677,15 @@ class ManageCgView extends GetView<RegisterCgController> {
                           onConfirm: () =>
                               controller.updateCgStatus(cg.hpRegId, 3),
                         ),
-                        icon: const Icon(
+                        icon: Icon(
                           Icons.close,
-                          color: Colors.white,
+                          color: AppColor.buttonTextWhite,
                           size: 15,
                         ),
                         label: Text(
                           'Reject',
                           style: TextStyle(
-                            color: Colors.white,
+                            color: AppColor.buttonTextWhite,
                             fontSize: SizeConfig.fontBodySmall,
                           ),
                         ),
@@ -734,7 +734,7 @@ class ManageCgView extends GetView<RegisterCgController> {
           Expanded(
             child: Container(
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: AppColor.whiteColor,
                 borderRadius: BorderRadius.circular(SizeConfig.radiusSM),
                 border: Border.all(color: AppColor.divColor),
               ),
@@ -750,21 +750,21 @@ class ManageCgView extends GetView<RegisterCgController> {
                       ? SizeConfig.fontCaption
                       : SizeConfig.fontBody,
                   fontWeight: FontWeight.w600,
-                  color: Colors.black87,
+                  color: AppColor.fontColorBlack,
                 ),
                 dataTextStyle: TextStyle(
                   fontFamily: 'poppins_regular',
                   fontSize: SizeConfig.isTablet
                       ? SizeConfig.fontCaption
                       : SizeConfig.fontBodySmall,
-                  color: Colors.black87,
+                  color: AppColor.fontColorBlack,
                 ),
                 headingRowColor: WidgetStateProperty.all<Color>(
                   AppColor.fieldColorGrey,
                 ),
                 border: TableBorder(
                   horizontalInside: BorderSide(
-                    color: Colors.grey.shade100,
+                    color: AppColor.fieldColorGrey,
                     width: 1,
                   ),
                 ),
@@ -863,7 +863,7 @@ class ManageCgView extends GetView<RegisterCgController> {
       children: [
         Row(
           children: [
-            Icon(Icons.email_outlined, size: 12, color: Colors.grey.shade400),
+            Icon(Icons.email_outlined, size: 12, color: AppColor.lightGrey),
             const SizedBox(width: 4),
             Expanded(
               child: Text(
@@ -879,7 +879,7 @@ class ManageCgView extends GetView<RegisterCgController> {
         const SizedBox(height: 4),
         Row(
           children: [
-            Icon(Icons.phone_outlined, size: 12, color: Colors.grey.shade400),
+            Icon(Icons.phone_outlined, size: 12, color: AppColor.lightGrey),
             const SizedBox(width: 4),
             Text(
               cg.hpRegPhoneNumber,
@@ -903,7 +903,7 @@ class ManageCgView extends GetView<RegisterCgController> {
             Icon(
               Icons.calendar_today_outlined,
               size: 12,
-              color: Colors.grey.shade400,
+              color: AppColor.lightGrey,
             ),
             const SizedBox(width: 4),
             Text(
@@ -919,7 +919,7 @@ class ManageCgView extends GetView<RegisterCgController> {
         const SizedBox(height: 4),
         Row(
           children: [
-            Icon(Icons.attach_file, size: 12, color: Colors.grey.shade400),
+            Icon(Icons.attach_file, size: 12, color: AppColor.lightGrey),
             const SizedBox(width: 4),
             Text(
               '4 files',
@@ -955,7 +955,7 @@ class ManageCgView extends GetView<RegisterCgController> {
               : (cg.hpRegStatus == 2 || cg.hpRegStatus == 3)
               ? _ActionBtn(
                   label: 'Terminate',
-                  color: const Color(0xFF616161),
+                  color: AppColor.fontColorGrey,
                   icon: Icons.block,
                   onTap: () => _showConfirmationDialog(
                     Get.context!,
@@ -963,7 +963,7 @@ class ManageCgView extends GetView<RegisterCgController> {
                     message:
                         'Are you sure you want to terminate ${cg.hpRegFirstName} ${cg.hpRegLastName}?',
                     confirmLabel: 'Terminate',
-                    confirmColor: const Color(0xFF616161),
+                    confirmColor: AppColor.fontColorGrey,
                     onConfirm: () => controller.updateCgStatus(cg.hpRegId, 4),
                   ),
                 )
@@ -1024,7 +1024,7 @@ class ManageCgView extends GetView<RegisterCgController> {
       margin: EdgeInsets.only(top: SizeConfig.spacingSM),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColor.whiteColor,
         borderRadius: BorderRadius.circular(SizeConfig.radiusSM),
         border: Border.all(color: AppColor.divColor),
       ),
@@ -1107,7 +1107,7 @@ class ManageCgView extends GetView<RegisterCgController> {
       icon: Icon(
         icon,
         size: SizeConfig.iconSM,
-        color: enabled ? Colors.black87 : Colors.grey.shade300,
+        color: enabled ? AppColor.fontColorBlack : AppColor.divColor,
       ),
       splashRadius: 18,
       constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
@@ -1150,7 +1150,7 @@ class ManageCgView extends GetView<RegisterCgController> {
               'Cancel',
               style: TextStyle(
                 fontSize: SizeConfig.fontBody,
-                color: Colors.grey.shade600,
+                color: AppColor.fontColorGrey,
               ),
             ),
           ),
@@ -1168,7 +1168,7 @@ class ManageCgView extends GetView<RegisterCgController> {
             ),
             child: Text(
               confirmLabel,
-              style: const TextStyle(color: Colors.white),
+              style: TextStyle(color: AppColor.buttonTextWhite),
             ),
           ),
         ],
@@ -1187,8 +1187,8 @@ class ManageCgView extends GetView<RegisterCgController> {
 
     switch (status) {
       case 0:
-        bg = const Color(0xFFEEEEEE);
-        fg = const Color(0xFF757575);
+        bg = AppColor.divColor;
+        fg = AppColor.fontColorGrey;
         text = 'Inactive';
         break;
       case 1:
@@ -1207,8 +1207,8 @@ class ManageCgView extends GetView<RegisterCgController> {
         text = 'Rejected';
         break;
       case 4:
-        bg = const Color(0xFFEFEFEF);
-        fg = const Color(0xFF616161);
+        bg = AppColor.divColor;
+        fg = AppColor.fontColorGrey;
         text = 'Terminated';
         break;
       default:
@@ -1261,14 +1261,14 @@ class _ActionBtn extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         if (icon != null) ...[
-          Icon(icon, size: 13, color: outlined ? color : Colors.white),
+          Icon(icon, size: 13, color: outlined ? color : AppColor.buttonTextWhite),
           const SizedBox(width: 4),
         ],
         Text(
           label,
           style: TextStyle(
             fontSize: SizeConfig.fontCaption,
-            color: outlined ? color : Colors.white,
+            color: outlined ? color : AppColor.buttonTextWhite,
             fontFamily: 'poppins_regular',
             fontWeight: FontWeight.w500,
           ),
@@ -1334,7 +1334,7 @@ class _PageDot extends StatelessWidget {
         decoration: BoxDecoration(
           color: selected ? color : Colors.transparent,
           borderRadius: BorderRadius.circular(6),
-          border: Border.all(color: selected ? color : Colors.grey.shade300),
+          border: Border.all(color: selected ? color : AppColor.divColor),
         ),
         child: Text(
           '${number + 1}',
@@ -1342,7 +1342,7 @@ class _PageDot extends StatelessWidget {
             fontSize: 12,
             fontFamily: 'poppins_regular',
             fontWeight: selected ? FontWeight.bold : FontWeight.normal,
-            color: selected ? Colors.white : Colors.black87,
+            color: selected ? AppColor.buttonTextWhite : AppColor.fontColorBlack,
           ),
         ),
       ),

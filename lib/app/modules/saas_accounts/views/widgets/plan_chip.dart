@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:eldivex_app/app/core/values/color_constants.dart';
 
 class SaasPlanChip extends StatelessWidget {
   const SaasPlanChip(this.plan, {super.key});
@@ -9,7 +10,7 @@ class SaasPlanChip extends StatelessWidget {
     final color = switch (plan) {
       'Enterprise' => Colors.purple,
       'Growth'     => Colors.blue,
-      _            => Colors.grey,
+      _            => AppColor.fontColorGrey,
     };
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),

@@ -428,7 +428,7 @@ class RegisterCgView extends GetView<RegisterCgController> {
 
   PreferredSizeWidget _buildAppBar() {
     return AppBar(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColor.whiteColor,
       elevation: 0,
       leading: IconButton(
         icon: const Icon(Icons.arrow_back, color: Colors.black),
@@ -443,9 +443,9 @@ class RegisterCgView extends GetView<RegisterCgController> {
 
   BoxDecoration _cardDecoration() {
     return BoxDecoration(
-      color: Colors.white,
+      color: AppColor.whiteColor,
       borderRadius: BorderRadius.circular(12),
-      border: Border.all(color: Colors.grey.shade200),
+      border: Border.all(color: AppColor.divColor),
     );
   }
 
@@ -457,7 +457,7 @@ class RegisterCgView extends GetView<RegisterCgController> {
         style: TextStyle(
           fontSize: 16,
           fontWeight: FontWeight.w600,
-          color: Colors.grey.shade800,
+          color: AppColor.fontColorGrey,
         ),
       ),
     );
@@ -480,7 +480,7 @@ class RegisterCgView extends GetView<RegisterCgController> {
           width: double.infinity,
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: AppColor.whiteColor,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(color: AppColor.textFieldBorderColor),
           ),
@@ -513,7 +513,7 @@ class RegisterCgView extends GetView<RegisterCgController> {
                           labelStyle: TextStyle(
                             color: isSelected
                                 ? AppColor.cPrimaryButtonColor
-                                : Colors.black87,
+                                : AppColor.fontColorBlack,
                             fontSize: 13,
                           ),
                         );

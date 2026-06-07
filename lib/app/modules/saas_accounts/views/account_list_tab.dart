@@ -31,7 +31,7 @@ class AccountListTab extends GetView<SaasAccountsController> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Icon(Icons.business_outlined,
-                        size: 48, color: Colors.grey.shade300),
+                        size: 48, color: AppColor.lightGrey),
                     const SizedBox(height: 12),
                     Text('No accounts found.',
                         style: AppTextStyles.regular14Gre),
@@ -42,7 +42,7 @@ class AccountListTab extends GetView<SaasAccountsController> {
                       label: const Text('Create First Account'),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColor.cPrimaryButtonColor,
-                        foregroundColor: Colors.white,
+                        foregroundColor: AppColor.buttonTextWhite,
                       ),
                     ),
                   ],
@@ -219,7 +219,7 @@ class _AccountCard extends GetView<SaasAccountsController> {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppColor.whiteColor,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: AppColor.divColor),
         ),

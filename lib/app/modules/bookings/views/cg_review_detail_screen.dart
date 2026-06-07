@@ -73,7 +73,7 @@ class _CgReviewDetailScreenState extends State<CgReviewDetailScreen> {
       case 5:
         return Colors.red;
       default:
-        return Colors.grey;
+        return AppColor.fontColorGrey;
     }
   }
 
@@ -114,16 +114,16 @@ class _CgReviewDetailScreenState extends State<CgReviewDetailScreen> {
     return Scaffold(
       backgroundColor: AppColor.cAppBackgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: AppColor.whiteColor,
         elevation: 1,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black87),
+          icon: Icon(Icons.arrow_back, color: AppColor.fontColorBlack),
           onPressed: () => Get.back(),
         ),
         title: Text(
           'Caregiver Review - HP${widget.hp.hpUniqueId}',
           style: TextStyle(
-            color: Colors.black87,
+            color: AppColor.fontColorBlack,
             fontSize: SizeConfig.isMobile ? 18 : SizeConfig.blockSizeHorizontal * 1.5,
             fontWeight: FontWeight.w600,
           ),
@@ -165,11 +165,11 @@ class _CgReviewDetailScreenState extends State<CgReviewDetailScreen> {
       width: double.infinity,
       padding: EdgeInsets.all(isMobile ? 12 : SizeConfig.blockSizeHorizontal * 2),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColor.whiteColor,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.shade200,
+            color: AppColor.divColor,
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -199,7 +199,7 @@ class _CgReviewDetailScreenState extends State<CgReviewDetailScreen> {
                       style: TextStyle(
                         fontSize: isMobile ? 16 : SizeConfig.blockSizeHorizontal * 1.3,
                         fontWeight: FontWeight.w600,
-                        color: Colors.black87,
+                        color: AppColor.fontColorBlack,
                       ),
                     ),
                     SizedBox(height: SizeConfig.blockSizeVertical * 0.3),
@@ -207,7 +207,7 @@ class _CgReviewDetailScreenState extends State<CgReviewDetailScreen> {
                       'Booking ID: ${hp.bkngId}',
                       style: TextStyle(
                         fontSize: isMobile ? 13 : SizeConfig.blockSizeHorizontal * 1,
-                        color: Colors.grey.shade600,
+                        color: AppColor.fontColorGrey,
                       ),
                     ),
                   ],
@@ -217,7 +217,7 @@ class _CgReviewDetailScreenState extends State<CgReviewDetailScreen> {
             ],
           ),
           SizedBox(height: isMobile ? 16 : SizeConfig.blockSizeVertical * 2),
-          Divider(color: Colors.grey.shade200),
+          Divider(color: AppColor.divColor),
           SizedBox(height: isMobile ? 12 : SizeConfig.blockSizeVertical * 1.5),
           if (isMobile)
             Wrap(
@@ -253,7 +253,7 @@ class _CgReviewDetailScreenState extends State<CgReviewDetailScreen> {
             label,
             style: TextStyle(
               fontSize: SizeConfig.blockSizeHorizontal * 0.9,
-              color: Colors.grey.shade500,
+              color: AppColor.fontColorGrey,
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -262,7 +262,7 @@ class _CgReviewDetailScreenState extends State<CgReviewDetailScreen> {
             value,
             style: TextStyle(
               fontSize: SizeConfig.blockSizeHorizontal * 1.05,
-              color: Colors.black87,
+              color: AppColor.fontColorBlack,
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -281,16 +281,16 @@ class _CgReviewDetailScreenState extends State<CgReviewDetailScreen> {
             label,
             style: TextStyle(
               fontSize: 11,
-              color: Colors.grey.shade500,
+              color: AppColor.fontColorGrey,
               fontWeight: FontWeight.w500,
             ),
           ),
           const SizedBox(height: 2),
           Text(
             value,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 13,
-              color: Colors.black87,
+              color: AppColor.fontColorBlack,
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -339,11 +339,11 @@ class _CgReviewDetailScreenState extends State<CgReviewDetailScreen> {
       width: double.infinity,
       padding: EdgeInsets.all(isMobile ? 12 : SizeConfig.blockSizeHorizontal * 2),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColor.whiteColor,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.shade200,
+            color: AppColor.divColor,
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -357,7 +357,7 @@ class _CgReviewDetailScreenState extends State<CgReviewDetailScreen> {
             style: TextStyle(
               fontSize: isMobile ? 16 : SizeConfig.blockSizeHorizontal * 1.3,
               fontWeight: FontWeight.w600,
-              color: Colors.black87,
+              color: AppColor.fontColorBlack,
             ),
           ),
           SizedBox(height: isMobile ? 16 : SizeConfig.blockSizeVertical * 2),
@@ -384,7 +384,7 @@ class _CgReviewDetailScreenState extends State<CgReviewDetailScreen> {
                                   ? Colors.green
                                   : isCurrent
                                       ? _statusColor(stageStatus)
-                                      : Colors.grey.shade300,
+                                      : AppColor.divColor,
                               border: isCurrent
                                   ? Border.all(
                                       color: _statusColor(stageStatus)
@@ -398,8 +398,8 @@ class _CgReviewDetailScreenState extends State<CgReviewDetailScreen> {
                                   ? Icons.check
                                   : _statusIcon(stageStatus),
                               color: isUpcoming
-                                  ? Colors.grey.shade500
-                                  : Colors.white,
+                                  ? AppColor.fontColorGrey
+                                  : AppColor.buttonTextWhite,
                               size: isMobile ? 14 : SizeConfig.blockSizeHorizontal * 1.5,
                             ),
                           ),
@@ -412,8 +412,8 @@ class _CgReviewDetailScreenState extends State<CgReviewDetailScreen> {
                               fontWeight:
                                   isCurrent ? FontWeight.w600 : FontWeight.w400,
                               color: isUpcoming
-                                  ? Colors.grey.shade400
-                                  : Colors.black87,
+                                  ? AppColor.lightGrey
+                                  : AppColor.fontColorBlack,
                             ),
                           ),
                         ],
@@ -427,7 +427,7 @@ class _CgReviewDetailScreenState extends State<CgReviewDetailScreen> {
                           width: isMobile ? 20 : SizeConfig.blockSizeHorizontal * 3,
                           color: isCompleted
                               ? Colors.green
-                              : Colors.grey.shade300,
+                              : AppColor.divColor,
                         ),
                       ),
                   ],
@@ -451,11 +451,11 @@ class _CgReviewDetailScreenState extends State<CgReviewDetailScreen> {
       width: double.infinity,
       padding: EdgeInsets.all(isMobile ? 12 : SizeConfig.blockSizeHorizontal * 2),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColor.whiteColor,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.shade200,
+            color: AppColor.divColor,
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -469,7 +469,7 @@ class _CgReviewDetailScreenState extends State<CgReviewDetailScreen> {
             style: TextStyle(
               fontSize: isMobile ? 16 : SizeConfig.blockSizeHorizontal * 1.3,
               fontWeight: FontWeight.w600,
-              color: Colors.black87,
+              color: AppColor.fontColorBlack,
             ),
           ),
           SizedBox(height: isMobile ? 8 : SizeConfig.blockSizeVertical * 1),
@@ -477,7 +477,7 @@ class _CgReviewDetailScreenState extends State<CgReviewDetailScreen> {
             _getActionDescription(hp.status),
             style: TextStyle(
               fontSize: isMobile ? 13 : SizeConfig.blockSizeHorizontal * 1,
-              color: Colors.grey.shade600,
+              color: AppColor.fontColorGrey,
             ),
           ),
           SizedBox(height: isMobile ? 16 : SizeConfig.blockSizeVertical * 2),
@@ -493,9 +493,9 @@ class _CgReviewDetailScreenState extends State<CgReviewDetailScreen> {
                     ? SizedBox(
                         width: isMobile ? 16 : SizeConfig.blockSizeHorizontal * 1.2,
                         height: isMobile ? 16 : SizeConfig.blockSizeHorizontal * 1.2,
-                        child: const CircularProgressIndicator(
+                        child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          color: Colors.white,
+                          color: AppColor.buttonTextWhite,
                         ),
                       )
                     : Icon(
@@ -511,7 +511,7 @@ class _CgReviewDetailScreenState extends State<CgReviewDetailScreen> {
                 ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: _statusColor(hp.status),
-                  foregroundColor: Colors.white,
+                  foregroundColor: AppColor.buttonTextWhite,
                   padding: EdgeInsets.symmetric(
                     vertical: isMobile ? 12 : SizeConfig.blockSizeVertical * 1.5,
                   ),
@@ -588,7 +588,7 @@ class _CgReviewDetailScreenState extends State<CgReviewDetailScreen> {
                     style: TextStyle(
                       fontSize: isMobile ? 16 : SizeConfig.blockSizeHorizontal * 1.5,
                       fontWeight: FontWeight.w600,
-                      color: Colors.black87,
+                      color: AppColor.fontColorBlack,
                     ),
                   ),
                   const Spacer(),
@@ -604,7 +604,7 @@ class _CgReviewDetailScreenState extends State<CgReviewDetailScreen> {
                 'Select the interview date for this caregiver:',
                 style: TextStyle(
                   fontSize: isMobile ? 13 : SizeConfig.blockSizeHorizontal * 1.1,
-                  color: Colors.grey.shade700,
+                  color: AppColor.fontColorGrey,
                 ),
               ),
               SizedBox(height: isMobile ? 16 : SizeConfig.blockSizeVertical * 2),
@@ -628,13 +628,13 @@ class _CgReviewDetailScreenState extends State<CgReviewDetailScreen> {
                       vertical: isMobile ? 12 : SizeConfig.blockSizeVertical * 1.5,
                     ),
                     decoration: BoxDecoration(
-                      border: Border.all(color: Colors.grey.shade300),
+                      border: Border.all(color: AppColor.divColor),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Row(
                       children: [
                         Icon(Icons.calendar_month,
-                            color: Colors.grey.shade600,
+                            color: AppColor.fontColorGrey,
                             size: isMobile ? 18 : SizeConfig.blockSizeHorizontal * 1.3),
                         SizedBox(width: isMobile ? 8 : SizeConfig.blockSizeHorizontal * 1),
                         Text(
@@ -645,8 +645,8 @@ class _CgReviewDetailScreenState extends State<CgReviewDetailScreen> {
                           style: TextStyle(
                             fontSize: isMobile ? 13 : SizeConfig.blockSizeHorizontal * 1.1,
                             color: interviewDate.value != null
-                                ? Colors.black87
-                                : Colors.grey.shade500,
+                                ? AppColor.fontColorBlack
+                                : AppColor.fontColorGrey,
                           ),
                         ),
                       ],
@@ -661,8 +661,8 @@ class _CgReviewDetailScreenState extends State<CgReviewDetailScreen> {
                   OutlinedButton(
                     onPressed: () => Get.back(),
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: Colors.grey.shade700,
-                      side: BorderSide(color: Colors.grey.shade300),
+                      foregroundColor: AppColor.fontColorGrey,
+                      side: BorderSide(color: AppColor.divColor),
                       padding: EdgeInsets.symmetric(
                         horizontal: isMobile ? 16 : SizeConfig.blockSizeHorizontal * 2,
                         vertical: isMobile ? 10 : SizeConfig.blockSizeVertical * 1.2,
@@ -700,7 +700,7 @@ class _CgReviewDetailScreenState extends State<CgReviewDetailScreen> {
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.purple,
-                      foregroundColor: Colors.white,
+                      foregroundColor: AppColor.buttonTextWhite,
                       padding: EdgeInsets.symmetric(
                         horizontal: isMobile ? 16 : SizeConfig.blockSizeHorizontal * 2,
                         vertical: isMobile ? 10 : SizeConfig.blockSizeVertical * 1.2,
@@ -751,7 +751,7 @@ class _CgReviewDetailScreenState extends State<CgReviewDetailScreen> {
                     style: TextStyle(
                       fontSize: isMobile ? 16 : SizeConfig.blockSizeHorizontal * 1.5,
                       fontWeight: FontWeight.w600,
-                      color: Colors.black87,
+                      color: AppColor.fontColorBlack,
                     ),
                   ),
                   const Spacer(),
@@ -798,7 +798,7 @@ class _CgReviewDetailScreenState extends State<CgReviewDetailScreen> {
                       'Please enter the OTP to verify caregiver placement',
                       style: TextStyle(
                         fontSize: isMobile ? 12 : SizeConfig.blockSizeHorizontal * 0.95,
-                        color: Colors.grey.shade600,
+                        color: AppColor.fontColorGrey,
                       ),
                       textAlign: TextAlign.center,
                     ),
@@ -824,7 +824,7 @@ class _CgReviewDetailScreenState extends State<CgReviewDetailScreen> {
                       style: TextStyle(
                         fontSize: isMobile ? 20 : SizeConfig.blockSizeHorizontal * 1.8,
                         fontWeight: FontWeight.w700,
-                        color: Colors.black87,
+                        color: AppColor.fontColorBlack,
                       ),
                       decoration: InputDecoration(
                         counterText: '',
@@ -833,11 +833,11 @@ class _CgReviewDetailScreenState extends State<CgReviewDetailScreen> {
                         ),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
-                          borderSide: BorderSide(color: Colors.grey.shade300),
+                          borderSide: BorderSide(color: AppColor.divColor),
                         ),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
-                          borderSide: BorderSide(color: Colors.grey.shade300),
+                          borderSide: BorderSide(color: AppColor.divColor),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
@@ -871,8 +871,8 @@ class _CgReviewDetailScreenState extends State<CgReviewDetailScreen> {
                       Get.back();
                     },
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: Colors.grey.shade700,
-                      side: BorderSide(color: Colors.grey.shade300),
+                      foregroundColor: AppColor.fontColorGrey,
+                      side: BorderSide(color: AppColor.divColor),
                       padding: EdgeInsets.symmetric(
                         horizontal: isMobile ? 16 : SizeConfig.blockSizeHorizontal * 2,
                         vertical: isMobile ? 10 : SizeConfig.blockSizeVertical * 1.2,
@@ -914,7 +914,7 @@ class _CgReviewDetailScreenState extends State<CgReviewDetailScreen> {
                             },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.green,
-                        foregroundColor: Colors.white,
+                        foregroundColor: AppColor.buttonTextWhite,
                         padding: EdgeInsets.symmetric(
                           horizontal: isMobile ? 16 : SizeConfig.blockSizeHorizontal * 2,
                           vertical: isMobile ? 10 : SizeConfig.blockSizeVertical * 1.2,
@@ -926,9 +926,9 @@ class _CgReviewDetailScreenState extends State<CgReviewDetailScreen> {
                           ? SizedBox(
                               width: isMobile ? 16 : SizeConfig.blockSizeHorizontal * 1.2,
                               height: isMobile ? 16 : SizeConfig.blockSizeHorizontal * 1.2,
-                              child: const CircularProgressIndicator(
+                              child: CircularProgressIndicator(
                                 strokeWidth: 2,
-                                color: Colors.white,
+                                color: AppColor.buttonTextWhite,
                               ),
                             )
                           : Text(

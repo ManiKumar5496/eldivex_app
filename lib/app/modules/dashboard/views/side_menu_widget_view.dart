@@ -400,7 +400,7 @@ class _SideMenuWidgetViewState extends State<SideMenuWidgetView> {
                       duration: const Duration(milliseconds: 250),
                       width: _getSidebarWidth(context, deviceType),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: AppColor.whiteColor,
                         border: Border(
                           right: BorderSide(color: AppColor.divColor, width: 1),
                         ),
@@ -466,7 +466,7 @@ class _SideMenuWidgetViewState extends State<SideMenuWidgetView> {
                           duration: const Duration(milliseconds: 250),
                           width: _getSidebarWidth(context, deviceType),
                           decoration: BoxDecoration(
-                            color: Colors.white,
+                            color: AppColor.whiteColor,
                             boxShadow: [
                               BoxShadow(
                                 color: Colors.black.withValues(alpha: 0.1),
@@ -508,7 +508,7 @@ class _SideMenuWidgetViewState extends State<SideMenuWidgetView> {
     return Container(
       height: 60,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColor.whiteColor,
         border: Border(
           bottom: BorderSide(color: AppColor.divColor, width: 1),
         ),
@@ -628,7 +628,7 @@ class _SideMenuWidgetViewState extends State<SideMenuWidgetView> {
                 Icon(
                   item.icon,
                   size: isTablet ? 20 : 22,
-                  color: isSelected ? AppColor.whiteColor : AppColor.unSelectedMenu,
+                  color: isSelected ? AppColor.buttonTextWhite : AppColor.unSelectedMenu,
                 ),
                 if (isExpanded.value) ...[
                   SizedBox(width: isTablet ? 12 : 16),
@@ -638,7 +638,7 @@ class _SideMenuWidgetViewState extends State<SideMenuWidgetView> {
                       style: TextStyle(
                         fontSize: isTablet ? 13 : 14,
                         fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                        color: isSelected ? AppColor.whiteColor : AppColor.unSelectedMenu,
+                        color: isSelected ? AppColor.buttonTextWhite : AppColor.unSelectedMenu,
                       ),
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -735,7 +735,9 @@ class _SideMenuWidgetViewState extends State<SideMenuWidgetView> {
               vertical: isTablet ? 10 : 12,
             ),
             decoration: BoxDecoration(
-              color: isSelected ? const Color(0xFFEFF6FF) : Colors.transparent,
+              color: isSelected
+                  ? AppColor.cPrimaryButtonColor.withValues(alpha: 0.12)
+                  : Colors.transparent,
               borderRadius: BorderRadius.circular(8),
             ),
             child: Row(

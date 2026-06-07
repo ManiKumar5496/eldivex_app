@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:eldivex_app/app/core/values/color_constants.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:get/get.dart';
 
@@ -122,7 +123,7 @@ class _CommonFileUploadState extends State<CommonFileUpload> {
       case 'png':
         return Colors.green;
       default:
-        return Colors.grey;
+        return AppColor.fontColorGrey;
     }
   }
 
@@ -137,7 +138,7 @@ class _CommonFileUploadState extends State<CommonFileUpload> {
           style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w500,
-            color: Colors.grey.shade800,
+            color: AppColor.fontColorGrey,
           ),
         ),
         const SizedBox(height: 12),
@@ -166,14 +167,14 @@ class _CommonFileUploadState extends State<CommonFileUpload> {
                     Icon(
                       Icons.upload_outlined,
                       size: 48,
-                      color: Colors.grey.shade400,
+                      color: AppColor.lightGrey,
                     ),
                     const SizedBox(height: 16),
                     Text(
                       widget.hint,
                       style: TextStyle(
                         fontSize: 16,
-                        color: Colors.grey.shade700,
+                        color: AppColor.fontColorGrey,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -182,7 +183,7 @@ class _CommonFileUploadState extends State<CommonFileUpload> {
                       widget.supportedFormats,
                       style: TextStyle(
                         fontSize: 14,
-                        color: Colors.grey.shade500,
+                        color: AppColor.fontColorGrey,
                       ),
                     ),
                     const SizedBox(height: 20),
@@ -193,7 +194,7 @@ class _CommonFileUploadState extends State<CommonFileUpload> {
                           horizontal: 24,
                           vertical: 12,
                         ),
-                        side: BorderSide(color: Colors.grey.shade400),
+                        side: BorderSide(color: AppColor.lightGrey),
                       ),
                       child: const Text('Choose Files'),
                     ),
@@ -219,7 +220,7 @@ class _CommonFileUploadState extends State<CommonFileUpload> {
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
-                  color: Colors.grey.shade800,
+                  color: AppColor.fontColorGrey,
                 ),
               ),
               const SizedBox(height: 12),
@@ -232,9 +233,9 @@ class _CommonFileUploadState extends State<CommonFileUpload> {
                   margin: const EdgeInsets.only(bottom: 12),
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: Colors.grey.shade50,
+                    color: AppColor.fieldColorGrey,
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.grey.shade200),
+                    border: Border.all(color: AppColor.divColor),
                   ),
                   child: Row(
                     children: [
@@ -260,7 +261,7 @@ class _CommonFileUploadState extends State<CommonFileUpload> {
                               style: TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w500,
-                                color: Colors.grey.shade800,
+                                color: AppColor.fontColorGrey,
                               ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
@@ -270,7 +271,7 @@ class _CommonFileUploadState extends State<CommonFileUpload> {
                               formatFileSize(file.size),
                               style: TextStyle(
                                 fontSize: 12,
-                                color: Colors.grey.shade600,
+                                color: AppColor.fontColorGrey,
                               ),
                             ),
                           ],
@@ -280,7 +281,7 @@ class _CommonFileUploadState extends State<CommonFileUpload> {
                         onPressed: () => removeFile(index),
                         icon: Icon(
                           Icons.close,
-                          color: Colors.grey.shade600,
+                          color: AppColor.fontColorGrey,
                           size: 20,
                         ),
                         padding: EdgeInsets.zero,

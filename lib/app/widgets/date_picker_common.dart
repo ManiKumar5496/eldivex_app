@@ -49,7 +49,7 @@ class CommonDatePicker extends StatelessWidget {
                   data: Theme.of(context).copyWith(
                     colorScheme: ColorScheme.light(
                       primary: Colors.blue.shade600,
-                      onPrimary: Colors.white,
+                      onPrimary: AppColor.whiteColor,
                       onSurface: Colors.black,
                     ),
                   ),
@@ -64,12 +64,12 @@ class CommonDatePicker extends StatelessWidget {
               : null,
           child: Container(
             decoration: BoxDecoration(
-              color: enabled ? Colors.white : Colors.grey.shade100,
+              color: enabled ? AppColor.whiteColor : AppColor.fieldColorGrey,
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
                 color: enabled
                     ? AppColor.textFieldBorderColor
-                    : Colors.grey.shade300,
+                    : AppColor.divColor,
               ),
             ),
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -85,7 +85,7 @@ class CommonDatePicker extends StatelessWidget {
                         ? (selectedDate != null
                         ? AppColor.cPrimaryHeadingColor
                         : AppColor.cPrimarySubHeadingColorGrey)
-                        : Colors.grey.shade500,
+                        : AppColor.fontColorGrey,
                     fontSize: 14,
                   ),
                 ),
@@ -93,7 +93,7 @@ class CommonDatePicker extends StatelessWidget {
                   Icons.calendar_today,
                   color: enabled
                       ? AppColor.prefixIconColor
-                      : Colors.grey.shade400,
+                      : AppColor.lightGrey,
                   size: 18,
                 ),
               ],

@@ -34,7 +34,7 @@ class AuditLogView extends GetView<AuditLogController> {
         vertical: SizeConfig.spacingMD,
       ),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColor.whiteColor,
         border: Border(
           bottom: BorderSide(color: AppColor.divColor.withValues(alpha: 0.5)),
         ),
@@ -79,7 +79,7 @@ class AuditLogView extends GetView<AuditLogController> {
         horizontal: SizeConfig.spacingMD,
         vertical: SizeConfig.spacingSM,
       ),
-      color: Colors.white,
+      color: AppColor.whiteColor,
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         child: Row(
@@ -152,7 +152,7 @@ class AuditLogView extends GetView<AuditLogController> {
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColor.whiteColor,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
@@ -192,7 +192,7 @@ class AuditLogView extends GetView<AuditLogController> {
               final entry  = e.value;
               return TableRow(
                 decoration: BoxDecoration(
-                  color: isEven ? Colors.white : AppColor.cAppBackgroundColor.withValues(alpha: 0.5),
+                  color: isEven ? AppColor.whiteColor : AppColor.cAppBackgroundColor.withValues(alpha: 0.5),
                 ),
                 children: [
                   _dataCell(_formatDate(entry.createdOn)),
@@ -249,7 +249,7 @@ class AuditLogView extends GetView<AuditLogController> {
     return Card(
       margin: EdgeInsets.only(bottom: SizeConfig.spacingSM),
       elevation: 0,
-      color: Colors.white,
+      color: AppColor.whiteColor,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(10),
         side: BorderSide(color: AppColor.divColor.withValues(alpha: 0.5)),
@@ -356,7 +356,7 @@ class AuditLogView extends GetView<AuditLogController> {
           vertical: SizeConfig.spacingSM,
         ),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppColor.whiteColor,
           border: Border(top: BorderSide(color: AppColor.divColor.withValues(alpha: 0.5))),
         ),
         child: Row(
@@ -418,7 +418,7 @@ class _FilterChip extends StatelessWidget {
           label,
           style: TextStyle(
             fontSize: 12,
-            color: selected ? Colors.white : AppColor.fontColorGrey,
+            color: selected ? AppColor.buttonTextWhite : AppColor.fontColorGrey,
             fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
           ),
         ),

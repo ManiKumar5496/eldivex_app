@@ -20,11 +20,11 @@ class ManageRecieptsView extends GetView<AccountsController> {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _showRecordReceiptSheet(context),
         backgroundColor: AppColor.cPrimaryButtonColor,
-        icon: const Icon(Icons.add, color: Colors.white),
+        icon: Icon(Icons.add, color: AppColor.buttonTextWhite),
         label: Text(
           SizeConfig.isMobile ? 'Record' : 'Record Receipt',
           style: TextStyle(
-              color: Colors.white,
+              color: AppColor.buttonTextWhite,
               fontSize: SizeConfig.fontBody,
               fontWeight: FontWeight.w600),
         ),
@@ -388,16 +388,16 @@ class ManageRecieptsView extends GetView<AccountsController> {
                         }
                       },
                 icon: controller.isLoadingReceipts.value
-                    ? const SizedBox(
+                    ? SizedBox(
                         width: 18,
                         height: 18,
                         child: CircularProgressIndicator(
-                            strokeWidth: 2, color: Colors.white),
+                            strokeWidth: 2, color: AppColor.buttonTextWhite),
                       )
                     : Icon(Icons.check_circle_outline, size: SizeConfig.iconSM),
                 label: Text('Record Payment',
                     style: TextStyle(
-                        color: Colors.white,
+                        color: AppColor.buttonTextWhite,
                         fontSize: SizeConfig.fontBody,
                         fontWeight: FontWeight.w600)),
                 style: ElevatedButton.styleFrom(
@@ -429,7 +429,7 @@ class ManageRecieptsView extends GetView<AccountsController> {
             Text(label,
                 style: TextStyle(
                     fontSize: SizeConfig.fontCaption,
-                    color: Colors.grey.shade600)),
+                    color: AppColor.fontColorGrey)),
             SizedBox(height: SizeConfig.spacingXS / 2),
             Text(value,
                 style: TextStyle(
@@ -481,7 +481,7 @@ class ManageRecieptsView extends GetView<AccountsController> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Icon(Icons.receipt_long_outlined,
-                  size: 64, color: Colors.grey.shade300),
+                  size: 64, color: AppColor.divColor),
               SizedBox(height: SizeConfig.spacingSM),
               Text('No receipts found', style: AppTextStyles.regular16Gre),
             ],
@@ -521,7 +521,7 @@ class ManageRecieptsView extends GetView<AccountsController> {
       decoration: BoxDecoration(
         color: AppColor.whiteColor,
         borderRadius: BorderRadius.circular(SizeConfig.radiusMD),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: AppColor.divColor),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.04),
@@ -569,7 +569,7 @@ class ManageRecieptsView extends GetView<AccountsController> {
               ),
             ],
           ),
-          Divider(height: SizeConfig.spacingLG, color: Colors.grey.shade100),
+          Divider(height: SizeConfig.spacingLG, color: AppColor.fieldColorGrey),
 
           // Row 2: Client / Patient
           Text(receipt.clientName,
@@ -605,16 +605,16 @@ class ManageRecieptsView extends GetView<AccountsController> {
                       color: AppColor.fontColorGrey)),
             ],
           ),
-          Divider(height: SizeConfig.spacingLG, color: Colors.grey.shade100),
+          Divider(height: SizeConfig.spacingLG, color: AppColor.fieldColorGrey),
 
           // Row 5: Amount / Tax / Total
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
               _mobileAmountItem(
-                  'Amount', controller.formatCurrency(receipt.amount), Colors.black87),
+                  'Amount', controller.formatCurrency(receipt.amount), AppColor.fontColorBlack),
               _mobileAmountItem(
-                  'Tax', controller.formatCurrency(receipt.taxAmount), Colors.grey),
+                  'Tax', controller.formatCurrency(receipt.taxAmount), AppColor.fontColorGrey),
               _mobileAmountItem('Total',
                   controller.formatCurrency(receipt.totalAmount), Colors.teal,
                   bold: true),
@@ -623,7 +623,7 @@ class ManageRecieptsView extends GetView<AccountsController> {
 
           // Bottom: Action buttons for Pending
           if (isPending) ...[
-            Divider(height: SizeConfig.spacingLG, color: Colors.grey.shade100),
+            Divider(height: SizeConfig.spacingLG, color: AppColor.fieldColorGrey),
             Row(
               children: [
                 Expanded(
@@ -655,10 +655,10 @@ class ManageRecieptsView extends GetView<AccountsController> {
                         _showRecordReceiptSheet(context);
                       },
                       icon: Icon(Icons.check,
-                          size: SizeConfig.iconSM, color: Colors.white),
+                          size: SizeConfig.iconSM, color: AppColor.buttonTextWhite),
                       label: Text('Approve',
                           style: TextStyle(
-                              color: Colors.white, fontSize: SizeConfig.fontBody)),
+                              color: AppColor.buttonTextWhite, fontSize: SizeConfig.fontBody)),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.green,
                         shape: RoundedRectangleBorder(
@@ -683,7 +683,7 @@ class ManageRecieptsView extends GetView<AccountsController> {
       children: [
         Text(label,
             style: TextStyle(
-                fontSize: SizeConfig.fontCaption, color: Colors.grey.shade600)),
+                fontSize: SizeConfig.fontCaption, color: AppColor.fontColorGrey)),
         SizedBox(height: SizeConfig.spacingXS / 2),
         Text(value,
             style: TextStyle(
@@ -703,12 +703,12 @@ class ManageRecieptsView extends GetView<AccountsController> {
         decoration: BoxDecoration(
           color: AppColor.whiteColor,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.grey.shade200),
+          border: Border.all(color: AppColor.divColor),
         ),
         child: SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           child: DataTable(
-            headingRowColor: WidgetStateProperty.all(Colors.grey.shade50),
+            headingRowColor: WidgetStateProperty.all(AppColor.fieldColorGrey),
             headingTextStyle: TextStyle(
               fontWeight: FontWeight.w600,
               fontSize: SizeConfig.fontBodySmall,

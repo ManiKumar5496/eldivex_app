@@ -132,18 +132,18 @@ class _WizardFooter extends StatelessWidget {
                         : ctrl.submitWizard,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColor.cPrimaryButtonColor,
-                  foregroundColor: Colors.white,
+                  foregroundColor: AppColor.buttonTextWhite,
                   padding: const EdgeInsets.symmetric(
                       horizontal: 28, vertical: 14),
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8)),
                 ),
                 child: ctrl.saving.value
-                    ? const SizedBox(
+                    ? SizedBox(
                         width: 16,
                         height: 16,
                         child: CircularProgressIndicator(
-                            strokeWidth: 2, color: Colors.white))
+                            strokeWidth: 2, color: AppColor.buttonTextWhite))
                     : Text(ctrl.wizardStep.value < 3
                         ? 'Next →'
                         : 'Create Account'),
@@ -259,7 +259,7 @@ class _Step2 extends StatelessWidget {
               ? Colors.purple
               : plan.name == 'Growth'
                   ? Colors.blue
-                  : Colors.grey;
+                  : AppColor.fontColorGrey;
           return GestureDetector(
             onTap: () => ctrl.selectedPlanId.value = plan.id.toString(),
             child: AnimatedContainer(
@@ -269,7 +269,7 @@ class _Step2 extends StatelessWidget {
               decoration: BoxDecoration(
                 color: isSelected
                     ? color.withValues(alpha: 0.06)
-                    : Colors.white,
+                    : AppColor.whiteColor,
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
                   color: isSelected ? color : AppColor.divColor,
@@ -289,7 +289,7 @@ class _Step2 extends StatelessWidget {
                           width: 2),
                     ),
                     child: isSelected
-                        ? const Icon(Icons.check, color: Colors.white, size: 12)
+                        ? Icon(Icons.check, color: AppColor.buttonTextWhite, size: 12)
                         : null,
                   ),
                   const SizedBox(width: 14),

@@ -38,6 +38,8 @@ import '../modules/settings/views/branch_management_view.dart';
 import '../modules/settings/views/otp_cupon_generation.dart';
 import '../modules/register_cg/bindings/hp_payouts_binding.dart';
 import '../modules/register_cg/views/hp_payouts_view.dart';
+import '../modules/appearance/bindings/appearance_binding.dart';
+import '../modules/appearance/views/appearance_view.dart';
 // ── Financial Module ────────────────────────────────────────────────────────
 import '../modules/accounts/bindings/write_off_binding.dart';
 import '../modules/accounts/bindings/refund_binding.dart';
@@ -212,6 +214,13 @@ class AppPages {
       name: _Paths.hpPayouts,
       page: () => const HpPayoutsView(),
       binding: HpPayoutsBinding(),
+    ),
+
+    // ── Appearance (theme + brand color) ─────────────────────────────────────
+    GetPage(
+      name: _Paths.appearance,
+      page: () => const AppearanceView(),
+      binding: AppearanceBinding(),
     ),
 
     // ── Financial Module — Write-Offs ────────────────────────────────────────

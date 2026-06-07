@@ -284,7 +284,7 @@ class _CgReviewDetailScreenState extends State<CgReviewDetailScreen> {
             SizedBox(width: isTablet ? 8 : SizeConfig.blockSizeHorizontal * 1),
             ElevatedButton.icon(
               onPressed: _downloadAsPdf,
-              icon: const Icon(Icons.download, color: Colors.white, size: 18),
+              icon: Icon(Icons.download, color: AppColor.buttonTextWhite, size: 18),
               label: Text(isTablet ? 'PDF' : 'Download PDF'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColor.cPrimaryButtonColor,
@@ -789,7 +789,7 @@ class _CgReviewDetailScreenState extends State<CgReviewDetailScreen> {
                   children: [
                     ElevatedButton.icon(
                       onPressed: () => _showApprovalDialog(controller),
-                      icon: const Icon(Icons.check_circle, color: Colors.white, size: 18),
+                      icon: Icon(Icons.check_circle, color: AppColor.buttonTextWhite, size: 18),
                       label: const Text('Approve Application'),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColor.lightGreen,
@@ -1059,7 +1059,7 @@ class _CgReviewDetailScreenState extends State<CgReviewDetailScreen> {
         break;
       case 4:
         bg = Colors.grey.withValues(alpha:0.15);
-        fg = Colors.grey;
+        fg = AppColor.fontColorGrey;
         text = 'Terminated';
         icon = Icons.block;
         break;
@@ -1113,7 +1113,7 @@ class _CgReviewDetailScreenState extends State<CgReviewDetailScreen> {
         break;
       case 4:
         bg = Colors.grey.withValues(alpha:0.15);
-        fg = Colors.grey;
+        fg = AppColor.fontColorGrey;
         text = 'Terminated';
         icon = Icons.block;
         break;
@@ -1173,7 +1173,7 @@ class _CgReviewDetailScreenState extends State<CgReviewDetailScreen> {
               color: isActive ? AppColor.cPrimaryButtonColor.withValues(alpha:0.1) : Colors.grey.withValues(alpha:0.1),
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Icon(icon, size: isMobile ? 18 : 20, color: isActive ? AppColor.cPrimaryButtonColor : Colors.grey),
+            child: Icon(icon, size: isMobile ? 18 : 20, color: isActive ? AppColor.cPrimaryButtonColor : AppColor.fontColorGrey),
           ),
           SizedBox(width: isMobile ? 10 : (isTablet ? 12 : SizeConfig.blockSizeHorizontal * 1.5)),
           Expanded(
@@ -1273,13 +1273,13 @@ class _CgReviewDetailScreenState extends State<CgReviewDetailScreen> {
                         );
                       },
                       errorBuilder: (context, error, stackTrace) {
-                        return const Center(
+                        return Center(
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(Icons.broken_image, size: 64, color: Colors.grey),
+                              Icon(Icons.broken_image, size: 64, color: AppColor.fontColorGrey),
                               SizedBox(height: 8),
-                              Text('Failed to load image', style: TextStyle(color: Colors.grey)),
+                              Text('Failed to load image', style: TextStyle(color: AppColor.fontColorGrey)),
                             ],
                           ),
                         );
@@ -1365,7 +1365,7 @@ class _CgReviewDetailScreenState extends State<CgReviewDetailScreen> {
               controller.updateCgStatus(cgDetails.hpRegId, 3, navigateToManageHp: true);
             },
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text('Reject', style: TextStyle(color: Colors.white)),
+            child: Text('Reject', style: TextStyle(color: AppColor.buttonTextWhite)),
           ),
         ],
       ),

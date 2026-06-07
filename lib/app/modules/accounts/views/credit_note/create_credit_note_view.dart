@@ -48,7 +48,7 @@ class CreateCreditNoteView extends GetView<CreditNoteController> {
         ),
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1),
-          child: Divider(height: 1, color: Colors.grey.shade200),
+          child: Divider(height: 1, color: AppColor.divColor),
         ),
       ),
       body: SingleChildScrollView(
@@ -69,7 +69,7 @@ class CreateCreditNoteView extends GetView<CreditNoteController> {
       decoration: BoxDecoration(
         color: AppColor.whiteColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: AppColor.divColor),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.04),
@@ -91,7 +91,7 @@ class CreateCreditNoteView extends GetView<CreditNoteController> {
           Text('Fill in the details to create a new credit note.',
               style: AppTextStyles.regular14Gre),
           const SizedBox(height: 24),
-          Divider(color: Colors.grey.shade100),
+          Divider(color: AppColor.divColor),
           const SizedBox(height: 20),
 
           // ── Booking selector ──────────────────────────────────────
@@ -232,21 +232,21 @@ class CreateCreditNoteView extends GetView<CreditNoteController> {
                         borderRadius: BorderRadius.circular(10)),
                   ),
                   child: controller.isSubmitting.value
-                      ? const SizedBox(
+                      ? SizedBox(
                           height: 20,
                           width: 20,
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
                             valueColor:
-                                AlwaysStoppedAnimation<Color>(Colors.white),
+                                AlwaysStoppedAnimation<Color>(AppColor.buttonTextWhite),
                           ),
                         )
-                      : const Text(
+                      : Text(
                           'Create Credit Note',
                           style: TextStyle(
                               fontSize: 15,
                               fontWeight: FontWeight.w600,
-                              color: Colors.white),
+                              color: AppColor.buttonTextWhite),
                         ),
                 ),
               )),

@@ -7,8 +7,8 @@ class ApiConstants {
   ///   Production : flutter build web --dart-define=API_BASE_URL=http://65.2.74.114:4000/api
   static const String baseURL = String.fromEnvironment(
     'API_BASE_URL',
-   // defaultValue: 'http://localhost:4000/api',
-    defaultValue: 'https://eldivexbe-production.up.railway.app/api',
+    defaultValue: 'http://localhost:4000/api',
+    //defaultValue: 'https://eldivexbe-production.up.railway.app/api',
   );
 
   ///End point

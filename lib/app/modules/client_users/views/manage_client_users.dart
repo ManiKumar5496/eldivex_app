@@ -60,7 +60,7 @@ class ManageClientUsers extends GetView<ClientUsersController> {
             width: double.infinity,
             child: ElevatedButton.icon(
               onPressed: () => Get.toNamed('/create-client-user'),
-              icon: Icon(Icons.add, size: SizeConfig.iconSM, color: Colors.white),
+              icon: Icon(Icons.add, size: SizeConfig.iconSM, color: AppColor.buttonTextWhite),
               label: Text('Add Client',
                   style: TextStyle(fontSize: SizeConfig.fontBodySmall)),
               style: ElevatedButton.styleFrom(
@@ -107,8 +107,8 @@ class ManageClientUsers extends GetView<ClientUsersController> {
             ElevatedButton.icon(
               onPressed: () => Get.to(CreateClientUser()),
               icon:
-              Icon(Icons.add, color: Colors.white, size: SizeConfig.iconSM),
-              label: const Text('Add New Client',style: TextStyle(color: Colors.white),),
+              Icon(Icons.add, color: AppColor.buttonTextWhite, size: SizeConfig.iconSM),
+              label: Text('Add New Client',style: TextStyle(color: AppColor.buttonTextWhite),),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColor.cPrimaryButtonColor,
                 padding: SizeConfig.buttonPadding,
@@ -161,7 +161,7 @@ class ManageClientUsers extends GetView<ClientUsersController> {
                 borderRadius: BorderRadius.circular(SizeConfig.radiusMD),
               ),
             ),
-            child: const Icon(Icons.search, color: Colors.white),
+            child: Icon(Icons.search, color: AppColor.buttonTextWhite),
           ),
         ],
       ],
@@ -286,7 +286,7 @@ class ManageClientUsers extends GetView<ClientUsersController> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(Icons.people_outline,
-                  size: 64, color: Colors.grey.shade300),
+                  size: 64, color: AppColor.divColor),
               SizedBox(height: SizeConfig.spacingMD),
               Text('No clients found',
                   style: TextStyle(
@@ -295,7 +295,7 @@ class ManageClientUsers extends GetView<ClientUsersController> {
               SizedBox(height: SizeConfig.spacingSM),
               Text('Add your first client to get started',
                   style: TextStyle(
-                      fontSize: SizeConfig.fontBody, color: Colors.grey)),
+                      fontSize: SizeConfig.fontBody, color: AppColor.fontColorGrey)),
             ],
           ),
         );
@@ -323,7 +323,7 @@ class ManageClientUsers extends GetView<ClientUsersController> {
     return Container(
       margin: EdgeInsets.only(bottom: SizeConfig.spacingSM),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColor.whiteColor,
         borderRadius: BorderRadius.circular(SizeConfig.radiusMD),
         border: Border.all(color: AppColor.divColor),
       ),
@@ -378,7 +378,7 @@ class ManageClientUsers extends GetView<ClientUsersController> {
                 Row(
                   children: [
                     Icon(Icons.person_outline,
-                        size: SizeConfig.iconSM, color: Colors.grey),
+                        size: SizeConfig.iconSM, color: AppColor.fontColorGrey),
                     SizedBox(width: SizeConfig.spacingXS),
                     Expanded(
                       child: Text(user.displayName,
@@ -392,7 +392,7 @@ class ManageClientUsers extends GetView<ClientUsersController> {
                 Row(
                   children: [
                     Icon(Icons.phone_outlined,
-                        size: SizeConfig.iconSM, color: Colors.grey),
+                        size: SizeConfig.iconSM, color: AppColor.fontColorGrey),
                     SizedBox(width: SizeConfig.spacingXS),
                     Text(user.displayPhone,
                         style: AppTextStyles.regular14Gre.copyWith(
@@ -403,7 +403,7 @@ class ManageClientUsers extends GetView<ClientUsersController> {
                 Row(
                   children: [
                     Icon(Icons.email_outlined,
-                        size: SizeConfig.iconSM, color: Colors.grey),
+                        size: SizeConfig.iconSM, color: AppColor.fontColorGrey),
                     SizedBox(width: SizeConfig.spacingXS),
                     Expanded(
                       child: Text(user.displayEmail,
@@ -417,7 +417,7 @@ class ManageClientUsers extends GetView<ClientUsersController> {
                 Row(
                   children: [
                     Icon(Icons.location_on_outlined,
-                        size: SizeConfig.iconSM, color: Colors.grey),
+                        size: SizeConfig.iconSM, color: AppColor.fontColorGrey),
                     SizedBox(width: SizeConfig.spacingXS),
                     Text(user.displayLocation,
                         style: AppTextStyles.regular14Gre.copyWith(
@@ -457,7 +457,7 @@ class ManageClientUsers extends GetView<ClientUsersController> {
                     //     ),
                     //     child: Text('Edit',
                     //         style: TextStyle(
-                    //             color: Colors.white,
+                    //             color: AppColor.buttonTextWhite,
                     //             fontSize: SizeConfig.fontBodySmall)),
                     //   ),
                     // ),
@@ -492,7 +492,7 @@ class ManageClientUsers extends GetView<ClientUsersController> {
           Expanded(
             child: Container(
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: AppColor.whiteColor,
                 borderRadius: BorderRadius.circular(SizeConfig.radiusSM),
                 border: Border.all(color: AppColor.divColor),
               ),
@@ -518,13 +518,13 @@ class ManageClientUsers extends GetView<ClientUsersController> {
                   fontSize: SizeConfig.isTablet
                       ? SizeConfig.fontCaption
                       : SizeConfig.fontBodySmall,
-                  color: Colors.black87,
+                  color: AppColor.fontColorBlack,
                 ),
                 headingRowColor: WidgetStateProperty.all<Color>(
                     AppColor.fieldColorGrey),
                 border: TableBorder(
                   horizontalInside:
-                  BorderSide(color: Colors.grey.shade300, width: 0.5),
+                  BorderSide(color: AppColor.divColor, width: 0.5),
                 ),
                 // ── No minWidth forces fit-to-screen, no horizontal scroll ──
                 columns: const [
@@ -623,7 +623,7 @@ class ManageClientUsers extends GetView<ClientUsersController> {
               Row(
                 children: [
                   Icon(Icons.phone_outlined,
-                      size: 11, color: Colors.grey.shade500),
+                      size: 11, color: AppColor.fontColorGrey),
                   const SizedBox(width: 3),
                   Text(
                     user.displayPhone,
@@ -636,7 +636,7 @@ class ManageClientUsers extends GetView<ClientUsersController> {
               Row(
                 children: [
                   Icon(Icons.email_outlined,
-                      size: 11, color: Colors.grey.shade500),
+                      size: 11, color: AppColor.fontColorGrey),
                   const SizedBox(width: 3),
                   Expanded(
                     child: Text(
@@ -693,7 +693,7 @@ class ManageClientUsers extends GetView<ClientUsersController> {
         //     ),
         //     child: Text('Edit',
         //         style: TextStyle(
-        //             color: Colors.white,
+        //             color: AppColor.buttonTextWhite,
         //             fontSize: SizeConfig.fontCaption)),
         //   ),
         //),
@@ -720,7 +720,7 @@ class ManageClientUsers extends GetView<ClientUsersController> {
         vertical: SizeConfig.spacingSM,
       ),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColor.whiteColor,
         borderRadius: BorderRadius.circular(SizeConfig.radiusSM),
         border: Border.all(color: AppColor.divColor),
       ),
@@ -818,7 +818,7 @@ class ManageClientUsers extends GetView<ClientUsersController> {
       onPressed: enabled ? onTap : null,
       icon: Icon(icon,
           size: SizeConfig.iconSM,
-          color: enabled ? Colors.black87 : Colors.grey.shade300),
+          color: enabled ? AppColor.fontColorBlack : AppColor.divColor),
       splashRadius: 18,
       constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
       padding: EdgeInsets.zero,
@@ -894,7 +894,7 @@ class _PageChip extends StatelessWidget {
           border: Border.all(
             color: isSelected
                 ? AppColor.cPrimaryButtonColor
-                : Colors.grey.shade300,
+                : AppColor.divColor,
           ),
         ),
         child: Text(
@@ -904,7 +904,7 @@ class _PageChip extends StatelessWidget {
             fontFamily: 'poppins_regular',
             fontWeight:
             isSelected ? FontWeight.bold : FontWeight.normal,
-            color: isSelected ? Colors.white : Colors.black87,
+            color: isSelected ? AppColor.buttonTextWhite : AppColor.fontColorBlack,
           ),
         ),
       ),

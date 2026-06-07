@@ -396,13 +396,13 @@ class SupportView extends GetView<SupportController> {
                           horizontal: 24, vertical: 12),
                     ),
                     child: controller.updateSupportStatusLoading.value
-                        ? const SizedBox(
+                        ? SizedBox(
                       width: 16,
                       height: 16,
                       child: CircularProgressIndicator(
                         strokeWidth: 2,
                         valueColor: AlwaysStoppedAnimation<Color>(
-                            Colors.white),
+                            AppColor.buttonTextWhite),
                       ),
                     )
                         : const Text('Close Ticket'),

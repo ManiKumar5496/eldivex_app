@@ -17,6 +17,19 @@ class OutstandingDashboardView extends GetView<OutstandingController> {
 
   String _fmtFull(double v) => '₹${v.toStringAsFixed(2)}';
 
+  /// Tolerant numeric parsing — MySQL returns DECIMAL columns as strings.
+  double _toDouble(dynamic v) {
+    if (v == null) return 0.0;
+    if (v is num) return v.toDouble();
+    return double.tryParse(v.toString()) ?? 0.0;
+  }
+
+  int _toInt(dynamic v) {
+    if (v == null) return 0;
+    if (v is num) return v.toInt();
+    return int.tryParse(v.toString()) ?? 0;
+  }
+
   // ─── build ─────────────────────────────────────────────────────────────────
 
   @override
@@ -107,7 +120,7 @@ class OutstandingDashboardView extends GetView<OutstandingController> {
                 hint: Text('All Clients', style: TextStyle(fontSize: 13, color: AppColor.fontColorGrey)),
                 isExpanded: true,
                 underline: const SizedBox.shrink(),
-                style: const TextStyle(fontSize: 13, color: Colors.black87),
+                style: TextStyle(fontSize: 13, color: AppColor.fontColorBlack),
                 items: [
                   const DropdownMenuItem<int>(value: null, child: Text('All Clients')),
                   ...controller.activeClients.map((c) {
@@ -168,7 +181,7 @@ class OutstandingDashboardView extends GetView<OutstandingController> {
                 label: const Text('Apply'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColor.cPrimaryButtonColor,
-                  foregroundColor: Colors.white,
+                  foregroundColor: AppColor.buttonTextWhite,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   padding: const EdgeInsets.symmetric(horizontal: 18),
                 ),
@@ -349,7 +362,7 @@ class OutstandingDashboardView extends GetView<OutstandingController> {
                 padding: const EdgeInsets.all(32),
                 child: Column(
                   children: [
-                    Icon(Icons.people_outline, size: 56, color: Colors.grey.shade300),
+                    Icon(Icons.people_outline, size: 56, color: AppColor.divColor),
                     const SizedBox(height: 12),
                     Text('No clients found', style: AppTextStyles.regular16Gre),
                   ],
@@ -362,12 +375,12 @@ class OutstandingDashboardView extends GetView<OutstandingController> {
             decoration: BoxDecoration(
               color: AppColor.whiteColor,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.grey.shade200),
+              border: Border.all(color: AppColor.divColor),
             ),
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: DataTable(
-                headingRowColor: WidgetStateProperty.all(Colors.grey.shade50),
+                headingRowColor: WidgetStateProperty.all(AppColor.fieldColorGrey),
                 headingTextStyle: TextStyle(
                   fontWeight: FontWeight.w600,
                   fontSize: 13,
@@ -385,14 +398,15 @@ class OutstandingDashboardView extends GetView<OutstandingController> {
                   DataColumn(label: Text('Outstanding'), numeric: true),
                 ],
                 rows: clients.map((c) {
-                  final id       = (c['id'] as num?)?.toInt() ?? 0;
+                  final id       = _toInt(c['id']);
                   final name     = c['name']?.toString() ?? 'Client $id';
-                  final billed   = (c['total_billed']        as num?)?.toDouble() ?? 0.0;
-                  final paid     = (c['total_paid']          as num?)?.toDouble() ?? 0.0;
-                  final writeOff = (c['total_write_off']     as num?)?.toDouble() ?? 0.0;
-                  final credits  = (c['total_credit_applied'] as num?)?.toDouble() ?? 0.0;
-                  final outstanding = (c['outstanding_amount'] as num?)?.toDouble()
-                      ?? (billed - paid - writeOff - credits);
+                  final billed   = _toDouble(c['total_billed']);
+                  final paid     = _toDouble(c['total_paid']);
+                  final writeOff = _toDouble(c['total_write_off']);
+                  final credits  = _toDouble(c['total_credit_applied']);
+                  final outstanding = c['outstanding_amount'] != null
+                      ? _toDouble(c['outstanding_amount'])
+                      : (billed - paid - writeOff - credits);
 
                   return DataRow(
                     onSelectChanged: (_) => Get.toNamed(

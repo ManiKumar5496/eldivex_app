@@ -287,16 +287,16 @@ class _CalculateTab extends GetView<CgPaymentController> {
               ? null
               : controller.fetchAndCalculate,
           icon: controller.isLoading.value
-              ? const SizedBox(
+              ? SizedBox(
                   width: 16,
                   height: 16,
                   child: CircularProgressIndicator(
-                      strokeWidth: 2, color: Colors.white),
+                      strokeWidth: 2, color: AppColor.buttonTextWhite),
                 )
-              : const Icon(Icons.calculate, color: Colors.white, size: 18),
+              : Icon(Icons.calculate, color: AppColor.buttonTextWhite, size: 18),
           label: Text(
             controller.isLoading.value ? 'Calculating...' : 'Fetch & Calculate',
-            style: const TextStyle(color: Colors.white),
+            style: TextStyle(color: AppColor.buttonTextWhite),
           ),
           style: ElevatedButton.styleFrom(
             backgroundColor: AppColor.cPrimaryButtonColor,
@@ -537,18 +537,18 @@ class _CalculateTab extends GetView<CgPaymentController> {
               ? null
               : () => _confirmGenerate(context),
           icon: controller.isGeneratingPayout.value
-              ? const SizedBox(
+              ? SizedBox(
                   width: 16,
                   height: 16,
                   child: CircularProgressIndicator(
-                      strokeWidth: 2, color: Colors.white),
+                      strokeWidth: 2, color: AppColor.buttonTextWhite),
                 )
-              : const Icon(Icons.payment, color: Colors.white, size: 18),
+              : Icon(Icons.payment, color: AppColor.buttonTextWhite, size: 18),
           label: Text(
             controller.isGeneratingPayout.value
                 ? 'Generating...'
                 : 'Generate Payout',
-            style: const TextStyle(color: Colors.white),
+            style: TextStyle(color: AppColor.buttonTextWhite),
           ),
           style: ElevatedButton.styleFrom(
             backgroundColor: AppColor.lightGreen,
@@ -623,7 +623,7 @@ class _CalculateTab extends GetView<CgPaymentController> {
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColor.lightGreen,
-                        foregroundColor: Colors.white,
+                        foregroundColor: AppColor.buttonTextWhite,
                         padding:
                             const EdgeInsets.symmetric(vertical: 12),
                         shape: RoundedRectangleBorder(

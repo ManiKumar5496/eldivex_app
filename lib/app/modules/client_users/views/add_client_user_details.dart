@@ -50,7 +50,7 @@ class AddClientUserDetails extends GetView<ClientUsersController> {
                   style: TextStyle(
                     fontSize: SizeConfig.fontH1,
                     fontWeight: FontWeight.bold,
-                    color: Colors.black87,
+                    color: AppColor.fontColorBlack,
                     fontFamily: "poppins_regular",
                   ),
                 ),
@@ -246,11 +246,11 @@ class AddClientUserDetails extends GetView<ClientUsersController> {
                         elevation: 0,
                       ),
                       child: controller.clientDetailsUpdateLoading.value
-                          ? const SizedBox(
+                          ? SizedBox(
                         height: 20,
                         width: 20,
                         child: CircularProgressIndicator(
-                            strokeWidth: 2, color: Colors.white),
+                            strokeWidth: 2, color: AppColor.buttonTextWhite),
                       )
                           : Row(
                         mainAxisSize: MainAxisSize.min,
@@ -260,14 +260,14 @@ class AddClientUserDetails extends GetView<ClientUsersController> {
                             style: TextStyle(
                               fontSize: SizeConfig.fontBody,
                               fontWeight: FontWeight.w600,
-                              color: Colors.white,
+                              color: AppColor.buttonTextWhite,
                               fontFamily: "poppins_regular",
                             ),
                           ),
                           SizedBox(width: SizeConfig.spacingXS),
                           Icon(Icons.arrow_forward,
                               size: SizeConfig.iconSM,
-                              color: Colors.white),
+                              color: AppColor.buttonTextWhite),
                         ],
                       ),
                     ),
@@ -290,7 +290,7 @@ class AddClientUserDetails extends GetView<ClientUsersController> {
       width: double.infinity,
       padding: SizeConfig.cardPadding,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColor.whiteColor,
         borderRadius: BorderRadius.circular(SizeConfig.radiusMD),
         border: Border.all(color: AppColor.divColor),
         boxShadow: [
@@ -354,16 +354,16 @@ class AddClientUserDetails extends GetView<ClientUsersController> {
       keyboardType: inputType,
       style: TextStyle(
           fontSize: SizeConfig.fontBody,
-          color: Colors.black87,
+          color: AppColor.fontColorBlack,
           fontFamily: "poppins_regular"),
       decoration: InputDecoration(
         hintText: hint,
         hintStyle: TextStyle(
             fontSize: SizeConfig.fontBody,
-            color: Colors.grey.shade400,
+            color: AppColor.lightGrey,
             fontFamily: "poppins_regular"),
         filled: true,
-        fillColor: Colors.white,
+        fillColor: AppColor.whiteColor,
         contentPadding: EdgeInsets.symmetric(
             horizontal: SizeConfig.spacingMD, vertical: SizeConfig.spacingMD),
         border: OutlineInputBorder(
@@ -418,11 +418,11 @@ class AddClientUserDetails extends GetView<ClientUsersController> {
             child: DropdownButton<String>(
               value: controller.selectedCountryCode.value,
               icon: Icon(Icons.arrow_drop_down,
-                  size: SizeConfig.iconSM, color: Colors.grey),
+                  size: SizeConfig.iconSM, color: AppColor.fontColorGrey),
               style: TextStyle(
                   fontSize: SizeConfig.fontBody,
                   fontWeight: FontWeight.w600,
-                  color: Colors.black87,
+                  color: AppColor.fontColorBlack,
                   fontFamily: "poppins_regular"),
               items: _countryCodes
                   .map((cc) => DropdownMenuItem<String>(
@@ -453,7 +453,7 @@ class AddClientUserDetails extends GetView<ClientUsersController> {
             decoration: InputDecoration(
               hintText: 'Enter phone number',
               hintStyle: TextStyle(
-                  fontSize: SizeConfig.fontBody, color: Colors.grey.shade400),
+                  fontSize: SizeConfig.fontBody, color: AppColor.lightGrey),
               filled: true,
               fillColor: AppColor.fieldColorGrey,
               contentPadding: EdgeInsets.symmetric(

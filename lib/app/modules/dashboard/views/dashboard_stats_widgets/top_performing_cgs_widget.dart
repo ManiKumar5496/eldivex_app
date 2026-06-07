@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:eldivex_app/app/core/values/color_constants.dart';
 import 'package:get/get.dart';
 
 import '../../controllers/dashboard_controller.dart';
@@ -56,7 +57,7 @@ class TopPerformingCgsWidget extends GetView<DashboardController> {
       return Container(
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppColor.whiteColor,
           borderRadius: BorderRadius.circular(16),
         ),
         child: Column(
@@ -91,12 +92,12 @@ class TopPerformingCgsWidget extends GetView<DashboardController> {
 
             /// List
             if (items.isEmpty)
-              const Padding(
+              Padding(
                 padding: EdgeInsets.all(20),
                 child: Center(
                   child: Text(
                     'No health professionals found',
-                    style: TextStyle(color: Color(0xFF9E9E9E), fontSize: 14),
+                    style: TextStyle(color: AppColor.lightGrey, fontSize: 14),
                   ),
                 ),
               )
@@ -127,7 +128,7 @@ class _TopCgTile extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: AppColor.divColor),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
@@ -138,8 +139,8 @@ class _TopCgTile extends StatelessWidget {
             backgroundColor: Colors.blue.shade400,
             child: Text(
               item.initials,
-              style: const TextStyle(
-                color: Colors.white,
+              style: TextStyle(
+                color: AppColor.buttonTextWhite,
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -164,7 +165,7 @@ class _TopCgTile extends StatelessWidget {
                   item.service,
                   style: TextStyle(
                     fontSize: 13,
-                    color: Colors.grey.shade600,
+                    color: AppColor.fontColorGrey,
                   ),
                 ),
               ],
@@ -191,7 +192,7 @@ class _TopCgTile extends StatelessWidget {
                 '${item.bookings} bookings',
                 style: TextStyle(
                   fontSize: 12,
-                  color: Colors.grey.shade600,
+                  color: AppColor.fontColorGrey,
                 ),
               ),
             ],

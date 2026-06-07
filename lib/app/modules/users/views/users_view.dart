@@ -59,7 +59,7 @@ class UsersView extends GetView<UsersController> {
   Widget _buildHeader() {
     final isMobile = SizeConfig.isMobile;
     return Container(
-      color: Colors.white,
+      color: AppColor.whiteColor,
       padding: EdgeInsets.symmetric(
         horizontal: isMobile ? 12 : SizeConfig.blockSizeHorizontal * 2,
         vertical: isMobile ? 12 : SizeConfig.blockSizeVertical * 2,
@@ -82,14 +82,14 @@ class UsersView extends GetView<UsersController> {
               controller.clearFilters();
               Get.toNamed(Routes.AddUser);
             },
-            icon: Icon(Icons.add, size: isMobile ? 16 : SizeConfig.blockSizeHorizontal * 1.2, color: AppColor.whiteColor),
+            icon: Icon(Icons.add, size: isMobile ? 16 : SizeConfig.blockSizeHorizontal * 1.2, color: AppColor.buttonTextWhite),
             label: Text(
               'Add User',
-              style: TextStyle(fontSize: isMobile ? 13 : SizeConfig.blockSizeHorizontal * 1, color: AppColor.whiteColor),
+              style: TextStyle(fontSize: isMobile ? 13 : SizeConfig.blockSizeHorizontal * 1, color: AppColor.buttonTextWhite),
             ),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColor.cPrimaryButtonColor,
-              foregroundColor: Colors.white,
+              foregroundColor: AppColor.buttonTextWhite,
               padding: EdgeInsets.symmetric(
                 horizontal: isMobile ? 12 : SizeConfig.blockSizeHorizontal * 2,
                 vertical: isMobile ? 10 : SizeConfig.blockSizeVertical * 1.5,
@@ -112,20 +112,20 @@ class UsersView extends GetView<UsersController> {
         children: [
           Container(
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: AppColor.whiteColor,
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.grey.shade300),
+              border: Border.all(color: AppColor.divColor),
             ),
             child: TextField(
               decoration: InputDecoration(
                 hintText: 'Search users by name, email...',
                 hintStyle: TextStyle(
-                  color: Colors.grey.shade400,
+                  color: AppColor.lightGrey,
                   fontSize: 13,
                 ),
                 prefixIcon: Icon(
                   Icons.search,
-                  color: Colors.grey.shade400,
+                  color: AppColor.lightGrey,
                   size: 20,
                 ),
                 border: InputBorder.none,
@@ -153,11 +153,11 @@ class UsersView extends GetView<UsersController> {
                     style: TextStyle(fontSize: 13),
                   ),
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: controller.isFilterVisible.value ? Colors.blue.shade700 : Colors.grey.shade700,
+                    foregroundColor: controller.isFilterVisible.value ? Colors.blue.shade700 : AppColor.fontColorGrey,
                     side: BorderSide(
-                      color: controller.isFilterVisible.value ? Colors.blue.shade300 : Colors.grey.shade300,
+                      color: controller.isFilterVisible.value ? Colors.blue.shade300 : AppColor.divColor,
                     ),
-                    backgroundColor: controller.isFilterVisible.value ? Colors.blue.shade50 : Colors.white,
+                    backgroundColor: controller.isFilterVisible.value ? Colors.blue.shade50 : AppColor.whiteColor,
                     padding: const EdgeInsets.symmetric(
                       horizontal: 12,
                       vertical: 10,
@@ -178,8 +178,8 @@ class UsersView extends GetView<UsersController> {
                     style: TextStyle(fontSize: 13),
                   ),
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: Colors.grey.shade700,
-                    side: BorderSide(color: Colors.grey.shade300),
+                    foregroundColor: AppColor.fontColorGrey,
+                    side: BorderSide(color: AppColor.divColor),
                     padding: const EdgeInsets.symmetric(
                       horizontal: 12,
                       vertical: 10,
@@ -200,20 +200,20 @@ class UsersView extends GetView<UsersController> {
         Expanded(
           child: Container(
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: AppColor.whiteColor,
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.grey.shade300),
+              border: Border.all(color: AppColor.divColor),
             ),
             child: TextField(
               decoration: InputDecoration(
                 hintText: 'Search users by name, email...',
                 hintStyle: TextStyle(
-                  color: Colors.grey.shade400,
+                  color: AppColor.lightGrey,
                   fontSize: SizeConfig.blockSizeHorizontal * 1.2,
                 ),
                 prefixIcon: Icon(
                   Icons.search,
-                  color: Colors.grey.shade400,
+                  color: AppColor.lightGrey,
                   size: SizeConfig.blockSizeHorizontal * 1.8,
                 ),
                 border: InputBorder.none,
@@ -239,11 +239,11 @@ class UsersView extends GetView<UsersController> {
             style: TextStyle(fontSize: SizeConfig.blockSizeHorizontal * 1.2),
           ),
           style: OutlinedButton.styleFrom(
-            foregroundColor: controller.isFilterVisible.value ? Colors.blue.shade700 : Colors.grey.shade700,
+            foregroundColor: controller.isFilterVisible.value ? Colors.blue.shade700 : AppColor.fontColorGrey,
             side: BorderSide(
-              color: controller.isFilterVisible.value ? Colors.blue.shade300 : Colors.grey.shade300,
+              color: controller.isFilterVisible.value ? Colors.blue.shade300 : AppColor.divColor,
             ),
-            backgroundColor: controller.isFilterVisible.value ? Colors.blue.shade50 : Colors.white,
+            backgroundColor: controller.isFilterVisible.value ? Colors.blue.shade50 : AppColor.whiteColor,
             padding: EdgeInsets.symmetric(
               horizontal: SizeConfig.blockSizeHorizontal * 1.5,
               vertical: SizeConfig.blockSizeVertical * 1.5,
@@ -265,8 +265,8 @@ class UsersView extends GetView<UsersController> {
             style: TextStyle(fontSize: SizeConfig.blockSizeHorizontal * 1.2),
           ),
           style: OutlinedButton.styleFrom(
-            foregroundColor: Colors.grey.shade700,
-            side: BorderSide(color: Colors.grey.shade300),
+            foregroundColor: AppColor.fontColorGrey,
+            side: BorderSide(color: AppColor.divColor),
             padding: EdgeInsets.symmetric(
               horizontal: SizeConfig.blockSizeHorizontal * 1.5,
               vertical: SizeConfig.blockSizeVertical * 1.5,
@@ -286,9 +286,9 @@ class UsersView extends GetView<UsersController> {
       duration: const Duration(milliseconds: 300),
       curve: Curves.easeInOut,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColor.whiteColor,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: AppColor.divColor),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.05),
@@ -309,7 +309,7 @@ class UsersView extends GetView<UsersController> {
                 style: TextStyle(
                   fontSize: isMobile ? 15 : SizeConfig.blockSizeHorizontal * 1.4,
                   fontWeight: FontWeight.w600,
-                  color: Colors.black87,
+                  color: AppColor.fontColorBlack,
                 ),
               ),
               IconButton(
@@ -319,7 +319,7 @@ class UsersView extends GetView<UsersController> {
                 icon: Icon(
                   Icons.close,
                   size: isMobile ? 20 : SizeConfig.blockSizeHorizontal * 1.8,
-                  color: Colors.grey.shade600,
+                  color: AppColor.fontColorGrey,
                 ),
                 padding: EdgeInsets.zero,
                 constraints: const BoxConstraints(),
@@ -449,8 +449,8 @@ class UsersView extends GetView<UsersController> {
                   controller.clearFilters();
                 },
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: Colors.grey.shade700,
-                  side: BorderSide(color: Colors.grey.shade300),
+                  foregroundColor: AppColor.fontColorGrey,
+                  side: BorderSide(color: AppColor.divColor),
                   padding: EdgeInsets.symmetric(
                     horizontal: isMobile ? 16 : SizeConfig.blockSizeHorizontal * 2,
                     vertical: isMobile ? 10 : SizeConfig.blockSizeVertical * 1.2,
@@ -471,7 +471,7 @@ class UsersView extends GetView<UsersController> {
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColor.cPrimaryButtonColor,
-                  foregroundColor: Colors.white,
+                  foregroundColor: AppColor.buttonTextWhite,
                   padding: EdgeInsets.symmetric(
                     horizontal: isMobile ? 20 : SizeConfig.blockSizeHorizontal * 2.5,
                     vertical: isMobile ? 10 : SizeConfig.blockSizeVertical * 1.2,
@@ -525,9 +525,9 @@ class UsersView extends GetView<UsersController> {
   Widget _buildUsersTable() {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColor.whiteColor,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: AppColor.divColor),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.05),
@@ -576,7 +576,7 @@ class UsersView extends GetView<UsersController> {
         vertical: isMobile ? 10 : SizeConfig.blockSizeVertical * 1.5,
       ),
       decoration: BoxDecoration(
-        color: Colors.grey.shade50,
+        color: AppColor.fieldColorGrey,
         borderRadius: const BorderRadius.only(
           topLeft: Radius.circular(12),
           topRight: Radius.circular(12),
@@ -603,7 +603,7 @@ class UsersView extends GetView<UsersController> {
         style: TextStyle(
           fontSize: isMobile ? 13 : SizeConfig.blockSizeHorizontal * 1.1,
           fontWeight: FontWeight.w600,
-          color: Colors.grey.shade700,
+          color: AppColor.fontColorGrey,
         ),
       ),
     );
@@ -617,7 +617,7 @@ class UsersView extends GetView<UsersController> {
         vertical: isMobile ? 10 : SizeConfig.blockSizeVertical * 1.5,
       ),
       decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: Colors.grey.shade200)),
+        border: Border(bottom: BorderSide(color: AppColor.divColor)),
       ),
       child: Row(
         children: [
@@ -635,7 +635,7 @@ class UsersView extends GetView<UsersController> {
                       ? Text(
                           _getInitials(user.userName ?? 'U'),
                           style: TextStyle(
-                            color: Colors.white,
+                            color: AppColor.buttonTextWhite,
                             fontSize: isMobile ? 12 : SizeConfig.blockSizeHorizontal * 1.1,
                             fontWeight: FontWeight.w600,
                           ),
@@ -649,7 +649,7 @@ class UsersView extends GetView<UsersController> {
                     style: TextStyle(
                       fontSize: isMobile ? 13 : SizeConfig.blockSizeHorizontal * 1.1,
                       fontWeight: FontWeight.w500,
-                      color: Colors.black87,
+                      color: AppColor.fontColorBlack,
                     ),
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -663,7 +663,7 @@ class UsersView extends GetView<UsersController> {
               user.userEmail ?? '',
               style: TextStyle(
                 fontSize: isMobile ? 12 : SizeConfig.blockSizeHorizontal * 1.1,
-                color: Colors.grey.shade600,
+                color: AppColor.fontColorGrey,
               ),
               overflow: TextOverflow.ellipsis,
             ),
@@ -678,7 +678,7 @@ class UsersView extends GetView<UsersController> {
               _formatDate(user.createdOn ?? ''),
               style: TextStyle(
                 fontSize: isMobile ? 12 : SizeConfig.blockSizeHorizontal * 1.1,
-                color: Colors.grey.shade700,
+                color: AppColor.fontColorGrey,
               ),
             ),
           ),
@@ -691,7 +691,7 @@ class UsersView extends GetView<UsersController> {
                   icon: Icon(
                     Icons.edit_outlined,
                     size: isMobile ? 18 : SizeConfig.blockSizeHorizontal * 1.4,
-                    color: Colors.grey.shade600,
+                    color: AppColor.fontColorGrey,
                   ),
                   onPressed: () {
                     controller.loadUserForEdit(user);
@@ -728,15 +728,15 @@ class UsersView extends GetView<UsersController> {
                                   },
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.red,
-                              foregroundColor: Colors.white,
+                              foregroundColor: AppColor.buttonTextWhite,
                             ),
                             child: controller.isTerminateLoading.value
-                                ? const SizedBox(
+                                ? SizedBox(
                                     height: 16,
                                     width: 16,
                                     child: CircularProgressIndicator(
                                       strokeWidth: 2,
-                                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                      valueColor: AlwaysStoppedAnimation<Color>(AppColor.buttonTextWhite),
                                     ),
                                   )
                                 : const Text('Terminate'),
@@ -771,8 +771,8 @@ class UsersView extends GetView<UsersController> {
         textColor = Colors.blue.shade700;
         break;
       default:
-        bgColor = Colors.grey.shade100;
-        textColor = Colors.grey.shade700;
+        bgColor = AppColor.fieldColorGrey;
+        textColor = AppColor.fontColorGrey;
     }
 
     return Container(
@@ -807,7 +807,7 @@ class UsersView extends GetView<UsersController> {
         'Showing ${controller.allUsers.value.length} users',
         style: TextStyle(
           fontSize: isMobile ? 12 : SizeConfig.blockSizeHorizontal * 1.1,
-          color: Colors.grey.shade600,
+          color: AppColor.fontColorGrey,
         ),
       )),
     );
@@ -821,8 +821,8 @@ class UsersView extends GetView<UsersController> {
         OutlinedButton(
           onPressed: () {},
           style: OutlinedButton.styleFrom(
-            foregroundColor: Colors.grey.shade700,
-            side: BorderSide(color: Colors.grey.shade300),
+            foregroundColor: AppColor.fontColorGrey,
+            side: BorderSide(color: AppColor.divColor),
             padding: EdgeInsets.symmetric(
               horizontal: isMobile ? 16 : SizeConfig.blockSizeHorizontal * 2,
               vertical: isMobile ? 10 : SizeConfig.blockSizeVertical * 1.2,
@@ -841,7 +841,7 @@ class UsersView extends GetView<UsersController> {
           onPressed: () {},
           style: ElevatedButton.styleFrom(
             backgroundColor: AppColor.cPrimaryButtonColor,
-            foregroundColor: Colors.white,
+            foregroundColor: AppColor.buttonTextWhite,
             padding: EdgeInsets.symmetric(
               horizontal: isMobile ? 16 : SizeConfig.blockSizeHorizontal * 2,
               vertical: isMobile ? 10 : SizeConfig.blockSizeVertical * 1.2,

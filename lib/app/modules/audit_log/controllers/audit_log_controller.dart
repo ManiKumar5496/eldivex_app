@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:eldivex_app/app/core/values/color_constants.dart';
 import 'package:get/get.dart';
 import '../../../data/api_constant_url.dart';
 import '../../../data/base_api_services.dart';
@@ -128,10 +129,10 @@ class AuditLogController extends GetxController {
   Color actionColor(String action) {
     switch (action) {
       case 'CREATE':        return const Color(0xFF059669);
-      case 'UPDATE':        return const Color(0xFF2563EB);
+      case 'UPDATE':        return AppColor.cPrimaryButtonColor;
       case 'STATUS_CHANGE': return const Color(0xFFF59E0B);
       case 'DELETE':        return const Color(0xFFDC2626);
-      default:              return const Color(0xFF6B7280);
+      default:              return AppColor.fontColorGrey;
     }
   }
 }

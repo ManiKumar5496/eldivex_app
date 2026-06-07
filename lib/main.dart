@@ -4,7 +4,8 @@ import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:logger/logger.dart';
 import 'package:toastification/toastification.dart';
-import 'app/core/values/color_constants.dart';
+import 'app/core/theme/app_themes.dart';
+import 'app/core/theme/theme_controller.dart';
 import 'app/initial_bindings/initial_bindings.dart';
 import 'app/modules/role/controllers/role_controller.dart';
 import 'app/middleware/auth_middleware.dart';
@@ -18,6 +19,7 @@ void main() async {
     options: DefaultFirebaseOptions.currentPlatform,
   );
   await GetStorage.init();
+  Get.put(ThemeController(), permanent: true);
   Get.put(RoleController(), permanent: true);
   runApp(const EldivexAdmin());
 }
@@ -36,26 +38,31 @@ class EldivexAdmin extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final themeController = Get.find<ThemeController>();
     return ToastificationWrapper(
-      child: GetMaterialApp(
-      title: 'Eldivex',
-      debugShowCheckedModeBanner: false,
-      initialBinding: InitialBindings(),
-      initialRoute: _getInitialRoute(),
-      getPages: AppPages.routes,
-      unknownRoute: GetPage(
-        name: '/not-found',
-        page: () => const SideMenuWidgetView(),
-        middlewares: [UnknownRouteMiddleware()],
+      child: Obx(
+        () {
+          // Track both so palette swaps and mode changes rebuild the app and
+          // re-resolve the theme-aware AppColor getters.
+          themeController.paletteIndex.value;
+          final mode = themeController.themeMode.value;
+          return GetMaterialApp(
+            title: 'Eldivex',
+            debugShowCheckedModeBanner: false,
+            initialBinding: InitialBindings(),
+            initialRoute: _getInitialRoute(),
+            getPages: AppPages.routes,
+            unknownRoute: GetPage(
+              name: '/not-found',
+              page: () => const SideMenuWidgetView(),
+              middlewares: [UnknownRouteMiddleware()],
+            ),
+            theme: AppThemes.light,
+            darkTheme: AppThemes.dark,
+            themeMode: mode,
+          );
+        },
       ),
-      theme: ThemeData(
-        fontFamily: 'inter_regular',
-        scaffoldBackgroundColor: AppColor.cAppBackgroundColor,
-        inputDecorationTheme: const InputDecorationTheme(
-          border: OutlineInputBorder(),
-        ),
-      ),
-    ),
     );
   }
 }

@@ -23,7 +23,7 @@ class RefundDetailView extends GetView<RefundController> {
   Color _statusColor(String status) {
     switch (status) {
       case 'DRAFT':
-        return Colors.grey;
+        return AppColor.fontColorGrey;
       case 'PENDING_APPROVAL':
         return Colors.orange;
       case 'APPROVED':
@@ -35,7 +35,7 @@ class RefundDetailView extends GetView<RefundController> {
       case 'REJECTED':
         return Colors.red;
       default:
-        return Colors.grey;
+        return AppColor.fontColorGrey;
     }
   }
 
@@ -85,7 +85,7 @@ class RefundDetailView extends GetView<RefundController> {
         ),
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1),
-          child: Divider(height: 1, color: Colors.grey.shade200),
+          child: Divider(height: 1, color: AppColor.divColor),
         ),
       ),
       body: Obx(() {
@@ -100,7 +100,7 @@ class RefundDetailView extends GetView<RefundController> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Icon(Icons.receipt_long_outlined,
-                    size: 64, color: Colors.grey.shade300),
+                    size: 64, color: AppColor.divColor),
                 const SizedBox(height: 12),
                 Text('Refund not found', style: AppTextStyles.regular16Gre),
                 const SizedBox(height: 16),
@@ -162,7 +162,7 @@ class RefundDetailView extends GetView<RefundController> {
       decoration: BoxDecoration(
         color: AppColor.whiteColor,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: AppColor.divColor),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.03),
@@ -334,7 +334,7 @@ class RefundDetailView extends GetView<RefundController> {
       decoration: BoxDecoration(
         color: AppColor.whiteColor,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: AppColor.divColor),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -460,21 +460,21 @@ class RefundDetailView extends GetView<RefundController> {
                       ? step.color
                       : step.isActive
                           ? step.color.withValues(alpha: 0.3)
-                          : Colors.grey.shade200,
+                          : AppColor.divColor,
                   border: step.isActive
                       ? Border.all(color: step.color, width: 2)
                       : null,
                 ),
                 child: step.isDone
-                    ? const Icon(Icons.check_rounded,
-                        size: 12, color: Colors.white)
+                    ? Icon(Icons.check_rounded,
+                        size: 12, color: AppColor.buttonTextWhite)
                     : null,
               ),
               if (!isLast)
                 Expanded(
                   child: Container(
                     width: 2,
-                    color: Colors.grey.shade200,
+                    color: AppColor.divColor,
                   ),
                 ),
             ],
@@ -510,7 +510,7 @@ class RefundDetailView extends GetView<RefundController> {
                     Text(
                       _formatDate(step.timestamp!),
                       style: TextStyle(
-                          fontSize: 11, color: Colors.grey.shade400),
+                          fontSize: 11, color: AppColor.lightGrey),
                     ),
                   ],
                 ],
@@ -587,17 +587,17 @@ class RefundDetailView extends GetView<RefundController> {
           child: ElevatedButton.icon(
             onPressed: controller.isSubmitting.value ? null : onTap,
             icon: controller.isSubmitting.value
-                ? const SizedBox(
+                ? SizedBox(
                     width: 16,
                     height: 16,
                     child: CircularProgressIndicator(
-                        strokeWidth: 2, color: Colors.white),
+                        strokeWidth: 2, color: AppColor.buttonTextWhite),
                   )
-                : Icon(icon, size: 18, color: Colors.white),
+                : Icon(icon, size: 18, color: AppColor.buttonTextWhite),
             label: Text(
               label,
-              style: const TextStyle(
-                  color: Colors.white,
+              style: TextStyle(
+                  color: AppColor.buttonTextWhite,
                   fontSize: 15,
                   fontWeight: FontWeight.w600),
             ),
@@ -694,7 +694,7 @@ class RefundDetailView extends GetView<RefundController> {
             ),
             child: Text(
               isReject ? 'Reject' : 'Approve',
-              style: const TextStyle(color: Colors.white),
+              style: TextStyle(color: AppColor.buttonTextWhite),
             ),
           ),
         ],
@@ -779,8 +779,8 @@ class RefundDetailView extends GetView<RefundController> {
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10)),
             ),
-            child: const Text('Complete Refund',
-                style: TextStyle(color: Colors.white)),
+            child: Text('Complete Refund',
+                style: TextStyle(color: AppColor.buttonTextWhite)),
           ),
         ],
       ),
@@ -801,7 +801,7 @@ class RefundDetailView extends GetView<RefundController> {
       decoration: BoxDecoration(
         color: AppColor.whiteColor,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: AppColor.divColor),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

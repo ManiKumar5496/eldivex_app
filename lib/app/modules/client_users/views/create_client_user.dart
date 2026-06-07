@@ -26,7 +26,7 @@ class CreateClientUser extends GetView<ClientUsersController> {
               style: TextStyle(
                 fontSize: SizeConfig.fontH1,
                 fontWeight: FontWeight.bold,
-                color: Colors.black87,
+                color: AppColor.fontColorBlack,
                 fontFamily: "poppins_regular",
               ),
             ),
@@ -35,7 +35,7 @@ class CreateClientUser extends GetView<ClientUsersController> {
               'Enter phone number to search or create a new client',
               style: TextStyle(
                 fontSize: SizeConfig.fontBodySmall,
-                color: Colors.grey.shade600,
+                color: AppColor.fontColorGrey,
                 fontFamily: "poppins_regular",
               ),
             ),
@@ -65,7 +65,7 @@ class CreateClientUser extends GetView<ClientUsersController> {
                       : () => controller.addUserClient(),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColor.cPrimaryButtonColor,
-                    foregroundColor: Colors.white,
+                    foregroundColor: AppColor.buttonTextWhite,
                     elevation: 0,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(SizeConfig.radiusSM),
@@ -74,13 +74,13 @@ class CreateClientUser extends GetView<ClientUsersController> {
                     AppColor.cPrimaryButtonColor.withOpacity(0.6),
                   ),
                   child: controller.isSearchUserLoading.value
-                      ? const SizedBox(
+                      ? SizedBox(
                     height: 20,
                     width: 20,
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
                       valueColor:
-                      AlwaysStoppedAnimation<Color>(Colors.white),
+                      AlwaysStoppedAnimation<Color>(AppColor.buttonTextWhite),
                     ),
                   )
                       : Text(

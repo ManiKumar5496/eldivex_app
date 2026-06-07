@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:eldivex_app/app/core/values/color_constants.dart';
 import 'package:shimmer/shimmer.dart';
 
 /// Common shimmer loading widget used across the app.
@@ -36,8 +37,8 @@ class ShimmerLoader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Shimmer.fromColors(
-      baseColor: Colors.grey.shade200,
-      highlightColor: Colors.grey.shade50,
+      baseColor: AppColor.divColor,
+      highlightColor: AppColor.fieldColorGrey,
       child: SingleChildScrollView(
         physics: const NeverScrollableScrollPhysics(),
         child: Padding(
@@ -71,7 +72,7 @@ class ShimmerLoader extends StatelessWidget {
         Container(
           height: 40,
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: AppColor.whiteColor,
             borderRadius: BorderRadius.circular(6),
           ),
         ),
@@ -146,7 +147,7 @@ class ShimmerLoader extends StatelessWidget {
           margin: const EdgeInsets.only(bottom: 14),
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            border: Border.all(color: Colors.grey.shade100),
+            border: Border.all(color: AppColor.fieldColorGrey),
             borderRadius: BorderRadius.circular(12),
           ),
           child: Row(
@@ -182,7 +183,7 @@ class ShimmerLoader extends StatelessWidget {
           width: 280,
           height: 180,
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: AppColor.whiteColor,
             borderRadius: BorderRadius.circular(12),
           ),
         );
@@ -201,7 +202,7 @@ class ShimmerLoader extends StatelessWidget {
       width: width,
       height: height,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColor.whiteColor,
         borderRadius: BorderRadius.circular(radius),
       ),
     );

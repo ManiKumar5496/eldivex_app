@@ -44,7 +44,7 @@ class ManageBannersView extends GetView<BannersController> {
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Container(
-              color: Colors.white, // TabBar background color
+              color: AppColor.whiteColor, // TabBar background color
               child: TabBar(
                 labelStyle: const TextStyle(
                   fontSize: 16,

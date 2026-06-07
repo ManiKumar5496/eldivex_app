@@ -47,7 +47,7 @@ class CreateRefundView extends GetView<RefundController> {
         ),
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1),
-          child: Divider(height: 1, color: Colors.grey.shade200),
+          child: Divider(height: 1, color: AppColor.divColor),
         ),
       ),
       body: SingleChildScrollView(
@@ -172,12 +172,12 @@ class CreateRefundView extends GetView<RefundController> {
                         decoration: BoxDecoration(
                           color: isSelected
                               ? AppColor.cPrimaryButtonColor.withValues(alpha: 0.04)
-                              : Colors.grey.shade50,
+                              : AppColor.fieldColorGrey,
                           borderRadius: BorderRadius.circular(10),
                           border: Border.all(
                             color: isSelected
                                 ? AppColor.cPrimaryButtonColor.withValues(alpha: 0.4)
-                                : Colors.grey.shade200,
+                                : AppColor.divColor,
                           ),
                         ),
                         child: CheckboxListTile(
@@ -388,20 +388,20 @@ class CreateRefundView extends GetView<RefundController> {
                             if (!controller.isSubmitting.value) Get.back();
                           },
                     icon: controller.isSubmitting.value
-                        ? const SizedBox(
+                        ? SizedBox(
                             width: 18,
                             height: 18,
                             child: CircularProgressIndicator(
-                                strokeWidth: 2, color: Colors.white),
+                                strokeWidth: 2, color: AppColor.buttonTextWhite),
                           )
-                        : const Icon(Icons.send_rounded, size: 18,
-                            color: Colors.white),
+                        : Icon(Icons.send_rounded, size: 18,
+                            color: AppColor.buttonTextWhite),
                     label: Text(
                       controller.isSubmitting.value
                           ? 'Submitting…'
                           : 'Submit Refund Request',
-                      style: const TextStyle(
-                          color: Colors.white,
+                      style: TextStyle(
+                          color: AppColor.buttonTextWhite,
                           fontSize: 15,
                           fontWeight: FontWeight.w600),
                     ),
@@ -524,7 +524,7 @@ class CreateRefundView extends GetView<RefundController> {
       decoration: BoxDecoration(
         color: AppColor.whiteColor,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: AppColor.divColor),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.03),
@@ -601,7 +601,7 @@ class CreateRefundView extends GetView<RefundController> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: Colors.grey.shade100,
+        color: AppColor.fieldColorGrey,
         borderRadius: BorderRadius.circular(6),
       ),
       child: Text(
@@ -622,7 +622,7 @@ class CreateRefundView extends GetView<RefundController> {
       child: Center(
         child: Column(
           children: [
-            Icon(icon, size: 36, color: Colors.grey.shade300),
+            Icon(icon, size: 36, color: AppColor.divColor),
             const SizedBox(height: 8),
             Text(message, style: AppTextStyles.regular14Gre),
           ],

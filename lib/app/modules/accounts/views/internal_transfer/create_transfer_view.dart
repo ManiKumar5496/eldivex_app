@@ -110,7 +110,7 @@ class _CreateTransferViewState extends State<CreateTransferView> {
                     decoration: BoxDecoration(
                       color: AppColor.whiteColor,
                       borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: Colors.grey.shade200),
+                      border: Border.all(color: AppColor.divColor),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -632,7 +632,7 @@ class _CreateTransferViewState extends State<CreateTransferView> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColor.whiteColor,
         borderRadius: BorderRadius.circular(10),
         border: Border.all(color: Colors.blue.shade100),
       ),
@@ -811,20 +811,20 @@ class _CreateTransferViewState extends State<CreateTransferView> {
                     }
                   },
             icon: ctrl.isSubmitting.value
-                ? const SizedBox(
+                ? SizedBox(
                     width: 18,
                     height: 18,
                     child: CircularProgressIndicator(
-                        color: Colors.white, strokeWidth: 2),
+                        color: AppColor.buttonTextWhite, strokeWidth: 2),
                   )
-                : const Icon(Icons.send_rounded,
-                    color: Colors.white, size: 18),
+                : Icon(Icons.send_rounded,
+                    color: AppColor.buttonTextWhite, size: 18),
             label: Text(
               ctrl.isSubmitting.value
                   ? 'Submitting...'
                   : 'Submit Transfer for Approval',
-              style: const TextStyle(
-                color: Colors.white,
+              style: TextStyle(
+                color: AppColor.buttonTextWhite,
                 fontSize: 15,
                 fontWeight: FontWeight.w600,
               ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:eldivex_app/app/core/values/color_constants.dart';
 import 'package:get/get.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
 import 'package:eldivex_app/app/modules/dashboard/controllers/dashboard_charts_extension.dart';
@@ -35,10 +36,10 @@ class BookingStatusChartWidget extends GetView<DashboardController> {
         return Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: AppColor.whiteColor,
             borderRadius: BorderRadius.circular(16),
           ),
-          child: const Column(
+          child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
@@ -51,7 +52,7 @@ class BookingStatusChartWidget extends GetView<DashboardController> {
                   padding: EdgeInsets.all(40),
                   child: Text(
                     'No booking data available',
-                    style: TextStyle(color: Color(0xFF9E9E9E), fontSize: 14),
+                    style: TextStyle(color: AppColor.lightGrey, fontSize: 14),
                   ),
                 ),
               ),
@@ -63,7 +64,7 @@ class BookingStatusChartWidget extends GetView<DashboardController> {
       return Container(
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppColor.whiteColor,
           borderRadius: BorderRadius.circular(16),
         ),
         child: Column(
@@ -159,7 +160,7 @@ class _LegendItem extends StatelessWidget {
             '$label - ',
             style: TextStyle(
               fontSize: 14,
-              color: isSelected ? Colors.black : const Color(0xFF6B7280),
+              color: isSelected ? Colors.black : AppColor.fontColorGrey,
               fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
             ),
           ),
@@ -168,7 +169,7 @@ class _LegendItem extends StatelessWidget {
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w600,
-              color: isSelected ? Colors.black : Colors.grey,
+              color: isSelected ? Colors.black : AppColor.fontColorGrey,
             ),
           ),
         ],

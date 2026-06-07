@@ -111,9 +111,9 @@ class AttendanceListView extends GetView<RegisterCgController> {
             const SizedBox(width: 12),
             ElevatedButton.icon(
               onPressed: () => _generateMonthlyReport(),
-              icon: const Icon(Icons.assessment, color: Colors.white, size: 18),
-              label: const Text('Monthly Report',
-                  style: TextStyle(color: Colors.white)),
+              icon: Icon(Icons.assessment, color: AppColor.buttonTextWhite, size: 18),
+              label: Text('Monthly Report',
+                  style: TextStyle(color: AppColor.buttonTextWhite)),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColor.cPrimaryButtonColor,
                 padding:
@@ -165,9 +165,9 @@ class AttendanceListView extends GetView<RegisterCgController> {
               child: ElevatedButton.icon(
                 onPressed: () => _generateMonthlyReport(),
                 icon:
-                    const Icon(Icons.assessment, color: Colors.white, size: 16),
-                label: const Text('Monthly',
-                    style: TextStyle(color: Colors.white, fontSize: 13)),
+                    Icon(Icons.assessment, color: AppColor.buttonTextWhite, size: 16),
+                label: Text('Monthly',
+                    style: TextStyle(color: AppColor.buttonTextWhite, fontSize: 13)),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColor.cPrimaryButtonColor,
                   padding:
@@ -288,7 +288,7 @@ class AttendanceListView extends GetView<RegisterCgController> {
                     style: TextStyle(
                       fontSize: isMobile ? 13 : 14,
                       color: filterType == 'date'
-                          ? Colors.white
+                          ? AppColor.buttonTextWhite
                           : AppColor.blackColor,
                       fontWeight: FontWeight.w500,
                     ),
@@ -315,7 +315,7 @@ class AttendanceListView extends GetView<RegisterCgController> {
                     style: TextStyle(
                       fontSize: isMobile ? 13 : 14,
                       color: filterType == 'month'
-                          ? Colors.white
+                          ? AppColor.buttonTextWhite
                           : AppColor.blackColor,
                       fontWeight: FontWeight.w500,
                     ),
@@ -866,7 +866,7 @@ class AttendanceListView extends GetView<RegisterCgController> {
       default:
         return (
           Colors.grey.withValues(alpha: 0.15),
-          Colors.grey,
+          AppColor.fontColorGrey,
           Icons.help_outline
         );
     }
@@ -1034,7 +1034,7 @@ class AttendanceListView extends GetView<RegisterCgController> {
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColor.cPrimaryButtonColor,
-                        foregroundColor: Colors.white,
+                        foregroundColor: AppColor.buttonTextWhite,
                         padding: const EdgeInsets.symmetric(vertical: 12),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(8),

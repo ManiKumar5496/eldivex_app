@@ -111,9 +111,9 @@ class MarkAttendanceView extends GetView<RegisterCgController> {
             const SizedBox(width: 12),
             ElevatedButton.icon(
               onPressed: () => _submitAttendance(),
-              icon: const Icon(Icons.check, color: Colors.white, size: 18),
-              label: const Text('Submit Attendance',
-                  style: TextStyle(color: Colors.white)),
+              icon: Icon(Icons.check, color: AppColor.buttonTextWhite, size: 18),
+              label: Text('Submit Attendance',
+                  style: TextStyle(color: AppColor.buttonTextWhite)),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColor.cPrimaryButtonColor,
                 padding:
@@ -164,9 +164,9 @@ class MarkAttendanceView extends GetView<RegisterCgController> {
             Expanded(
               child: ElevatedButton.icon(
                 onPressed: () => _submitAttendance(),
-                icon: const Icon(Icons.check, color: Colors.white, size: 16),
-                label: const Text('Submit',
-                    style: TextStyle(color: Colors.white, fontSize: 13)),
+                icon: Icon(Icons.check, color: AppColor.buttonTextWhite, size: 16),
+                label: Text('Submit',
+                    style: TextStyle(color: AppColor.buttonTextWhite, fontSize: 13)),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColor.cPrimaryButtonColor,
                   padding:
@@ -325,7 +325,7 @@ class MarkAttendanceView extends GetView<RegisterCgController> {
           _summaryCard('Absent', attendanceData['absent']!, Icons.cancel,
               AppColor.calenderRed),
           _summaryCard('Not Marked', attendanceData['notMarked']!,
-              Icons.remove_circle, Colors.grey),
+              Icons.remove_circle, AppColor.fontColorGrey),
         ],
       );
     });
@@ -363,7 +363,7 @@ class MarkAttendanceView extends GetView<RegisterCgController> {
               Expanded(
                 child: _summaryCardMobile('Not Marked',
                     attendanceData['notMarked']!, Icons.remove_circle,
-                    Colors.grey),
+                    AppColor.fontColorGrey),
               ),
             ],
           ),
@@ -738,7 +738,7 @@ class MarkAttendanceView extends GetView<RegisterCgController> {
                     },
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColor.lightGreen,
-                foregroundColor: Colors.white,
+                foregroundColor: AppColor.buttonTextWhite,
                 padding: const EdgeInsets.symmetric(vertical: 10),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                 elevation: 0,
@@ -928,7 +928,7 @@ class MarkAttendanceView extends GetView<RegisterCgController> {
                   },
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColor.lightGreen,
-              foregroundColor: Colors.white,
+              foregroundColor: AppColor.buttonTextWhite,
               padding: const EdgeInsets.symmetric(vertical: 8),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),
@@ -1075,7 +1075,7 @@ class MarkAttendanceView extends GetView<RegisterCgController> {
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColor.cPrimaryButtonColor,
-                        foregroundColor: Colors.white,
+                        foregroundColor: AppColor.buttonTextWhite,
                         padding: const EdgeInsets.symmetric(vertical: 12),
                         shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8)),

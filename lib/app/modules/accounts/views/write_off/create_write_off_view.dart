@@ -37,7 +37,7 @@ class _CreateWriteOffViewState extends State<CreateWriteOffView> {
   }
 
   Color _approvalLevelColor(double? amount) {
-    if (amount == null || amount <= 0) return Colors.grey;
+    if (amount == null || amount <= 0) return AppColor.fontColorGrey;
     if (amount <= 1000) return Colors.green;
     if (amount <= 10000) return Colors.orange;
     return Colors.red;
@@ -216,7 +216,7 @@ class _CreateWriteOffViewState extends State<CreateWriteOffView> {
           return Container(
             padding: const EdgeInsets.symmetric(horizontal: 12),
             decoration: BoxDecoration(
-              color: clientId == null ? Colors.grey.shade50 : AppColor.whiteColor,
+              color: clientId == null ? AppColor.fieldColorGrey : AppColor.whiteColor,
               borderRadius: BorderRadius.circular(10),
               border: Border.all(color: AppColor.textFieldBorderColor),
             ),
@@ -276,7 +276,7 @@ class _CreateWriteOffViewState extends State<CreateWriteOffView> {
               color: isSelected ? Colors.blue.shade50 : AppColor.whiteColor,
               borderRadius: BorderRadius.circular(10),
               border: Border.all(
-                color: isSelected ? Colors.blue.shade200 : Colors.grey.shade200,
+                color: isSelected ? Colors.blue.shade200 : AppColor.divColor,
               ),
             ),
             child: CheckboxListTile(
@@ -395,19 +395,19 @@ class _CreateWriteOffViewState extends State<CreateWriteOffView> {
                     }
                   },
             icon: ctrl.isSubmitting.value
-                ? const SizedBox(
+                ? SizedBox(
                     width: 18,
                     height: 18,
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
-                      color: Colors.white,
+                      color: AppColor.buttonTextWhite,
                     ),
                   )
-                : const Icon(Icons.check_circle_outline, size: 18, color: Colors.white),
+                : Icon(Icons.check_circle_outline, size: 18, color: AppColor.buttonTextWhite),
             label: Text(
               ctrl.isSubmitting.value ? 'Submitting...' : 'Submit Write-off',
-              style: const TextStyle(
-                color: Colors.white,
+              style: TextStyle(
+                color: AppColor.buttonTextWhite,
                 fontSize: 15,
                 fontWeight: FontWeight.w600,
               ),
@@ -436,7 +436,7 @@ class _CreateWriteOffViewState extends State<CreateWriteOffView> {
       decoration: BoxDecoration(
         color: AppColor.whiteColor,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: AppColor.divColor),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -484,14 +484,14 @@ class _CreateWriteOffViewState extends State<CreateWriteOffView> {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(vertical: 20),
       decoration: BoxDecoration(
-        color: Colors.grey.shade50,
+        color: AppColor.fieldColorGrey,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: AppColor.divColor),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 32, color: Colors.grey.shade300),
+          Icon(icon, size: 32, color: AppColor.divColor),
           const SizedBox(height: 8),
           Text(message, style: AppTextStyles.regular14Gre),
         ],
@@ -512,7 +512,7 @@ class _CreateWriteOffViewState extends State<CreateWriteOffView> {
         children: [
           Text(
             '$label: ',
-            style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+            style: TextStyle(fontSize: 11, color: AppColor.fontColorGrey),
           ),
           Text(
             value,
@@ -567,7 +567,7 @@ class _CreateWriteOffViewState extends State<CreateWriteOffView> {
             keyboardType: keyboardType,
             maxLines: maxLines,
             validator: validator,
-            style: const TextStyle(color: Colors.black87, fontSize: 14),
+            style: TextStyle(color: AppColor.fontColorBlack, fontSize: 14),
             decoration: InputDecoration(
               hintText: hint,
               hintStyle: TextStyle(color: AppColor.fontColorGrey, fontSize: 14),

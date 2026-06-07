@@ -23,7 +23,7 @@ class RevenueRecognitionView extends GetView<AccountsController> {
     });
 
     return Scaffold(
-      backgroundColor: Colors.grey.shade50,
+      backgroundColor: AppColor.fieldColorGrey,
       body: SingleChildScrollView(
         padding: SizeConfig.pagePadding,
         child: Column(
@@ -204,7 +204,7 @@ class RevenueRecognitionView extends GetView<AccountsController> {
           Text(
             'Revenue recognition, MRR/ARR, and collection efficiency',
             style: TextStyle(
-                fontSize: SizeConfig.fontCaption, color: Colors.grey.shade600),
+                fontSize: SizeConfig.fontCaption, color: AppColor.fontColorGrey),
           ),
         ],
       ),
@@ -220,7 +220,7 @@ class RevenueRecognitionView extends GetView<AccountsController> {
                 'Revenue recognition, MRR/ARR, and collection efficiency',
                 style: TextStyle(
                     fontSize: SizeConfig.fontBodySmall,
-                    color: Colors.grey.shade600),
+                    color: AppColor.fontColorGrey),
               ),
             ],
           ),
@@ -324,7 +324,7 @@ class RevenueRecognitionView extends GetView<AccountsController> {
           Text(subtitle,
               style: TextStyle(
                   fontSize: SizeConfig.fontBodySmall,
-                  color: Colors.grey.shade500)),
+                  color: AppColor.fontColorGrey)),
         ],
       ),
     );
@@ -379,7 +379,7 @@ class RevenueRecognitionView extends GetView<AccountsController> {
                 Text(description,
                     style: TextStyle(
                         fontSize: SizeConfig.fontBodySmall,
-                        color: Colors.grey.shade600)),
+                        color: AppColor.fontColorGrey)),
               ],
             ),
           ),
@@ -401,7 +401,7 @@ class RevenueRecognitionView extends GetView<AccountsController> {
       decoration: BoxDecoration(
         color: AppColor.whiteColor,
         borderRadius: BorderRadius.circular(SizeConfig.radiusMD),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: AppColor.divColor),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -421,7 +421,7 @@ class RevenueRecognitionView extends GetView<AccountsController> {
           Text(description,
               style: TextStyle(
                   fontSize: SizeConfig.fontBodySmall,
-                  color: Colors.grey.shade500)),
+                  color: AppColor.fontColorGrey)),
         ],
       ),
     );
@@ -463,7 +463,7 @@ class RevenueRecognitionView extends GetView<AccountsController> {
         decoration: BoxDecoration(
           color: AppColor.whiteColor,
           borderRadius: BorderRadius.circular(SizeConfig.radiusMD),
-          border: Border.all(color: Colors.grey.shade200),
+          border: Border.all(color: AppColor.divColor),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -539,7 +539,7 @@ class RevenueRecognitionView extends GetView<AccountsController> {
                     textAlign: TextAlign.center,
                     style: TextStyle(
                         fontSize: SizeConfig.fontCaption,
-                        color: Colors.grey.shade600),
+                        color: AppColor.fontColorGrey),
                   ),
                 );
               }).toList(),
@@ -559,7 +559,7 @@ class RevenueRecognitionView extends GetView<AccountsController> {
           (_) => Container(
             height: 130,
             decoration: BoxDecoration(
-              color: Colors.grey.shade100,
+              color: AppColor.fieldColorGrey,
               borderRadius: BorderRadius.circular(SizeConfig.radiusMD),
             ),
           ),
@@ -570,7 +570,7 @@ class RevenueRecognitionView extends GetView<AccountsController> {
           (_) => Container(
             height: 90,
             decoration: BoxDecoration(
-              color: Colors.grey.shade100,
+              color: AppColor.fieldColorGrey,
               borderRadius: BorderRadius.circular(SizeConfig.radiusMD),
             ),
           ),

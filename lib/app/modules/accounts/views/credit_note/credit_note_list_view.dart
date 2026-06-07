@@ -23,7 +23,7 @@ class CreditNoteListView extends GetView<CreditNoteController> {
       case 'expired':
         return Colors.red;
       default:
-        return Colors.grey;
+        return AppColor.fontColorGrey;
     }
   }
 
@@ -40,7 +40,7 @@ class CreditNoteListView extends GetView<CreditNoteController> {
       case 'cancellation':
         return Colors.orange;
       default:
-        return Colors.grey;
+        return AppColor.fontColorGrey;
     }
   }
 
@@ -100,10 +100,10 @@ class CreditNoteListView extends GetView<CreditNoteController> {
                 : ElevatedButton.icon(
                     onPressed: () =>
                         Get.toNamed('/accounts/credit-note/create'),
-                    icon: Icon(Icons.add, size: SizeConfig.iconSM, color: Colors.white),
+                    icon: Icon(Icons.add, size: SizeConfig.iconSM, color: AppColor.buttonTextWhite),
                     label: Text('New Credit Note',
                         style: TextStyle(
-                            color: Colors.white, fontSize: SizeConfig.fontBody)),
+                            color: AppColor.buttonTextWhite, fontSize: SizeConfig.fontBody)),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColor.cPrimaryButtonColor,
                       shape: RoundedRectangleBorder(
@@ -117,7 +117,7 @@ class CreditNoteListView extends GetView<CreditNoteController> {
         ],
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1),
-          child: Divider(height: 1, color: Colors.grey.shade200),
+          child: Divider(height: 1, color: AppColor.divColor),
         ),
       ),
       body: Column(
@@ -221,7 +221,7 @@ class CreditNoteListView extends GetView<CreditNoteController> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Icon(Icons.note_alt_outlined,
-                  size: 64, color: Colors.grey.shade300),
+                  size: 64, color: AppColor.lightGrey),
               SizedBox(height: SizeConfig.spacingSM),
               Text('No credit notes found', style: AppTextStyles.regular16Gre),
               SizedBox(height: SizeConfig.spacingXS),
@@ -229,7 +229,7 @@ class CreditNoteListView extends GetView<CreditNoteController> {
                 'Create a credit note using the "New Credit Note" button above.',
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                    fontSize: SizeConfig.fontBody, color: Colors.grey.shade500),
+                    fontSize: SizeConfig.fontBody, color: AppColor.fontColorGrey),
               ),
             ],
           ),
@@ -276,7 +276,7 @@ class CreditNoteListView extends GetView<CreditNoteController> {
         decoration: BoxDecoration(
           color: AppColor.whiteColor,
           borderRadius: BorderRadius.circular(SizeConfig.radiusMD),
-          border: Border.all(color: Colors.grey.shade200),
+          border: Border.all(color: AppColor.divColor),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.04),
@@ -313,7 +313,7 @@ class CreditNoteListView extends GetView<CreditNoteController> {
                 ),
               ],
             ),
-            Divider(height: SizeConfig.spacingLG, color: Colors.grey.shade100),
+            Divider(height: SizeConfig.spacingLG, color: AppColor.divColor),
 
             // Row 2: Type chip + Booking # + Date
             Row(
@@ -370,7 +370,7 @@ class CreditNoteListView extends GetView<CreditNoteController> {
               child: LinearProgressIndicator(
                 value: progress,
                 minHeight: 6,
-                backgroundColor: Colors.grey.shade200,
+                backgroundColor: AppColor.divColor,
                 valueColor: AlwaysStoppedAnimation<Color>(
                   progress >= 1.0 ? Colors.blue : Colors.green,
                 ),
@@ -388,10 +388,10 @@ class CreditNoteListView extends GetView<CreditNoteController> {
                       '/accounts/credit-note/apply',
                       arguments: note.id),
                   icon: Icon(Icons.check_circle_outline,
-                      size: SizeConfig.iconSM, color: Colors.white),
+                      size: SizeConfig.iconSM, color: AppColor.buttonTextWhite),
                   label: Text('Apply Credit Note',
                       style: TextStyle(
-                          color: Colors.white,
+                          color: AppColor.buttonTextWhite,
                           fontSize: SizeConfig.fontBody,
                           fontWeight: FontWeight.w600)),
                   style: ElevatedButton.styleFrom(
@@ -418,12 +418,12 @@ class CreditNoteListView extends GetView<CreditNoteController> {
         decoration: BoxDecoration(
           color: AppColor.whiteColor,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.grey.shade200),
+          border: Border.all(color: AppColor.divColor),
         ),
         child: SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           child: DataTable(
-            headingRowColor: WidgetStateProperty.all(Colors.grey.shade50),
+            headingRowColor: WidgetStateProperty.all(AppColor.cAppBackgroundColor),
             headingTextStyle: TextStyle(
               fontWeight: FontWeight.w600,
               fontSize: SizeConfig.fontBodySmall,
@@ -517,7 +517,7 @@ class CreditNoteListView extends GetView<CreditNoteController> {
                 child: LinearProgressIndicator(
                   value: progress,
                   minHeight: 5,
-                  backgroundColor: Colors.grey.shade200,
+                  backgroundColor: AppColor.divColor,
                   valueColor: AlwaysStoppedAnimation<Color>(
                     progress >= 1.0 ? Colors.blue : Colors.green,
                   ),

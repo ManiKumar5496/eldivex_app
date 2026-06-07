@@ -29,7 +29,7 @@ class AccountsView extends GetView<AccountsController> {
     return DefaultTabController(
       length: 8,
       child: Scaffold(
-        backgroundColor: Colors.grey.shade50,
+        backgroundColor: AppColor.cAppBackgroundColor,
         body: Column(
           children: [
             _buildHeader(context),
@@ -65,7 +65,7 @@ class AccountsView extends GetView<AccountsController> {
         color: AppColor.whiteColor,
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.shade200,
+            color: AppColor.divColor,
             blurRadius: 4,
             offset: const Offset(0, 2),
           ),
@@ -180,7 +180,7 @@ class AccountsView extends GetView<AccountsController> {
                 width: 120,
                 height: 52,
                 decoration: BoxDecoration(
-                  color: Colors.grey.shade100,
+                  color: AppColor.fieldColorGrey,
                   borderRadius: BorderRadius.circular(10),
                 ),
               ),
@@ -249,7 +249,7 @@ class AccountsView extends GetView<AccountsController> {
               Text(label,
                   style: TextStyle(
                       fontSize: SizeConfig.fontCaption,
-                      color: Colors.grey.shade600)),
+                      color: AppColor.fontColorGrey)),
               Text(value,
                   style: TextStyle(
                       fontSize: SizeConfig.fontBody,
@@ -259,7 +259,7 @@ class AccountsView extends GetView<AccountsController> {
                 Text(subtitle,
                     style: TextStyle(
                         fontSize: SizeConfig.fontCaption,
-                        color: Colors.grey.shade500)),
+                        color: AppColor.fontColorGrey)),
             ],
           ),
         ],
@@ -285,7 +285,7 @@ class AccountsView extends GetView<AccountsController> {
             icon: Icon(
               isClosed ? Icons.lock : Icons.lock_open,
               size: SizeConfig.iconMD,
-              color: isClosed ? Colors.grey : Colors.indigo,
+              color: isClosed ? AppColor.fontColorGrey : Colors.indigo,
             ),
             padding: EdgeInsets.zero,
             constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
@@ -302,19 +302,19 @@ class AccountsView extends GetView<AccountsController> {
           icon: Icon(
             isClosed ? Icons.lock : Icons.lock_open,
             size: 15,
-            color: isClosed ? Colors.grey : Colors.indigo,
+            color: isClosed ? AppColor.fontColorGrey : Colors.indigo,
           ),
           label: Text(
             isClosed ? 'Period Closed' : 'Close Period',
             style: TextStyle(
               fontSize: SizeConfig.fontBodySmall,
-              color: isClosed ? Colors.grey : Colors.indigo,
+              color: isClosed ? AppColor.fontColorGrey : Colors.indigo,
             ),
           ),
           style: OutlinedButton.styleFrom(
             side: BorderSide(
               color: isClosed
-                  ? Colors.grey.shade300
+                  ? AppColor.divColor
                   : Colors.indigo.withValues(alpha: 0.4),
             ),
             padding: EdgeInsets.symmetric(
@@ -499,14 +499,14 @@ class AccountsView extends GetView<AccountsController> {
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 8, vertical: 3),
                             decoration: BoxDecoration(
-                              color: Colors.grey.shade100,
+                              color: AppColor.fieldColorGrey,
                               borderRadius: BorderRadius.circular(20),
-                              border: Border.all(color: Colors.grey.shade300),
+                              border: Border.all(color: AppColor.divColor),
                             ),
                             child: Text('$m/$y',
                                 style: TextStyle(
                                     fontSize: SizeConfig.fontCaption,
-                                    color: Colors.grey)),
+                                    color: AppColor.fontColorGrey)),
                           );
                         }).toList(),
                       ),
@@ -531,7 +531,7 @@ class AccountsView extends GetView<AccountsController> {
               label: const Text('Close Period'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.indigo,
-                foregroundColor: Colors.white,
+                foregroundColor: AppColor.buttonTextWhite,
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8)),
               ),
@@ -566,7 +566,7 @@ class AccountsView extends GetView<AccountsController> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(Icons.people_outline,
-                        size: 64, color: Colors.grey.shade300),
+                        size: 64, color: AppColor.divColor),
                     SizedBox(height: SizeConfig.spacingSM),
                     Text('No active clients found',
                         style: AppTextStyles.regular16Gre),
@@ -656,7 +656,7 @@ class AccountsView extends GetView<AccountsController> {
       decoration: BoxDecoration(
         color: AppColor.whiteColor,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: AppColor.divColor),
       ),
       child: SizeConfig.isMobile
           ? _buildMobileFilters()
@@ -732,7 +732,7 @@ class AccountsView extends GetView<AccountsController> {
                   ),
                   child: Text('Apply',
                       style: TextStyle(
-                          color: Colors.white, fontSize: SizeConfig.fontBody)),
+                          color: AppColor.buttonTextWhite, fontSize: SizeConfig.fontBody)),
                 ),
               ),
             ),
@@ -851,7 +851,7 @@ class AccountsView extends GetView<AccountsController> {
                             vertical: SizeConfig.spacingSM),
                       ),
                       child: Text('Apply',
-                          style: const TextStyle(color: Colors.white)),
+                          style: TextStyle(color: AppColor.buttonTextWhite)),
                     ),
                     SizedBox(width: SizeConfig.spacingXS),
                     OutlinedButton(
@@ -904,7 +904,7 @@ class AccountsView extends GetView<AccountsController> {
       decoration: BoxDecoration(
         color: AppColor.whiteColor,
         borderRadius: BorderRadius.circular(SizeConfig.radiusMD),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: AppColor.divColor),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.04),
@@ -951,7 +951,7 @@ class AccountsView extends GetView<AccountsController> {
               _buildClientActions(client),
             ],
           ),
-          Divider(height: SizeConfig.spacingLG, color: Colors.grey.shade100),
+          Divider(height: SizeConfig.spacingLG, color: AppColor.fieldColorGrey),
 
           // Row 2: Booking # + service name
           Row(
@@ -989,7 +989,7 @@ class AccountsView extends GetView<AccountsController> {
                 fontSize: SizeConfig.fontBodySmall,
                 color: AppColor.fontColorGrey),
           ),
-          Divider(height: SizeConfig.spacingLG, color: Colors.grey.shade100),
+          Divider(height: SizeConfig.spacingLG, color: AppColor.fieldColorGrey),
 
           // Row 4: Billed / Paid / Outstanding
           Row(
@@ -997,7 +997,7 @@ class AccountsView extends GetView<AccountsController> {
             children: [
               _mobileAmountLabel('Billed',
                   controller.formatCurrency(client.totalBilled),
-                  Colors.grey.shade700),
+                  AppColor.fontColorGrey),
               _mobileAmountLabel(
                   'Paid',
                   controller.formatCurrency(client.totalPaid),
@@ -1041,13 +1041,13 @@ class AccountsView extends GetView<AccountsController> {
             decoration: BoxDecoration(
               color: AppColor.whiteColor,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.grey.shade200),
+              border: Border.all(color: AppColor.divColor),
             ),
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: DataTable(
                 headingRowColor:
-                    WidgetStateProperty.all(Colors.grey.shade50),
+                    WidgetStateProperty.all(AppColor.fieldColorGrey),
                 headingTextStyle: TextStyle(
                   fontWeight: FontWeight.w600,
                   fontSize: SizeConfig.fontBodySmall,
@@ -1185,12 +1185,12 @@ class AccountsView extends GetView<AccountsController> {
               children: [
                 Icon(Icons.receipt_long,
                     size: SizeConfig.iconSM,
-                    color: isCancelled ? Colors.grey.shade400 : Colors.blue),
+                    color: isCancelled ? AppColor.lightGrey : Colors.blue),
                 SizedBox(width: SizeConfig.spacingXS),
                 Text('Raise Receipt',
                     style: TextStyle(
                         color:
-                            isCancelled ? Colors.grey.shade400 : null)),
+                            isCancelled ? AppColor.lightGrey : null)),
               ],
             ),
           ),
@@ -1212,11 +1212,11 @@ class AccountsView extends GetView<AccountsController> {
               children: [
                 Icon(Icons.money_off,
                     size: SizeConfig.iconSM,
-                    color: isCancelled ? Colors.grey.shade400 : Colors.orange),
+                    color: isCancelled ? AppColor.lightGrey : Colors.orange),
                 SizedBox(width: SizeConfig.spacingXS),
                 Text('Write-Off',
                     style: TextStyle(
-                        color: isCancelled ? Colors.grey.shade400 : null)),
+                        color: isCancelled ? AppColor.lightGrey : null)),
               ],
             ),
           ),

@@ -23,7 +23,7 @@ class SaasBillingView extends GetView<SaasAccountsController> {
               label: const Text('Generate Invoice'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColor.cPrimaryButtonColor,
-                foregroundColor: Colors.white,
+                foregroundColor: AppColor.buttonTextWhite,
                 padding: const EdgeInsets.symmetric(
                     horizontal: 16, vertical: 12),
                 shape: RoundedRectangleBorder(
@@ -44,7 +44,7 @@ class SaasBillingView extends GetView<SaasAccountsController> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Icon(Icons.receipt_long_outlined,
-                        size: 48, color: Colors.grey.shade300),
+                        size: 48, color: AppColor.divColor),
                     const SizedBox(height: 12),
                     Text('No invoices yet.', style: AppTextStyles.regular14Gre),
                   ],
@@ -173,13 +173,13 @@ class _InvoiceTable extends GetView<SaasAccountsController> {
                     },
               style: ElevatedButton.styleFrom(
                   backgroundColor: AppColor.cPrimaryButtonColor,
-                  foregroundColor: Colors.white),
+                  foregroundColor: AppColor.buttonTextWhite),
               child: controller.saving.value
-                  ? const SizedBox(
+                  ? SizedBox(
                       width: 16,
                       height: 16,
                       child: CircularProgressIndicator(
-                          strokeWidth: 2, color: Colors.white))
+                          strokeWidth: 2, color: AppColor.buttonTextWhite))
                   : const Text('Confirm Payment'),
             )),
       ],
@@ -336,15 +336,15 @@ class _GenerateInvoiceDialog extends GetView<SaasAccountsController> {
                   },
             style: ElevatedButton.styleFrom(
                 backgroundColor: AppColor.cPrimaryButtonColor,
-                foregroundColor: Colors.white),
+                foregroundColor: AppColor.buttonTextWhite),
             child: existing != null
                 ? const Text('Already Generated')
                 : controller.saving.value
-                    ? const SizedBox(
+                    ? SizedBox(
                         width: 16,
                         height: 16,
                         child: CircularProgressIndicator(
-                            strokeWidth: 2, color: Colors.white))
+                            strokeWidth: 2, color: AppColor.buttonTextWhite))
                     : const Text('Generate'),
           ),
         ],
@@ -370,7 +370,7 @@ class _InvoiceStatusBadge extends StatelessWidget {
       'Paid'    => Colors.green,
       'Sent'    => Colors.blue,
       'Overdue' => Colors.red,
-      _         => Colors.grey,
+      _         => AppColor.fontColorGrey,
     };
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),

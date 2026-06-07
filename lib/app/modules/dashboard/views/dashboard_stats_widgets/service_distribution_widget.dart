@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:eldivex_app/app/core/values/color_constants.dart';
 import 'package:get/get.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
 
@@ -18,32 +19,33 @@ class ServiceDistributionWidget extends GetView<DashboardController> {
       final data = controller.serviceDistributionData;
       final maxVal = data.isNotEmpty
           ? data.map((e) => e.bookings).reduce((a, b) => a > b ? a : b)
-          : 1400.0;
-      final xMax = ((maxVal / 350).ceil() * 350).toDouble();
+          : 0.0;
+      // Pad the value axis ~20% above the tallest bar; fall back to 5 when empty.
+      final axisMax = maxVal <= 0 ? 5.0 : (maxVal * 1.2).ceilToDouble();
 
       return Container(
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppColor.whiteColor,
           borderRadius: BorderRadius.circular(12),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               'Service Distribution',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
-                color: Color(0xFF1A1A1A),
+                color: AppColor.fontColorBlack,
               ),
             ),
             const SizedBox(height: 4),
-            const Text(
+            Text(
               'Bookings by service type',
               style: TextStyle(
                 fontSize: 13,
-                color: Color(0xFF9E9E9E),
+                color: AppColor.lightGrey,
                 fontWeight: FontWeight.w400,
               ),
             ),
@@ -53,34 +55,35 @@ class ServiceDistributionWidget extends GetView<DashboardController> {
               child: SfCartesianChart(
                 plotAreaBorderWidth: 0,
                 margin: const EdgeInsets.only(left: 10, right: 10, top: 10, bottom: 10),
-                primaryXAxis: NumericAxis(
-                  minimum: 0,
-                  maximum: xMax > 0 ? xMax : 1400,
-                  interval: xMax > 0 ? xMax / 4 : 350,
-                  majorGridLines: const MajorGridLines(
-                    width: 1,
-                    color: Color(0xFFF5F5F5),
-                  ),
-                  axisLine: const AxisLine(width: 0),
-                  labelStyle: const TextStyle(
-                    color: Color(0xFFBDBDBD),
-                    fontSize: 11,
-                  ),
-                ),
-                primaryYAxis: CategoryAxis(
+                // Category (service names) on the X axis; rendered vertically by BarSeries.
+                primaryXAxis: CategoryAxis(
                   majorGridLines: const MajorGridLines(width: 0),
                   axisLine: const AxisLine(width: 0),
-                  labelStyle: const TextStyle(
-                    color: Color(0xFF757575),
+                  labelStyle: TextStyle(
+                    color: AppColor.fontColorGrey,
                     fontSize: 13,
                     fontWeight: FontWeight.w400,
                   ),
                 ),
+                // Numeric value axis (booking counts).
+                primaryYAxis: NumericAxis(
+                  minimum: 0,
+                  maximum: axisMax,
+                  majorGridLines: MajorGridLines(
+                    width: 1,
+                    color: AppColor.fieldColorGrey,
+                  ),
+                  axisLine: const AxisLine(width: 0),
+                  labelStyle: TextStyle(
+                    color: AppColor.lightGrey,
+                    fontSize: 11,
+                  ),
+                ),
                 series: <CartesianSeries>[
-                  BarSeries<ServiceData, double>(
+                  BarSeries<ServiceData, String>(
                     dataSource: data,
+                    xValueMapper: (ServiceData data, _) => data.service,
                     yValueMapper: (ServiceData data, _) => data.bookings,
-                    xValueMapper: (ServiceData data, _) => data.bookings,
                     color: const Color(0xFF00BFA5),
                     borderRadius: const BorderRadius.all(Radius.circular(4)),
                     spacing: 0.3,
@@ -89,10 +92,10 @@ class ServiceDistributionWidget extends GetView<DashboardController> {
                 ],
                 tooltipBehavior: TooltipBehavior(
                   enable: true,
-                  format: 'point.y: point.x bookings',
-                  color: const Color(0xFF1A1A1A),
-                  textStyle: const TextStyle(
-                    color: Colors.white,
+                  format: 'point.x: point.y bookings',
+                  color: AppColor.fontColorBlack,
+                  textStyle: TextStyle(
+                    color: AppColor.buttonTextWhite,
                     fontSize: 12,
                   ),
                 ),

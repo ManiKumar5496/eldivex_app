@@ -34,7 +34,7 @@ class BookingsView extends GetView<BookingsController> {
     SizeConfig.init(context);
 
     return Scaffold(
-      backgroundColor: Colors.grey.shade50,
+      backgroundColor: AppColor.fieldColorGrey,
       body: Column(
         children: [
           _buildHeader(context),
@@ -77,7 +77,7 @@ class BookingsView extends GetView<BookingsController> {
   Widget _buildHeader(BuildContext context) {
     final isMobile = SizeConfig.isMobile;
     return Container(
-      color: Colors.white,
+      color: AppColor.whiteColor,
       padding: EdgeInsets.symmetric(
         horizontal: isMobile ? 12 : SizeConfig.blockSizeHorizontal * 2,
         vertical: isMobile ? 12 : SizeConfig.blockSizeVertical * 2,
@@ -168,15 +168,15 @@ class BookingsView extends GetView<BookingsController> {
         style: OutlinedButton.styleFrom(
           foregroundColor: controller.isFilterVisible.value
               ? Colors.blue.shade700
-              : Colors.grey.shade700,
+              : AppColor.fontColorGrey,
           side: BorderSide(
             color: controller.isFilterVisible.value
                 ? Colors.blue.shade300
-                : Colors.grey.shade300,
+                : AppColor.divColor,
           ),
           backgroundColor: controller.isFilterVisible.value
               ? Colors.blue.shade50
-              : Colors.white,
+              : AppColor.whiteColor,
           padding: EdgeInsets.symmetric(
             horizontal: isMobile ? 12 : SizeConfig.blockSizeHorizontal * 1.5,
             vertical: isMobile ? 10 : SizeConfig.blockSizeVertical * 1.5,
@@ -204,8 +204,8 @@ class BookingsView extends GetView<BookingsController> {
         ),
       ),
       style: OutlinedButton.styleFrom(
-        foregroundColor: Colors.grey.shade700,
-        side: BorderSide(color: Colors.grey.shade300),
+        foregroundColor: AppColor.fontColorGrey,
+        side: BorderSide(color: AppColor.divColor),
         padding: EdgeInsets.symmetric(
           horizontal: isMobile ? 12 : SizeConfig.blockSizeHorizontal * 1.5,
           vertical: isMobile ? 10 : SizeConfig.blockSizeVertical * 1.5,
@@ -227,18 +227,18 @@ class BookingsView extends GetView<BookingsController> {
       icon: Icon(
         Icons.add,
         size: isMobile ? 16 : SizeConfig.blockSizeHorizontal * 0.9,
-        color: AppColor.whiteColor,
+        color: AppColor.buttonTextWhite,
       ),
       label: Text(
         'New Booking',
         style: TextStyle(
           fontSize: isMobile ? 13 : SizeConfig.blockSizeHorizontal * 0.9,
-          color: AppColor.whiteColor,
+          color: AppColor.buttonTextWhite,
         ),
       ),
       style: ElevatedButton.styleFrom(
         backgroundColor: AppColor.cPrimaryButtonColor,
-        foregroundColor: Colors.white,
+        foregroundColor: AppColor.buttonTextWhite,
         padding: EdgeInsets.symmetric(
           horizontal: isMobile ? 12 : SizeConfig.blockSizeHorizontal * 1,
           vertical: isMobile ? 10 : SizeConfig.blockSizeVertical * 1.5,
@@ -277,9 +277,9 @@ class BookingsView extends GetView<BookingsController> {
       duration: const Duration(milliseconds: 300),
       curve: Curves.easeInOut,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColor.whiteColor,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: AppColor.divColor),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.05),
@@ -300,7 +300,7 @@ class BookingsView extends GetView<BookingsController> {
                   Icon(
                     Icons.filter_list,
                     size: isMobile ? 18 : SizeConfig.blockSizeHorizontal * 1.2,
-                    color: Colors.grey.shade700,
+                    color: AppColor.fontColorGrey,
                   ),
                   SizedBox(width: isMobile ? 8 : SizeConfig.blockSizeHorizontal * 0.8),
                   Text('Filters', style: AppTextStyles.catT16W400),
@@ -472,8 +472,8 @@ class BookingsView extends GetView<BookingsController> {
                               controller.clearFilters();
                             },
                             style: OutlinedButton.styleFrom(
-                              foregroundColor: Colors.grey.shade700,
-                              side: BorderSide(color: Colors.grey.shade300),
+                              foregroundColor: AppColor.fontColorGrey,
+                              side: BorderSide(color: AppColor.divColor),
                               padding: const EdgeInsets.symmetric(vertical: 12),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(8),
@@ -494,7 +494,7 @@ class BookingsView extends GetView<BookingsController> {
                             label: const Text('Search'),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: AppColor.cPrimaryButtonColor,
-                              foregroundColor: Colors.white,
+                              foregroundColor: AppColor.buttonTextWhite,
                               padding: const EdgeInsets.symmetric(vertical: 12),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(8),
@@ -538,8 +538,8 @@ class BookingsView extends GetView<BookingsController> {
                             controller.clearFilters();
                           },
                           style: OutlinedButton.styleFrom(
-                            foregroundColor: Colors.grey.shade700,
-                            side: BorderSide(color: Colors.grey.shade300),
+                            foregroundColor: AppColor.fontColorGrey,
+                            side: BorderSide(color: AppColor.divColor),
                             padding: EdgeInsets.symmetric(
                               horizontal: SizeConfig.blockSizeHorizontal * 2,
                               vertical: SizeConfig.blockSizeVertical * 1.2,
@@ -574,7 +574,7 @@ class BookingsView extends GetView<BookingsController> {
                           ),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppColor.cPrimaryButtonColor,
-                            foregroundColor: Colors.white,
+                            foregroundColor: AppColor.buttonTextWhite,
                             padding: EdgeInsets.symmetric(
                               horizontal: SizeConfig.blockSizeHorizontal * 1.8,
                               vertical: SizeConfig.blockSizeVertical * 1,
@@ -620,14 +620,14 @@ class BookingsView extends GetView<BookingsController> {
                     Icon(
                       Icons.event_busy,
                       size: isMobile ? 48 : SizeConfig.blockSizeHorizontal * 5,
-                      color: Colors.grey.shade400,
+                      color: AppColor.lightGrey,
                     ),
                     SizedBox(height: isMobile ? 16 : SizeConfig.blockSizeVertical * 2),
                     Text(
                       'No bookings found',
                       style: TextStyle(
                         fontSize: isMobile ? 16 : SizeConfig.blockSizeHorizontal * 1.5,
-                        color: Colors.grey.shade600,
+                        color: AppColor.fontColorGrey,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -668,9 +668,9 @@ class BookingsView extends GetView<BookingsController> {
     return Container(
       margin: EdgeInsets.only(bottom: isMobile ? 12 : SizeConfig.blockSizeVertical * 1.5),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColor.whiteColor,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: AppColor.divColor),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.05),
@@ -710,7 +710,7 @@ class BookingsView extends GetView<BookingsController> {
                   style: TextStyle(
                     fontSize: SizeConfig.blockSizeHorizontal * 1,
                     fontWeight: FontWeight.w600,
-                    color: Colors.white,
+                    color: AppColor.buttonTextWhite,
                   ),
                 ),
               ),
@@ -765,7 +765,7 @@ class BookingsView extends GetView<BookingsController> {
                   Icon(
                     Icons.person_outline,
                     size: SizeConfig.blockSizeHorizontal * 1.3,
-                    color: Colors.grey.shade600,
+                    color: AppColor.fontColorGrey,
                   ),
                   SizedBox(width: SizeConfig.blockSizeHorizontal * 0.5),
                   Expanded(
@@ -783,7 +783,7 @@ class BookingsView extends GetView<BookingsController> {
                   Icon(
                     Icons.phone_outlined,
                     size: SizeConfig.blockSizeHorizontal * 1.1,
-                    color: Colors.grey.shade500,
+                    color: AppColor.fontColorGrey,
                   ),
                   SizedBox(width: SizeConfig.blockSizeHorizontal * 0.3),
                   Text(
@@ -844,7 +844,7 @@ class BookingsView extends GetView<BookingsController> {
               Icon(
                 Icons.location_on_outlined,
                 size: SizeConfig.blockSizeHorizontal * 1.3,
-                color: Colors.grey.shade600,
+                color: AppColor.fontColorGrey,
               ),
               SizedBox(width: SizeConfig.blockSizeHorizontal * 0.5),
               Expanded(
@@ -924,10 +924,10 @@ class BookingsView extends GetView<BookingsController> {
                 ),
                 child: Text(
                   '${booking.baseRate}/day',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w400,
-                    color: Colors.white,
+                    color: AppColor.buttonTextWhite,
                   ),
                 ),
               ),
@@ -937,7 +937,7 @@ class BookingsView extends GetView<BookingsController> {
                 style: TextStyle(
                   fontSize: SizeConfig.blockSizeHorizontal * 1,
                   fontWeight: FontWeight.w500,
-                  color: Colors.grey.shade700,
+                  color: AppColor.fontColorGrey,
                 ),
               ),
             ],
@@ -959,7 +959,7 @@ class BookingsView extends GetView<BookingsController> {
                   Icon(
                     Icons.phone_outlined,
                     size: SizeConfig.blockSizeHorizontal * 1.1,
-                    color: Colors.grey.shade500,
+                    color: AppColor.fontColorGrey,
                   ),
                   SizedBox(width: SizeConfig.blockSizeHorizontal * 0.5),
                   Flexible(
@@ -1011,10 +1011,10 @@ class BookingsView extends GetView<BookingsController> {
                   ),
                   child: Text(
                     'BK-${booking.id}',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
-                      color: Colors.white,
+                      color: AppColor.buttonTextWhite,
                     ),
                   ),
                 ),
@@ -1055,12 +1055,12 @@ class BookingsView extends GetView<BookingsController> {
         // User & Patient info
         Row(
           children: [
-            Icon(Icons.person_outline, size: 16, color: Colors.grey.shade600),
+            Icon(Icons.person_outline, size: 16, color: AppColor.fontColorGrey),
             const SizedBox(width: 4),
             Expanded(
               child: Text('${booking.userName}', style: AppTextStyles.regular16),
             ),
-            Icon(Icons.phone_outlined, size: 14, color: Colors.grey.shade500),
+            Icon(Icons.phone_outlined, size: 14, color: AppColor.fontColorGrey),
             const SizedBox(width: 4),
             Text('${booking.userMobile}', style: AppTextStyles.regular16Gre),
           ],
@@ -1099,7 +1099,7 @@ class BookingsView extends GetView<BookingsController> {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(Icons.location_on_outlined, size: 16, color: Colors.grey.shade600),
+                  Icon(Icons.location_on_outlined, size: 16, color: AppColor.fontColorGrey),
                   const SizedBox(width: 4),
                   Expanded(
                     child: Text(
@@ -1157,13 +1157,13 @@ class BookingsView extends GetView<BookingsController> {
                   ),
                   child: Text(
                     '${booking.baseRate}/day',
-                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w400, color: Colors.white),
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w400, color: AppColor.buttonTextWhite),
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   'Total: ${(booking.finalRate ?? (double.tryParse(booking.baseRate) ?? 0) * days).toStringAsFixed(0)}',
-                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: Colors.grey.shade700),
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: AppColor.fontColorGrey),
                 ),
               ],
             ),
@@ -1174,10 +1174,10 @@ class BookingsView extends GetView<BookingsController> {
           const Divider(height: 16),
           Row(
             children: [
-              Text('Care Manager: ', style: TextStyle(fontSize: 13, color: Colors.grey.shade600)),
+              Text('Care Manager: ', style: TextStyle(fontSize: 13, color: AppColor.fontColorGrey)),
               Expanded(child: Text('${booking.careManagerName}', style: AppTextStyles.regular16)),
               if (booking.careManagerMobile != null) ...[
-                Icon(Icons.phone_outlined, size: 14, color: Colors.grey.shade500),
+                Icon(Icons.phone_outlined, size: 14, color: AppColor.fontColorGrey),
                 const SizedBox(width: 4),
                 Text("${booking.careManagerMobile}", style: AppTextStyles.regular16Gre),
               ],
@@ -1203,7 +1203,7 @@ class BookingsView extends GetView<BookingsController> {
     return PopupMenuButton<String>(
       icon: Icon(
         Icons.more_vert,
-        color: Colors.grey.shade600,
+        color: AppColor.fontColorGrey,
         size: isMobile ? 22 : SizeConfig.blockSizeHorizontal * 1.5,
       ),
       onSelected: (value) {
@@ -1246,7 +1246,7 @@ class BookingsView extends GetView<BookingsController> {
           Obx(
             () => Text(
               'Showing ${controller.allBookings.value.length} of ${controller.allBookings.value.length} bookings',
-              style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+              style: TextStyle(fontSize: 13, color: AppColor.fontColorGrey),
             ),
           ),
           const SizedBox(height: 10),
@@ -1256,8 +1256,8 @@ class BookingsView extends GetView<BookingsController> {
               OutlinedButton(
                 onPressed: () {},
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: Colors.grey.shade700,
-                  side: BorderSide(color: Colors.grey.shade300),
+                  foregroundColor: AppColor.fontColorGrey,
+                  side: BorderSide(color: AppColor.divColor),
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                 ),
@@ -1268,15 +1268,15 @@ class BookingsView extends GetView<BookingsController> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   decoration: BoxDecoration(
-                    color: page == '1' ? Colors.blue.shade600 : Colors.white,
-                    border: page != '1' ? Border.all(color: Colors.grey.shade300) : null,
+                    color: page == '1' ? Colors.blue.shade600 : AppColor.whiteColor,
+                    border: page != '1' ? Border.all(color: AppColor.divColor) : null,
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
                     page,
                     style: TextStyle(
                       fontSize: 13,
-                      color: page == '1' ? Colors.white : Colors.grey.shade700,
+                      color: page == '1' ? AppColor.buttonTextWhite : AppColor.fontColorGrey,
                       fontWeight: page == '1' ? FontWeight.w500 : FontWeight.normal,
                     ),
                   ),
@@ -1286,8 +1286,8 @@ class BookingsView extends GetView<BookingsController> {
               OutlinedButton(
                 onPressed: () {},
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: Colors.grey.shade700,
-                  side: BorderSide(color: Colors.grey.shade300),
+                  foregroundColor: AppColor.fontColorGrey,
+                  side: BorderSide(color: AppColor.divColor),
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                 ),
@@ -1306,7 +1306,7 @@ class BookingsView extends GetView<BookingsController> {
             'Showing ${controller.allBookings.value.length} of ${controller.allBookings.value.length} bookings',
             style: TextStyle(
               fontSize: SizeConfig.blockSizeHorizontal * 1.1,
-              color: Colors.grey.shade600,
+              color: AppColor.fontColorGrey,
             ),
           ),
         ),
@@ -1315,8 +1315,8 @@ class BookingsView extends GetView<BookingsController> {
             OutlinedButton(
               onPressed: () {},
               style: OutlinedButton.styleFrom(
-                foregroundColor: Colors.grey.shade700,
-                side: BorderSide(color: Colors.grey.shade300),
+                foregroundColor: AppColor.fontColorGrey,
+                side: BorderSide(color: AppColor.divColor),
                 padding: EdgeInsets.symmetric(
                   horizontal: SizeConfig.blockSizeHorizontal * 2,
                   vertical: SizeConfig.blockSizeVertical * 1.2,
@@ -1346,7 +1346,7 @@ class BookingsView extends GetView<BookingsController> {
                 '1',
                 style: TextStyle(
                   fontSize: SizeConfig.blockSizeHorizontal * 1.2,
-                  color: Colors.white,
+                  color: AppColor.buttonTextWhite,
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -1358,15 +1358,15 @@ class BookingsView extends GetView<BookingsController> {
                 vertical: SizeConfig.blockSizeVertical * 1,
               ),
               decoration: BoxDecoration(
-                color: Colors.white,
-                border: Border.all(color: Colors.grey.shade300),
+                color: AppColor.whiteColor,
+                border: Border.all(color: AppColor.divColor),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Text(
                 '2',
                 style: TextStyle(
                   fontSize: SizeConfig.blockSizeHorizontal * 1.2,
-                  color: Colors.grey.shade700,
+                  color: AppColor.fontColorGrey,
                 ),
               ),
             ),
@@ -1377,15 +1377,15 @@ class BookingsView extends GetView<BookingsController> {
                 vertical: SizeConfig.blockSizeVertical * 1,
               ),
               decoration: BoxDecoration(
-                color: Colors.white,
-                border: Border.all(color: Colors.grey.shade300),
+                color: AppColor.whiteColor,
+                border: Border.all(color: AppColor.divColor),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Text(
                 '3',
                 style: TextStyle(
                   fontSize: SizeConfig.blockSizeHorizontal * 1.2,
-                  color: Colors.grey.shade700,
+                  color: AppColor.fontColorGrey,
                 ),
               ),
             ),
@@ -1393,8 +1393,8 @@ class BookingsView extends GetView<BookingsController> {
             OutlinedButton(
               onPressed: () {},
               style: OutlinedButton.styleFrom(
-                foregroundColor: Colors.grey.shade700,
-                side: BorderSide(color: Colors.grey.shade300),
+                foregroundColor: AppColor.fontColorGrey,
+                side: BorderSide(color: AppColor.divColor),
                 padding: EdgeInsets.symmetric(
                   horizontal: SizeConfig.blockSizeHorizontal * 2,
                   vertical: SizeConfig.blockSizeVertical * 1.2,

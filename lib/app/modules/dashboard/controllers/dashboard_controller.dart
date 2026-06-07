@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
@@ -47,10 +49,37 @@ class DashboardController extends GetxController {
   final Rxn<int> filterBranchId   = Rxn<int>();
 
   // ── Dashboard stats (populated by fetchDashboardStats) ─────────────────────
-  RxInt    totalBookings  = 0.obs;
-  RxInt    activeBookings = 0.obs;
-  RxDouble totalRevenue   = 0.0.obs;
-  RxInt    totalHPs       = 0.obs;
+  RxInt    totalClients      = 0.obs;
+  RxInt    totalBookings     = 0.obs;
+  RxInt    activeBookings    = 0.obs;
+  RxInt    completedBookings = 0.obs;
+  RxDouble totalRevenue      = 0.0.obs;
+  RxDouble totalBilled       = 0.0.obs;
+  RxDouble totalCollected    = 0.0.obs;
+  RxDouble outstanding       = 0.0.obs;
+  RxInt    totalHPs          = 0.obs;
+
+  // Operational mini-stats
+  RxInt    newBookingsToday  = 0.obs;
+  RxInt    cancelledBookings = 0.obs;
+  RxDouble cancellationRate  = 0.0.obs;
+
+  /// Signed period-over-period change (%) per metric key; null when unknown.
+  final RxMap<String, double?> trends = <String, double?>{}.obs;
+
+  /// Collection rate = collected / billed (%), 0 when nothing billed.
+  double get collectionRate =>
+      totalBilled.value > 0 ? (totalCollected.value / totalBilled.value) * 100 : 0;
+
+  // ── Date presets + auto-refresh ─────────────────────────────────────────────
+  /// Currently selected quick-range preset ('today' | '7d' | '30d' | 'month' |
+  /// 'all'); empty when a custom range is in effect.
+  final RxString activePreset = ''.obs;
+
+  /// Timestamp of the last successful stats fetch (for the "Updated …" label).
+  final Rxn<DateTime> lastUpdated = Rxn<DateTime>();
+
+  Timer? _refreshTimer;
 
   RxList<BookingData>     weeklyBookingsData      = <BookingData>[].obs;
   RxList<ServiceData>     serviceDistributionData = <ServiceData>[].obs;
@@ -64,7 +93,18 @@ class DashboardController extends GetxController {
     getMasterModulesApi();
     getAllBranchesApi();
     fetchDashboardStats();
+    // Silently refresh the dashboard every 5 minutes so the data stays current.
+    _refreshTimer = Timer.periodic(
+      const Duration(minutes: 5),
+      (_) => refreshDashboard(silent: true),
+    );
     super.onInit();
+  }
+
+  @override
+  void onClose() {
+    _refreshTimer?.cancel();
+    super.onClose();
   }
 
   // ── Phase 4.1: Single aggregated dashboard API call ─────────────────────────
@@ -73,8 +113,9 @@ class DashboardController extends GetxController {
     String? from,
     String? to,
     int? branchId,
+    bool silent = false,
   }) async {
-    dashboardLoading.value = true;
+    if (!silent) dashboardLoading.value = true;
     try {
       final String? resolvedFrom = from ??
           (dashFrom.value.isNotEmpty ? dashFrom.value : null);
@@ -97,10 +138,24 @@ class DashboardController extends GetxController {
       final data = response.data as Map<String, dynamic>;
 
       // ── Summary stats ──────────────────────────────────────────────────────
-      totalBookings.value  = (data['totalBookings']  as num? ?? 0).toInt();
-      activeBookings.value = (data['activeBookings'] as num? ?? 0).toInt();
-      totalRevenue.value   = (data['totalRevenue']   as num? ?? 0).toDouble();
-      totalHPs.value       = (data['totalHPs']       as num? ?? 0).toInt();
+      totalClients.value      = (data['totalClients']      as num? ?? 0).toInt();
+      totalBookings.value     = (data['totalBookings']     as num? ?? 0).toInt();
+      activeBookings.value    = (data['activeBookings']    as num? ?? 0).toInt();
+      completedBookings.value = (data['completedBookings'] as num? ?? 0).toInt();
+      cancelledBookings.value = (data['cancelledBookings'] as num? ?? 0).toInt();
+      cancellationRate.value  = (data['cancellationRate']  as num? ?? 0).toDouble();
+      newBookingsToday.value  = (data['newBookingsToday']  as num? ?? 0).toInt();
+      totalRevenue.value      = (data['totalRevenue']      as num? ?? 0).toDouble();
+      totalBilled.value       = (data['totalBilled']       as num? ?? 0).toDouble();
+      totalCollected.value    = (data['totalCollected']    as num? ?? 0).toDouble();
+      outstanding.value       = (data['outstanding']       as num? ?? 0).toDouble();
+      totalHPs.value          = (data['totalHPs']          as num? ?? 0).toInt();
+
+      // ── Period-over-period trends ───────────────────────────────────────────
+      final trendsMap = data['trends'] as Map<String, dynamic>? ?? {};
+      trends.value = trendsMap.map(
+        (k, v) => MapEntry(k, (v as num?)?.toDouble()),
+      );
 
       // ── Weekly bookings ────────────────────────────────────────────────────
       final weekly = data['weeklyBookings'] as List? ?? [];
@@ -153,12 +208,13 @@ class DashboardController extends GetxController {
 
       // ── Booking status breakdown ───────────────────────────────────────────
       final statusColors = <String, Color>{
-        'Confirmed':   const Color(0xFF4A7CF0),
-        'Pending':     const Color(0xFFE9A53A),
-        'Completed':   const Color(0xFF5AC89A),
-        'Cancelled':   const Color(0xFFE4574D),
-        'Active':      const Color(0xFF4A7CF0),
-        'In-Progress': const Color(0xFF2196F3),
+        'Booking Submitted': const Color(0xFF4A7CF0),
+        'HP Assigned':       const Color(0xFF2196F3),
+        'Service Started':   const Color(0xFF5AC89A),
+        'On Hold':           const Color(0xFFE9A53A),
+        'Booking Cancelled': const Color(0xFFE4574D),
+        'Service Cancelled': const Color(0xFFC62828),
+        'Suspended':         const Color(0xFF9C27B0),
       };
       final defaultColors = [
         const Color(0xFF9C27B0),
@@ -179,11 +235,64 @@ class DashboardController extends GetxController {
           color: statusColors[status] ?? defaultColors[ci++ % defaultColors.length],
         ));
       }
+
+      lastUpdated.value = DateTime.now();
     } catch (e, stack) {
       debugPrint('[dashboard] fetchDashboardStats error: $e\n$stack');
     } finally {
       dashboardLoading.value = false;
     }
+  }
+
+  // ── Date presets & refresh ─────────────────────────────────────────────────
+
+  /// Apply a quick date range and reload. preset ∈ {today, 7d, 30d, month, all}.
+  void applyDatePreset(String preset) {
+    final now = DateTime.now();
+    String fmt(DateTime d) =>
+        '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+
+    switch (preset) {
+      case 'today':
+        dashFrom.value = fmt(now);
+        dashTo.value = fmt(now);
+        break;
+      case '7d':
+        dashFrom.value = fmt(now.subtract(const Duration(days: 6)));
+        dashTo.value = fmt(now);
+        break;
+      case '30d':
+        dashFrom.value = fmt(now.subtract(const Duration(days: 29)));
+        dashTo.value = fmt(now);
+        break;
+      case 'month':
+        dashFrom.value = fmt(DateTime(now.year, now.month, 1));
+        dashTo.value = fmt(now);
+        break;
+      case 'all':
+      default:
+        dashFrom.value = '';
+        dashTo.value = '';
+        break;
+    }
+    activePreset.value = preset;
+    refreshDashboard();
+  }
+
+  /// Re-fetch stats using the current filter selections.
+  void refreshDashboard({bool silent = false}) {
+    fetchDashboardStats(
+      from: dashFrom.value.isEmpty ? null : dashFrom.value,
+      to: dashTo.value.isEmpty ? null : dashTo.value,
+      branchId: filterBranchId.value,
+      silent: silent,
+    );
+  }
+
+  String get formattedLastUpdated {
+    final t = lastUpdated.value;
+    if (t == null) return '';
+    return 'Updated ${DateFormat('h:mm a').format(t)}';
   }
 
   // ── Format helpers ───────────────────────────────────────────────────────────
@@ -192,9 +301,14 @@ class DashboardController extends GetxController {
     return '₹${NumberFormat('#,##,###', 'en_IN').format(totalRevenue.value.toInt())}';
   }
 
-  String get formattedTotalBookings  => NumberFormat('#,###').format(totalBookings.value);
-  String get formattedActiveBookings => NumberFormat('#,###').format(activeBookings.value);
-  String get formattedTotalHPs       => NumberFormat('#,###').format(totalHPs.value);
+  String get formattedTotalBookings     => NumberFormat('#,###').format(totalBookings.value);
+  String get formattedActiveBookings    => NumberFormat('#,###').format(activeBookings.value);
+  String get formattedTotalHPs          => NumberFormat('#,###').format(totalHPs.value);
+  String get formattedTotalClients      => NumberFormat('#,###').format(totalClients.value);
+  String get formattedCompletedBookings => NumberFormat('#,###').format(completedBookings.value);
+  String get formattedCollectionRate    => '${collectionRate.toStringAsFixed(1)}%';
+  String get formattedOutstanding =>
+      '₹${NumberFormat('#,##,###', 'en_IN').format(outstanding.value.toInt())}';
 
   // ── Existing API calls (still needed for booking creation & role management) ─
 

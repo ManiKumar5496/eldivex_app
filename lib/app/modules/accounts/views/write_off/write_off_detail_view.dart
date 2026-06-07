@@ -150,7 +150,7 @@ class _WriteOffDetailViewState extends State<WriteOffDetailView> {
                             'Validation',
                             'Please provide a reason for rejection.',
                             backgroundColor: Colors.orange,
-                            colorText: Colors.white,
+                            colorText: AppColor.whiteColor,
                             snackPosition: SnackPosition.BOTTOM,
                           );
                           return;
@@ -170,16 +170,16 @@ class _WriteOffDetailViewState extends State<WriteOffDetailView> {
                       borderRadius: BorderRadius.circular(8)),
                 ),
                 child: ctrl.isSubmitting.value
-                    ? const SizedBox(
+                    ? SizedBox(
                         width: 16,
                         height: 16,
                         child: CircularProgressIndicator(
-                            strokeWidth: 2, color: Colors.white),
+                            strokeWidth: 2, color: AppColor.buttonTextWhite),
                       )
                     : Text(
                         actionLabel,
-                        style: const TextStyle(
-                            color: Colors.white,
+                        style: TextStyle(
+                            color: AppColor.buttonTextWhite,
                             fontWeight: FontWeight.w600),
                       ),
               )),
@@ -223,7 +223,7 @@ class _WriteOffDetailViewState extends State<WriteOffDetailView> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.search_off, size: 64, color: Colors.grey.shade300),
+                Icon(Icons.search_off, size: 64, color: AppColor.divColor),
                 const SizedBox(height: 12),
                 Text('Write-off #$writeOffId not found',
                     style: AppTextStyles.regular16Gre),
@@ -322,12 +322,12 @@ class _WriteOffDetailViewState extends State<WriteOffDetailView> {
                     Expanded(
                       child: ElevatedButton.icon(
                         onPressed: () => _showActionDialog(context, 'approve'),
-                        icon: const Icon(Icons.check_circle_outline,
-                            size: 18, color: Colors.white),
-                        label: const Text(
+                        icon: Icon(Icons.check_circle_outline,
+                            size: 18, color: AppColor.buttonTextWhite),
+                        label: Text(
                           'Approve',
                           style: TextStyle(
-                              color: Colors.white,
+                              color: AppColor.buttonTextWhite,
                               fontSize: 15,
                               fontWeight: FontWeight.w600),
                         ),
@@ -383,7 +383,7 @@ class _WriteOffDetailViewState extends State<WriteOffDetailView> {
       decoration: BoxDecoration(
         color: AppColor.whiteColor,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: AppColor.divColor),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -450,9 +450,9 @@ class _WriteOffDetailViewState extends State<WriteOffDetailView> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: Colors.grey.shade100,
+        color: AppColor.fieldColorGrey,
         borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: Colors.grey.shade300),
+        border: Border.all(color: AppColor.divColor),
       ),
       child: Text(
         text,
@@ -487,7 +487,7 @@ class _WriteOffDetailViewState extends State<WriteOffDetailView> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: Colors.grey.shade100,
+        color: AppColor.fieldColorGrey,
         borderRadius: BorderRadius.circular(6),
       ),
       child: Text(

@@ -1,32 +1,42 @@
 import 'package:flutter/material.dart';
+import 'package:eldivex_app/app/core/values/color_constants.dart';
 
 class DashboardStatCard extends StatelessWidget {
   final String title;
   final String value;
-  final String percentage;
+
+  /// Trend chip text (e.g. "+12.5%"). When null the chip is hidden.
+  final String? percentage;
+
+  /// Optional secondary line under the value (e.g. outstanding amount).
+  final String? subtitle;
+
   final IconData icon;
   final Color iconBgColor;
   final Color iconColor;
   final bool isPositive;
+  final VoidCallback? onTap;
 
   const DashboardStatCard({
     super.key,
     required this.title,
     required this.value,
-    required this.percentage,
+    this.percentage,
+    this.subtitle,
     required this.icon,
     required this.iconBgColor,
     required this.iconColor,
     this.isPositive = true,
+    this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    final card = Container(
       width: 360,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColor.whiteColor,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
@@ -44,9 +54,9 @@ class DashboardStatCard extends StatelessWidget {
             children: [
               Text(
                 title,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 16,
-                  color: Color(0xFF6B7280),
+                  color: AppColor.fontColorGrey,
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -67,32 +77,63 @@ class DashboardStatCard extends StatelessWidget {
           const SizedBox(height: 16),
           Text(
             value,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 28,
               fontWeight: FontWeight.bold,
-              color: Color(0xFF111827),
+              color: AppColor.cPrimaryHeadingColor,
             ),
           ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Icon(
-                isPositive ? Icons.trending_up : Icons.trending_down,
-                color: isPositive ? Colors.green : Colors.red,
-                size: 18,
+          if (subtitle != null) ...[
+            const SizedBox(height: 4),
+            Text(
+              subtitle!,
+              style: TextStyle(
+                fontSize: 13,
+                color: AppColor.fontColorGrey,
+                fontWeight: FontWeight.w500,
               ),
-              const SizedBox(width: 6),
-              Text(
-                percentage,
-                style: TextStyle(
-                  fontSize: 14,
+            ),
+          ],
+          if (percentage != null) ...[
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Icon(
+                  isPositive ? Icons.trending_up : Icons.trending_down,
                   color: isPositive ? Colors.green : Colors.red,
-                  fontWeight: FontWeight.w500,
+                  size: 18,
                 ),
-              ),
-            ],
-          ),
+                const SizedBox(width: 6),
+                Text(
+                  percentage!,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: isPositive ? Colors.green : Colors.red,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  'vs prev. period',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: AppColor.lightGrey,
+                  ),
+                ),
+              ],
+            ),
+          ],
         ],
+      ),
+    );
+
+    if (onTap == null) return card;
+
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTap: onTap,
+        child: card,
       ),
     );
   }

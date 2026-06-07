@@ -51,7 +51,7 @@ class _StatusTransitionDialogState extends State<StatusTransitionDialog> {
         'active'    => Colors.green,
         'suspended' => Colors.orange,
         'cancelled' => AppColor.calenderRed,
-        'expired'   => Colors.grey,
+        'expired'   => AppColor.fontColorGrey,
         _           => Colors.blue,
       };
 
@@ -104,8 +104,8 @@ class _StatusTransitionDialogState extends State<StatusTransitionDialog> {
                     selectedColor: _statusColor(s).withValues(alpha: 0.15),
                     labelStyle: TextStyle(
                       color: isAllowed
-                          ? (isSelected ? _statusColor(s) : Colors.black87)
-                          : Colors.grey.shade400,
+                          ? (isSelected ? _statusColor(s) : AppColor.fontColorBlack)
+                          : AppColor.lightGrey,
                       fontWeight: isSelected
                           ? FontWeight.w700
                           : FontWeight.w400,
@@ -114,8 +114,8 @@ class _StatusTransitionDialogState extends State<StatusTransitionDialog> {
                       color: isAllowed
                           ? (isSelected
                               ? _statusColor(s)
-                              : Colors.grey.shade300)
-                          : Colors.grey.shade200,
+                              : AppColor.divColor)
+                          : AppColor.divColor,
                     ),
                   ),
                 );
@@ -165,15 +165,15 @@ class _StatusTransitionDialogState extends State<StatusTransitionDialog> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: _selected != null
                     ? _statusColor(_selected!)
-                    : Colors.grey,
-                foregroundColor: Colors.white,
+                    : AppColor.fontColorGrey,
+                foregroundColor: AppColor.buttonTextWhite,
               ),
               child: _ctrl.saving.value
-                  ? const SizedBox(
+                  ? SizedBox(
                       width: 16,
                       height: 16,
                       child: CircularProgressIndicator(
-                          strokeWidth: 2, color: Colors.white))
+                          strokeWidth: 2, color: AppColor.buttonTextWhite))
                   : Text('Set to ${_selected ?? '…'}'),
             )),
       ],

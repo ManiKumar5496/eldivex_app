@@ -112,7 +112,7 @@ class _Header extends StatelessWidget {
         const SizedBox(width: 12),
         ElevatedButton.icon(
           onPressed: () => _showServiceDialog(context, controller),
-          icon: const Icon(Icons.add, size: 18, color: Colors.white),
+          icon: Icon(Icons.add, size: 18, color: AppColor.buttonTextWhite),
           label: Text('Add Service', style: AppTextStyles.regular14white),
           style: ElevatedButton.styleFrom(
             backgroundColor: AppColor.cPrimaryButtonColor,
@@ -564,7 +564,7 @@ void _showServiceDialog(
                                           style: date != null
                                               ? AppTextStyles.regular14Gre
                                               : AppTextStyles.regular14Gre
-                                                  .copyWith(color: Colors.grey)),
+                                                  .copyWith(color: AppColor.fontColorGrey)),
                                     ),
                                     Icon(Icons.calendar_today_outlined,
                                         size: 16, color: AppColor.lightGrey),
@@ -643,11 +643,11 @@ void _showServiceDialog(
                 elevation: 0,
               ),
               child: loading
-                  ? const SizedBox(
+                  ? SizedBox(
                       width: 18,
                       height: 18,
                       child: CircularProgressIndicator(
-                          strokeWidth: 2, color: Colors.white),
+                          strokeWidth: 2, color: AppColor.buttonTextWhite),
                     )
                   : Text(isEdit ? 'Save Changes' : 'Create',
                       style: AppTextStyles.regular16white),

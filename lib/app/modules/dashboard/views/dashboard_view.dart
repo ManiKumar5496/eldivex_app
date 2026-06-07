@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:eldivex_app/app/core/theme/theme_controller.dart';
 import 'package:eldivex_app/app/core/values/color_constants.dart';
 import 'package:eldivex_app/app/core/values/size_configue.dart';
+import 'package:eldivex_app/app/routes/app_pages.dart';
 import 'package:eldivex_app/app/modules/dashboard/views/dashboard_stats_widgets/service_distribution_widget.dart';
 import 'package:eldivex_app/app/modules/dashboard/views/dashboard_stats_widgets/top_performing_cities_widget.dart';
 import 'package:eldivex_app/app/modules/dashboard/views/dashboard_stats_widgets/weekly_bookings_widget.dart';
 import 'package:eldivex_app/app/modules/login/controllers/login_controller.dart';
 import '../../../../main.dart';
 import 'dashboard_stats_widgets/booking_stats_chart.dart';
+import 'dashboard_stats_widgets/dashboard_mini_stats.dart';
 import 'dashboard_stats_widgets/dashboard_stats_section.dart';
 import '../controllers/dashboard_controller.dart';
 import 'dashboard_stats_widgets/top_performing_cgs_widget.dart';
@@ -34,6 +37,8 @@ class DashboardView extends GetView<DashboardController> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  const DashboardMiniStats(),
+                  SizedBox(height: SizeConfig.spacingMD),
                   const DashboardStatsSection(),
                   SizedBox(height: SizeConfig.spacingLG),
 
@@ -62,7 +67,9 @@ class DashboardView extends GetView<DashboardController> {
                   SizeConfig.adaptiveLayout(
                     mobile: Column(
                       children: [
-                        const TopPerformingCgsWidget(),
+                        TopPerformingCgsWidget(
+                          onViewAll: () => Get.toNamed(Routes.REGISTER_CG),
+                        ),
                         SizedBox(height: SizeConfig.spacingLG),
                         const BookingStatusChartWidget(),
                       ],
@@ -70,7 +77,11 @@ class DashboardView extends GetView<DashboardController> {
                     tablet: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Expanded(child: TopPerformingCgsWidget()),
+                        Expanded(
+                          child: TopPerformingCgsWidget(
+                            onViewAll: () => Get.toNamed(Routes.REGISTER_CG),
+                          ),
+                        ),
                         SizedBox(width: SizeConfig.spacingLG),
                         const Expanded(child: BookingStatusChartWidget()),
                       ],
@@ -95,7 +106,7 @@ class DashboardView extends GetView<DashboardController> {
       padding: EdgeInsets.all(SizeConfig.spacingMD),
       decoration: SizeConfig.isMobile
           ? BoxDecoration(
-        color: Colors.white,
+        color: AppColor.whiteColor,
         border: Border(
           bottom: BorderSide(
             color: AppColor.divColor.withValues(alpha: 0.5),
@@ -147,6 +158,32 @@ class DashboardView extends GetView<DashboardController> {
                 ],
               ),
 
+              // Dark mode toggle
+              Builder(builder: (_) {
+                final themeController = Get.find<ThemeController>();
+                return Obx(() {
+                  themeController.themeMode.value;
+                  final isDark = themeController.isDark;
+                  return IconButton(
+                    tooltip: isDark ? 'Switch to light mode' : 'Switch to dark mode',
+                    icon: Icon(
+                      isDark ? Icons.light_mode_outlined : Icons.dark_mode_outlined,
+                      size: SizeConfig.iconMD,
+                    ),
+                    onPressed: () => themeController.setThemeMode(
+                      isDark ? ThemeMode.light : ThemeMode.dark,
+                    ),
+                  );
+                });
+              }),
+
+              // Appearance (theme + brand color)
+              IconButton(
+                tooltip: 'Appearance',
+                icon: Icon(Icons.palette_outlined, size: SizeConfig.iconMD),
+                onPressed: () => Get.toNamed(Routes.appearance),
+              ),
+
               // Settings Menu
               PopupMenuButton<String>(
                 icon: Icon(Icons.settings_outlined, size: SizeConfig.iconMD),
@@ -154,7 +191,7 @@ class DashboardView extends GetView<DashboardController> {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(SizeConfig.radiusMD),
                 ),
-                color: Colors.white,
+                color: AppColor.whiteColor,
                 elevation: 8,
                 shadowColor: Colors.black.withValues(alpha: 0.3),
                 itemBuilder: (BuildContext context) {
@@ -183,12 +220,12 @@ class DashboardView extends GetView<DashboardController> {
                             Container(
                               padding: EdgeInsets.all(SizeConfig.spacingSM),
                               decoration: BoxDecoration(
-                                color: Colors.white.withValues(alpha: 0.3),
+                                color: AppColor.buttonTextWhite.withValues(alpha: 0.3),
                                 shape: BoxShape.circle,
                               ),
                               child: Icon(
                                 Icons.person,
-                                color: Colors.white,
+                                color: AppColor.buttonTextWhite,
                                 size: SizeConfig.iconLG,
                               ),
                             ),
@@ -201,7 +238,7 @@ class DashboardView extends GetView<DashboardController> {
                                     'Welcome',
                                     style: TextStyle(
                                       fontSize: SizeConfig.fontCaption,
-                                      color: Colors.white70,
+                                      color: AppColor.buttonTextWhite.withValues(alpha: 0.7),
                                       fontFamily: "poppins_regular",
                                     ),
                                   ),
@@ -209,7 +246,7 @@ class DashboardView extends GetView<DashboardController> {
                                     box.read('user_name') ?? 'User',
                                     style: TextStyle(
                                       fontSize: SizeConfig.fontBody,
-                                      color: Colors.white,
+                                      color: AppColor.buttonTextWhite,
                                       fontWeight: FontWeight.bold,
                                       fontFamily: "poppins_regular",
                                     ),
@@ -286,7 +323,7 @@ class DashboardView extends GetView<DashboardController> {
         vertical: SizeConfig.spacingSM,
       ),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColor.whiteColor,
         border: Border(
           bottom: BorderSide(
             color: AppColor.divColor.withValues(alpha: 0.5),
@@ -339,12 +376,28 @@ class DashboardView extends GetView<DashboardController> {
 
             SizedBox(width: SizeConfig.spacingSM),
 
+            // ── Quick range presets ──────────────────────────────────────────
+            _presetChip('Today', 'today'),
+            SizedBox(width: SizeConfig.spacingXS),
+            _presetChip('7d', '7d'),
+            SizedBox(width: SizeConfig.spacingXS),
+            _presetChip('30d', '30d'),
+            SizedBox(width: SizeConfig.spacingXS),
+            _presetChip('This month', 'month'),
+            SizedBox(width: SizeConfig.spacingXS),
+            _presetChip('All time', 'all'),
+
+            SizedBox(width: SizeConfig.spacingSM),
+
             // ── From date ────────────────────────────────────────────────────
             _buildDateButton(
               context: context,
               label: 'From',
               value: controller.dashFrom.value,
-              onPicked: (d) => controller.dashFrom.value = d,
+              onPicked: (d) {
+                controller.dashFrom.value = d;
+                controller.activePreset.value = '';
+              },
               isLast: false,
             ),
 
@@ -355,7 +408,10 @@ class DashboardView extends GetView<DashboardController> {
               context: context,
               label: 'To',
               value: controller.dashTo.value,
-              onPicked: (d) => controller.dashTo.value = d,
+              onPicked: (d) {
+                controller.dashTo.value = d;
+                controller.activePreset.value = '';
+              },
               isLast: false,
             ),
 
@@ -376,7 +432,7 @@ class DashboardView extends GetView<DashboardController> {
                 ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColor.cPrimaryButtonColor,
-                  foregroundColor: Colors.white,
+                  foregroundColor: AppColor.buttonTextWhite,
                   padding: const EdgeInsets.symmetric(horizontal: 14),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(6),
@@ -397,6 +453,7 @@ class DashboardView extends GetView<DashboardController> {
                   controller.dashFrom.value = '';
                   controller.dashTo.value = '';
                   controller.filterBranchId.value = null;
+                  controller.activePreset.value = '';
                   controller.fetchDashboardStats();
                 },
                 style: TextButton.styleFrom(
@@ -406,10 +463,60 @@ class DashboardView extends GetView<DashboardController> {
                 child: const Text('Clear', style: TextStyle(fontSize: 13)),
               ),
             ],
+
+            SizedBox(width: SizeConfig.spacingSM),
+
+            // ── Last updated + manual refresh ────────────────────────────────
+            if (controller.formattedLastUpdated.isNotEmpty)
+              Text(
+                controller.formattedLastUpdated,
+                style: TextStyle(
+                  fontSize: SizeConfig.fontCaption,
+                  color: AppColor.lightGrey,
+                ),
+              ),
+            IconButton(
+              tooltip: 'Refresh',
+              visualDensity: VisualDensity.compact,
+              icon: Icon(
+                Icons.refresh,
+                size: SizeConfig.iconMD,
+                color: AppColor.cPrimaryButtonColor,
+              ),
+              onPressed: () => controller.refreshDashboard(),
+            ),
           ],
         ),
       ),
     ));
+  }
+
+  // ── Quick-range preset chip ─────────────────────────────────────────────────
+  Widget _presetChip(String label, String preset) {
+    final isActive = controller.activePreset.value == preset;
+    return GestureDetector(
+      onTap: () => controller.applyDatePreset(preset),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+        decoration: BoxDecoration(
+          color: isActive
+              ? AppColor.cPrimaryButtonColor
+              : AppColor.cAppBackgroundColor,
+          border: Border.all(
+            color: isActive ? AppColor.cPrimaryButtonColor : AppColor.divColor,
+          ),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: SizeConfig.fontCaption,
+            color: isActive ? AppColor.buttonTextWhite : AppColor.fontColorGrey,
+            fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
+          ),
+        ),
+      ),
+    );
   }
 
   Widget _buildDateButton({
@@ -437,7 +544,7 @@ class DashboardView extends GetView<DashboardController> {
             data: Theme.of(ctx).copyWith(
               colorScheme: ColorScheme.light(
                 primary: AppColor.cPrimaryButtonColor,
-                onPrimary: Colors.white,
+                onPrimary: AppColor.buttonTextWhite,
               ),
             ),
             child: child!,

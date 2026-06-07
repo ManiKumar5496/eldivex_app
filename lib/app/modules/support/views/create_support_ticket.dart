@@ -145,9 +145,9 @@ class CreateSupportTicket extends GetView<SupportController> {
                             vertical: 14,
                           ),
                         ),
-                        child: const Text(
+                        child: Text(
                           'Submit Ticket',
-                          style: TextStyle(color: Colors.white),
+                          style: TextStyle(color: AppColor.buttonTextWhite),
                         ),
                       ),
                     ),
@@ -341,7 +341,7 @@ class CreateSupportTicket extends GetView<SupportController> {
             decoration: BoxDecoration(
               border: Border.all(color: AppColor.divColor),
               borderRadius: BorderRadius.circular(8),
-              color: Colors.white,
+              color: AppColor.whiteColor,
             ),
             child: Row(
               children: [

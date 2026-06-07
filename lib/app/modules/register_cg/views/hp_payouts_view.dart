@@ -79,7 +79,7 @@ class HpPayoutsView extends GetView<HpPayoutsController> {
         const SizedBox(width: 16),
         ElevatedButton.icon(
           onPressed: () => _showCreatePayoutDialog(context, controller),
-          icon: const Icon(Icons.add, size: 18, color: Colors.white),
+          icon: Icon(Icons.add, size: 18, color: AppColor.buttonTextWhite),
           label: Text('Create Payout', style: AppTextStyles.regular14white),
           style: ElevatedButton.styleFrom(
             backgroundColor: AppColor.cPrimaryButtonColor,
@@ -689,11 +689,11 @@ void _showCreatePayoutDialog(
                 elevation: 0,
               ),
               child: loading
-                  ? const SizedBox(
+                  ? SizedBox(
                       width: 18,
                       height: 18,
                       child: CircularProgressIndicator(
-                          strokeWidth: 2, color: Colors.white),
+                          strokeWidth: 2, color: AppColor.buttonTextWhite),
                     )
                   : Text('Create', style: AppTextStyles.regular16white),
             );

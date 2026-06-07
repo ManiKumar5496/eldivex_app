@@ -19,14 +19,14 @@ class AccountDetailView extends GetView<SaasAccountsController> {
     return Scaffold(
       backgroundColor: AppColor.cAppBackgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: AppColor.whiteColor,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black87),
+          icon: Icon(Icons.arrow_back, color: AppColor.fontColorBlack),
           onPressed: () => Get.back(),
         ),
         title: Text(account.name,
-            style: AppTextStyles.semiBold16.copyWith(color: Colors.black87)),
+            style: AppTextStyles.semiBold16.copyWith(color: AppColor.fontColorBlack)),
         actions: [
           _ActionMenu(account: account),
           const SizedBox(width: 8),
@@ -210,7 +210,7 @@ class _ActionMenu extends GetView<SaasAccountsController> {
   @override
   Widget build(BuildContext context) {
     return PopupMenuButton<String>(
-      icon: const Icon(Icons.more_vert, color: Colors.black87),
+      icon: Icon(Icons.more_vert, color: AppColor.fontColorBlack),
       onSelected: (v) => _onAction(context, v),
       itemBuilder: (_) => [
         const PopupMenuItem(value: 'transition', child: Text('Change Status')),
@@ -262,7 +262,7 @@ class _Card extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColor.whiteColor,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: AppColor.divColor),
       ),
@@ -295,7 +295,7 @@ class _Row extends StatelessWidget {
           SizedBox(
             width: 100,
             child: Text(label,
-                style: const TextStyle(fontSize: 13, color: Colors.grey)),
+                style: TextStyle(fontSize: 13, color: AppColor.fontColorGrey)),
           ),
           Expanded(
               child: Text(value, style: const TextStyle(fontSize: 13))),

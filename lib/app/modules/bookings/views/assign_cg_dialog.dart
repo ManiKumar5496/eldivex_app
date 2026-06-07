@@ -435,10 +435,10 @@ class AssignCgDialog extends StatelessWidget {
                       child: ElevatedButton.icon(
                         onPressed: cgController.getAllCgFromApi,
                         icon: Icon(Icons.search,
-                            size: SizeConfig.iconSM, color: AppColor.whiteColor),
+                            size: SizeConfig.iconSM, color: AppColor.buttonTextWhite),
                         label: Text('Search',
                             style: TextStyle(
-                              color: AppColor.whiteColor,
+                              color: AppColor.buttonTextWhite,
                               fontSize: SizeConfig.fontBody,
                               fontFamily: 'poppins_regular',
                               fontWeight: FontWeight.w500,
@@ -695,7 +695,7 @@ class AssignCgDialog extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.auto_awesome, size: 56, color: Colors.grey.shade300),
+              Icon(Icons.auto_awesome, size: 56, color: AppColor.divColor),
               SizedBox(height: SizeConfig.spacingSM),
               Text('No AI matches yet',
                   style: AppTextStyles.regular14black
@@ -851,7 +851,7 @@ class AssignCgDialog extends StatelessWidget {
               ),
               child: Text('Assign',
                   style: TextStyle(
-                      color: AppColor.whiteColor,
+                      color: AppColor.buttonTextWhite,
                       fontSize: SizeConfig.fontCaption,
                       fontWeight: FontWeight.w500)),
             ),
@@ -894,7 +894,7 @@ class AssignCgDialog extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(Icons.people_outline,
-                  size: 56, color: Colors.grey.shade300),
+                  size: 56, color: AppColor.divColor),
               SizedBox(height: SizeConfig.spacingSM),
               Text(
                 'No available health professionals',
@@ -963,12 +963,12 @@ class AssignCgDialog extends StatelessWidget {
             style: AppTextStyles.regular14black.copyWith(
               fontWeight: FontWeight.w600,
               fontSize: SizeConfig.fontBody,
-              color: Colors.grey.shade700,
+              color: AppColor.fontColorGrey,
             ),
           ),
           SizedBox(width: SizeConfig.spacingXS / 2),
           Icon(Icons.unfold_more,
-              size: SizeConfig.iconSM, color: Colors.grey.shade400),
+              size: SizeConfig.iconSM, color: AppColor.lightGrey),
         ],
       ),
     );
@@ -1040,7 +1040,7 @@ class AssignCgDialog extends StatelessWidget {
             child: Row(
               children: [
                 Icon(Icons.phone_outlined,
-                    size: SizeConfig.iconSM, color: Colors.grey.shade400),
+                    size: SizeConfig.iconSM, color: AppColor.lightGrey),
                 SizedBox(width: SizeConfig.spacingXS),
                 Text(
                   cg.hpRegPhoneNumber ?? '-',
@@ -1071,7 +1071,7 @@ class AssignCgDialog extends StatelessWidget {
             child: Row(
               children: [
                 Icon(Icons.work_outline,
-                    size: SizeConfig.iconSM, color: Colors.grey.shade400),
+                    size: SizeConfig.iconSM, color: AppColor.lightGrey),
                 SizedBox(width: SizeConfig.spacingXS),
                 Text(
                   '${cg.hpRegExperience.isNotEmpty ? cg.hpRegExperience : '0'} yrs',
@@ -1102,7 +1102,7 @@ class AssignCgDialog extends StatelessWidget {
               child: Text(
                 'Assign',
                 style: TextStyle(
-                  color: AppColor.whiteColor,
+                  color: AppColor.buttonTextWhite,
                   fontSize: SizeConfig.fontBody,
                   fontFamily: 'poppins_regular',
                   fontWeight: FontWeight.w500,
@@ -1158,7 +1158,7 @@ class AssignCgDialog extends StatelessWidget {
                 child: Text(
                   '1',
                   style: TextStyle(
-                    color: AppColor.whiteColor,
+                    color: AppColor.buttonTextWhite,
                     fontSize: SizeConfig.fontBody,
                     fontFamily: 'poppins_regular',
                     fontWeight: FontWeight.w600,
@@ -1178,7 +1178,7 @@ class AssignCgDialog extends StatelessWidget {
     return OutlinedButton(
       onPressed: enabled ? onTap : null,
       style: OutlinedButton.styleFrom(
-        foregroundColor: Colors.grey.shade700,
+        foregroundColor: AppColor.fontColorGrey,
         side: BorderSide(color: AppColor.divColor),
         padding: EdgeInsets.symmetric(
           horizontal: SizeConfig.spacingSM,
@@ -1225,15 +1225,15 @@ class AssignCgDialog extends StatelessWidget {
         gender.toLowerCase() == '2';
 
     final Color bg = isMale
-        ? const Color(0xFFEFF6FF)
+        ? AppColor.cPrimaryButtonColor.withValues(alpha: 0.12)
         : isFemale
         ? const Color(0xFFFDF2F8)
         : AppColor.fieldColorGrey;
     final Color fg = isMale
-        ? const Color(0xFF1D4ED8)
+        ? AppColor.cPrimaryButtonColor2
         : isFemale
         ? const Color(0xFF9D174D)
-        : Colors.grey.shade600;
+        : AppColor.fontColorGrey;
     final String text = isMale
         ? 'Male'
         : isFemale

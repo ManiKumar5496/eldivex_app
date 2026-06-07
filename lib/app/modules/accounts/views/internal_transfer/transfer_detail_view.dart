@@ -73,7 +73,7 @@ class _TransferDetailViewState extends State<TransferDetailView> {
       case 'PENDING_APPROVAL':
         return Colors.orange;
       default:
-        return Colors.grey;
+        return AppColor.fontColorGrey;
     }
   }
 
@@ -165,7 +165,7 @@ class _TransferDetailViewState extends State<TransferDetailView> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.search_off_rounded, size: 64, color: Colors.grey.shade300),
+          Icon(Icons.search_off_rounded, size: 64, color: AppColor.lightGrey),
           const SizedBox(height: 12),
           Text('Transfer not found', style: AppTextStyles.regular16Gre),
         ],
@@ -185,7 +185,7 @@ class _TransferDetailViewState extends State<TransferDetailView> {
       decoration: BoxDecoration(
         color: AppColor.whiteColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: AppColor.divColor),
       ),
       child: Column(
         children: [
@@ -288,7 +288,7 @@ class _TransferDetailViewState extends State<TransferDetailView> {
       decoration: BoxDecoration(
         color: AppColor.whiteColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: AppColor.divColor),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -334,8 +334,8 @@ class _TransferDetailViewState extends State<TransferDetailView> {
                         color: AppColor.cPrimaryButtonColor,
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(Icons.arrow_forward_rounded,
-                          color: Colors.white, size: 20),
+                      child: Icon(Icons.arrow_forward_rounded,
+                          color: AppColor.buttonTextWhite, size: 20),
                     ),
                     const SizedBox(height: 6),
                     Text(
@@ -460,7 +460,7 @@ class _TransferDetailViewState extends State<TransferDetailView> {
       decoration: BoxDecoration(
         color: AppColor.whiteColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: AppColor.divColor),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -618,7 +618,7 @@ class _TransferDetailViewState extends State<TransferDetailView> {
       decoration: BoxDecoration(
         color: AppColor.whiteColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: AppColor.divColor),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -663,24 +663,24 @@ class _TransferDetailViewState extends State<TransferDetailView> {
               decoration: BoxDecoration(
                 color: step.done
                     ? step.color.withValues(alpha: 0.12)
-                    : Colors.grey.shade100,
+                    : AppColor.fieldColorGrey,
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: step.done ? step.color : Colors.grey.shade300,
+                  color: step.done ? step.color : AppColor.divColor,
                   width: 1.5,
                 ),
               ),
               child: Icon(
                 step.icon,
                 size: 18,
-                color: step.done ? step.color : Colors.grey.shade400,
+                color: step.done ? step.color : AppColor.lightGrey,
               ),
             ),
             if (!isLast)
               Container(
                 width: 2,
                 height: 40,
-                color: Colors.grey.shade200,
+                color: AppColor.divColor,
               ),
           ],
         ),
@@ -801,18 +801,18 @@ class _TransferDetailViewState extends State<TransferDetailView> {
                                 action: 'APPROVE',
                               ),
                       icon: ctrl.isSubmitting.value
-                          ? const SizedBox(
+                          ? SizedBox(
                               width: 18,
                               height: 18,
                               child: CircularProgressIndicator(
-                                  color: Colors.white, strokeWidth: 2),
+                                  color: AppColor.buttonTextWhite, strokeWidth: 2),
                             )
-                          : const Icon(Icons.check, size: 18,
-                              color: Colors.white),
+                          : Icon(Icons.check, size: 18,
+                              color: AppColor.buttonTextWhite),
                       label: Text(
                         ctrl.isSubmitting.value ? 'Processing...' : 'Approve',
-                        style: const TextStyle(
-                            color: Colors.white, fontWeight: FontWeight.w600),
+                        style: TextStyle(
+                            color: AppColor.buttonTextWhite, fontWeight: FontWeight.w600),
                       ),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.green,
@@ -923,7 +923,7 @@ class _TransferDetailViewState extends State<TransferDetailView> {
             ),
             child: Text(
               isApprove ? 'Approve' : 'Reject',
-              style: const TextStyle(color: Colors.white),
+              style: TextStyle(color: AppColor.buttonTextWhite),
             ),
           ),
         ],

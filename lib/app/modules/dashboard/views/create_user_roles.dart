@@ -42,7 +42,7 @@ class CreateUserRoles extends GetView<DashboardController> {
 
   Widget _buildHeader() {
     return Container(
-      color: Colors.white,
+      color: AppColor.whiteColor,
       padding: EdgeInsets.symmetric(
         horizontal: SizeConfig.blockSizeHorizontal * 2,
         vertical: SizeConfig.blockSizeVertical * 2,
@@ -54,7 +54,7 @@ class CreateUserRoles extends GetView<DashboardController> {
             icon: Icon(
               Icons.arrow_back,
               size: SizeConfig.blockSizeHorizontal * 2,
-              color: Colors.grey.shade700,
+              color: AppColor.fontColorGrey,
             ),
             padding: EdgeInsets.zero,
             constraints: const BoxConstraints(),
@@ -79,9 +79,9 @@ class CreateUserRoles extends GetView<DashboardController> {
   Widget _buildRoleDetailsCard() {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColor.whiteColor,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: AppColor.divColor),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.05),
@@ -99,7 +99,7 @@ class CreateUserRoles extends GetView<DashboardController> {
             style: TextStyle(
               fontSize: SizeConfig.blockSizeHorizontal * 1.5,
               fontWeight: FontWeight.w600,
-              color: Colors.black87,
+              color: AppColor.fontColorBlack,
             ),
           ),
           SizedBox(height: SizeConfig.blockSizeVertical * 2),
@@ -123,9 +123,9 @@ class CreateUserRoles extends GetView<DashboardController> {
   Widget _buildAccessListCard() {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColor.whiteColor,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: AppColor.divColor),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.05),
@@ -149,7 +149,7 @@ class CreateUserRoles extends GetView<DashboardController> {
                     style: TextStyle(
                       fontSize: SizeConfig.blockSizeHorizontal * 1.5,
                       fontWeight: FontWeight.w600,
-                      color: Colors.black87,
+                      color: AppColor.fontColorBlack,
                     ),
                   ),
                   SizedBox(height: SizeConfig.blockSizeVertical * 0.5),
@@ -157,7 +157,7 @@ class CreateUserRoles extends GetView<DashboardController> {
                     '${controller.selectedAccessList.length} permissions selected',
                     style: TextStyle(
                       fontSize: SizeConfig.blockSizeHorizontal * 1.1,
-                      color: Colors.grey.shade600,
+                      color: AppColor.fontColorGrey,
                     ),
                   )),
                 ],
@@ -208,7 +208,7 @@ class CreateUserRoles extends GetView<DashboardController> {
                         'Loading access modules...',
                         style: TextStyle(
                           fontSize: SizeConfig.blockSizeHorizontal * 1.1,
-                          color: Colors.grey.shade600,
+                          color: AppColor.fontColorGrey,
                         ),
                       ),
                     ],
@@ -228,14 +228,14 @@ class CreateUserRoles extends GetView<DashboardController> {
                       Icon(
                         Icons.info_outline,
                         size: SizeConfig.blockSizeHorizontal * 4,
-                        color: Colors.grey.shade400,
+                        color: AppColor.lightGrey,
                       ),
                       SizedBox(height: SizeConfig.blockSizeVertical * 1),
                       Text(
                         'No access modules available',
                         style: TextStyle(
                           fontSize: SizeConfig.blockSizeHorizontal * 1.2,
-                          color: Colors.grey.shade600,
+                          color: AppColor.fontColorGrey,
                         ),
                       ),
                       SizedBox(height: SizeConfig.blockSizeVertical * 0.5),
@@ -293,13 +293,13 @@ class CreateUserRoles extends GetView<DashboardController> {
       labelStyle: TextStyle(
         fontSize: SizeConfig.blockSizeHorizontal * 1.1,
         fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-        color: isSelected ? AppColor.cPrimaryButtonColor : Colors.grey.shade700,
+        color: isSelected ? AppColor.cPrimaryButtonColor : AppColor.fontColorGrey,
       ),
-      backgroundColor: Colors.white,
+      backgroundColor: AppColor.whiteColor,
       selectedColor: AppColor.cPrimaryButtonColor.withOpacity(0.1),
       checkmarkColor: AppColor.cPrimaryButtonColor,
       side: BorderSide(
-        color: isSelected ? AppColor.cPrimaryButtonColor : Colors.grey.shade300,
+        color: isSelected ? AppColor.cPrimaryButtonColor : AppColor.divColor,
         width: isSelected ? 2 : 1,
       ),
       padding: EdgeInsets.symmetric(
@@ -322,8 +322,8 @@ class CreateUserRoles extends GetView<DashboardController> {
             Get.back();
           },
           style: OutlinedButton.styleFrom(
-            foregroundColor: Colors.grey.shade700,
-            side: BorderSide(color: Colors.grey.shade300),
+            foregroundColor: AppColor.fontColorGrey,
+            side: BorderSide(color: AppColor.divColor),
             padding: EdgeInsets.symmetric(
               horizontal: SizeConfig.blockSizeHorizontal * 3,
               vertical: SizeConfig.blockSizeVertical * 1.5,
@@ -348,7 +348,7 @@ class CreateUserRoles extends GetView<DashboardController> {
             height: SizeConfig.blockSizeHorizontal * 1.5,
             child: CircularProgressIndicator(
               strokeWidth: 2,
-              color: Colors.white,
+              color: AppColor.buttonTextWhite,
             ),
           )
               : Icon(
@@ -361,7 +361,7 @@ class CreateUserRoles extends GetView<DashboardController> {
           ),
           style: ElevatedButton.styleFrom(
             backgroundColor: AppColor.cPrimaryButtonColor,
-            foregroundColor: Colors.white,
+            foregroundColor: AppColor.buttonTextWhite,
             padding: EdgeInsets.symmetric(
               horizontal: SizeConfig.blockSizeHorizontal * 3,
               vertical: SizeConfig.blockSizeVertical * 1.5,
