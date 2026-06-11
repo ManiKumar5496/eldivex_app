@@ -11,6 +11,7 @@ import '../../../widgets/dropdown_common.dart';
 import '../../../widgets/helper_ui.dart';
 import '../controllers/client_users_controller.dart';
 import '../models/client_user_model.dart';
+import '../../client_portal/views/client_portal_link_card.dart';
 
 class ManageClientUsers extends GetView<ClientUsersController> {
   const ManageClientUsers({super.key});
@@ -28,6 +29,8 @@ class ManageClientUsers extends GetView<ClientUsersController> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildHeader(),
+            SizedBox(height: SizeConfig.spacingMD),
+            const ClientPortalLinkCard(),
             SizedBox(height: SizeConfig.spacingLG),
             _buildSearchBar(),
             SizedBox(height: SizeConfig.spacingLG),

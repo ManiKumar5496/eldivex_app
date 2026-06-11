@@ -28,6 +28,40 @@ class EldivexAdmin extends StatelessWidget {
   const EldivexAdmin({super.key});
 
   String _getInitialRoute() {
+    // Caregiver portal: a shared link like `…/#/hp?org_id=<id>` (or `?org=<slug>`)
+    // lands here. The app uses Flutter web hash routing, so the real route+query
+    // live in the URL fragment — parse that (falling back to the path for
+    // path-strategy/local cases). We stash org_id / org slug so the login screen
+    // can resolve the organisation, then route into the portal.
+    final frag = Uri.base.fragment; // e.g. "/hp?org_id=3"
+    final loc = frag.isNotEmpty ? Uri.parse(frag) : Uri.base;
+    if (loc.path.startsWith('/hp')) {
+      final orgId = loc.queryParameters['org_id'];
+      final orgSlug = loc.queryParameters['org'];
+      if (orgId != null && orgId.isNotEmpty) {
+        box.write('hp_org_id_param', int.tryParse(orgId));
+      }
+      if (orgSlug != null && orgSlug.isNotEmpty) {
+        box.write('hp_org_slug', orgSlug);
+      }
+      final hpToken = box.read("hp_token") ?? "";
+      return hpToken.toString().isNotEmpty ? Routes.HP_HOME : Routes.HP_LOGIN;
+    }
+
+    // Client portal: shared link `…/#/client?org_id=<id>` (or `?org=<slug>`).
+    if (loc.path.startsWith('/client')) {
+      final orgId = loc.queryParameters['org_id'];
+      final orgSlug = loc.queryParameters['org'];
+      if (orgId != null && orgId.isNotEmpty) {
+        box.write('client_org_id_param', int.tryParse(orgId));
+      }
+      if (orgSlug != null && orgSlug.isNotEmpty) {
+        box.write('client_org_slug', orgSlug);
+      }
+      final clientToken = box.read("client_token") ?? "";
+      return clientToken.toString().isNotEmpty ? Routes.CLIENT_HOME : Routes.CLIENT_LOGIN;
+    }
+
     final token = box.read("user_token") ?? "";
     final roleId = box.read("role_id") ?? 0;
     if (token.toString().isNotEmpty && roleId > 0) {

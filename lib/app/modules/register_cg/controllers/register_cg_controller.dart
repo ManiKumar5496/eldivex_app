@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import 'package:file_picker/file_picker.dart';
 import 'package:get/get.dart';
 import 'package:flutter/material.dart';
@@ -69,6 +67,10 @@ class RegisterCgController extends GetxController {
   RxBool isTermsAccepted = false.obs;
   RxBool isPrivacyAccepted = false.obs;
   RxBool isMarkCgAttendanceLoading = false.obs;
+  // hpRegIds whose attendance request is currently in flight (per-row spinner).
+  final RxSet<int> markingHpIds = <int>{}.obs;
+  // True while a "Submit All" batch request is running.
+  RxBool isSubmittingAttendanceBatch = false.obs;
   RxBool isAttendanceListLoading = false.obs;
   RxList<dynamic> attendanceList = <dynamic>[].obs;
   final RxMap<int, Map<String, dynamic>> attendanceDraft = <int, Map<String, dynamic>>{}.obs;
@@ -247,6 +249,9 @@ class RegisterCgController extends GetxController {
         for (final hp in result) {
           final regId = hp.hpRegId;
           if (regId == null || regId == 0) continue;
+          // Only map HPs with a real booking id. Attendance is FK-bound to a
+          // booking, so HPs without one must not surface in the mark list.
+          if (hp.bkngId <= 0) continue;
           activeHpBookingIdMap[regId] = hp.bkngId;
           activeHpShiftMap[regId] = {
             'in_time': _trimToHHMM(hp.inTime),
@@ -544,31 +549,32 @@ class RegisterCgController extends GetxController {
     TimeOfDay? checkOut,
     String notes = '',
   }) async {
-    isMarkCgAttendanceLoading.value = true;
-
-    double workingHours = 0.0;
-    if (checkIn != null && checkOut != null) {
-      final inMin  = checkIn.hour * 60  + checkIn.minute;
-      final outMin = checkOut.hour * 60 + checkOut.minute;
-      workingHours = ((outMin - inMin) / 60.0).clamp(0.0, 24.0);
+    // Guard: attendance is tied to a real booking via an FK on the backend.
+    // Sending booking_id=0 (no active assignment) triggers a server-side FK
+    // violation, so block it here with a clear message instead.
+    if (bookingId <= 0) {
+      HelperUi.showToast(
+          message:
+              'This HP has no active booking assigned — attendance cannot be marked.',
+          backgroundColor: Colors.red);
+      return;
     }
 
-    final attDetails = {
-      'check_in':      checkIn  != null ? _fmtTime(checkIn)  : null,
-      'check_out':     checkOut != null ? _fmtTime(checkOut) : null,
-      'status':        status,
-      'shift_type':    shiftType,
-      'working_hours': workingHours,
-      'notes':         notes,
-    };
+    final hpIdInt = int.tryParse(cgId) ?? 0;
+    isMarkCgAttendanceLoading.value = true;
+    if (hpIdInt > 0) markingHpIds.add(hpIdInt);
 
-    final body = <String, dynamic>{
-      'booking_id':  bookingId == 0 ? '0' : bookingId.toString(),
-      'inv_id':      invoiceId == 0 ? '0' : invoiceId.toString(),
-      'from_date':   DateFormat('yyyy-MM-dd').format(attendanceDate),
-      'att_details': jsonEncode(attDetails),
-      'hp_id':       cgId,
-    };
+    final body = buildAttendanceRecord(
+      bookingId:      bookingId,
+      attendanceDate: attendanceDate,
+      cgId:           cgId,
+      invoiceId:      invoiceId,
+      status:         status,
+      shiftType:      shiftType,
+      checkIn:        checkIn,
+      checkOut:       checkOut,
+      notes:          notes,
+    );
 
     try {
       final resp = await apiService.postRaw(ApiConstants.markCgAttendance, body);
@@ -587,6 +593,71 @@ class RegisterCgController extends GetxController {
           backgroundColor: Colors.red);
     } finally {
       isMarkCgAttendanceLoading.value = false;
+      markingHpIds.remove(hpIdInt);
+    }
+  }
+
+  /// Builds one attendance record payload. Working hours are computed
+  /// server-side, so they are intentionally not sent.
+  Map<String, dynamic> buildAttendanceRecord({
+    required int bookingId,
+    required DateTime attendanceDate,
+    required String cgId,
+    required int invoiceId,
+    required String status,
+    required String shiftType,
+    TimeOfDay? checkIn,
+    TimeOfDay? checkOut,
+    String notes = '',
+  }) {
+    return <String, dynamic>{
+      'booking_id': bookingId.toString(),
+      'inv_id':     invoiceId > 0 ? invoiceId.toString() : null,
+      'hp_id':      cgId,
+      'att_date':   DateFormat('yyyy-MM-dd').format(attendanceDate),
+      'from_date':  DateFormat('yyyy-MM-dd').format(attendanceDate), // legacy
+      'status':     status,
+      'shift_type': shiftType,
+      'check_in':   checkIn  != null ? _fmtTime(checkIn)  : null,
+      'check_out':  checkOut != null ? _fmtTime(checkOut) : null,
+      'notes':      notes,
+    };
+  }
+
+  /// Submits many attendance records in a single request. Returns the number
+  /// saved; per-record failures are surfaced via a toast.
+  Future<int> submitAttendanceBatch(List<Map<String, dynamic>> records) async {
+    if (records.isEmpty) return 0;
+    isSubmittingAttendanceBatch.value = true;
+    try {
+      final resp = await apiService.postRaw(
+        ApiConstants.markCgAttendanceBatch,
+        {'records': records},
+      );
+      final saved  = (resp?.data?['saved'] as num?)?.toInt() ?? 0;
+      final failed = (resp?.data?['failed'] as List?) ?? const [];
+
+      if (resp != null && (resp.statusCode == 200 || resp.statusCode == 201)) {
+        HelperUi.showToast(
+          message: failed.isEmpty
+              ? 'Attendance saved for $saved HP(s)'
+              : 'Saved $saved, ${failed.length} failed',
+          backgroundColor: failed.isEmpty ? null : Colors.orange,
+        );
+        getAttendanceListFromApi();
+      } else {
+        final msg = resp?.data?['message'] ?? 'Unknown error';
+        HelperUi.showToast(message: 'Failed: $msg', backgroundColor: Colors.red);
+      }
+      return saved;
+    } catch (e) {
+      debugPrint('submitAttendanceBatch error: $e');
+      HelperUi.showToast(
+          message: 'Batch submission failed. Check logs.',
+          backgroundColor: Colors.red);
+      return 0;
+    } finally {
+      isSubmittingAttendanceBatch.value = false;
     }
   }
 

@@ -12,6 +12,7 @@ import '../../../core/values/size_configue.dart';
 import '../../../widgets/helper_ui.dart';
 import '../controllers/register_cg_controller.dart';
 import '../models/get_cg_details_model.dart';
+import '../../hp_portal/views/hp_portal_link_card.dart';
 
 class CgReviewDetailScreen extends StatefulWidget {
   final GetCgDetails cgDetails;
@@ -54,6 +55,12 @@ class _CgReviewDetailScreenState extends State<CgReviewDetailScreen> {
                 children: [
                   _buildHeaderCard(deviceType),
                   SizedBox(height: isMobile ? 16 : (isTablet ? 20 : SizeConfig.blockSizeVertical * 2.5)),
+                  // Caregiver portal login link — only for login-eligible HPs
+                  // (2=Approved, 5=ActiveBooking, 6=OTPBooking).
+                  if ([2, 5, 6].contains(cgDetails.hpRegStatus)) ...[
+                    const HpPortalLinkCard(),
+                    SizedBox(height: isMobile ? 16 : (isTablet ? 20 : SizeConfig.blockSizeVertical * 2.5)),
+                  ],
                   _buildMainContent(deviceType),
                 ],
               ),

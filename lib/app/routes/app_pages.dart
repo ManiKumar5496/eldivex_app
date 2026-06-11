@@ -40,6 +40,27 @@ import '../modules/register_cg/bindings/hp_payouts_binding.dart';
 import '../modules/register_cg/views/hp_payouts_view.dart';
 import '../modules/appearance/bindings/appearance_binding.dart';
 import '../modules/appearance/views/appearance_view.dart';
+// ── Caregiver (Health Professional) self-service portal ──────────────────────
+import '../middleware/hp_auth_middleware.dart';
+import '../modules/hp_portal/bindings/hp_auth_binding.dart';
+import '../modules/hp_portal/bindings/hp_binding.dart';
+import '../modules/hp_portal/views/hp_login_view.dart';
+import '../modules/hp_portal/views/hp_shell_view.dart';
+import '../modules/hp_portal/views/hp_booking_detail_view.dart';
+import '../modules/hp_portal/views/hp_payslips_view.dart';
+import '../modules/hp_portal/views/hp_profile_view.dart';
+import '../modules/hp_portal/views/hp_support_view.dart';
+import '../modules/hp_portal/views/hp_leave_view.dart';
+// ── Client (customer) self-service portal ────────────────────────────────────
+import '../middleware/client_auth_middleware.dart';
+import '../modules/client_portal/bindings/client_auth_binding.dart';
+import '../modules/client_portal/bindings/client_binding.dart';
+import '../modules/client_portal/views/client_login_view.dart';
+import '../modules/client_portal/views/client_shell_view.dart';
+import '../modules/client_portal/views/client_booking_detail_view.dart';
+import '../modules/client_portal/views/client_support_view.dart';
+import '../modules/client_portal/views/client_profile_view.dart';
+import '../modules/client_portal/views/client_patients_view.dart';
 // ── Financial Module ────────────────────────────────────────────────────────
 import '../modules/accounts/bindings/write_off_binding.dart';
 import '../modules/accounts/bindings/refund_binding.dart';
@@ -311,6 +332,88 @@ class AppPages {
       name: Routes.BOOKING_OUTSTANDING,
       page: () => const BookingOutstandingDetail(),
       binding: OutstandingBinding(),
+    ),
+
+    // ── Caregiver (Health Professional) self-service portal ──────────────────
+    GetPage(
+      name: Routes.HP_LOGIN,
+      page: () => const HpLoginView(),
+      binding: HpAuthBinding(),
+      middlewares: [HpLoginGuardMiddleware()],
+    ),
+    GetPage(
+      name: Routes.HP_HOME,
+      page: () => const HpShellView(),
+      binding: HpBinding(),
+      middlewares: [HpAuthMiddleware()],
+    ),
+    GetPage(
+      name: Routes.HP_BOOKING_DETAIL,
+      page: () => const HpBookingDetailView(),
+      binding: HpBinding(),
+      middlewares: [HpAuthMiddleware()],
+    ),
+    GetPage(
+      name: Routes.HP_PAYSLIPS,
+      page: () => const HpPayslipsView(),
+      binding: HpBinding(),
+      middlewares: [HpAuthMiddleware()],
+    ),
+    GetPage(
+      name: Routes.HP_PROFILE,
+      page: () => const HpProfileView(),
+      binding: HpBinding(),
+      middlewares: [HpAuthMiddleware()],
+    ),
+    GetPage(
+      name: Routes.HP_SUPPORT,
+      page: () => const HpSupportView(),
+      binding: HpBinding(),
+      middlewares: [HpAuthMiddleware()],
+    ),
+    GetPage(
+      name: Routes.HP_LEAVE,
+      page: () => const HpLeaveView(),
+      binding: HpBinding(),
+      middlewares: [HpAuthMiddleware()],
+    ),
+
+    // ── Client (customer) self-service portal ────────────────────────────────
+    GetPage(
+      name: Routes.CLIENT_LOGIN,
+      page: () => const ClientLoginView(),
+      binding: ClientAuthBinding(),
+      middlewares: [ClientLoginGuardMiddleware()],
+    ),
+    GetPage(
+      name: Routes.CLIENT_HOME,
+      page: () => const ClientShellView(),
+      binding: ClientBinding(),
+      middlewares: [ClientAuthMiddleware()],
+    ),
+    GetPage(
+      name: Routes.CLIENT_BOOKING_DETAIL,
+      page: () => const ClientBookingDetailView(),
+      binding: ClientBinding(),
+      middlewares: [ClientAuthMiddleware()],
+    ),
+    GetPage(
+      name: Routes.CLIENT_SUPPORT,
+      page: () => const ClientSupportView(),
+      binding: ClientBinding(),
+      middlewares: [ClientAuthMiddleware()],
+    ),
+    GetPage(
+      name: Routes.CLIENT_PROFILE,
+      page: () => const ClientProfileView(),
+      binding: ClientBinding(),
+      middlewares: [ClientAuthMiddleware()],
+    ),
+    GetPage(
+      name: Routes.CLIENT_PATIENTS,
+      page: () => const ClientPatientsView(),
+      binding: ClientBinding(),
+      middlewares: [ClientAuthMiddleware()],
     ),
 
   ];

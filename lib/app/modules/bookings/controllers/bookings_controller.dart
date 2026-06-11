@@ -416,19 +416,15 @@ class BookingsController extends GetxController {
 
   void _calculateAgeFromYob() {
     final yobText = yearOfBirthController.text.trim();
-    if (yobText.length != 4) {
-      ageController.text = '';
-      ageDisplay.value = '';
-      return;
-    }
+    // Only auto-calculate when a complete, valid 4-digit year is present.
+    // Otherwise leave the age field untouched so a populated or manually-typed
+    // age is never wiped out by an incomplete YOB.
+    if (yobText.length != 4) return;
     final yob = int.tryParse(yobText);
     if (yob != null && yob > 1900 && yob <= DateTime.now().year) {
       final age = (DateTime.now().year - yob).toString();
       ageController.text = age;
       ageDisplay.value = age;
-    } else {
-      ageController.text = '';
-      ageDisplay.value = '';
     }
   }
 
@@ -642,6 +638,19 @@ class BookingsController extends GetxController {
     careManagerController.text = booking.hpManager?.toString() ?? '';
     finalRateController.text = booking.baseRate;
     baseRate.value = booking.baseRate;
+
+    // ── Restore previously persisted discount / final rate so the price
+    //    section reflects what was saved instead of resetting to base rate. ──
+    final baseRateValue = double.tryParse(booking.baseRate) ?? 0.0;
+    final persistedFinalRate = booking.finalRate ?? baseRateValue;
+    final restoredDiscount =
+        (baseRateValue - persistedFinalRate).clamp(0.0, baseRateValue);
+    appliedDiscountValue.value = restoredDiscount;
+    appliedDiscountPercentage.value =
+        baseRateValue > 0 ? (restoredDiscount / baseRateValue) * 100 : 0.0;
+    computedFinalRate.value = persistedFinalRate;
+    finalDiscount.value = restoredDiscount.toStringAsFixed(2);
+    cuponId.value = booking.couponDiscountId?.toString() ?? '';
 
     // ── Dates ─────────────────────────────────
     startDate.value = booking.serviceStartDate;
@@ -1054,9 +1063,8 @@ class BookingsController extends GetxController {
       'to_time': serviceEndTime.value != null
           ? fmtTime(serviceEndTime.value!)
           : '00:00:00',
-      'inv_raised_amnt': finalRateController.text.isNotEmpty
-          ? finalRateController.text
-          : '0',
+      'inv_raised_amnt':
+          effectiveFinalRate > 0 ? effectiveFinalRate.toStringAsFixed(2) : '0',
       'inv_date': DateFormat('yyyy-MM-dd').format(DateTime.now()),
       'hp_id': activeHPs.isNotEmpty
           ? activeHPs.first.hpUniqueId.toString()
@@ -1198,8 +1206,10 @@ class BookingsController extends GetxController {
       'service_end_time': fmtTime(serviceEndTime),
       'address_id': addressId.toString(),
       'booking_id': bookingId.toString(),
-      'final_discount_applied_value': finalDiscount.value.toString(),
-      'final_rate': finalRateController.text,
+      'base_rate': finalRateController.text,
+      'final_discount_applied_value': appliedDiscountValue.value.toStringAsFixed(2),
+      // FIX: send the discount-adjusted rate, not the raw base rate.
+      'final_rate': effectiveFinalRate.toStringAsFixed(2),
       'coupon_discount_id': cuponId.value.isNotEmpty ? cuponId.value : null,
     };
 
@@ -1295,7 +1305,9 @@ class BookingsController extends GetxController {
     _syncDisplayControllers();
   }
 
-  // FIX: applyCoupon now also updates stable display controllers
+  // FIX: applyCoupon now also updates stable display controllers AND the
+  // persistence-bound fields (cuponId / finalDiscount) so the selected coupon
+  // actually reaches the backend instead of being discarded on save.
   void applyCoupon(CouponModel? coupon) {
     selectedCoupon.value = coupon;
 
@@ -1305,6 +1317,8 @@ class BookingsController extends GetxController {
       appliedDiscountPercentage.value = 0.0;
       appliedDiscountValue.value = 0.0;
       computedFinalRate.value = base;
+      cuponId.value = '';
+      finalDiscount.value = '0.00';
       _syncDisplayControllers();
       return;
     }
@@ -1322,9 +1336,24 @@ class BookingsController extends GetxController {
     appliedDiscountPercentage.value = discountPercent;
     appliedDiscountValue.value = discountValue;
     computedFinalRate.value = base - discountValue;
+    // FIX: persist the coupon id and discount value so updateBooking /
+    // updateBookingsTotal send them to the API.
+    cuponId.value = coupon.couponId > 0 ? coupon.couponId.toString() : '';
+    finalDiscount.value = discountValue.toStringAsFixed(2);
 
     // FIX: sync display controllers so UI updates without inline controller creation
     _syncDisplayControllers();
+  }
+
+  // ─────────────────────────────────────────────
+  // Effective final rate = base rate − applied discount (never below 0).
+  // Computed fresh from the current base-rate field so it stays correct even
+  // if the base rate was edited after a coupon was applied.
+  // ─────────────────────────────────────────────
+  double get effectiveFinalRate {
+    final base = double.tryParse(finalRateController.text) ?? 0.0;
+    final discounted = base - appliedDiscountValue.value;
+    return discounted < 0 ? 0.0 : discounted;
   }
 
   // ─────────────────────────────────────────────
@@ -1455,7 +1484,10 @@ class BookingsController extends GetxController {
           ? DateFormat('yyyy-MM-dd').format(holdEndDate.value!)
           : null,
       'base_rate': baseRate.value.toString(),
-      'final_rate': finalRateController.text,
+      // FIX: persist the discount-adjusted final rate and coupon selection.
+      'final_rate': effectiveFinalRate.toStringAsFixed(2),
+      'final_discount_applied_value': appliedDiscountValue.value.toStringAsFixed(2),
+      'coupon_discount_id': cuponId.value.isNotEmpty ? cuponId.value : null,
       'patient_conditions_others': medicalConditionController.text,
       'spl_care_requirements': specialRequirementsController.text,
       'address_id': selectedAddressId.value.toString(),
@@ -1470,9 +1502,13 @@ class BookingsController extends GetxController {
         .putRaw(ApiConstants.updateBookingsEditApi, body)
         .then((response) {
       if (response != null) {
-        Get.back();
-        Get.back();
+        // FIX: do NOT pop the navigation stack here. Callers (dialogs) close
+        // themselves before calling this, and the inline "Update" buttons must
+        // keep the user on the current screen. Just refresh the data.
         getBookingsFromApi();
+        if (bookingsByBookingId.value.isNotEmpty) {
+          getBookingsFromApiByBkId(bookingId);
+        }
         HelperUi.showToast(message: 'Booking updated successfully');
       } else {
         HelperUi.showToast(message: 'Failed to update booking');

@@ -16,6 +16,21 @@ class ShiftBreakdown {
   String get label => shiftType == 'live_in' ? 'Live-In' : 'Live-Out';
 }
 
+/// One hostel-stay deduction line within a CG's pay period.
+class HostelDeductionLine {
+  final String hostelName;
+  final int nights;
+  final double ratePerDay;
+  final double amount;
+
+  const HostelDeductionLine({
+    required this.hostelName,
+    required this.nights,
+    required this.ratePerDay,
+    required this.amount,
+  });
+}
+
 class CgPaymentSummary {
   final int hpId;
   final String hpName;
@@ -29,6 +44,8 @@ class CgPaymentSummary {
   final int leaveDays;
   final List<ShiftBreakdown> breakdowns;
   final double totalPay;
+  final List<HostelDeductionLine> hostelLines;
+  final double hostelDeduction;
 
   const CgPaymentSummary({
     required this.hpId,
@@ -43,5 +60,10 @@ class CgPaymentSummary {
     required this.leaveDays,
     required this.breakdowns,
     required this.totalPay,
+    this.hostelLines = const [],
+    this.hostelDeduction = 0.0,
   });
+
+  /// Gross attendance pay minus hostel deductions.
+  double get netPay => totalPay - hostelDeduction;
 }

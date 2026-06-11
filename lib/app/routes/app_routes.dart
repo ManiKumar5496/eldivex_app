@@ -29,6 +29,23 @@ abstract class Routes {
   static const settingsOtpCoupon  = _Paths.settingsOtpCoupon;
   static const appearance         = _Paths.appearance;
 
+  // ── Caregiver (Health Professional) self-service portal ────────────────────
+  static const HP_LOGIN        = _Paths.HP_LOGIN;
+  static const HP_HOME         = _Paths.HP_HOME;
+  static const HP_BOOKING_DETAIL = _Paths.HP_BOOKING_DETAIL;
+  static const HP_PAYSLIPS     = _Paths.HP_PAYSLIPS;
+  static const HP_PROFILE      = _Paths.HP_PROFILE;
+  static const HP_SUPPORT      = _Paths.HP_SUPPORT;
+  static const HP_LEAVE        = _Paths.HP_LEAVE;
+
+  // ── Client (customer) self-service portal ──────────────────────────────────
+  static const CLIENT_LOGIN          = _Paths.CLIENT_LOGIN;
+  static const CLIENT_HOME           = _Paths.CLIENT_HOME;
+  static const CLIENT_BOOKING_DETAIL = _Paths.CLIENT_BOOKING_DETAIL;
+  static const CLIENT_SUPPORT        = _Paths.CLIENT_SUPPORT;
+  static const CLIENT_PROFILE        = _Paths.CLIENT_PROFILE;
+  static const CLIENT_PATIENTS       = _Paths.CLIENT_PATIENTS;
+
   // ── Financial Module ─────────────────────────────────────────────────────────
   static const String WRITE_OFF_LIST       = '/accounts/write-off';
   static const String CREATE_WRITE_OFF     = '/accounts/write-off/create';
@@ -75,4 +92,21 @@ abstract class _Paths {
   static const hpPayouts          = '/hp-payouts';
   static const settingsOtpCoupon  = '/settings/otp-coupon';
   static const appearance         = '/settings/appearance';
+
+  // ── Caregiver (Health Professional) self-service portal ────────────────────
+  static const HP_LOGIN          = '/hp/login';
+  static const HP_HOME           = '/hp';
+  static const HP_BOOKING_DETAIL = '/hp/booking';
+  static const HP_PAYSLIPS       = '/hp/payslips';
+  static const HP_PROFILE        = '/hp/profile';
+  static const HP_SUPPORT        = '/hp/support';
+  static const HP_LEAVE          = '/hp/leave';
+
+  // ── Client (customer) self-service portal ──────────────────────────────────
+  static const CLIENT_LOGIN          = '/client/login';
+  static const CLIENT_HOME           = '/client';
+  static const CLIENT_BOOKING_DETAIL = '/client/booking';
+  static const CLIENT_SUPPORT        = '/client/support';
+  static const CLIENT_PROFILE        = '/client/profile';
+  static const CLIENT_PATIENTS       = '/client/patients';
 }

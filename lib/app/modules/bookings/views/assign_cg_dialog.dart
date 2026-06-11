@@ -190,25 +190,29 @@ class AssignCgDialog extends StatelessWidget {
                 _infoCell(
                   icon: Icons.location_city_outlined,
                   label: 'City',
-                  value: booking.branchId?.toString() ?? 'Delhi',
+                  value: (booking.branchCity as String?)?.isNotEmpty == true
+                      ? booking.branchCity
+                      : (booking.city ?? '-'),
                 ),
                 _verticalDivider(),
                 _infoCell(
                   icon: Icons.wc_outlined,
                   label: 'Patient Gender',
-                  value: booking.patientGender?.toString() ?? '-',
+                  value: _genderLabel(booking.patientGender),
                 ),
                 _verticalDivider(),
                 _infoCell(
                   icon: Icons.monitor_weight_outlined,
                   label: 'Patient Weight',
-                  value: booking.branchId?.toString() ?? '-',
+                  value: (booking.patientWeight as String?)?.isNotEmpty == true
+                      ? '${booking.patientWeight} kg'
+                      : '-',
                 ),
                 _verticalDivider(),
                 _infoCell(
-                  icon: Icons.translate_outlined,
-                  label: 'Languages',
-                  value: booking.serviceName ?? '-',
+                  icon: Icons.medical_services_outlined,
+                  label: 'Service Type',
+                  value: booking.serviceTypeName ?? booking.serviceName ?? '-',
                 ),
               ],
             ),
@@ -216,6 +220,19 @@ class AssignCgDialog extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  String _genderLabel(dynamic gender) {
+    switch (gender) {
+      case 1:
+        return 'Male';
+      case 2:
+        return 'Female';
+      case 3:
+        return 'Other';
+      default:
+        return '-';
+    }
   }
 
   Widget _infoCell({
@@ -1203,19 +1220,10 @@ class AssignCgDialog extends StatelessWidget {
   // ═══════════════════════════════════════════════════════════════
 
   void _assignCg(int cgId) {
+    // assignCgToBooking handles success/error toasts AND closes the dialog on
+    // success. Do not pop or show a success snackbar here — doing so popped the
+    // dialog early and reported success even when the request later failed.
     bookingController.assignCgToBooking(cgId: cgId, bookingId: bookingId);
-    Get.back();
-    Get.snackbar(
-      'Success',
-      'Health professional assigned successfully',
-      snackPosition: SnackPosition.TOP,
-      backgroundColor: const Color(0xFFDCFCE7),
-      colorText: const Color(0xFF16A34A),
-      icon: const Icon(Icons.check_circle_outline,
-          color: Color(0xFF16A34A)),
-      borderRadius: 8,
-      margin: EdgeInsets.all(SizeConfig.spacingMD),
-    );
   }
 
   Widget _genderPill(String gender) {

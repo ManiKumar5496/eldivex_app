@@ -7,8 +7,8 @@ class ApiConstants {
   ///   Production : flutter build web --dart-define=API_BASE_URL=http://65.2.74.114:4000/api
   static const String baseURL = String.fromEnvironment(
     'API_BASE_URL',
-    defaultValue: 'http://localhost:4000/api',
-    //defaultValue: 'https://eldivexbe-production.up.railway.app/api',
+    //defaultValue: 'http://localhost:4000/api',
+    defaultValue: 'https://eldivexbe-production.up.railway.app/api',
   );
 
   ///End point
@@ -43,6 +43,7 @@ class ApiConstants {
   static const String holdBookingApi = '$baseURL/holdBooking';
   static const String cancelBookingApi = '$baseURL/cancelUserService';
   static const String markCgAttendance = '$baseURL/markAttendance';
+  static const String markCgAttendanceBatch = '$baseURL/markAttendanceBatch';
   static const String addClientUser = '$baseURL/login';
   static const String updateAddressApi = '$baseURL/updateAddress';
   static const String updatePatientApi = '$baseURL/updatePatient';
@@ -248,6 +249,38 @@ class ApiConstants {
   static const String createPayout      = '$baseURL/createPayout';
   static const String markPayoutPaid    = '$baseURL/markPayoutPaid';
   static const String getPayoutHistory  = '$baseURL/getPayoutHistory';
+
+  // ── Hostel Module ──────────────────────────────────────────────────────────
+  static const String createHostel        = '$baseURL/createHostel';
+  static String getHostelById(int id)     => '$baseURL/getHostelById/$id';
+  static String updateHostel(int id)      => '$baseURL/updateHostel/$id';
+  static String toggleHostelStatus(int id)=> '$baseURL/toggleHostelStatus/$id';
+  static const String createHostelStay    = '$baseURL/createHostelStay';
+  static String closeHostelStay(int id)   => '$baseURL/closeHostelStay/$id';
+  static const String createHostelSettlement   = '$baseURL/createHostelSettlement';
+  static String markHostelSettlementPaid(int id) => '$baseURL/markHostelSettlementPaid/$id';
+
+  static String getHostels({String? gender, int? branchId, String? search}) {
+    final params = <String>[];
+    if (gender != null && gender.isNotEmpty) params.add('gender=$gender');
+    if (branchId != null) params.add('branch_id=$branchId');
+    if (search != null && search.isNotEmpty) params.add('search=${Uri.encodeComponent(search)}');
+    return params.isEmpty ? '$baseURL/getHostels' : '$baseURL/getHostels?${params.join('&')}';
+  }
+
+  static String getHostelStays({int? hostelId, int? hpId, String? fromDate, String? toDate, String? status}) {
+    final params = <String>[];
+    if (hostelId != null) params.add('hostel_id=$hostelId');
+    if (hpId != null) params.add('hp_id=$hpId');
+    if (fromDate != null) params.add('from_date=$fromDate');
+    if (toDate != null) params.add('to_date=$toDate');
+    if (status != null) params.add('status=$status');
+    return params.isEmpty ? '$baseURL/getHostelStays' : '$baseURL/getHostelStays?${params.join('&')}';
+  }
+
+  static String getHostelSettlement({required int hostelId, required String periodFrom, required String periodTo}) {
+    return '$baseURL/getHostelSettlement?hostel_id=$hostelId&period_from=$periodFrom&period_to=$periodTo';
+  }
 
   // ── Phase 5 — Organisations & Subscriptions ────────────────────────────────
   static const String getPlans              = '$baseURL/getPlans';

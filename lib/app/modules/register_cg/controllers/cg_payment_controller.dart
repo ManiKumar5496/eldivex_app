@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../../../data/api_constant_url.dart';
 import '../../../data/base_api_services.dart';
 import '../../../widgets/helper_ui.dart';
+import '../../hostels/models/hostel_stay_model.dart';
 import '../models/attendance_model.dart';
 import '../models/cg_payment_summary.dart';
 import '../models/get_cg_details_model.dart';
@@ -23,6 +24,7 @@ class CgPaymentController extends GetxController {
   final periodToCtrl   = TextEditingController();
 
   RxList<AttendanceModel> periodAttendance = <AttendanceModel>[].obs;
+  RxList<HostelStayModel> periodHostelStays = <HostelStayModel>[].obs;
   Rx<CgPaymentSummary?> paymentSummary     = Rx<CgPaymentSummary?>(null);
 
   RxString paymentMode = 'Cash'.obs;
@@ -78,6 +80,7 @@ class CgPaymentController extends GetxController {
       if (response != null && response.statusCode == 200 && response.data is List) {
         periodAttendance.value =
             AttendanceModel.listFromJson(response.data as List<dynamic>);
+        await _fetchHostelStays();
         _calculatePaySummary();
       }
     } catch (e) {
@@ -86,6 +89,39 @@ class CgPaymentController extends GetxController {
     } finally {
       isLoading.value = false;
     }
+  }
+
+  /// Fetch hostel stays overlapping the selected period for this CG.
+  Future<void> _fetchHostelStays() async {
+    periodHostelStays.clear();
+    try {
+      final url = ApiConstants.getHostelStays(
+        hpId: int.tryParse(selectedCgId.value),
+        fromDate: periodFromCtrl.text.isEmpty ? null : periodFromCtrl.text,
+        toDate: periodToCtrl.text.isEmpty ? null : periodToCtrl.text,
+      );
+      final response = await _api.getRaw(url);
+      if (response != null && response.statusCode == 200 && response.data is List) {
+        periodHostelStays.value =
+            HostelStayModel.listFromJson(response.data as List<dynamic>);
+      }
+    } catch (e) {
+      debugPrint('[CgPayment] _fetchHostelStays error: $e');
+    }
+  }
+
+  /// Nights of [stay] that fall inside the selected pay period. Open stays
+  /// (no check-out) are billed up to the period end.
+  int _nightsInPeriod(HostelStayModel stay, DateTime periodFrom, DateTime periodTo) {
+    final checkIn = DateTime.tryParse(stay.checkInDate);
+    if (checkIn == null) return 0;
+    final checkOut = stay.isOpen ? periodTo : (DateTime.tryParse(stay.checkOutDate!) ?? periodTo);
+    final start = checkIn.isAfter(periodFrom) ? checkIn : periodFrom;
+    final end = checkOut.isBefore(periodTo) ? checkOut : periodTo;
+    final nights = DateTime(end.year, end.month, end.day)
+        .difference(DateTime(start.year, start.month, start.day))
+        .inDays;
+    return nights < 0 ? 0 : nights;
   }
 
   void _calculatePaySummary() {
@@ -142,6 +178,26 @@ class CgPaymentController extends GetxController {
       ));
     }
 
+    // ── Hostel deductions (clamped to the pay period) ──────────────────────────
+    final hostelLines = <HostelDeductionLine>[];
+    double hostelDeduction = 0.0;
+    final periodFrom = DateTime.tryParse(periodFromCtrl.text);
+    final periodTo = DateTime.tryParse(periodToCtrl.text);
+    if (periodFrom != null && periodTo != null) {
+      for (final stay in periodHostelStays) {
+        final nights = _nightsInPeriod(stay, periodFrom, periodTo);
+        if (nights <= 0) continue;
+        final amount = nights * stay.ratePerDay;
+        hostelDeduction += amount;
+        hostelLines.add(HostelDeductionLine(
+          hostelName:  stay.hostelName.isEmpty ? 'Hostel #${stay.hostelId}' : stay.hostelName,
+          nights:      nights,
+          ratePerDay:  stay.ratePerDay,
+          amount:      amount,
+        ));
+      }
+    }
+
     paymentSummary.value = CgPaymentSummary(
       hpId:        cg.hpRegId,
       hpName:      '${cg.hpRegFirstName} ${cg.hpRegLastName}'.trim(),
@@ -155,6 +211,8 @@ class CgPaymentController extends GetxController {
       leaveDays:   leaveDays,
       breakdowns:  breakdowns,
       totalPay:    liveInSubtotal + liveOutSubtotal,
+      hostelLines:     hostelLines,
+      hostelDeduction: hostelDeduction,
     );
   }
 
@@ -171,7 +229,9 @@ class CgPaymentController extends GetxController {
         'hp_unique_id': summary.hpId,
         'period_from':  summary.periodFrom,
         'period_to':    summary.periodTo,
-        'pay_amount':   summary.totalPay,
+        'pay_amount':   summary.netPay,
+        'gross_pay':    summary.totalPay,
+        'hostel_deduction': summary.hostelDeduction,
         'payment_mode': paymentMode.value,
       };
       final response = await _api.postRaw(ApiConstants.createPayout, body);

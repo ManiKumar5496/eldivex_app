@@ -437,20 +437,21 @@ class _CalculateTab extends GetView<CgPaymentController> {
                 ),
               )),
 
-          // Total row
+          // Gross pay row
           Container(
             padding:
                 const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             decoration: BoxDecoration(
               color: AppColor.cPrimaryButtonColor.withValues(alpha: 0.05),
-              borderRadius:
-                  const BorderRadius.vertical(bottom: Radius.circular(12)),
+              borderRadius: s.hostelDeduction > 0
+                  ? null
+                  : const BorderRadius.vertical(bottom: Radius.circular(12)),
             ),
             child: Row(
               children: [
                 Expanded(
                   flex: 8,
-                  child: Text('TOTAL PAY',
+                  child: Text(s.hostelDeduction > 0 ? 'GROSS PAY' : 'TOTAL PAY',
                       textAlign: TextAlign.right,
                       style: AppTextStyles.semiBold16
                           .copyWith(color: AppColor.fontColorGrey)),
@@ -468,6 +469,66 @@ class _CalculateTab extends GetView<CgPaymentController> {
               ],
             ),
           ),
+
+          // ── Hostel deductions (only when the CG stayed in a hostel) ──────────
+          if (s.hostelDeduction > 0) ...[
+            ...s.hostelLines.map((h) => Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  decoration: BoxDecoration(
+                    border: Border(top: BorderSide(color: AppColor.divColor)),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        flex: 8,
+                        child: Text(
+                          'Hostel: ${h.hostelName}  (${h.nights} nights × ₹${fmt.format(h.ratePerDay)})',
+                          textAlign: TextAlign.right,
+                          style: AppTextStyles.regular14black
+                              .copyWith(color: AppColor.fontColorGrey),
+                        ),
+                      ),
+                      Expanded(
+                        flex: 2,
+                        child: Text('− ₹${fmt.format(h.amount)}',
+                            style: AppTextStyles.regular14black
+                                .copyWith(color: AppColor.calenderRed, fontWeight: FontWeight.w600)),
+                      ),
+                    ],
+                  ),
+                )),
+
+            // Net pay row
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+              decoration: BoxDecoration(
+                color: AppColor.cPrimaryButtonColor.withValues(alpha: 0.12),
+                borderRadius:
+                    const BorderRadius.vertical(bottom: Radius.circular(12)),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    flex: 8,
+                    child: Text('NET PAY',
+                        textAlign: TextAlign.right,
+                        style: AppTextStyles.semiBold16
+                            .copyWith(color: AppColor.blackColor)),
+                  ),
+                  Expanded(
+                    flex: 2,
+                    child: Text(
+                      '₹${fmt.format(s.netPay)}',
+                      style: AppTextStyles.heading.copyWith(
+                        fontSize: 22,
+                        color: AppColor.cPrimaryButtonColor,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -588,7 +649,8 @@ class _CalculateTab extends GetView<CgPaymentController> {
               Text('Confirm Payout', style: AppTextStyles.semiBold18),
               const SizedBox(height: 8),
               Text(
-                'Generate ₹${fmt.format(s.totalPay)} payout for ${s.hpName}?\n'
+                'Generate ₹${fmt.format(s.netPay)} payout for ${s.hpName}?\n'
+                '${s.hostelDeduction > 0 ? 'Gross ₹${fmt.format(s.totalPay)} − hostel ₹${fmt.format(s.hostelDeduction)}\n' : ''}'
                 'Period: ${s.periodFrom} → ${s.periodTo}',
                 style: AppTextStyles.regular14Gre,
                 textAlign: TextAlign.center,

@@ -1,7 +1,11 @@
 import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart' show Colors;
+import 'package:get/get.dart' hide Response;
 import '../../main.dart';
+import '../routes/app_pages.dart';
+import '../widgets/helper_ui.dart';
 import 'api_constant_url.dart';
 
 /// Central HTTP service. All methods log 4xx/5xx responses so issues are
@@ -13,17 +17,90 @@ class ApiService {
       connectTimeout: const Duration(seconds: 60),
       receiveTimeout: const Duration(seconds: 60),
       headers: {
-        'authorization': "Bearer ${box.read("user_token")}",
+        'authorization': "Bearer ${ApiService.activeToken()}",
         "Content-Type": "application/json",
         "Accept": "application/json",
       },
     ),
   );
 
+  ApiService() {
+    _dio.interceptors.add(
+      InterceptorsWrapper(
+        onResponse: (response, handler) {
+          _handleOrgSuspended(response);
+          handler.next(response);
+        },
+        onError: (error, handler) {
+          _handleOrgSuspended(error.response);
+          handler.next(error);
+        },
+      ),
+    );
+  }
+
+  /// Debounce so a burst of parallel 403s triggers the logout only once.
+  static bool _handlingSuspension = false;
+
+  /// When the owner platform suspends this organisation, the backend rejects
+  /// every request with 403 {code: 'ORG_SUSPENDED'}. Clear the active session
+  /// and send the user back to its login screen with an explanation.
+  static void _handleOrgSuspended(Response? response) {
+    if (response == null || response.statusCode != 403) return;
+    final data = response.data;
+    if (data is! Map || data['code'] != 'ORG_SUSPENDED') return;
+    // Not logged in (e.g. a rejected login attempt) — the login screen shows
+    // the backend message itself; nothing to clear or redirect.
+    if (activeToken().isEmpty) return;
+    if (_handlingSuspension) return;
+    _handlingSuspension = true;
+
+    final session = box.read('active_session') ?? 'admin';
+    final String loginRoute;
+    if (session == 'hp') {
+      for (final k in ['hp_token', 'hp_id', 'hp_org_id', 'hp_name', 'active_session']) {
+        box.remove(k);
+      }
+      loginRoute = Routes.HP_LOGIN;
+    } else if (session == 'client') {
+      for (final k in ['client_token', 'client_id', 'client_org_id', 'client_name', 'active_session']) {
+        box.remove(k);
+      }
+      loginRoute = Routes.CLIENT_LOGIN;
+    } else {
+      for (final k in ['user_token', 'role_id', 'org_id', 'user', 'selected_page_index']) {
+        box.remove(k);
+      }
+      loginRoute = Routes.LOGIN;
+    }
+
+    Get.offAllNamed(loginRoute);
+    HelperUi.showToast(
+      message: data['message']?.toString() ??
+          "Your organisation's account has been suspended. Contact support.",
+      backgroundColor: Colors.red,
+    );
+    Future.delayed(const Duration(seconds: 3), () => _handlingSuspension = false);
+  }
+
+  /// Bearer token for the active session. The caregiver portal sets
+  /// `active_session = 'hp'` on login so its requests carry `hp_token`;
+  /// the admin app leaves it unset and keeps using `user_token`. This keeps the
+  /// two sessions isolated within the same app instance.
+  static String activeToken() {
+    final session = box.read('active_session') ?? 'admin';
+    final key = session == 'hp'
+        ? 'hp_token'
+        : session == 'client'
+            ? 'client_token'
+            : 'user_token';
+    return (box.read(key) ?? '').toString();
+  }
+
   // ── Shared helpers ──────────────────────────────────────────────────────────
 
   Map<String, String> get _authHeaders => {
-        'authorization': "Bearer ${box.read("user_token")}",
+        'authorization': "Bearer ${ApiService.activeToken()}",
         "Content-Type": "application/json",
       };
 
@@ -103,7 +180,11 @@ class ApiService {
     T Function(Map<String, dynamic>) fromJson,
   ) async {
     try {
-      final response = await _dio.post(endpoint, data: data);
+      final response = await _dio.post(
+        endpoint,
+        data: data,
+        options: Options(headers: _authHeaders),
+      );
       _logBadResponse('POST', endpoint, response);
       return fromJson(response.data);
     } catch (e) {
@@ -159,7 +240,7 @@ class ApiService {
         endpoint,
         data: data,
         options: Options(headers: {
-          'authorization': "Bearer ${box.read("user_token")}",
+          'authorization': "Bearer ${ApiService.activeToken()}",
           "Content-Type": "multipart/form-data",
         }),
       );
@@ -181,7 +262,7 @@ class ApiService {
         endpoint,
         data: data,
         options: Options(headers: {
-          'authorization': "Bearer ${box.read("user_token")}",
+          'authorization': "Bearer ${ApiService.activeToken()}",
           "Content-Type": "multipart/form-data",
         }),
       );

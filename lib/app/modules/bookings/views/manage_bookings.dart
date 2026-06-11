@@ -692,11 +692,11 @@ class _ManageBookingViewState extends State<ManageBookingView> {
               Row(
                 children: [
                   Text(
-                    'HP${hp.hpUniqueId}',
+                    'HP-${hp.hpUniqueId}',
                     style: TextStyle(fontSize: 14, color: Colors.blue.shade600, fontWeight: FontWeight.w500),
                   ),
                   const SizedBox(width: 8),
-                  Text('HP${hp.hpRegFirstName}', style: TextStyle(fontSize: 14, color: AppColor.fontColorBlack)),
+                  Text(_hpFullName(hp), style: TextStyle(fontSize: 14, color: AppColor.fontColorBlack)),
                 ],
               ),
               PopupMenuButton<String>(
@@ -781,7 +781,7 @@ class _ManageBookingViewState extends State<ManageBookingView> {
           Expanded(
             flex: 1,
             child: Text(
-              'HP${hp.hpUniqueId}',           // HP ID
+              'HP-${hp.hpUniqueId}',           // HP ID
               style: TextStyle(
                 fontSize: SizeConfig.blockSizeHorizontal * 1.1,
                 color: Colors.blue.shade600,
@@ -792,7 +792,7 @@ class _ManageBookingViewState extends State<ManageBookingView> {
           Expanded(
             flex: 2,
             child: Text(
-              'HP${hp.hpRegFirstName}',           // Replace with hp name if you have it from API
+              _hpFullName(hp),                 // HP Name
               style: TextStyle(
                 fontSize: SizeConfig.blockSizeHorizontal * 1.1,
                 color: AppColor.fontColorBlack,
@@ -1585,6 +1585,13 @@ class _ManageBookingViewState extends State<ManageBookingView> {
       ),
     );
   }
+  String _hpFullName(dynamic hp) {
+    final first = (hp.hpRegFirstName ?? '').toString().trim();
+    final last = (hp.hpRegLastName ?? '').toString().trim();
+    final full = [first, last].where((s) => s.isNotEmpty).join(' ');
+    return full.isEmpty ? 'HP-${hp.hpUniqueId}' : full;
+  }
+
   String _mapStatus(int status) {
     switch (status) {
       case 1: return 'Shortlisted';

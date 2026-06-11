@@ -890,8 +890,9 @@ class CreateBookingsView extends GetView<BookingsController> {
                       controller.onServiceSelected(service.id);
                       controller.baseRate.value =
                           service.serviceRate.toString();
-                      controller.baseDiscount.value =
-                          service.liveType.toString();
+                      // liveType is a service category (Live-In/Day/Night),
+                      // NOT a discount — must not be sent as base_discount_percentage.
+                      controller.baseDiscount.value = '';
                       Get.back();
                     },
                     child: Container(

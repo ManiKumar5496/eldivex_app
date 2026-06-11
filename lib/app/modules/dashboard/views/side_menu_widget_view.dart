@@ -19,6 +19,8 @@ import '../../client_users/views/manage_client_users.dart';
 import '../../register_cg/views/cg_payment_view.dart';
 import '../../register_cg/views/manage_attendance.dart';
 import '../../register_cg/views/manage_cg_view.dart';
+import '../../hostels/views/manage_hostels.dart';
+import '../../hostels/views/hostel_settlement_view.dart';
 import '../../role/controllers/role_controller.dart';
 import '../../support/views/create_support_ticket.dart';
 import '../../users/controllers/users_controller.dart';
@@ -224,6 +226,8 @@ class _SideMenuWidgetViewState extends State<SideMenuWidgetView> {
       final manageCgIndex         = pageIndex + 1;
       final manageAttendanceIndex = pageIndex + 2;
       final cgPaymentIndex        = pageIndex + 3;
+      final manageHostelsIndex    = pageIndex + 4;
+      final hostelSettlementIndex = pageIndex + 5;
 
       // Persist so RegisterCgController can navigate here after successful save
       _storage.write('manage_hp_page_index', manageCgIndex);
@@ -238,6 +242,8 @@ class _SideMenuWidgetViewState extends State<SideMenuWidgetView> {
             MenuItemData(title: 'Manage HP',          pageIndex: manageCgIndex),
             MenuItemData(title: 'Manage Attendance',  pageIndex: manageAttendanceIndex),
             MenuItemData(title: 'CG Payments',        pageIndex: cgPaymentIndex),
+            MenuItemData(title: 'Manage Hostels',     pageIndex: manageHostelsIndex),
+            MenuItemData(title: 'Hostel Settlements', pageIndex: hostelSettlementIndex),
           ],
         ),
       );
@@ -246,7 +252,9 @@ class _SideMenuWidgetViewState extends State<SideMenuWidgetView> {
       pages.add(ManageCgView());
       pages.add(ManageAttendance());
       pages.add(const CgPaymentView());
-      pageIndex += 4;
+      pages.add(const ManageHostelsView());
+      pages.add(const HostelSettlementView());
+      pageIndex += 6;
     }
 
     if (hasAccess('Support Ticket')) {

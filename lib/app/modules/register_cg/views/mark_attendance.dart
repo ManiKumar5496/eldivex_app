@@ -723,29 +723,39 @@ class MarkAttendanceView extends GetView<RegisterCgController> {
           const SizedBox(height: 10),
           SizedBox(
             width: double.infinity,
-            child: Obx(() => ElevatedButton(
-              onPressed: controller.isMarkCgAttendanceLoading.value
-                  ? null
-                  : () {
-                      if (attendanceStatus.value == 'not_marked') {
-                        Get.snackbar('Error', 'Please select attendance status',
-                            backgroundColor: AppColor.calenderRed.withValues(alpha: 0.1),
-                            colorText: AppColor.calenderRed);
-                      } else {
-                        _markAttendance(cg, attendanceStatus.value, shiftType.value,
-                            checkInTime.value, checkOutTime.value);
-                      }
-                    },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColor.lightGreen,
-                foregroundColor: AppColor.buttonTextWhite,
-                padding: const EdgeInsets.symmetric(vertical: 10),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                elevation: 0,
-              ),
-              child: const Text('Mark Attendance',
-                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-            )),
+            child: Obx(() {
+              final marking = controller.markingHpIds.contains(cg.hpRegId);
+              return ElevatedButton(
+                onPressed: marking
+                    ? null
+                    : () {
+                        if (attendanceStatus.value == 'not_marked') {
+                          Get.snackbar('Error', 'Please select attendance status',
+                              backgroundColor: AppColor.calenderRed.withValues(alpha: 0.1),
+                              colorText: AppColor.calenderRed);
+                        } else {
+                          _markAttendance(cg, attendanceStatus.value, shiftType.value,
+                              checkInTime.value, checkOutTime.value);
+                        }
+                      },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColor.lightGreen,
+                  foregroundColor: AppColor.buttonTextWhite,
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  elevation: 0,
+                ),
+                child: marking
+                    ? const SizedBox(
+                        height: 16,
+                        width: 16,
+                        child: CircularProgressIndicator(
+                            strokeWidth: 2, color: Colors.white),
+                      )
+                    : const Text('Mark Attendance',
+                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+              );
+            }),
           ),
         ],
       ),
@@ -910,34 +920,44 @@ class MarkAttendanceView extends GetView<RegisterCgController> {
       mainAxisSize: MainAxisSize.min,
       children: [
         Expanded(
-          child: Obx(() => ElevatedButton(
-            onPressed: controller.isMarkCgAttendanceLoading.value
-                ? null
-                : () {
-                    if (status.value == 'not_marked') {
-                      Get.snackbar(
-                        'Error',
-                        'Please select attendance status',
-                        backgroundColor: AppColor.calenderRed.withValues(alpha: 0.1),
-                        colorText: AppColor.calenderRed,
-                      );
-                    } else {
-                      _markAttendance(cg, status.value, shiftType.value,
-                          checkIn.value, checkOut.value);
-                    }
-                  },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColor.lightGreen,
-              foregroundColor: AppColor.buttonTextWhite,
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
+          child: Obx(() {
+            final marking = controller.markingHpIds.contains(cg.hpRegId);
+            return ElevatedButton(
+              onPressed: marking
+                  ? null
+                  : () {
+                      if (status.value == 'not_marked') {
+                        Get.snackbar(
+                          'Error',
+                          'Please select attendance status',
+                          backgroundColor: AppColor.calenderRed.withValues(alpha: 0.1),
+                          colorText: AppColor.calenderRed,
+                        );
+                      } else {
+                        _markAttendance(cg, status.value, shiftType.value,
+                            checkIn.value, checkOut.value);
+                      }
+                    },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColor.lightGreen,
+                foregroundColor: AppColor.buttonTextWhite,
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                elevation: 0,
               ),
-              elevation: 0,
-            ),
-            child: const Text('Mark',
-                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
-          )),
+              child: marking
+                  ? const SizedBox(
+                      height: 14,
+                      width: 14,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: Colors.white),
+                    )
+                  : const Text('Mark',
+                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+            );
+          }),
         ),
       ],
     );
@@ -1055,14 +1075,19 @@ class MarkAttendanceView extends GetView<RegisterCgController> {
                     child: ElevatedButton(
                       onPressed: () {
                         Get.back();
+                        // Build all records and submit them in ONE request
+                        // (server upserts), instead of N separate calls.
+                        final records = <Map<String, dynamic>>[];
                         for (final entry in pending) {
                           final hpId    = entry.key;
                           final d       = entry.value;
                           final cgMatch = controller.activeCgList
                               .firstWhereOrNull((c) => c.hpRegId == hpId);
                           if (cgMatch == null) continue;
-                          controller.markCgAttendance(
-                            bookingId:      controller.activeHpBookingIdMap[hpId] ?? 0,
+                          final bookingId = controller.activeHpBookingIdMap[hpId] ?? 0;
+                          if (bookingId <= 0) continue; // no active booking → skip
+                          records.add(controller.buildAttendanceRecord(
+                            bookingId:      bookingId,
                             attendanceDate: controller.markAttendanceSelectedDate.value,
                             cgId:           hpId.toString(),
                             invoiceId:      0,
@@ -1070,8 +1095,9 @@ class MarkAttendanceView extends GetView<RegisterCgController> {
                             shiftType:      d['shift_type'] as String? ?? 'live_out',
                             checkIn:        _parseTime(d['check_in'] as String?),
                             checkOut:       _parseTime(d['check_out'] as String?),
-                          );
+                          ));
                         }
+                        controller.submitAttendanceBatch(records);
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColor.cPrimaryButtonColor,
