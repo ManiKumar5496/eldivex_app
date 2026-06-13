@@ -8,7 +8,8 @@ class HpApi {
 
   // Auth (public)
   static String orgBySlug(String slug) => "$_base/org/bySlug/$slug";
-  static String orgById(int id) => "$_base/org/byId/$id";
+  // Accepts a numeric id (legacy orgs) or an org code like SUN-482913.
+  static String orgById(String ref) => "$_base/org/byId/$ref";
   static const String requestOtp = "$_base/hpAuth/requestOtp";
   static const String verifyOtp = "$_base/hpAuth/verifyOtp";
 

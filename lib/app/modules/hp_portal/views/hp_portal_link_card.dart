@@ -7,23 +7,28 @@ import '../../../core/values/color_constants.dart';
 import '../../../widgets/helper_ui.dart';
 
 /// Builds the org-scoped caregiver portal link. The app uses Flutter web hash
-/// routing, so the link points at `<origin>/#/hp?org_id=<id>`. A caregiver who
+/// routing, so the link points at `<origin>/#/hp?org_id=<ref>`. A caregiver who
 /// opens it only has to enter their phone + OTP — the org is already encoded.
-String buildHpPortalLink({int? orgId}) {
-  final id = orgId ?? (GetStorage().read('org_id') ?? 1);
+/// Uses the public org code (e.g. SUN-482913) when the org has one; legacy
+/// orgs without a code fall back to their numeric id.
+String buildHpPortalLink({String? orgRef}) {
+  final box = GetStorage();
+  final code = (box.read('org_code') ?? '').toString();
+  final ref = orgRef ??
+      (code.isNotEmpty ? code : (box.read('org_id') ?? 1).toString());
   final origin = Uri.base.origin; // scheme://host[:port]
-  return '$origin/#/hp?org_id=$id';
+  return '$origin/#/hp?org_id=$ref';
 }
 
 /// A compact, copyable card showing the caregiver's login link. Drop it into
 /// the HP profile / Manage HP screens.
 class HpPortalLinkCard extends StatelessWidget {
-  final int? orgId;
-  const HpPortalLinkCard({super.key, this.orgId});
+  final String? orgRef;
+  const HpPortalLinkCard({super.key, this.orgRef});
 
   @override
   Widget build(BuildContext context) {
-    final link = buildHpPortalLink(orgId: orgId);
+    final link = buildHpPortalLink(orgRef: orgRef);
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(

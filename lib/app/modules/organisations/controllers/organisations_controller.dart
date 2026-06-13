@@ -6,6 +6,7 @@ import '../../../widgets/helper_ui.dart';
 
 class OrgModel {
   final int id;
+  final String orgCode;
   final String name;
   final String slug;
   final String email;
@@ -16,6 +17,7 @@ class OrgModel {
 
   OrgModel({
     required this.id,
+    required this.orgCode,
     required this.name,
     required this.slug,
     required this.email,
@@ -25,8 +27,12 @@ class OrgModel {
     required this.subStatus,
   });
 
+  /// Public identifier: org code for new orgs, numeric id for legacy ones.
+  String get publicId => orgCode.isEmpty ? '$id' : orgCode;
+
   factory OrgModel.fromJson(Map<String, dynamic> json) => OrgModel(
         id:        json['id'] as int? ?? 0,
+        orgCode:   json['org_code']?.toString()   ?? '',
         name:      json['name']?.toString()       ?? '',
         slug:      json['slug']?.toString()       ?? '',
         email:     json['email']?.toString()      ?? '',
@@ -111,7 +117,12 @@ class OrganisationsController extends GetxController {
       };
       final resp = await _api.postRaw(ApiConstants.createOrganisation, body);
       if (resp != null && resp.statusCode == 201) {
-        HelperUi.showToast(message: 'Organisation created.');
+        final code = resp.data?['data']?['org_code']?.toString();
+        HelperUi.showToast(
+          message: code == null || code.isEmpty
+              ? 'Organisation created.'
+              : 'Organisation created. Org ID: $code',
+        );
         _clearForm();
         await fetchOrganisations();
       } else {

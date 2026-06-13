@@ -39,7 +39,8 @@ class EldivexAdmin extends StatelessWidget {
       final orgId = loc.queryParameters['org_id'];
       final orgSlug = loc.queryParameters['org'];
       if (orgId != null && orgId.isNotEmpty) {
-        box.write('hp_org_id_param', int.tryParse(orgId));
+        // Raw string: numeric id (legacy orgs) or org code like SUN-482913.
+        box.write('hp_org_id_param', orgId);
       }
       if (orgSlug != null && orgSlug.isNotEmpty) {
         box.write('hp_org_slug', orgSlug);
@@ -53,7 +54,7 @@ class EldivexAdmin extends StatelessWidget {
       final orgId = loc.queryParameters['org_id'];
       final orgSlug = loc.queryParameters['org'];
       if (orgId != null && orgId.isNotEmpty) {
-        box.write('client_org_id_param', int.tryParse(orgId));
+        box.write('client_org_id_param', orgId);
       }
       if (orgSlug != null && orgSlug.isNotEmpty) {
         box.write('client_org_slug', orgSlug);

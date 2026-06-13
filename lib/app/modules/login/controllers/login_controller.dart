@@ -57,10 +57,19 @@ class LoginController extends GetxController {
 
   Future<void> login(String email, String password) async {
     loginError.value = '';
+    // Validate locally before calling the API — the backend rejects a
+    // missing/malformed email with 422, so catch it here with a clear message.
+    email = email.trim();
+    if (email.isEmpty) {
+      loginError.value = "Please enter your email address.";
+      return;
+    }
+    if (!GetUtils.isEmail(email)) {
+      loginError.value = "Please enter a valid email address.";
+      return;
+    }
     try {
       isLoginLoading.value = true;
-      debugPrint("email in login $email");
-      debugPrint("password in login $password");
 
       final response = await apiService.postRaw(ApiConstants.loginEndPoint, {
         "email": email,
@@ -83,9 +92,14 @@ class LoginController extends GetxController {
         box.write("userId", userId);
         box.write("user_image", userImage);
         box.write("org_id", data['org_id'] ?? 1);
+        // Public org code (null for orgs created before the code rollout) —
+        // portal link cards prefer it over the raw numeric id.
+        box.write("org_code", data['org_code'] ?? '');
 
         if (userToken == null) {
-          Get.offAllNamed(Routes.LOGIN);
+          // Already on the login screen — navigating to LOGIN again would
+          // replace this route and orphan the form's controller.
+          loginError.value = "Login failed. Please try again.";
           return;
         }
 
@@ -99,7 +113,13 @@ class LoginController extends GetxController {
         final backendMsg = (response.data is Map)
             ? (response.data['message'] as String?)
             : null;
-        if (response.statusCode == 429) {
+        if (response.statusCode == 422) {
+          // Validation errors come as {error, details: [{field, message}]}.
+          final details = (response.data is Map) ? response.data['details'] : null;
+          loginError.value = (details is List && details.isNotEmpty)
+              ? details.map((d) => d['message']).join('\n')
+              : "Please enter a valid email address.";
+        } else if (response.statusCode == 429) {
           loginError.value = backendMsg ?? "Too many login attempts. Please wait 15 minutes and try again.";
         } else if (response.statusCode == 401) {
           loginError.value = backendMsg ?? "Invalid email or password.";

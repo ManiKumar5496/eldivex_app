@@ -7,7 +7,8 @@ import 'package:eldivex_app/app/routes/app_pages.dart';
 import 'package:eldivex_app/app/modules/dashboard/views/dashboard_stats_widgets/service_distribution_widget.dart';
 import 'package:eldivex_app/app/modules/dashboard/views/dashboard_stats_widgets/top_performing_cities_widget.dart';
 import 'package:eldivex_app/app/modules/dashboard/views/dashboard_stats_widgets/weekly_bookings_widget.dart';
-import 'package:eldivex_app/app/modules/login/controllers/login_controller.dart';
+import 'package:eldivex_app/app/modules/role/controllers/role_controller.dart';
+import 'package:eldivex_app/app/widgets/helper_ui.dart';
 import '../../../../main.dart';
 import 'dashboard_stats_widgets/booking_stats_chart.dart';
 import 'dashboard_stats_widgets/dashboard_mini_stats.dart';
@@ -21,15 +22,20 @@ class DashboardView extends GetView<DashboardController> {
   @override
   Widget build(BuildContext context) {
     SizeConfig.init(context);
+    // Self-register like the other shell pages — the controller is disposed
+    // on Get.offAllNamed (logout / session expiry) and nothing else
+    // re-creates it reliably.
+    if (!Get.isRegistered<DashboardController>()) {
+      Get.put(DashboardController());
+    }
     String userName = box.read("user_name") ?? "Admin User";
     String userImage = box.read("user_image") ?? "";
-    final loginController = Get.put(LoginController());
 
     return Scaffold(
       backgroundColor: AppColor.cAppBackgroundColor,
       body: Column(
         children: [
-          _buildAppBar(userName, userImage, loginController),
+          _buildAppBar(userName, userImage),
           _buildFilterRow(context),
           Expanded(
             child: SingleChildScrollView(
@@ -101,7 +107,7 @@ class DashboardView extends GetView<DashboardController> {
     );
   }
 
-  Widget _buildAppBar(String userName, String userImage, LoginController loginController) {
+  Widget _buildAppBar(String userName, String userImage) {
     return Container(
       padding: EdgeInsets.all(SizeConfig.spacingMD),
       decoration: SizeConfig.isMobile
@@ -272,7 +278,13 @@ class DashboardView extends GetView<DashboardController> {
                 },
                 onSelected: (value) {
                   if (value == "logout") {
-                    loginController.logout();
+                    // Logout must not touch LoginController: creating it here
+                    // ties it to this route, and its disposal during
+                    // Get.offAllNamed leaves the login screen bound to a dead
+                    // instance (typed text and errors land on the wrong one).
+                    Get.find<RoleController>().clearAuth();
+                    Get.offAllNamed(Routes.LOGIN);
+                    HelperUi.showToast(message: "Logged out successfully");
                   }
                 },
               ),

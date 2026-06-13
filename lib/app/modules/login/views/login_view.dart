@@ -335,7 +335,7 @@ class LoginView extends GetView<LoginController> {
 
                 // Copyright
                 Text(
-                  '© 2026 Thrivewell. All rights reserved.',
+                  '© 2026 Eldivex. All rights reserved.',
                   style: AppTextStyles.regular12Gre,
                   textAlign: TextAlign.center,
                 ),

@@ -7,7 +7,8 @@ class ClientApi {
 
   // Org resolution (shared public endpoints)
   static String orgBySlug(String slug) => "$_base/org/bySlug/$slug";
-  static String orgById(int id) => "$_base/org/byId/$id";
+  // Accepts a numeric id (legacy orgs) or an org code like SUN-482913.
+  static String orgById(String ref) => "$_base/org/byId/$ref";
 
   // Auth
   static const String requestOtp = "$_base/clientAuth/requestOtp";

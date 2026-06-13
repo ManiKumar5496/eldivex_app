@@ -448,7 +448,13 @@ class RegisterCgController extends GetxController {
 
       createCgResponse.value = response;
 
-      if (response?.data["status"] == true) {
+      // Backend returns 201 with { message: 'HP Profile created successfully.' }
+      // and no "status" field, so key off the status code (mirrors createUser).
+      final created = response?.statusCode == 201 ||
+          response?.statusCode == 200 ||
+          response?.data["status"] == true;
+
+      if (created) {
         HelperUi.showToast(message: "Health Professional Created Successfully");
         clearFilters();
         getAllCgFromApi();

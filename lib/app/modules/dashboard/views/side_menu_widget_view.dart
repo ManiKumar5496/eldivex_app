@@ -21,10 +21,12 @@ import '../../register_cg/views/manage_attendance.dart';
 import '../../register_cg/views/manage_cg_view.dart';
 import '../../hostels/views/manage_hostels.dart';
 import '../../hostels/views/hostel_settlement_view.dart';
+import '../../../routes/app_pages.dart';
 import '../../role/controllers/role_controller.dart';
 import '../../support/views/create_support_ticket.dart';
 import '../../users/controllers/users_controller.dart';
 import '../../users/views/users_view.dart';
+import '../controllers/dashboard_controller.dart';
 import 'dashboard_view.dart';
 import 'manage_master_role.dart';
 import '../../settings/views/otp_cupon_generation.dart';
@@ -76,11 +78,20 @@ class _SideMenuWidgetViewState extends State<SideMenuWidgetView> {
     if (!Get.isRegistered<UsersController>()) {
       Get.put(UsersController(), permanent: true);
     }
+    // DashboardView (Home) doesn't register its own controller, and after a
+    // Get.offAllNamed (logout / session expiry) the instance created by
+    // UsersController's constructor is disposed while the permanent
+    // UsersController survives — so it's never re-created. Re-register here on
+    // every shell creation or the Home page throws "DashboardController not
+    // found".
+    if (!Get.isRegistered<DashboardController>()) {
+      Get.put(DashboardController());
+    }
     if (!Get.isRegistered<AuditLogController>()) {
-      Get.lazyPut<AuditLogController>(() => AuditLogController());
+      Get.lazyPut<AuditLogController>(() => AuditLogController(), fenix: true);
     }
     if (!Get.isRegistered<ReportsController>()) {
-      Get.lazyPut<ReportsController>(() => ReportsController());
+      Get.lazyPut<ReportsController>(() => ReportsController(), fenix: true);
     }
     if (!Get.isRegistered<SettingsController>()) {
       Get.lazyPut<SettingsController>(() => SettingsController(), fenix: true);
@@ -368,11 +379,47 @@ class _SideMenuWidgetViewState extends State<SideMenuWidgetView> {
 
       // No roles access
       if (rolesController.accessList.isEmpty) {
-        return const Scaffold(
+        // No valid session (missing/cleared token) — go to login instead of
+        // showing a dead-end screen. Covers deep links where the route
+        // middleware didn't run.
+        if (!rolesController.isAuthenticated()) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            // Logout already navigated: clearAuth() rebuilds this Obx while
+            // the shell is being torn down, and a second offAllNamed(/login)
+            // here replaces the fresh login route — its controller gets
+            // deleted and the visible form ends up bound to a dead instance.
+            if (Get.currentRoute.split('?').first == Routes.LOGIN) return;
+            Get.offAllNamed(Routes.LOGIN);
+          });
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
+        // Authenticated but the role has no modules assigned.
+        return Scaffold(
           body: Center(
-            child: Text(
-              "No Access Assigned",
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  "No Access Assigned",
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  "Your account has no modules assigned. Contact your administrator.",
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 16),
+                TextButton.icon(
+                  icon: const Icon(Icons.logout),
+                  label: const Text("Back to Login"),
+                  onPressed: () {
+                    rolesController.clearAuth();
+                    Get.offAllNamed(Routes.LOGIN);
+                  },
+                ),
+              ],
             ),
           ),
         );

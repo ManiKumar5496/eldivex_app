@@ -23,22 +23,32 @@ class ClientAuthController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    final orgIdParam = box.read('client_org_id_param');
+    final orgIdParam = (box.read('client_org_id_param') ?? '').toString();
     final slug = (box.read('client_org_slug') ?? '').toString();
-    if (orgIdParam is int) {
-      resolveOrgById(orgIdParam);
+    if (orgIdParam.isNotEmpty) {
+      resolveOrgByRef(orgIdParam);
     } else if (slug.isNotEmpty) {
       resolveOrg(slug);
     }
   }
 
-  Future<void> resolveOrgById(int id) async {
+  /// Resolve the organisation from the org_id carried in the link — either a
+  /// numeric id (legacy orgs) or an org code like SUN-482913 (new orgs).
+  Future<void> resolveOrgByRef(String ref) async {
     resolvingOrg.value = true;
     try {
-      orgId.value = id;
-      final res = await _api.getRaw(ClientApi.orgById(id));
+      // Optimistically accept a numeric id so login works even if the lookup
+      // fails; an org code MUST resolve since OTP calls need the numeric id.
+      orgId.value = int.tryParse(ref);
+      final res = await _api.getRaw(ClientApi.orgById(ref));
       if (res?.statusCode == 200 && res?.data is Map) {
-        orgName.value = (res!.data['org_name'] ?? '').toString();
+        orgId.value = res!.data['org_id'];
+        orgName.value = (res.data['org_name'] ?? '').toString();
+      } else if (orgId.value == null) {
+        HelperUi.showToast(
+          message: 'Organisation not found. Please use the link shared with you.',
+          backgroundColor: Get.theme.colorScheme.error,
+        );
       }
     } finally {
       resolvingOrg.value = false;

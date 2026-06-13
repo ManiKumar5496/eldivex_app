@@ -14,7 +14,13 @@ import '../models/get_users_model.dart';
 
 class UsersController extends GetxController {
   final ApiService apiService = ApiService();
- var dashboardController = Get.put(DashboardController());
+  // Resolve fresh on each access: this controller is permanent but
+  // DashboardController is disposed on logout — a field captured at
+  // construction would keep pointing at the dead instance.
+  DashboardController get dashboardController =>
+      Get.isRegistered<DashboardController>()
+          ? Get.find<DashboardController>()
+          : Get.put(DashboardController());
  int userId = box.read("userId");
   /// Filter Visibility
   RxBool isFilterVisible = false.obs;

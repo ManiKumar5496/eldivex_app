@@ -86,7 +86,7 @@ class OrganisationsView extends GetView<OrganisationsController> {
           headingRowColor: WidgetStateProperty.all(AppColor.cAppBackgroundColor),
           columnSpacing: 24,
           columns: const [
-            DataColumn(label: Text('ID')),
+            DataColumn(label: Text('Org ID')),
             DataColumn(label: Text('Name')),
             DataColumn(label: Text('Slug')),
             DataColumn(label: Text('Email')),
@@ -96,7 +96,7 @@ class OrganisationsView extends GetView<OrganisationsController> {
           ],
           rows: controller.orgs.map((org) {
             return DataRow(cells: [
-              DataCell(Text('${org.id}')),
+              DataCell(Text(org.publicId)),
               DataCell(Text(org.name)),
               DataCell(Text(org.slug)),
               DataCell(Text(org.email.isEmpty ? '—' : org.email)),
@@ -141,7 +141,7 @@ class OrganisationsView extends GetView<OrganisationsController> {
             ],
           ),
           const SizedBox(height: 6),
-          Text(org.slug, style: AppTextStyles.regular14Gre),
+          Text('${org.publicId} · ${org.slug}', style: AppTextStyles.regular14Gre),
           if (org.email.isNotEmpty) ...[
             const SizedBox(height: 4),
             Text(org.email, style: AppTextStyles.regular14Gre),

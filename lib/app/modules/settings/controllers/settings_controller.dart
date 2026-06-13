@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import '../../../data/api_constant_url.dart';
 import '../../../data/base_api_services.dart';
 import '../../../widgets/helper_ui.dart';
+import '../../dashboard/controllers/dashboard_controller.dart';
 import '../models/get_discount_models.dart';
 import '../models/otp_model.dart';
 
@@ -333,6 +334,16 @@ class SettingsController extends GetxController {
 
   // ── Branches CRUD (Phase 2.6) ────────────────────────────────────────────
 
+  /// The branch dropdowns on the User-create and HP-create screens read from
+  /// [DashboardController.getAllBranches], which is only fetched once at
+  /// startup. After any branch mutation here, re-fetch that list too so a
+  /// newly added/edited branch shows up without a manual page refresh.
+  Future<void> _syncDashboardBranches() async {
+    if (Get.isRegistered<DashboardController>()) {
+      await Get.find<DashboardController>().getAllBranchesApi();
+    }
+  }
+
   Future<void> fetchBranches() async {
     try {
       isBranchesLoading.value = true;
@@ -366,6 +377,7 @@ class SettingsController extends GetxController {
       });
       if (response != null && response.statusCode == 201) {
         await fetchBranches();
+        await _syncDashboardBranches();
         HelperUi.showToast(message: 'Branch created successfully.');
         return true;
       }
@@ -400,6 +412,7 @@ class SettingsController extends GetxController {
       );
       if (response != null && response.statusCode == 200) {
         await fetchBranches();
+        await _syncDashboardBranches();
         HelperUi.showToast(message: 'Branch updated successfully.');
         return true;
       }
@@ -426,6 +439,7 @@ class SettingsController extends GetxController {
           branchesList[idx] = {...branchesList[idx], 'br_status': newStatus};
           branchesList.refresh();
         }
+        await _syncDashboardBranches();
       } else {
         HelperUi.showToast(message: 'Failed to update status.');
       }

@@ -29,10 +29,12 @@ class ApiService {
       InterceptorsWrapper(
         onResponse: (response, handler) {
           _handleOrgSuspended(response);
+          _handleUnauthorized(response);
           handler.next(response);
         },
         onError: (error, handler) {
           _handleOrgSuspended(error.response);
+          _handleUnauthorized(error.response);
           handler.next(error);
         },
       ),
@@ -81,6 +83,56 @@ class ApiService {
       backgroundColor: Colors.red,
     );
     Future.delayed(const Duration(seconds: 3), () => _handlingSuspension = false);
+  }
+
+  /// Debounce so a burst of parallel 401s triggers the logout only once.
+  static bool _handlingUnauthorized = false;
+
+  /// The backend rejected the active session token (expired or invalid).
+  /// Clear the stale session and send the user back to its login screen —
+  /// otherwise protected pages render dead-end empty states ("No Access
+  /// Assigned") instead of redirecting.
+  static void _handleUnauthorized(Response? response) {
+    if (response == null || response.statusCode != 401) return;
+    // A 401 with no stored token is a failed login attempt — the login
+    // screen shows the backend message itself; nothing to clear or redirect.
+    if (activeToken().isEmpty) return;
+    // A 401 on a login screen is also a failed attempt (possibly against a
+    // different portal's session) — never clear or redirect from there.
+    final currentPath = Get.currentRoute.split('?').first;
+    if (currentPath == Routes.LOGIN ||
+        currentPath == Routes.HP_LOGIN ||
+        currentPath == Routes.CLIENT_LOGIN) {
+      return;
+    }
+    if (_handlingUnauthorized) return;
+    _handlingUnauthorized = true;
+
+    final session = box.read('active_session') ?? 'admin';
+    final String loginRoute;
+    if (session == 'hp') {
+      for (final k in ['hp_token', 'hp_id', 'hp_org_id', 'hp_name', 'active_session']) {
+        box.remove(k);
+      }
+      loginRoute = Routes.HP_LOGIN;
+    } else if (session == 'client') {
+      for (final k in ['client_token', 'client_id', 'client_org_id', 'client_name', 'active_session']) {
+        box.remove(k);
+      }
+      loginRoute = Routes.CLIENT_LOGIN;
+    } else {
+      for (final k in ['user_token', 'role_id', 'org_id', 'user', 'selected_page_index']) {
+        box.remove(k);
+      }
+      loginRoute = Routes.LOGIN;
+    }
+
+    Get.offAllNamed(loginRoute);
+    HelperUi.showToast(
+      message: "Your session has expired. Please log in again.",
+      backgroundColor: Colors.red,
+    );
+    Future.delayed(const Duration(seconds: 3), () => _handlingUnauthorized = false);
   }
 
   /// Bearer token for the active session. The caregiver portal sets

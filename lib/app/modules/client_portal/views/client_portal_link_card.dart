@@ -7,23 +7,28 @@ import '../../../core/values/color_constants.dart';
 import '../../../widgets/helper_ui.dart';
 
 /// Builds the org-scoped client portal link. Uses Flutter web hash routing, so
-/// it points at `<origin>/#/client?org_id=<id>`. A client who opens it only
+/// it points at `<origin>/#/client?org_id=<ref>`. A client who opens it only
 /// enters their phone + OTP — the org is already encoded.
-String buildClientPortalLink({int? orgId}) {
-  final id = orgId ?? (GetStorage().read('org_id') ?? 1);
+/// Uses the public org code (e.g. SUN-482913) when the org has one; legacy
+/// orgs without a code fall back to their numeric id.
+String buildClientPortalLink({String? orgRef}) {
+  final box = GetStorage();
+  final code = (box.read('org_code') ?? '').toString();
+  final ref = orgRef ??
+      (code.isNotEmpty ? code : (box.read('org_id') ?? 1).toString());
   final origin = Uri.base.origin;
-  return '$origin/#/client?org_id=$id';
+  return '$origin/#/client?org_id=$ref';
 }
 
 /// Compact, copyable card showing the client login link. Drop it into the
 /// Client Users screen.
 class ClientPortalLinkCard extends StatelessWidget {
-  final int? orgId;
-  const ClientPortalLinkCard({super.key, this.orgId});
+  final String? orgRef;
+  const ClientPortalLinkCard({super.key, this.orgRef});
 
   @override
   Widget build(BuildContext context) {
-    final link = buildClientPortalLink(orgId: orgId);
+    final link = buildClientPortalLink(orgRef: orgRef);
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
