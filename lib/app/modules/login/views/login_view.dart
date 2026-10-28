@@ -286,6 +286,34 @@ class AuthErrorBanner extends StatelessWidget {
   }
 }
 
+/// Copy for the desktop brand panel: headline, supporting line and bullets.
+class AuthBrandCopy {
+  const AuthBrandCopy({
+    required this.headline,
+    required this.description,
+    required this.bullets,
+  });
+
+  final String headline;
+  final String description;
+  final List<(IconData, String)> bullets;
+
+  /// The admin console's pitch (default for [AuthSplitLayout]).
+  static const admin = AuthBrandCopy(
+    headline: 'Run your home-care business from one dashboard.',
+    description: 'Bookings, caregivers, clients, billing and support, '
+        'together in a single secure workspace.',
+    bullets: [
+      (LucideIcons.calendarCheck,
+          'Bookings, caregivers and attendance in one place'),
+      (LucideIcons.receiptText, 'Invoices, receipts and caregiver payouts'),
+      (LucideIcons.monitorSmartphone,
+          'Self-serve portals for caregivers and clients'),
+      (LucideIcons.shieldCheck, 'Role-based access for your whole team'),
+    ],
+  );
+}
+
 /// Auth page frame. Desktop (≥ 960px): brand panel on the left, the form card
 /// centred on the right. Tablet / phone: a single centred card with the mark.
 class AuthSplitLayout extends StatelessWidget {
@@ -293,6 +321,7 @@ class AuthSplitLayout extends StatelessWidget {
     super.key,
     required this.child,
     this.showMark = true,
+    this.brand = AuthBrandCopy.admin,
   });
 
   /// The form content (no card — the layout supplies it).
@@ -301,6 +330,9 @@ class AuthSplitLayout extends StatelessWidget {
   /// Shows the Eldivex mark at the top of the card on tablet / phone, where
   /// the brand panel is hidden.
   final bool showMark;
+
+  /// What the desktop brand panel says.
+  final AuthBrandCopy brand;
 
   @override
   Widget build(BuildContext context) {
@@ -358,7 +390,7 @@ class AuthSplitLayout extends StatelessWidget {
       return Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Expanded(flex: 5, child: _BrandPanel()),
+          Expanded(flex: 5, child: _BrandPanel(copy: brand)),
           Expanded(
             flex: 6,
             child: Center(
@@ -389,16 +421,9 @@ class AuthSplitLayout extends StatelessWidget {
 /// Left-hand brand panel on desktop auth pages: primary fill with a faint
 /// tonal mark watermark, product name, value proposition and trust bullets.
 class _BrandPanel extends StatelessWidget {
-  const _BrandPanel();
+  const _BrandPanel({required this.copy});
 
-  static const _bullets = <(IconData, String)>[
-    (LucideIcons.calendarCheck,
-        'Bookings, caregivers and attendance in one place'),
-    (LucideIcons.receiptText,
-        'Invoices, receipts and caregiver payouts'),
-    (LucideIcons.monitorSmartphone, 'Self-serve portals for caregivers and clients'),
-    (LucideIcons.shieldCheck, 'Role-based access for your whole team'),
-  ];
+  final AuthBrandCopy copy;
 
   @override
   Widget build(BuildContext context) {
@@ -475,7 +500,7 @@ class _BrandPanel extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Run your home-care business from one dashboard.',
+                  copy.headline,
                   style: TextStyle(
                     fontSize: 32,
                     height: 1.2,
@@ -486,8 +511,7 @@ class _BrandPanel extends StatelessWidget {
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  'Bookings, caregivers, clients, billing and support, '
-                  'together in a single secure workspace.',
+                  copy.description,
                   style: TextStyle(
                     fontSize: 15,
                     height: 1.55,
@@ -495,7 +519,7 @@ class _BrandPanel extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 32),
-                for (final b in _bullets) ...[
+                for (final b in copy.bullets) ...[
                   Row(
                     children: [
                       Container(

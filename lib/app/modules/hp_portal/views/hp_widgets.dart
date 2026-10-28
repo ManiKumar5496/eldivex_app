@@ -221,22 +221,6 @@ class HpUi {
     );
   }
 
-  /// The Eldivex mark on a white app-icon tile (readable in dark mode too).
-  static Widget brandMark({double size = 48}) {
-    return Container(
-      width: size,
-      height: size,
-      padding: EdgeInsets.all(size * 0.16),
-      decoration: BoxDecoration(
-        color: AppColor.pureWhite,
-        borderRadius: BorderRadius.circular(size * 0.26),
-        border: Border.all(color: AppColor.divColor),
-        boxShadow: AppShadows.card,
-      ),
-      child: Image.asset('assets/images/e_mark.png', fit: BoxFit.contain),
-    );
-  }
-
   /// Segmented filter control (iOS-style). [onSelect] fires on every tap,
   /// including the already-selected segment.
   static Widget segmented({
