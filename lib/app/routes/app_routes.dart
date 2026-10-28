@@ -29,6 +29,7 @@ abstract class Routes {
   static const hpPayouts          = _Paths.hpPayouts;
   static const settingsOtpCoupon  = _Paths.settingsOtpCoupon;
   static const appearance         = _Paths.appearance;
+  static const planRenewal        = _Paths.planRenewal;
 
   // ── Caregiver (Health Professional) self-service portal ────────────────────
   static const HP_LOGIN        = _Paths.HP_LOGIN;
@@ -93,6 +94,7 @@ abstract class _Paths {
   static const hpPayouts          = '/hp-payouts';
   static const settingsOtpCoupon  = '/settings/otp-coupon';
   static const appearance         = '/settings/appearance';
+  static const planRenewal        = '/settings/plan';
 
   // ── Caregiver (Health Professional) self-service portal ────────────────────
   static const HP_LOGIN          = '/hp/login';

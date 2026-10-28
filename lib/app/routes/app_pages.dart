@@ -38,6 +38,8 @@ import '../modules/forgot_password/views/forgot_password_view.dart';
 import '../modules/settings/views/services_management_view.dart';
 import '../modules/settings/views/branch_management_view.dart';
 import '../modules/settings/views/otp_cupon_generation.dart';
+import '../modules/settings/controllers/plan_controller.dart';
+import '../modules/settings/views/plan_view.dart';
 import '../modules/register_cg/bindings/hp_payouts_binding.dart';
 import '../modules/register_cg/views/hp_payouts_view.dart';
 import '../modules/appearance/bindings/appearance_binding.dart';
@@ -260,6 +262,14 @@ class AppPages {
       page: () => const AppearanceView(),
       binding: AppearanceBinding(),
       middlewares: [AuthMiddleware()],
+    ),
+
+    // ── Plan & Renewal (Super Admin; the API refuses anyone else) ───────────
+    GetPage(
+      name: _Paths.planRenewal,
+      page: () => const PlanView(),
+      binding: BindingsBuilder(() => Get.lazyPut(() => PlanController())),
+      middlewares: [AuthMiddleware(), RoleMiddleware("Settings")],
     ),
 
     // ── Financial Module — Write-Offs ────────────────────────────────────────

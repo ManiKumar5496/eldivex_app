@@ -314,6 +314,10 @@ class ApiConstants {
   // ── Phase 5 — Organisations & Subscriptions ────────────────────────────────
   static const String getPlans              = '$baseURL/getPlans';
   static const String getSubscriptionStatus = '$baseURL/getSubscriptionStatus';
+  // Plan & Renewal (Super Admin)
+  static const String getPlanOverview      = '$baseURL/getPlanOverview';
+  static const String requestPlanExtension = '$baseURL/requestPlanExtension';
+  static String cancelPlanRequest(int id) => '$baseURL/cancelPlanRequest/$id';
   static const String updateOrgPlan         = '$baseURL/updateOrgPlan';
   static const String getOrganisations      = '$baseURL/getOrganisations';
   static const String createOrganisation    = '$baseURL/createOrganisation';

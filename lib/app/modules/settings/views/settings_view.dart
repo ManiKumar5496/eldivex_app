@@ -6,6 +6,7 @@ import '../../../data/api_constant_url.dart';
 import '../../../data/base_api_services.dart';
 import '../../../routes/app_pages.dart';
 import '../../../widgets/ui/ui.dart';
+import '../../role/controllers/role_controller.dart';
 import '../controllers/settings_controller.dart';
 import 'package:eldivex_app/app/core/values/lucide_icons.dart';
 
@@ -89,13 +90,23 @@ class SettingsView extends GetView<SettingsController> {
                         subtitle: 'Theme mode and brand color',
                         onTap: () => Get.toNamed(Routes.appearance),
                       ),
-                      _SettingsTile(
-                        icon: LucideIcons.award,
-                        tone: AppTone.violet,
-                        title: 'Subscription',
-                        subtitle: 'View your current plan and features',
-                        onTap: () => _showSubscriptionDialog(context),
-                      ),
+                      // Super Admin manages the plan; others just see it.
+                      // Reactive: the role may finish loading after this page.
+                      Obx(() => _isSuperAdmin()
+                          ? _SettingsTile(
+                              icon: LucideIcons.calendarPlus,
+                              tone: AppTone.violet,
+                              title: 'Plan & Renewal',
+                              subtitle: 'Current plan, usage and extension requests',
+                              onTap: () => Get.toNamed(Routes.planRenewal),
+                            )
+                          : _SettingsTile(
+                              icon: LucideIcons.award,
+                              tone: AppTone.violet,
+                              title: 'Subscription',
+                              subtitle: 'View your current plan and features',
+                              onTap: () => _showSubscriptionDialog(context),
+                            )),
                     ],
                   ),
                 ],
@@ -105,6 +116,15 @@ class SettingsView extends GetView<SettingsController> {
         ),
       ),
     );
+  }
+
+  /// The signed-in staff member's role is the org's "Super Admin" (the
+  /// server checks the same rule before any plan request).
+  bool _isSuperAdmin() {
+    if (!Get.isRegistered<RoleController>()) return false;
+    final roles = Get.find<RoleController>().allAccessRoles;
+    return roles.isNotEmpty &&
+        roles.first.roleName.trim().toLowerCase() == 'super admin';
   }
 
   void _showSubscriptionDialog(BuildContext context) {
