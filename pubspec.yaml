@@ -40,6 +40,9 @@ dev_dependencies:
 
   flutter_lints: ^5.0.0
   flutter_launcher_icons: ^0.14.4
+  # Source for tool/generate_lucide_icons.dart (icon codepoints + font). Not a
+  # runtime dependency: see that script for why.
+  lucide_icons_flutter: ^3.1.25
 flutter_launcher_icons:
   web:
     generate: true
@@ -74,9 +77,19 @@ flutter:
   # list giving the asset and other descriptors for the font. For
   # example:
   fonts:
+        # Generated subset source: tool/generate_lucide_icons.dart
+        - family: Lucide
+          fonts:
+            - asset: assets/fonts/lucide/lucide.ttf
         - family: inter_regular
           fonts:
             - asset: assets/fonts/inter/Inter-Regular.ttf
+            - asset: assets/fonts/inter/Inter-SemiBold.ttf
+              weight: 600
+            - asset: assets/fonts/inter/Inter-Bold.ttf
+              weight: 700
+            - asset: assets/fonts/inter/Inter-Black.ttf
+              weight: 900
   #         style: italic
   #   - family: Trajan Pro
   #     fonts:

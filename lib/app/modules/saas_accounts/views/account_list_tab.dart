@@ -10,6 +10,7 @@ import 'widgets/account_status_badge.dart';
 import 'widgets/destructive_action_dialog.dart';
 import 'widgets/plan_chip.dart';
 import 'widgets/status_transition_dialog.dart';
+import 'package:eldivex_app/app/core/values/lucide_icons.dart';
 
 class AccountListTab extends GetView<SaasAccountsController> {
   const AccountListTab({super.key});
@@ -30,7 +31,7 @@ class AccountListTab extends GetView<SaasAccountsController> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.business_outlined,
+                    Icon(LucideIcons.building2,
                         size: 48, color: AppColor.lightGrey),
                     const SizedBox(height: 12),
                     Text('No accounts found.',
@@ -38,7 +39,7 @@ class AccountListTab extends GetView<SaasAccountsController> {
                     const SizedBox(height: 12),
                     ElevatedButton.icon(
                       onPressed: CreateAccountWizard.show,
-                      icon: const Icon(Icons.add, size: 16),
+                      icon: const Icon(LucideIcons.plus, size: 16),
                       label: const Text('Create First Account'),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColor.cPrimaryButtonColor,
@@ -72,7 +73,7 @@ class _FilterBar extends GetView<SaasAccountsController> {
             controller: controller.searchCtrl,
             decoration: InputDecoration(
               hintText: 'Search by name, slug, email…',
-              prefixIcon: const Icon(Icons.search, size: 18),
+              prefixIcon: const Icon(LucideIcons.search, size: 18),
               border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8)),
               contentPadding:
@@ -83,6 +84,7 @@ class _FilterBar extends GetView<SaasAccountsController> {
         ),
         const SizedBox(width: 12),
         Obx(() => DropdownButton<String>(
+icon: const Icon(LucideIcons.chevronDown, size: 18),
               value:
                   controller.filterPlan.value.isEmpty ? null : controller.filterPlan.value,
               hint: const Text('Plan'),
@@ -98,6 +100,7 @@ class _FilterBar extends GetView<SaasAccountsController> {
             )),
         const SizedBox(width: 12),
         Obx(() => DropdownButton<String>(
+icon: const Icon(LucideIcons.chevronDown, size: 18),
               value: controller.filterSubStatus.value.isEmpty
                   ? null
                   : controller.filterSubStatus.value,
@@ -120,7 +123,7 @@ class _FilterBar extends GetView<SaasAccountsController> {
           if (!hasFilter) return const SizedBox.shrink();
           return TextButton.icon(
             onPressed: controller.clearFilters,
-            icon: const Icon(Icons.clear, size: 16),
+            icon: const Icon(LucideIcons.x, size: 16),
             label: const Text('Clear'),
           );
         }),
@@ -304,7 +307,7 @@ class _ActionsMenu extends GetView<SaasAccountsController> {
   @override
   Widget build(BuildContext context) {
     return PopupMenuButton<String>(
-      icon: const Icon(Icons.more_vert, size: 18),
+      icon: const Icon(LucideIcons.ellipsisVertical, size: 18),
       onSelected: (v) => _handle(context, v),
       itemBuilder: (_) => [
         const PopupMenuItem(

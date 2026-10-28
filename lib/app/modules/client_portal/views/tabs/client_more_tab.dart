@@ -3,8 +3,11 @@ import 'package:get/get.dart';
 
 import '../../../../core/values/color_constants.dart';
 import '../../../../routes/app_pages.dart';
+import '../../../../widgets/ui/ui.dart';
+import '../../../hp_portal/views/hp_widgets.dart';
 import '../../controllers/client_auth_controller.dart';
 import '../../controllers/client_controller.dart';
+import 'package:eldivex_app/app/core/values/lucide_icons.dart';
 
 class ClientMoreTab extends StatelessWidget {
   const ClientMoreTab({super.key});
@@ -13,42 +16,50 @@ class ClientMoreTab extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = Get.find<ClientController>();
     final items = <(IconData, String, VoidCallback)>[
-      (Icons.person_outline, 'My Profile', () => Get.toNamed(Routes.CLIENT_PROFILE)),
-      (Icons.elderly_outlined, 'Patients', () => Get.toNamed(Routes.CLIENT_PATIENTS)),
-      (Icons.support_agent_outlined, 'Support Tickets', () => Get.toNamed(Routes.CLIENT_SUPPORT)),
+      (LucideIcons.user, 'My Profile', () => Get.toNamed(Routes.CLIENT_PROFILE)),
+      (LucideIcons.heartHandshake, 'Patients', () => Get.toNamed(Routes.CLIENT_PATIENTS)),
+      (LucideIcons.headset, 'Support Tickets', () => Get.toNamed(Routes.CLIENT_SUPPORT)),
     ];
 
     return ListView(
-      padding: const EdgeInsets.all(16),
+      padding: HpUi.pagePadding(context, top: 20),
       children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          child: Text(c.clientName,
-              style: TextStyle(
-                  fontSize: 20, fontWeight: FontWeight.w700, color: AppColor.cPrimaryHeadingColor)),
-        ),
-        const SizedBox(height: 8),
-        ...items.map((e) => Card(
-              elevation: 0,
-              color: AppColor.whiteColor,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  side: BorderSide(color: AppColor.divColor)),
-              child: ListTile(
-                leading: Icon(e.$1, color: AppColor.cAppPrimaryColor),
-                title: Text(e.$2),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: e.$3,
+        HpUi.tabHeader('More'),
+        HpUi.card(
+          child: Row(
+            children: [
+              AppAvatar(name: c.clientName, size: 48),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(c.clientName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                            fontSize: 17,
+                            fontWeight: FontWeight.w600,
+                            color: AppColor.textPrimary)),
+                    const SizedBox(height: 2),
+                    Text('Client account',
+                        style: TextStyle(
+                            fontSize: 13, color: AppColor.textTertiary)),
+                  ],
+                ),
               ),
-            )),
+            ],
+          ),
+        ),
         const SizedBox(height: 16),
+        HpUi.menuGroup(items),
+        const SizedBox(height: 24),
         OutlinedButton.icon(
           onPressed: ClientAuthController.logout,
-          icon: Icon(Icons.logout, color: AppColor.calenderRed),
-          label: Text('Logout', style: TextStyle(color: AppColor.calenderRed)),
-          style: OutlinedButton.styleFrom(
-            minimumSize: const Size.fromHeight(48),
-            side: BorderSide(color: AppColor.calenderRed),
+          icon: const Icon(LucideIcons.logOut, size: 18),
+          label: const Text('Logout'),
+          style: AppButtonStyles.dangerOutlined.merge(
+            OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(46)),
           ),
         ),
       ],

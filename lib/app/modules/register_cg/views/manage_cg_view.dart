@@ -3,14 +3,15 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:eldivex_app/app/modules/register_cg/views/review_cg_details_view.dart';
 import 'package:eldivex_app/app/routes/app_pages.dart';
+import 'package:eldivex_app/app/widgets/ui/ui.dart';
 
 import '../../../core/values/color_constants.dart';
-import '../../../core/values/text_style_constants.dart';
 import '../../../core/values/size_configue.dart';
 import '../../../widgets/dropdown_common.dart';
 import '../../../widgets/helper_ui.dart';
 import '../controllers/register_cg_controller.dart';
 import '../models/get_cg_details_model.dart';
+import 'package:eldivex_app/app/core/values/lucide_icons.dart';
 
 class ManageCgView extends GetView<RegisterCgController> {
   const ManageCgView({super.key});
@@ -20,22 +21,67 @@ class ManageCgView extends GetView<RegisterCgController> {
     Get.put(RegisterCgController());
     SizeConfig.init(context);
 
+    if (SizeConfig.isMobile) {
+      return Scaffold(
+        backgroundColor: AppColor.cAppBackgroundColor,
+        body: Padding(
+          padding: SizeConfig.pagePadding,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _header(),
+              const SizedBox(height: 16),
+              _summaryCards(),
+              const SizedBox(height: 12),
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  border: Border(
+                      bottom: BorderSide(color: AppColor.borderSubtle)),
+                ),
+                child: _tabs(),
+              ),
+              const SizedBox(height: 12),
+              _searchAndFilters(),
+              const SizedBox(height: 12),
+              Expanded(child: _buildContent()),
+            ],
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: AppColor.cAppBackgroundColor,
       body: Padding(
         padding: SizeConfig.pagePadding,
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             _header(),
-            SizedBox(height: SizeConfig.spacingLG),
-            _searchAndFilters(),
-            SizedBox(height: SizeConfig.spacingMD),
+            const SizedBox(height: 24),
             _summaryCards(),
-            SizedBox(height: SizeConfig.spacingMD),
-            _tabs(),
-            SizedBox(height: SizeConfig.spacingMD),
-            Expanded(child: _buildContent()),
+            const SizedBox(height: 20),
+            Expanded(
+              child: AppCard(
+                padding: EdgeInsets.zero,
+                expandChild: true,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      child: _tabs(),
+                    ),
+                    Divider(height: 1, color: AppColor.borderSubtle),
+                    Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: _searchAndFilters(),
+                    ),
+                    Expanded(child: _buildContent()),
+                  ],
+                ),
+              ),
+            ),
           ],
         ),
       ),
@@ -47,116 +93,21 @@ class ManageCgView extends GetView<RegisterCgController> {
   // ═══════════════════════════════════════════════════════════════
 
   Widget _header() {
-    if (SizeConfig.isMobile) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'HP Registration',
-            style: AppTextStyles.heading.copyWith(fontSize: SizeConfig.fontH1),
-          ),
-          SizedBox(height: SizeConfig.spacingXS),
-          Text(
-            'Manage Health Professional registration applications',
-            style: AppTextStyles.regular14Gre.copyWith(
-              fontSize: SizeConfig.fontCaption,
-            ),
-          ),
-          SizedBox(height: SizeConfig.spacingMD),
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: () => HelperUi.showToast(message: 'Export feature coming soon'),
-                  icon: Icon(Icons.download, size: SizeConfig.iconSM),
-                  label: Text(
-                    'Export',
-                    style: TextStyle(fontSize: SizeConfig.fontCaption),
-                  ),
-                  style: OutlinedButton.styleFrom(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: SizeConfig.spacingSM,
-                      vertical: SizeConfig.spacingSM,
-                    ),
-                  ),
-                ),
-              ),
-              SizedBox(width: SizeConfig.spacingXS),
-              Expanded(
-                child: ElevatedButton.icon(
-                  onPressed: () => Get.toNamed(Routes.REGISTER_CG),
-                  icon: Icon(
-                    Icons.add,
-                    color: AppColor.buttonTextWhite,
-                    size: SizeConfig.iconSM,
-                  ),
-                  label: Text(
-                    'New',
-                    style: TextStyle(fontSize: SizeConfig.fontCaption),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColor.cPrimaryButtonColor,
-                    padding: EdgeInsets.symmetric(
-                      horizontal: SizeConfig.spacingSM,
-                      vertical: SizeConfig.spacingSM,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
-      );
-    }
-
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'HP Management',
-                style: AppTextStyles.heading.copyWith(
-                  fontSize: SizeConfig.fontH1,
-                ),
-              ),
-              SizedBox(height: SizeConfig.spacingXS),
-              Text(
-                'Manage Health Professional registration applications',
-                style: AppTextStyles.regular14Gre,
-              ),
-            ],
-          ),
+    return AppPageHeader(
+      title: 'HP Management',
+      subtitle: 'Manage Health Professional registration applications',
+      actions: [
+        OutlinedButton.icon(
+          onPressed: () => HelperUi.showToast(message: 'Export feature coming soon'),
+          icon: const Icon(LucideIcons.download, size: 18),
+          label: const Text('Export'),
         ),
-        Row(
-          children: [
-            OutlinedButton.icon(
-              onPressed: () => HelperUi.showToast(message: 'Export feature coming soon'),
-              icon: Icon(Icons.download, size: SizeConfig.iconSM),
-              label: const Text('Export'),
-              style: OutlinedButton.styleFrom(
-                padding: SizeConfig.buttonPadding,
-              ),
-            ),
-            SizedBox(width: SizeConfig.spacingSM),
-            ElevatedButton.icon(
-              onPressed: () { 
-                Get.toNamed(Routes.REGISTER_CG);
-              },
-              icon: Icon(
-                Icons.add,
-                color: AppColor.buttonTextWhite,
-                size: SizeConfig.iconSM,
-              ),
-              label: Text(SizeConfig.isTablet ? 'New' : 'New Registration',style: TextStyle(color: AppColor.buttonTextWhite),),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColor.cPrimaryButtonColor,
-                padding: SizeConfig.buttonPadding,
-              ),
-            ),
-          ],
+        ElevatedButton.icon(
+          onPressed: () {
+            Get.toNamed(Routes.REGISTER_CG);
+          },
+          icon: const Icon(LucideIcons.userPlus, size: 18),
+          label: const Text('Register HP'),
         ),
       ],
     );
@@ -171,67 +122,51 @@ class ManageCgView extends GetView<RegisterCgController> {
       return Column(
         children: [
           _searchField('Search...'),
-          SizedBox(height: SizeConfig.spacingSM),
+          const SizedBox(height: 8),
           Row(
             children: [
               Expanded(child: _filterChip('All Specialities')),
-              SizedBox(width: SizeConfig.spacingXS),
-              Expanded(child: _filterChip('Date', icon: Icons.calendar_today)),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _filterChip('Date',
+                    icon: LucideIcons.calendar),
+              ),
             ],
           ),
         ],
       );
     }
 
-    return Row(
+    return Wrap(
+      spacing: 12,
+      runSpacing: 12,
+      crossAxisAlignment: WrapCrossAlignment.center,
       children: [
-        Expanded(
-          flex: 3,
+        SizedBox(
+          width: 360,
           child: _searchField('Search by name, ID, or speciality...'),
         ),
-        SizedBox(width: SizeConfig.spacingMD),
         _filterChip('All Specialities'),
-        SizedBox(width: SizeConfig.spacingMD),
-        _filterChip('dd/mm/yyyy', icon: Icons.calendar_today),
+        _filterChip('dd/mm/yyyy', icon: LucideIcons.calendar),
       ],
     );
   }
 
   Widget _searchField(String hint) {
-    return TextField(
+    return AppSearchField(
+      hint: hint,
       onChanged: (v) => controller.searchQueryManageCg.value = v,
-      decoration: InputDecoration(
-        hintText: hint,
-        hintStyle: TextStyle(fontSize: SizeConfig.fontBody),
-        prefixIcon: Icon(Icons.search, size: SizeConfig.iconMD),
-        filled: true,
-        fillColor: AppColor.whiteColor,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(SizeConfig.radiusMD),
-          borderSide: BorderSide(color: AppColor.divColor),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(SizeConfig.radiusMD),
-          borderSide: BorderSide(color: AppColor.divColor),
-        ),
-        contentPadding: EdgeInsets.symmetric(
-          vertical: SizeConfig.spacingSM,
-          horizontal: SizeConfig.spacingSM,
-        ),
-      ),
     );
   }
 
   Widget _filterChip(String label, {IconData? icon}) {
     return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: SizeConfig.spacingMD,
-        vertical: SizeConfig.spacingMD,
-      ),
+      height: 40,
+      padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(
         color: AppColor.whiteColor,
-        borderRadius: BorderRadius.circular(SizeConfig.radiusMD),
-        border: Border.all(color: AppColor.divColor),
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        border: Border.all(color: AppColor.borderStrong),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -240,25 +175,20 @@ class ManageCgView extends GetView<RegisterCgController> {
           Flexible(
             child: Text(
               label,
-              style: AppTextStyles.regular14black.copyWith(
-                fontSize: SizeConfig.isMobile
-                    ? SizeConfig.fontCaption
-                    : SizeConfig.fontBody,
-              ),
+              style: TextStyle(fontSize: 14, color: AppColor.textPrimary),
               overflow: TextOverflow.ellipsis,
             ),
           ),
-          if (icon != null) ...[
-            SizedBox(width: SizeConfig.spacingXS),
-            Icon(icon, size: SizeConfig.iconSM),
-          ],
+          const SizedBox(width: 8),
+          Icon(icon ?? LucideIcons.chevronDown,
+              size: icon == null ? 18 : 16, color: AppColor.textTertiary),
         ],
       ),
     );
   }
 
   // ═══════════════════════════════════════════════════════════════
-  // COMPACT SUMMARY CARDS — single-line pill style
+  // SUMMARY — KPI tiles (desktop), compact scrollable pills (mobile)
   // ═══════════════════════════════════════════════════════════════
 
   Widget _summaryCards() {
@@ -267,65 +197,46 @@ class ManageCgView extends GetView<RegisterCgController> {
         _StatItem(
           'Total',
           controller.getAllCgData.value.length,
-          AppColor.cPrimaryButtonColor,
+          AppTone.primary,
+          LucideIcons.users,
         ),
-        _StatItem('Pending', _countByStatus(1), const Color(0xFFE65100)),
-        _StatItem('Approved', _countByStatus(2), const Color(0xFF2E7D32)),
-        _StatItem('Rejected', _countByStatus(3), const Color(0xFFC62828)),
-        _StatItem('Terminated', _countByStatus(4), AppColor.fontColorGrey),
+        _StatItem('Pending', _countByStatus(1), toneForStatus('Pending'),
+            LucideIcons.hourglass),
+        _StatItem('Approved', _countByStatus(2), toneForStatus('Approved'),
+            LucideIcons.badgeCheck),
+        _StatItem('Rejected', _countByStatus(3), toneForStatus('Rejected'),
+            LucideIcons.circleX),
+        _StatItem('Terminated', _countByStatus(4),
+            toneForStatus('Terminated'), LucideIcons.ban),
       ];
 
-      return Row(
-        children: items.asMap().entries.map((entry) {
-          final i = entry.key;
-          final item = entry.value;
-          return Expanded(
-            child: Container(
-              margin: EdgeInsets.only(
-                right: i < items.length - 1 ? SizeConfig.spacingSM : 0,
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-              decoration: BoxDecoration(
-                color: AppColor.whiteColor,
-                borderRadius: BorderRadius.circular(SizeConfig.radiusMD),
-                border: Border.all(color: AppColor.divColor),
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    width: 8,
-                    height: 8,
-                    decoration: BoxDecoration(
-                      color: item.color,
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      item.label,
-                      style: TextStyle(
-                        fontFamily: 'poppins_regular',
-                        fontSize: SizeConfig.fontCaption,
-                        color: AppColor.fontColorGrey,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  Text(
-                    '${item.count}',
-                    style: TextStyle(
-                      fontFamily: 'poppins_regular',
-                      fontSize: SizeConfig.fontBody,
-                      fontWeight: FontWeight.bold,
-                      color: item.color,
-                    ),
-                  ),
-                ],
-              ),
+      if (SizeConfig.isMobile) {
+        return SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: [
+              for (final item in items)
+                Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: _StatPill(item: item),
+                ),
+            ],
+          ),
+        );
+      }
+
+      return AppResponsiveGrid(
+        minItemWidth: 170,
+        maxColumns: 5,
+        children: [
+          for (final item in items)
+            AppStatCard(
+              label: item.label,
+              value: '${item.count}',
+              icon: item.icon,
+              tone: item.tone,
             ),
-          );
-        }).toList(),
+        ],
       );
     });
   }
@@ -348,15 +259,14 @@ class ManageCgView extends GetView<RegisterCgController> {
         children: tabDefs.map((tab) {
           final key = tab.status?.toString() ?? 'null';
           final selected = controller.selectedTab.value == key;
-          return GestureDetector(
+          return InkWell(
             onTap: () {
               controller.selectedTab.value = key;
               controller.currentPage.value = 0;
               controller.fetchCgByTab(tab.status);
             },
             child: Container(
-              margin: EdgeInsets.only(right: SizeConfig.spacingMD),
-              padding: EdgeInsets.only(bottom: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
               decoration: BoxDecoration(
                 border: Border(
                   bottom: BorderSide(
@@ -367,27 +277,49 @@ class ManageCgView extends GetView<RegisterCgController> {
                   ),
                 ),
               ),
-              child: Text(
-                '${tab.label} (${tab.count})',
-                style: TextStyle(
-                  fontFamily: 'poppins_regular',
-                  fontSize: SizeConfig.isMobile
-                      ? SizeConfig.fontBodySmall
-                      : SizeConfig.fontBody,
-                  fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
-                  color: selected
-                      ? AppColor.cPrimaryButtonColor
-                      : AppColor.fontColorGrey,
-                ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    tab.label,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+                      color: selected
+                          ? AppColor.cPrimaryButtonColor
+                          : AppColor.textSecondary,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 7, vertical: 1),
+                    decoration: BoxDecoration(
+                      color: selected
+                          ? AppColor.primarySoft
+                          : AppColor.neutralSoft,
+                      borderRadius: BorderRadius.circular(AppRadius.xs),
+                    ),
+                    child: Text(
+                      '${tab.count}',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: selected
+                            ? AppColor.cPrimaryButtonColor
+                            : AppColor.textSecondary,
+                        fontFeatures: const [FontFeature.tabularFigures()],
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           );
         }).toList(),
       );
 
-      return SizeConfig.isMobile
-          ? SingleChildScrollView(scrollDirection: Axis.horizontal, child: row)
-          : row;
+      return SingleChildScrollView(scrollDirection: Axis.horizontal, child: row);
     });
   }
 
@@ -404,21 +336,11 @@ class ManageCgView extends GetView<RegisterCgController> {
       final list = _filteredList();
 
       if (list.isEmpty) {
-        return Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.people_outline, size: 64, color: AppColor.divColor),
-              SizedBox(height: SizeConfig.spacingMD),
-              Text(
-                'No records found',
-                style: TextStyle(
-                  fontSize: SizeConfig.fontH2,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
+        return AppEmptyState(
+          icon: LucideIcons.users,
+          title: 'No records found',
+          message: 'Try another tab or a different search term.',
+          compact: SizeConfig.isMobile,
         );
       }
 
@@ -451,6 +373,13 @@ class ManageCgView extends GetView<RegisterCgController> {
     }).toList();
   }
 
+  /// Profile photo URL, or null when the HP has none (the API stores a
+  /// placeholder path ending in `/NA`).
+  String? _photoUrl(GetCgDetails cg) {
+    final p = cg.hpRegPhoto;
+    return (p.isNotEmpty && !p.contains('/NA')) ? p : null;
+  }
+
   // ═══════════════════════════════════════════════════════════════
   // MOBILE CARD LIST
   // ═══════════════════════════════════════════════════════════════
@@ -463,88 +392,78 @@ class ManageCgView extends GetView<RegisterCgController> {
   }
 
   Widget _buildCgCard(GetCgDetails cg) {
-    return Container(
-      margin: EdgeInsets.only(bottom: SizeConfig.spacingSM),
-      decoration: BoxDecoration(
-        color: AppColor.whiteColor,
-        borderRadius: BorderRadius.circular(SizeConfig.radiusMD),
-        border: Border.all(color: AppColor.divColor),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: SizeConfig.cardPadding,
-            decoration: BoxDecoration(
-              color: AppColor.fieldColorGrey,
-              borderRadius: BorderRadius.only(
-                topLeft: Radius.circular(SizeConfig.radiusMD),
-                topRight: Radius.circular(SizeConfig.radiusMD),
-              ),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    final name = '${cg.hpRegFirstName} ${cg.hpRegLastName}';
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: AppCard(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
               children: [
-                Text(
-                  'HP-${cg.hpRegId.toString().padLeft(3, '0')}',
-                  style: AppTextStyles.regular14black.copyWith(
-                    color: AppColor.cPrimaryButtonColor,
-                    fontWeight: FontWeight.bold,
-                    fontSize: SizeConfig.fontBody,
+                AppAvatar(name: name, imageUrl: _photoUrl(cg), size: 40),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        name,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 14.5,
+                          fontWeight: FontWeight.w600,
+                          color: AppColor.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'HP-${cg.hpRegId.toString().padLeft(3, '0')}',
+                        style: TextStyle(
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w600,
+                          color: AppColor.cPrimaryButtonColor,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
+                const SizedBox(width: 8),
                 _statusPill(cg.hpRegStatus),
               ],
             ),
-          ),
-          Padding(
-            padding: SizeConfig.cardPadding,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _infoRow(
-                  Icons.person_outline,
-                  '${cg.hpRegFirstName} ${cg.hpRegLastName}',
-                  bold: true,
-                ),
-                SizedBox(height: SizeConfig.spacingXS),
-                _infoRow(Icons.school_outlined, cg.hpRegEducation),
-                SizedBox(height: SizeConfig.spacingXS),
-                _infoRow(Icons.email_outlined, cg.hpRegEmail),
-                SizedBox(height: SizeConfig.spacingXS / 2),
-                _infoRow(Icons.phone_outlined, cg.hpRegPhoneNumber),
-                SizedBox(height: SizeConfig.spacingXS),
-                _infoRow(
-                  Icons.calendar_today_outlined,
-                  cg.hpRegDob != null
-                      ? cg.hpRegDob!.toIso8601String().split('T').first
-                      : '-',
-                ),
-                SizedBox(height: SizeConfig.spacingSM),
-                const Divider(height: 1),
-                SizedBox(height: SizeConfig.spacingSM),
-                _buildMobileActions(cg),
-              ],
+            const SizedBox(height: 12),
+            _infoRow(LucideIcons.graduationCap, cg.hpRegEducation),
+            const SizedBox(height: 6),
+            _infoRow(LucideIcons.mail, cg.hpRegEmail),
+            const SizedBox(height: 6),
+            _infoRow(LucideIcons.phone, cg.hpRegPhoneNumber),
+            const SizedBox(height: 6),
+            _infoRow(
+              LucideIcons.calendar,
+              cg.hpRegDob != null
+                  ? cg.hpRegDob!.toIso8601String().split('T').first
+                  : '-',
             ),
-          ),
-        ],
+            Divider(height: 24, color: AppColor.borderSubtle),
+            _buildMobileActions(cg),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _infoRow(IconData icon, String text, {bool bold = false}) {
+  Widget _infoRow(IconData icon, String text) {
     return Row(
       children: [
-        Icon(icon, size: SizeConfig.iconSM, color: AppColor.lightGrey),
-        SizedBox(width: SizeConfig.spacingXS),
+        Icon(icon, size: 16, color: AppColor.textTertiary),
+        const SizedBox(width: 8),
         Expanded(
           child: Text(
             text,
-            style: AppTextStyles.regular14Gre.copyWith(
-              fontSize: SizeConfig.fontBodySmall,
-              color: bold ? AppColor.fontColorBlack : null,
-              fontWeight: bold ? FontWeight.w600 : null,
-            ),
+            style: TextStyle(fontSize: 13, color: AppColor.textSecondary),
             overflow: TextOverflow.ellipsis,
           ),
         ),
@@ -557,25 +476,13 @@ class ManageCgView extends GetView<RegisterCgController> {
       children: [
         SizedBox(
           width: double.infinity,
-          child: OutlinedButton(
+          child: OutlinedButton.icon(
             onPressed: () => Get.to(() => CgReviewDetailScreen(cgDetails: cg)),
-            style: OutlinedButton.styleFrom(
-              padding: EdgeInsets.symmetric(vertical: SizeConfig.spacingSM),
-              side: BorderSide(color: AppColor.cPrimaryButtonColor),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(SizeConfig.radiusSM),
-              ),
-            ),
-            child: Text(
-              'Review Details',
-              style: TextStyle(
-                color: AppColor.cPrimaryButtonColor,
-                fontSize: SizeConfig.fontBodySmall,
-              ),
-            ),
+            icon: const Icon(LucideIcons.eye, size: 18),
+            label: const Text('Review Details'),
           ),
         ),
-        SizedBox(height: SizeConfig.spacingXS),
+        const SizedBox(height: 8),
         Obx(
           () => controller.manageCgStatusLoading.value
               ? const Center(
@@ -588,40 +495,19 @@ class ManageCgView extends GetView<RegisterCgController> {
               : (cg.hpRegStatus == 2 || cg.hpRegStatus == 3)
               ? SizedBox(
                   width: double.infinity,
-                  child: ElevatedButton.icon(
+                  child: OutlinedButton.icon(
                     onPressed: () => _showConfirmationDialog(
                       Get.context!,
                       title: 'Terminate Caregiver',
                       message:
                           'Are you sure you want to terminate ${cg.hpRegFirstName} ${cg.hpRegLastName}?',
                       confirmLabel: 'Terminate',
-                      confirmColor: AppColor.fontColorGrey,
+                      tone: AppTone.danger,
                       onConfirm: () => controller.updateCgStatus(cg.hpRegId, 4),
                     ),
-                    icon: Icon(
-                      Icons.block,
-                      color: AppColor.buttonTextWhite,
-                      size: 15,
-                    ),
-                    label: Text(
-                      'Terminate',
-                      style: TextStyle(
-                        color: AppColor.buttonTextWhite,
-                        fontSize: SizeConfig.fontBodySmall,
-                      ),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColor.fontColorGrey,
-                      padding: EdgeInsets.symmetric(
-                        vertical: SizeConfig.spacingSM,
-                      ),
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(
-                          SizeConfig.radiusSM,
-                        ),
-                      ),
-                    ),
+                    style: AppButtonStyles.dangerOutlined,
+                    icon: const Icon(LucideIcons.ban, size: 18),
+                    label: const Text('Terminate'),
                   ),
                 )
               : Row(
@@ -634,73 +520,30 @@ class ManageCgView extends GetView<RegisterCgController> {
                           message:
                               'Are you sure you want to approve ${cg.hpRegFirstName} ${cg.hpRegLastName}?',
                           confirmLabel: 'Approve',
-                          confirmColor: const Color(0xFF2E7D32),
+                          tone: AppTone.success,
                           onConfirm: () =>
                               controller.updateCgStatus(cg.hpRegId, 2),
                         ),
-                        icon: Icon(
-                          Icons.check,
-                          color: AppColor.buttonTextWhite,
-                          size: 15,
-                        ),
-                        label: Text(
-                          'Approve',
-                          style: TextStyle(
-                            color: AppColor.buttonTextWhite,
-                            fontSize: SizeConfig.fontBodySmall,
-                          ),
-                        ),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF2E7D32),
-                          padding: EdgeInsets.symmetric(
-                            vertical: SizeConfig.spacingSM,
-                          ),
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(
-                              SizeConfig.radiusSM,
-                            ),
-                          ),
-                        ),
+                        icon: const Icon(LucideIcons.check, size: 18),
+                        label: const Text('Approve'),
                       ),
                     ),
-                    SizedBox(width: SizeConfig.spacingXS),
+                    const SizedBox(width: 8),
                     Expanded(
-                      child: ElevatedButton.icon(
+                      child: OutlinedButton.icon(
                         onPressed: () => _showConfirmationDialog(
                           Get.context!,
                           title: 'Reject Caregiver',
                           message:
                               'Are you sure you want to reject ${cg.hpRegFirstName} ${cg.hpRegLastName}?',
                           confirmLabel: 'Reject',
-                          confirmColor: const Color(0xFFC62828),
+                          tone: AppTone.danger,
                           onConfirm: () =>
                               controller.updateCgStatus(cg.hpRegId, 3),
                         ),
-                        icon: Icon(
-                          Icons.close,
-                          color: AppColor.buttonTextWhite,
-                          size: 15,
-                        ),
-                        label: Text(
-                          'Reject',
-                          style: TextStyle(
-                            color: AppColor.buttonTextWhite,
-                            fontSize: SizeConfig.fontBodySmall,
-                          ),
-                        ),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFC62828),
-                          padding: EdgeInsets.symmetric(
-                            vertical: SizeConfig.spacingSM,
-                          ),
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(
-                              SizeConfig.radiusSM,
-                            ),
-                          ),
-                        ),
+                        style: AppButtonStyles.dangerOutlined,
+                        icon: const Icon(LucideIcons.x, size: 18),
+                        label: const Text('Reject'),
                       ),
                     ),
                   ],
@@ -732,80 +575,59 @@ class ManageCgView extends GetView<RegisterCgController> {
       return Column(
         children: [
           Expanded(
-            child: Container(
-              decoration: BoxDecoration(
-                color: AppColor.whiteColor,
-                borderRadius: BorderRadius.circular(SizeConfig.radiusSM),
-                border: Border.all(color: AppColor.divColor),
+            child: DataTable2(
+              columnSpacing: 16,
+              horizontalMargin: 16,
+              minWidth: 960,
+              dividerThickness: 0,
+              dataRowHeight: 68,
+              headingRowHeight: 44,
+              border: TableBorder(
+                horizontalInside: BorderSide(
+                  color: AppColor.borderSubtle,
+                  width: 1,
+                ),
               ),
-              child: DataTable2(
-                columnSpacing: SizeConfig.spacingMD,
-                horizontalMargin: SizeConfig.spacingMD,
-                dividerThickness: 0,
-                dataRowHeight: SizeConfig.isTablet ? 70 : 74,
-                headingRowHeight: SizeConfig.isTablet ? 46 : 50,
-                headingTextStyle: TextStyle(
-                  fontFamily: 'poppins_regular',
-                  fontSize: SizeConfig.isTablet
-                      ? SizeConfig.fontCaption
-                      : SizeConfig.fontBody,
-                  fontWeight: FontWeight.w600,
-                  color: AppColor.fontColorBlack,
+              columns: const [
+                DataColumn2(
+                  label: Text('ID'),
+                  size: ColumnSize.S,
+                  fixedWidth: 88,
                 ),
-                dataTextStyle: TextStyle(
-                  fontFamily: 'poppins_regular',
-                  fontSize: SizeConfig.isTablet
-                      ? SizeConfig.fontCaption
-                      : SizeConfig.fontBodySmall,
-                  color: AppColor.fontColorBlack,
+                DataColumn2(label: Text('HP Info'), size: ColumnSize.L),
+                DataColumn2(label: Text('Contact'), size: ColumnSize.M),
+                DataColumn2(label: Text('Date / Docs'), size: ColumnSize.S),
+                DataColumn2(label: Text('Status'), size: ColumnSize.S),
+                DataColumn2(
+                  label: Text('Actions'),
+                  size: ColumnSize.S,
+                  fixedWidth: 152,
                 ),
-                headingRowColor: WidgetStateProperty.all<Color>(
-                  AppColor.fieldColorGrey,
-                ),
-                border: TableBorder(
-                  horizontalInside: BorderSide(
-                    color: AppColor.fieldColorGrey,
-                    width: 1,
-                  ),
-                ),
-                columns: const [
-                  DataColumn2(
-                    label: Text('ID'),
-                    size: ColumnSize.S,
-                    fixedWidth: 80,
-                  ),
-                  DataColumn2(label: Text('HP Info'), size: ColumnSize.L),
-                  DataColumn2(label: Text('Contact'), size: ColumnSize.M),
-                  DataColumn2(label: Text('Date / Docs'), size: ColumnSize.S),
-                  DataColumn2(label: Text('Status'), size: ColumnSize.S),
-                  DataColumn2(label: Text('Actions'), size: ColumnSize.M),
-                ],
-                rows: pageData.map<DataRow>((cg) {
-                  return DataRow(
-                    cells: [
-                      DataCell(
-                        Text(
-                          'HP-${cg.hpRegId.toString().padLeft(3, '0')}',
-                          style: AppTextStyles.regular14black.copyWith(
-                            color: AppColor.cPrimaryButtonColor,
-                            fontWeight: FontWeight.w600,
-                            fontSize: SizeConfig.isTablet
-                                ? SizeConfig.fontCaption
-                                : SizeConfig.fontBody,
-                          ),
+              ],
+              rows: pageData.map<DataRow>((cg) {
+                return DataRow(
+                  cells: [
+                    DataCell(
+                      Text(
+                        'HP-${cg.hpRegId.toString().padLeft(3, '0')}',
+                        style: TextStyle(
+                          color: AppColor.cPrimaryButtonColor,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 13.5,
                         ),
                       ),
-                      DataCell(_buildCgInfoCell(cg)),
-                      DataCell(_buildContactCell(cg)),
-                      DataCell(_buildDateDocsCell(cg)),
-                      DataCell(_statusPill(cg.hpRegStatus)),
-                      DataCell(_buildTableActions(cg)),
-                    ],
-                  );
-                }).toList(),
-              ),
+                    ),
+                    DataCell(_buildCgInfoCell(cg)),
+                    DataCell(_buildContactCell(cg)),
+                    DataCell(_buildDateDocsCell(cg)),
+                    DataCell(_statusPill(cg.hpRegStatus)),
+                    DataCell(_buildTableActions(cg)),
+                  ],
+                );
+              }).toList(),
             ),
           ),
+          Divider(height: 1, color: AppColor.borderSubtle),
           _buildPaginationBar(
             currentPage: safePage,
             totalPages: totalPages,
@@ -820,36 +642,33 @@ class ManageCgView extends GetView<RegisterCgController> {
   }
 
   Widget _buildCgInfoCell(GetCgDetails cg) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisAlignment: MainAxisAlignment.center,
+    final name = '${cg.hpRegFirstName} ${cg.hpRegLastName}';
+    return Row(
       children: [
-        Text(
-          '${cg.hpRegFirstName} ${cg.hpRegLastName}',
-          style: AppTextStyles.regular14black.copyWith(
-            fontWeight: FontWeight.w600,
-            fontSize: SizeConfig.isTablet
-                ? SizeConfig.fontCaption
-                : SizeConfig.fontBody,
-          ),
-          overflow: TextOverflow.ellipsis,
-        ),
-        const SizedBox(height: 4),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-          decoration: BoxDecoration(
-            color: AppColor.cPrimaryButtonColor.withValues(alpha:0.08),
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Text(
-            cg.hpRegEducation,
-            style: TextStyle(
-              color: AppColor.cPrimaryButtonColor,
-              fontSize: SizeConfig.fontCaption,
-              fontFamily: 'poppins_regular',
-              fontWeight: FontWeight.w500,
-            ),
-            overflow: TextOverflow.ellipsis,
+        AppAvatar(name: name, imageUrl: _photoUrl(cg), size: 36),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                name,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: AppColor.textPrimary,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 2),
+              Text(
+                cg.hpRegEducation,
+                style: TextStyle(fontSize: 12.5, color: AppColor.textTertiary),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
           ),
         ),
       ],
@@ -863,14 +682,12 @@ class ManageCgView extends GetView<RegisterCgController> {
       children: [
         Row(
           children: [
-            Icon(Icons.email_outlined, size: 12, color: AppColor.lightGrey),
-            const SizedBox(width: 4),
+            Icon(LucideIcons.mail, size: 14, color: AppColor.textTertiary),
+            const SizedBox(width: 6),
             Expanded(
               child: Text(
                 cg.hpRegEmail,
-                style: AppTextStyles.regular14black.copyWith(
-                  fontSize: SizeConfig.fontCaption,
-                ),
+                style: TextStyle(fontSize: 13, color: AppColor.textPrimary),
                 overflow: TextOverflow.ellipsis,
               ),
             ),
@@ -879,13 +696,11 @@ class ManageCgView extends GetView<RegisterCgController> {
         const SizedBox(height: 4),
         Row(
           children: [
-            Icon(Icons.phone_outlined, size: 12, color: AppColor.lightGrey),
-            const SizedBox(width: 4),
+            Icon(LucideIcons.phone, size: 14, color: AppColor.textTertiary),
+            const SizedBox(width: 6),
             Text(
               cg.hpRegPhoneNumber,
-              style: AppTextStyles.regular14Gre.copyWith(
-                fontSize: SizeConfig.fontCaption,
-              ),
+              style: TextStyle(fontSize: 13, color: AppColor.textSecondary),
             ),
           ],
         ),
@@ -901,31 +716,28 @@ class ManageCgView extends GetView<RegisterCgController> {
         Row(
           children: [
             Icon(
-              Icons.calendar_today_outlined,
-              size: 12,
-              color: AppColor.lightGrey,
+              LucideIcons.calendar,
+              size: 14,
+              color: AppColor.textTertiary,
             ),
-            const SizedBox(width: 4),
+            const SizedBox(width: 6),
             Text(
               cg.hpRegDob != null
                   ? cg.hpRegDob!.toIso8601String().split('T').first
                   : '-',
-              style: AppTextStyles.regular14black.copyWith(
-                fontSize: SizeConfig.fontCaption,
-              ),
+              style: TextStyle(fontSize: 13, color: AppColor.textPrimary),
             ),
           ],
         ),
         const SizedBox(height: 4),
         Row(
           children: [
-            Icon(Icons.attach_file, size: 12, color: AppColor.lightGrey),
-            const SizedBox(width: 4),
+            Icon(LucideIcons.paperclip,
+                size: 14, color: AppColor.textTertiary),
+            const SizedBox(width: 6),
             Text(
               '4 files',
-              style: AppTextStyles.regular14Gre.copyWith(
-                fontSize: SizeConfig.fontCaption,
-              ),
+              style: TextStyle(fontSize: 13, color: AppColor.textSecondary),
             ),
           ],
         ),
@@ -934,69 +746,69 @@ class ManageCgView extends GetView<RegisterCgController> {
   }
 
   Widget _buildTableActions(GetCgDetails cg) {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      crossAxisAlignment: CrossAxisAlignment.start,
+    return Row(
+      mainAxisSize: MainAxisSize.min,
       children: [
-        _ActionBtn(
-          label: 'Review',
-          color: AppColor.cPrimaryButtonColor,
-          outlined: true,
+        _RowAction(
+          tooltip: 'Review details',
+          icon: LucideIcons.eye,
+          color: AppColor.textSecondary,
           onTap: () => Get.to(() => CgReviewDetailScreen(cgDetails: cg)),
         ),
-        const SizedBox(height: 6),
         Obx(
           () => controller.manageCgStatusLoading.value
-              ? const SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2),
+              ? const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 10),
+                  child: SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
                 )
               : (cg.hpRegStatus == 2 || cg.hpRegStatus == 3)
-              ? _ActionBtn(
-                  label: 'Terminate',
-                  color: AppColor.fontColorGrey,
-                  icon: Icons.block,
+              ? _RowAction(
+                  tooltip: 'Terminate',
+                  icon: LucideIcons.ban,
+                  color: AppColor.danger,
                   onTap: () => _showConfirmationDialog(
                     Get.context!,
                     title: 'Terminate Caregiver',
                     message:
                         'Are you sure you want to terminate ${cg.hpRegFirstName} ${cg.hpRegLastName}?',
                     confirmLabel: 'Terminate',
-                    confirmColor: AppColor.fontColorGrey,
+                    tone: AppTone.danger,
                     onConfirm: () => controller.updateCgStatus(cg.hpRegId, 4),
                   ),
                 )
               : Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    _ActionBtn(
-                      label: 'Approve',
-                      color: const Color(0xFF2E7D32),
-                      icon: Icons.check,
+                    _RowAction(
+                      tooltip: 'Approve',
+                      icon: LucideIcons.circleCheck,
+                      color: AppColor.success,
                       onTap: () => _showConfirmationDialog(
                         Get.context!,
                         title: 'Approve Caregiver',
                         message:
                             'Are you sure you want to approve ${cg.hpRegFirstName} ${cg.hpRegLastName}?',
                         confirmLabel: 'Approve',
-                        confirmColor: const Color(0xFF2E7D32),
+                        tone: AppTone.success,
                         onConfirm: () =>
                             controller.updateCgStatus(cg.hpRegId, 2),
                       ),
                     ),
-                    const SizedBox(width: 6),
-                    _ActionBtn(
-                      label: 'Reject',
-                      color: const Color(0xFFC62828),
-                      icon: Icons.close,
+                    _RowAction(
+                      tooltip: 'Reject',
+                      icon: LucideIcons.circleX,
+                      color: AppColor.danger,
                       onTap: () => _showConfirmationDialog(
                         Get.context!,
                         title: 'Reject Caregiver',
                         message:
                             'Are you sure you want to reject ${cg.hpRegFirstName} ${cg.hpRegLastName}?',
                         confirmLabel: 'Reject',
-                        confirmColor: const Color(0xFFC62828),
+                        tone: AppTone.danger,
                         onConfirm: () =>
                             controller.updateCgStatus(cg.hpRegId, 3),
                       ),
@@ -1020,94 +832,101 @@ class ManageCgView extends GetView<RegisterCgController> {
     required int startIndex,
     required int endIndex,
   }) {
-    return Container(
-      margin: EdgeInsets.only(top: SizeConfig.spacingSM),
+    final captionStyle = TextStyle(fontSize: 13, color: AppColor.textTertiary);
+    return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      decoration: BoxDecoration(
-        color: AppColor.whiteColor,
-        borderRadius: BorderRadius.circular(SizeConfig.radiusSM),
-        border: Border.all(color: AppColor.divColor),
-      ),
-      child: Row(
+      child: Wrap(
+        alignment: WrapAlignment.spaceBetween,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        spacing: 16,
+        runSpacing: 8,
         children: [
-          Text(
-            'Rows per page:',
-            style: AppTextStyles.regular14Gre.copyWith(
-              fontSize: SizeConfig.fontCaption,
-            ),
-          ),
-          const SizedBox(width: 8),
-          AppDropdown<int>(
-            hint: '',
-            value: rowsPerPage,
-            isDense: true,
-            isExpanded: false,
-            padding: const EdgeInsets.symmetric(horizontal: 8),
-            items: [10, 20, 50]
-                .map((v) => DropdownMenuItem(value: v, child: Text('$v')))
-                .toList(),
-            onChanged: (v) {
-              if (v != null) {
-                controller.rowsPerPage.value = v;
-                controller.currentPage.value = 0;
-              }
-            },
-          ),
-          const SizedBox(width: 16),
-          Text(
-            '${startIndex + 1}–$endIndex of $totalItems',
-            style: AppTextStyles.regular14Gre.copyWith(
-              fontSize: SizeConfig.fontCaption,
-            ),
-          ),
-          const Spacer(),
-          _navBtn(
-            Icons.first_page,
-            currentPage > 0,
-            () => controller.currentPage.value = 0,
-          ),
-          _navBtn(
-            Icons.chevron_left,
-            currentPage > 0,
-            () => controller.currentPage.value = currentPage - 1,
-          ),
-          ...List.generate(totalPages, (i) => i)
-              .where(
-                (i) =>
-                    i == 0 ||
-                    i == totalPages - 1 ||
-                    (i - currentPage).abs() <= 1,
-              )
-              .map(
-                (i) => _PageDot(
-                  number: i,
-                  selected: i == currentPage,
-                  color: AppColor.cPrimaryButtonColor,
-                  onTap: () => controller.currentPage.value = i,
-                ),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('Rows per page:', style: captionStyle),
+              const SizedBox(width: 8),
+              AppDropdown<int>(
+                hint: '',
+                value: rowsPerPage,
+                isDense: true,
+                isExpanded: false,
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                items: [10, 20, 50]
+                    .map((v) => DropdownMenuItem(value: v, child: Text('$v')))
+                    .toList(),
+                onChanged: (v) {
+                  if (v != null) {
+                    controller.rowsPerPage.value = v;
+                    controller.currentPage.value = 0;
+                  }
+                },
               ),
-          _navBtn(
-            Icons.chevron_right,
-            currentPage < totalPages - 1,
-            () => controller.currentPage.value = currentPage + 1,
+              const SizedBox(width: 16),
+              Text(
+                '${startIndex + 1}–$endIndex of $totalItems',
+                style: captionStyle.copyWith(color: AppColor.textSecondary),
+              ),
+            ],
           ),
-          _navBtn(
-            Icons.last_page,
-            currentPage < totalPages - 1,
-            () => controller.currentPage.value = totalPages - 1,
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _navBtn(
+                LucideIcons.chevronFirst,
+                currentPage > 0,
+                () => controller.currentPage.value = 0,
+                tooltip: 'First page',
+              ),
+              _navBtn(
+                LucideIcons.chevronLeft,
+                currentPage > 0,
+                () => controller.currentPage.value = currentPage - 1,
+                tooltip: 'Previous page',
+              ),
+              ...List.generate(totalPages, (i) => i)
+                  .where(
+                    (i) =>
+                        i == 0 ||
+                        i == totalPages - 1 ||
+                        (i - currentPage).abs() <= 1,
+                  )
+                  .map(
+                    (i) => _PageDot(
+                      number: i,
+                      selected: i == currentPage,
+                      color: AppColor.cPrimaryButtonColor,
+                      onTap: () => controller.currentPage.value = i,
+                    ),
+                  ),
+              _navBtn(
+                LucideIcons.chevronRight,
+                currentPage < totalPages - 1,
+                () => controller.currentPage.value = currentPage + 1,
+                tooltip: 'Next page',
+              ),
+              _navBtn(
+                LucideIcons.chevronLast,
+                currentPage < totalPages - 1,
+                () => controller.currentPage.value = totalPages - 1,
+                tooltip: 'Last page',
+              ),
+            ],
           ),
         ],
       ),
     );
   }
 
-  Widget _navBtn(IconData icon, bool enabled, VoidCallback onTap) {
+  Widget _navBtn(IconData icon, bool enabled, VoidCallback onTap,
+      {String? tooltip}) {
     return IconButton(
       onPressed: enabled ? onTap : null,
+      tooltip: tooltip,
       icon: Icon(
         icon,
-        size: SizeConfig.iconSM,
-        color: enabled ? AppColor.fontColorBlack : AppColor.divColor,
+        size: 18,
+        color: enabled ? AppColor.textSecondary : AppColor.lightGrey,
       ),
       splashRadius: 18,
       constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
@@ -1124,54 +943,40 @@ class ManageCgView extends GetView<RegisterCgController> {
     required String title,
     required String message,
     required String confirmLabel,
-    required Color confirmColor,
+    AppTone tone = AppTone.primary,
     required VoidCallback onConfirm,
   }) {
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(SizeConfig.radiusMD),
-        ),
-        title: Text(
-          title,
-          style: AppTextStyles.heading.copyWith(fontSize: SizeConfig.fontH2),
-        ),
-        content: Text(
-          message,
-          style: AppTextStyles.regular14Gre.copyWith(
-            fontSize: SizeConfig.fontBody,
-          ),
-        ),
+      builder: (ctx) => AppDialog(
+        title: title,
+        icon: tone == AppTone.danger
+            ? LucideIcons.triangleAlert
+            : tone == AppTone.success
+                ? LucideIcons.circleCheck
+                : LucideIcons.circleHelp,
+        tone: tone,
+        maxWidth: 440,
+        onClose: () => Navigator.of(ctx).pop(),
         actions: [
-          TextButton(
+          OutlinedButton(
             onPressed: () => Navigator.of(ctx).pop(),
-            child: Text(
-              'Cancel',
-              style: TextStyle(
-                fontSize: SizeConfig.fontBody,
-                color: AppColor.fontColorGrey,
-              ),
-            ),
+            child: const Text('Cancel'),
           ),
           ElevatedButton(
             onPressed: () {
               Navigator.of(ctx).pop();
               onConfirm();
             },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: confirmColor,
-              elevation: 0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(SizeConfig.radiusSM),
-              ),
-            ),
-            child: Text(
-              confirmLabel,
-              style: TextStyle(color: AppColor.buttonTextWhite),
-            ),
+            style: tone == AppTone.danger ? AppButtonStyles.danger : null,
+            child: Text(confirmLabel),
           ),
         ],
+        child: Text(
+          message,
+          style: TextStyle(
+              fontSize: 14, height: 1.5, color: AppColor.textSecondary),
+        ),
       ),
     );
   }
@@ -1180,127 +985,59 @@ class ManageCgView extends GetView<RegisterCgController> {
       .where((e) => e.hpRegStatus == status)
       .length;
 
-  /// Clean pill-style status badge — no icon, just colour + text
+  /// HP registration status badge (0 Inactive, 1 Pending, 2 Approved,
+  /// 3 Rejected, 4 Terminated).
   Widget _statusPill(int status) {
-    late Color bg, fg;
     late String text;
 
     switch (status) {
       case 0:
-        bg = AppColor.divColor;
-        fg = AppColor.fontColorGrey;
         text = 'Inactive';
         break;
       case 1:
-        bg = const Color(0xFFFFF3E0);
-        fg = const Color(0xFFE65100);
         text = 'Pending';
         break;
       case 2:
-        bg = const Color(0xFFE8F5E9);
-        fg = const Color(0xFF2E7D32);
         text = 'Approved';
         break;
       case 3:
-        bg = const Color(0xFFFFEBEE);
-        fg = const Color(0xFFC62828);
         text = 'Rejected';
         break;
       case 4:
-        bg = AppColor.divColor;
-        fg = AppColor.fontColorGrey;
         text = 'Terminated';
         break;
       default:
-        bg = const Color(0xFFFFF3E0);
-        fg = const Color(0xFFE65100);
         text = 'Pending';
     }
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Text(
-        text,
-        style: TextStyle(
-          color: fg,
-          fontWeight: FontWeight.w600,
-          fontSize: SizeConfig.fontCaption,
-          fontFamily: 'poppins_regular',
-        ),
-      ),
-    );
+    return AppStatusBadge.status(text);
   }
 }
 
 // ═══════════════════════════════════════════════════════════════
-// ACTION BUTTON WIDGET
+// ROW ACTION — 18px icon button with tooltip
 // ═══════════════════════════════════════════════════════════════
 
-class _ActionBtn extends StatelessWidget {
-  final String label;
+class _RowAction extends StatelessWidget {
+  final String tooltip;
+  final IconData icon;
   final Color color;
-  final IconData? icon;
-  final bool outlined;
   final VoidCallback onTap;
 
-  const _ActionBtn({
-    required this.label,
+  const _RowAction({
+    required this.tooltip,
+    required this.icon,
     required this.color,
     required this.onTap,
-    this.icon,
-    this.outlined = false,
   });
 
   @override
   Widget build(BuildContext context) {
-    final textChild = Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        if (icon != null) ...[
-          Icon(icon, size: 13, color: outlined ? color : AppColor.buttonTextWhite),
-          const SizedBox(width: 4),
-        ],
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: SizeConfig.fontCaption,
-            color: outlined ? color : AppColor.buttonTextWhite,
-            fontFamily: 'poppins_regular',
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-      ],
-    );
-
-    if (outlined) {
-      return OutlinedButton(
-        onPressed: onTap,
-        style: OutlinedButton.styleFrom(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-          side: BorderSide(color: color),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-          minimumSize: const Size(0, 30),
-          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-        ),
-        child: textChild,
-      );
-    }
-
-    return ElevatedButton(
+    return IconButton(
       onPressed: onTap,
-      style: ElevatedButton.styleFrom(
-        backgroundColor: color,
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-        elevation: 0,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-        minimumSize: const Size(0, 30),
-        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-      ),
-      child: textChild,
+      tooltip: tooltip,
+      visualDensity: VisualDensity.compact,
+      icon: Icon(icon, size: 18, color: color),
     );
   }
 }
@@ -1324,27 +1061,84 @@ class _PageDot extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 2),
-        width: 30,
-        height: 30,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: selected ? color : Colors.transparent,
-          borderRadius: BorderRadius.circular(6),
-          border: Border.all(color: selected ? color : AppColor.divColor),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 2),
+      child: Material(
+        color: selected ? color : Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadius.sm),
+          side: BorderSide(color: selected ? color : AppColor.borderSubtle),
         ),
-        child: Text(
-          '${number + 1}',
-          style: TextStyle(
-            fontSize: 12,
-            fontFamily: 'poppins_regular',
-            fontWeight: selected ? FontWeight.bold : FontWeight.normal,
-            color: selected ? AppColor.buttonTextWhite : AppColor.fontColorBlack,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(AppRadius.sm),
+          child: SizedBox(
+            width: 30,
+            height: 30,
+            child: Center(
+              child: Text(
+                '${number + 1}',
+                style: TextStyle(
+                  fontSize: 12.5,
+                  fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+                  color: selected
+                      ? AppColor.buttonTextWhite
+                      : AppColor.textPrimary,
+                  fontFeatures: const [FontFeature.tabularFigures()],
+                ),
+              ),
+            ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SUMMARY PILL (mobile)
+// ═══════════════════════════════════════════════════════════════
+
+class _StatPill extends StatelessWidget {
+  final _StatItem item;
+  const _StatPill({required this.item});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: AppColor.whiteColor,
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        border: Border.all(color: AppColor.divColor),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 8,
+            height: 8,
+            decoration: BoxDecoration(
+              color: item.tone.color,
+              shape: BoxShape.circle,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            item.label,
+            style: TextStyle(fontSize: 13, color: AppColor.textSecondary),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            '${item.count}',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+              color: AppColor.textPrimary,
+              fontFeatures: const [FontFeature.tabularFigures()],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -1357,8 +1151,9 @@ class _PageDot extends StatelessWidget {
 class _StatItem {
   final String label;
   final int count;
-  final Color color;
-  _StatItem(this.label, this.count, this.color);
+  final AppTone tone;
+  final IconData icon;
+  _StatItem(this.label, this.count, this.tone, this.icon);
 }
 
 class _TabDef {

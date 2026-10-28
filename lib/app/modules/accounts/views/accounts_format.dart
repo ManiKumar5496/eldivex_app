@@ -1,9 +1,27 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:eldivex_app/app/core/values/color_constants.dart';
+import 'package:eldivex_app/app/widgets/ui/ui.dart';
 import '../models/parse_utils.dart';
+import 'package:eldivex_app/app/core/values/lucide_icons.dart';
 
 /// Formatting + status-colour helpers shared by every accounts screen.
+
+final Expando<bool> _clientArgApplied = Expando<bool>('clientArgApplied');
+
+/// The client outstanding page's Quick Actions open the create screens with
+/// `{'client_id': …}`. Calls [select] with that id once per visit to the
+/// route, after the first frame, so later dropdown changes aren't overridden.
+void applyClientArgument(BuildContext context, void Function(int id) select) {
+  final route = ModalRoute.of(context);
+  if (route == null || _clientArgApplied[route] == true) return;
+  _clientArgApplied[route] = true;
+  final args = route.settings.arguments ?? Get.arguments;
+  final id = args is Map ? toIntOrNull(args['client_id']) : null;
+  if (id == null) return;
+  WidgetsBinding.instance.addPostFrameCallback((_) => select(id));
+}
 
 final NumberFormat _inr = NumberFormat.currency(locale: 'en_IN', symbol: '₹');
 final NumberFormat _inrCompact =
@@ -38,9 +56,9 @@ String humanizeStatus(String status) {
       .join(' ');
 }
 
-/// One colour scheme for every status string used across the module
+/// One tone for every status string used across the module
 /// (receipts, invoices, write-offs, refunds, credit notes, transfers, claims).
-Color accountsStatusColor(String status) {
+AppTone _accountsStatusTone(String status) {
   switch (status.trim().toLowerCase().replaceAll(' ', '_')) {
     case 'approved':
     case 'active':
@@ -48,44 +66,56 @@ Color accountsStatusColor(String status) {
     case 'paid':
     case 'settled':
     case 'applied':
-      return Colors.green;
+      return AppTone.success;
     case 'processing':
     case 'submitted':
     case 'fully_applied':
-      return Colors.blue;
+      return AppTone.info;
     case 'pending':
     case 'pending_approval':
     case 'partially_paid':
     case 'partially_applied':
     case 'on_hold':
-      return Colors.orange;
+      return AppTone.warning;
     case 'rejected':
     case 'cancelled':
     case 'overdue':
     case 'expired':
     case 'failed':
-      return Colors.red;
+      return AppTone.danger;
     case 'reversed':
-      return Colors.purple;
+      return AppTone.violet;
     default:
+      return AppTone.neutral;
+  }
+}
+
+/// One colour scheme for every status string used across the module
+/// (receipts, invoices, write-offs, refunds, credit notes, transfers, claims).
+Color accountsStatusColor(String status) {
+  switch (_accountsStatusTone(status)) {
+    case AppTone.success:
+      return AppColor.success;
+    case AppTone.info:
+      return AppColor.info;
+    case AppTone.warning:
+      return AppColor.warning;
+    case AppTone.danger:
+      return AppColor.danger;
+    case AppTone.violet:
+      return AppColor.violet;
+    case AppTone.primary:
+    case AppTone.neutral:
       return AppColor.fontColorGrey;
   }
 }
 
-/// Small rounded status pill used by the list/detail screens.
+/// Small status pill used by the list/detail screens. [fontSize] is kept for
+/// API compatibility; the badge uses the design-system size.
 Widget accountsStatusChip(String status, {double fontSize = 12}) {
-  final color = accountsStatusColor(status);
-  return Container(
-    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-    decoration: BoxDecoration(
-      color: color.withValues(alpha: 0.12),
-      borderRadius: BorderRadius.circular(20),
-    ),
-    child: Text(
-      humanizeStatus(status),
-      style: TextStyle(
-          color: color, fontSize: fontSize, fontWeight: FontWeight.w600),
-    ),
+  return AppStatusBadge(
+    label: humanizeStatus(status),
+    tone: _accountsStatusTone(status),
   );
 }
 
@@ -108,31 +138,159 @@ Widget horizontalTable(Widget table) {
 /// Placeholder shown by detail screens opened without data (e.g. after a
 /// browser refresh drops Get.arguments).
 Widget recordNotFound({required String title, required VoidCallback onBack}) {
-  return Center(
-    child: Padding(
-      padding: const EdgeInsets.all(32),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
+  return AppEmptyState(
+    icon: LucideIcons.searchX,
+    title: '$title not found',
+    message: 'The record could not be loaded. Open it again from the list.',
+    actionLabel: 'Back',
+    actionIcon: LucideIcons.arrowLeft,
+    onAction: onBack,
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Presentation helpers shared by the accounts screens (design-system based).
+// ─────────────────────────────────────────────────────────────────────────
+
+/// Tabular digits so amounts line up in columns and KPI tiles.
+const List<FontFeature> accountsTabularFigures = [FontFeature.tabularFigures()];
+
+/// Text style for money values: tabular digits, semibold, primary text colour
+/// unless [color] is given.
+TextStyle accountsAmountStyle({
+  Color? color,
+  double fontSize = 13.5,
+  FontWeight fontWeight = FontWeight.w600,
+}) {
+  return TextStyle(
+    fontSize: fontSize,
+    fontWeight: fontWeight,
+    color: color ?? AppColor.textPrimary,
+    fontFeatures: accountsTabularFigures,
+  );
+}
+
+/// Two-line table cell: a primary line with an optional muted second line.
+Widget accountsCellStack(
+  String title, {
+  String? subtitle,
+  Color? titleColor,
+  FontWeight titleWeight = FontWeight.w600,
+}) {
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    mainAxisAlignment: MainAxisAlignment.center,
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      Text(
+        title,
+        style: TextStyle(
+          fontSize: 13.5,
+          fontWeight: titleWeight,
+          color: titleColor ?? AppColor.textPrimary,
+        ),
+      ),
+      if (subtitle != null && subtitle.isNotEmpty) ...[
+        const SizedBox(height: 2),
+        Text(
+          subtitle,
+          style: TextStyle(fontSize: 12, color: AppColor.textTertiary),
+        ),
+      ],
+    ],
+  );
+}
+
+/// Label above a form control; matches CommonTextField's label.
+Widget accountsFieldLabel(String label, {bool required = false}) {
+  return Padding(
+    padding: const EdgeInsets.only(bottom: 8),
+    child: Text.rich(
+      TextSpan(
+        text: label,
         children: [
-          Icon(Icons.search_off, size: 56, color: AppColor.fontColorGrey),
-          const SizedBox(height: 12),
-          Text('$title not found',
-              style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: AppColor.cPrimaryHeadingColor)),
-          const SizedBox(height: 6),
-          Text('The record could not be loaded. Open it again from the list.',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 13, color: AppColor.fontColorGrey)),
-          const SizedBox(height: 16),
-          OutlinedButton.icon(
-            onPressed: onBack,
-            icon: const Icon(Icons.arrow_back, size: 18),
-            label: const Text('Back'),
-          ),
+          if (required)
+            TextSpan(text: ' *', style: TextStyle(color: AppColor.danger)),
         ],
+      ),
+      style: TextStyle(fontSize: 14, color: AppColor.textSecondary),
+    ),
+  );
+}
+
+/// Bordered shell around a bare [DropdownButton] so it matches the inputs.
+Widget accountsDropdownShell({required Widget child, double height = 44}) {
+  return Container(
+    height: height,
+    padding: const EdgeInsets.symmetric(horizontal: 12),
+    decoration: BoxDecoration(
+      color: AppColor.whiteColor,
+      borderRadius: BorderRadius.circular(AppRadius.md),
+      border: Border.all(color: AppColor.borderStrong),
+    ),
+    child: DropdownButtonHideUnderline(child: child),
+  );
+}
+
+/// Compact tinted icon action for table rows (approve, reject, …).
+Widget accountsIconAction({
+  required IconData icon,
+  required String tooltip,
+  required VoidCallback? onPressed,
+  AppTone tone = AppTone.neutral,
+}) {
+  final radius = BorderRadius.circular(AppRadius.sm);
+  return Tooltip(
+    message: tooltip,
+    child: Material(
+      color: tone.soft,
+      borderRadius: radius,
+      child: InkWell(
+        onTap: onPressed,
+        borderRadius: radius,
+        child: SizedBox(
+          width: 32,
+          height: 32,
+          child: Icon(icon, size: 18, color: tone.color),
+        ),
       ),
     ),
   );
+}
+
+/// 40px square outlined icon button for toolbars (refresh, filters, …).
+Widget accountsToolbarIconButton({
+  required IconData icon,
+  required String tooltip,
+  required VoidCallback? onPressed,
+}) {
+  return Tooltip(
+    message: tooltip,
+    child: SizedBox(
+      width: 40,
+      height: 40,
+      child: OutlinedButton(
+        onPressed: onPressed,
+        style: OutlinedButton.styleFrom(
+          padding: EdgeInsets.zero,
+          minimumSize: const Size(40, 40),
+        ),
+        child: Icon(icon, size: 18),
+      ),
+    ),
+  );
+}
+
+/// Whether the screen is hosted inside the AccountsView tab bar (which shows
+/// its own page header), as opposed to being a page of the side-menu shell.
+bool accountsIsEmbeddedInTabs(BuildContext context) =>
+    DefaultTabController.maybeOf(context) != null;
+
+/// Page padding for an accounts screen: the standard page padding, with a
+/// tighter top when the screen sits under the AccountsView tab bar.
+EdgeInsets accountsPagePadding(BuildContext context, {bool bottom = true}) {
+  final narrow = MediaQuery.sizeOf(context).width < 600;
+  final h = narrow ? 16.0 : 24.0;
+  final top = accountsIsEmbeddedInTabs(context) ? 16.0 : (narrow ? 16.0 : 24.0);
+  return EdgeInsets.fromLTRB(h, top, h, bottom ? h : 0);
 }

@@ -1,21 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:eldivex_app/app/core/theme/theme_controller.dart';
+import 'package:intl/intl.dart';
 import 'package:eldivex_app/app/core/values/color_constants.dart';
 import 'package:eldivex_app/app/core/values/size_configue.dart';
 import 'package:eldivex_app/app/routes/app_pages.dart';
 import 'package:eldivex_app/app/modules/dashboard/views/dashboard_stats_widgets/service_distribution_widget.dart';
 import 'package:eldivex_app/app/modules/dashboard/views/dashboard_stats_widgets/top_performing_cities_widget.dart';
 import 'package:eldivex_app/app/modules/dashboard/views/dashboard_stats_widgets/weekly_bookings_widget.dart';
-import 'package:eldivex_app/app/modules/notifications/views/notification_panel.dart';
 import 'package:eldivex_app/app/modules/role/controllers/role_controller.dart';
-import 'package:eldivex_app/app/widgets/helper_ui.dart';
+import 'package:eldivex_app/app/widgets/ui/ui.dart';
 import '../../../../main.dart';
 import 'dashboard_stats_widgets/booking_stats_chart.dart';
 import 'dashboard_stats_widgets/dashboard_mini_stats.dart';
 import 'dashboard_stats_widgets/dashboard_stats_section.dart';
 import '../controllers/dashboard_controller.dart';
 import 'dashboard_stats_widgets/top_performing_cgs_widget.dart';
+import 'package:eldivex_app/app/core/values/lucide_icons.dart';
 
 class DashboardView extends GetView<DashboardController> {
   const DashboardView({super.key});
@@ -29,34 +29,75 @@ class DashboardView extends GetView<DashboardController> {
     if (!Get.isRegistered<DashboardController>()) {
       Get.put(DashboardController());
     }
-    String userName = box.read("user_name") ?? "Admin User";
-    String userImage = box.read("user_image") ?? "";
-
     return Scaffold(
       backgroundColor: AppColor.cAppBackgroundColor,
-      body: Column(
-        children: [
-          _buildAppBar(userName, userImage),
-          _buildFilterRow(context),
-          _buildErrorBanner(),
-          Expanded(
-            child: SingleChildScrollView(
-              padding: SizeConfig.pagePadding,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const DashboardMiniStats(),
-                  SizedBox(height: SizeConfig.spacingMD),
-                  const DashboardStatsSection(),
+      body: SingleChildScrollView(
+        padding: SizeConfig.pagePadding,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _buildHeader(),
+            const SizedBox(height: 20),
+            _buildFilterRow(context),
+            _buildErrorBanner(),
+            const SizedBox(height: 20),
+            const DashboardMiniStats(),
+            const DashboardStatsSection(),
 
-                  /// Analytics (charts + performance + cities), gated per role.
-                  _buildAnalytics(),
-                ],
-              ),
-            ),
-          ),
-        ],
+            /// Analytics (charts + performance + cities), gated per role.
+            _buildAnalytics(),
+          ],
+        ),
       ),
+    );
+  }
+
+  /// Page title with a time-of-day greeting; refresh lives top-right.
+  Widget _buildHeader() {
+    final name = (box.read('user_name') ?? '').toString().trim();
+    final first = name.isEmpty ? '' : name.split(RegExp(r'\s+')).first;
+    final hour = DateTime.now().hour;
+    final greeting = hour < 12
+        ? 'Good morning'
+        : hour < 17
+            ? 'Good afternoon'
+            : 'Good evening';
+
+    return AppPageHeader(
+      title: 'Dashboard',
+      subtitle: first.isEmpty
+          ? '$greeting. Here’s how your operations are tracking.'
+          : '$greeting, $first. Here’s how your operations are tracking.',
+      actions: [
+        // ── Last updated + manual refresh ────────────────────────────────
+        Obx(() {
+          final updated = controller.formattedLastUpdated;
+          return Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (updated.isNotEmpty) ...[
+                Text(
+                  updated,
+                  style: TextStyle(
+                    fontSize: 12.5,
+                    color: AppColor.textTertiary,
+                  ),
+                ),
+                const SizedBox(width: 10),
+              ],
+              OutlinedButton.icon(
+                onPressed: () => controller.refreshDashboard(),
+                style: OutlinedButton.styleFrom(
+                  minimumSize: const Size(0, 36),
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                ),
+                icon: const Icon(LucideIcons.refreshCw, size: 18),
+                label: const Text('Refresh'),
+              ),
+            ],
+          );
+        }),
+      ],
     );
   }
 
@@ -94,10 +135,10 @@ class DashboardView extends GetView<DashboardController> {
       if (blocks.isEmpty) return const SizedBox.shrink();
 
       return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           for (final block in blocks) ...[
-            SizedBox(height: SizeConfig.spacingLG),
+            const SizedBox(height: _gap),
             block,
           ],
         ],
@@ -105,356 +146,178 @@ class DashboardView extends GetView<DashboardController> {
     });
   }
 
+  static const double _gap = 20;
+
   /// Lay out one or two analytics widgets responsively: a single widget spans
-  /// full width; a pair stacks on mobile and sits side-by-side on tablet+.
+  /// full width; a pair stacks when the content area is narrow (phones,
+  /// tablets with the sidebar open) and sits side-by-side otherwise.
   Widget _pairLayout(List<Widget> widgets) {
     if (widgets.isEmpty) return const SizedBox.shrink();
     if (widgets.length == 1) return widgets.first;
-    return SizeConfig.adaptiveLayout(
-      mobile: Column(
-        children: [
-          widgets[0],
-          SizedBox(height: SizeConfig.spacingLG),
-          widgets[1],
-        ],
-      ),
-      tablet: Row(
+    return LayoutBuilder(builder: (context, constraints) {
+      if (constraints.maxWidth < 840) {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            widgets[0],
+            const SizedBox(height: _gap),
+            widgets[1],
+          ],
+        );
+      }
+      return Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Expanded(child: widgets[0]),
-          SizedBox(width: SizeConfig.spacingLG),
+          const SizedBox(width: _gap),
           Expanded(child: widgets[1]),
         ],
-      ),
-    );
-  }
-
-  Widget _buildAppBar(String userName, String userImage) {
-    return Container(
-      padding: EdgeInsets.all(SizeConfig.spacingMD),
-      decoration: SizeConfig.isMobile
-          ? BoxDecoration(
-        color: AppColor.whiteColor,
-        border: Border(
-          bottom: BorderSide(
-            color: AppColor.divColor.withValues(alpha: 0.5),
-            width: 1,
-          ),
-        ),
-      )
-          : null,
-      child: Row(
-        mainAxisAlignment: SizeConfig.isMobile
-            ? MainAxisAlignment.spaceBetween
-            : MainAxisAlignment.end,
-        children: [
-          // Mobile Title
-          if (SizeConfig.isMobile)
-            Text(
-              'Dashboard',
-              style: TextStyle(
-                fontSize: SizeConfig.fontH2,
-                fontWeight: FontWeight.w600,
-                color: AppColor.cPrimaryButtonColor,
-              ),
-            ),
-
-          // Actions Row
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Notifications
-              const NotificationBell(),
-
-              // Dark mode toggle
-              Builder(builder: (_) {
-                final themeController = Get.find<ThemeController>();
-                return Obx(() {
-                  themeController.themeMode.value;
-                  final isDark = themeController.isDark;
-                  return IconButton(
-                    tooltip: isDark ? 'Switch to light mode' : 'Switch to dark mode',
-                    icon: Icon(
-                      isDark ? Icons.light_mode_outlined : Icons.dark_mode_outlined,
-                      size: SizeConfig.iconMD,
-                    ),
-                    onPressed: () => themeController.setThemeMode(
-                      isDark ? ThemeMode.light : ThemeMode.dark,
-                    ),
-                  );
-                });
-              }),
-
-              // Appearance (theme + brand color)
-              IconButton(
-                tooltip: 'Appearance',
-                icon: Icon(Icons.palette_outlined, size: SizeConfig.iconMD),
-                onPressed: () => Get.toNamed(Routes.appearance),
-              ),
-
-              // Settings Menu
-              PopupMenuButton<String>(
-                icon: Icon(Icons.settings_outlined, size: SizeConfig.iconMD),
-                offset: const Offset(0, 55),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(SizeConfig.radiusMD),
-                ),
-                color: AppColor.whiteColor,
-                elevation: 8,
-                shadowColor: Colors.black.withValues(alpha: 0.3),
-                itemBuilder: (BuildContext context) {
-                  return [
-                    PopupMenuItem<String>(
-                      enabled: false,
-                      padding: EdgeInsets.zero,
-                      child: Container(
-                        padding: EdgeInsets.all(SizeConfig.spacingLG),
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [
-                              AppColor.cPrimaryButtonColor,
-                              AppColor.cPrimaryButtonColor
-                            ],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                          borderRadius: BorderRadius.only(
-                            topLeft: Radius.circular(SizeConfig.radiusMD),
-                            topRight: Radius.circular(SizeConfig.radiusMD),
-                          ),
-                        ),
-                        child: Row(
-                          children: [
-                            Container(
-                              padding: EdgeInsets.all(SizeConfig.spacingSM),
-                              decoration: BoxDecoration(
-                                color: AppColor.buttonTextWhite.withValues(alpha: 0.3),
-                                shape: BoxShape.circle,
-                              ),
-                              child: Icon(
-                                Icons.person,
-                                color: AppColor.buttonTextWhite,
-                                size: SizeConfig.iconLG,
-                              ),
-                            ),
-                            SizedBox(width: SizeConfig.spacingSM),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'Welcome',
-                                    style: TextStyle(
-                                      fontSize: SizeConfig.fontCaption,
-                                      color: AppColor.buttonTextWhite.withValues(alpha: 0.7),
-                                      fontFamily: "poppins_regular",
-                                    ),
-                                  ),
-                                  Text(
-                                    box.read('user_name') ?? 'User',
-                                    style: TextStyle(
-                                      fontSize: SizeConfig.fontBody,
-                                      color: AppColor.buttonTextWhite,
-                                      fontWeight: FontWeight.bold,
-                                      fontFamily: "poppins_regular",
-                                    ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const PopupMenuItem<String>(
-                      value: "profile",
-                      child: Text("Profile"),
-                    ),
-                    const PopupMenuItem<String>(
-                      value: "logout",
-                      child: Text("Logout"),
-                    ),
-                  ];
-                },
-                onSelected: (value) {
-                  if (value == "logout") {
-                    // Logout must not touch LoginController: creating it here
-                    // ties it to this route, and its disposal during
-                    // Get.offAllNamed leaves the login screen bound to a dead
-                    // instance (typed text and errors land on the wrong one).
-                    Get.find<RoleController>().clearAuth();
-                    Get.offAllNamed(Routes.LOGIN);
-                    HelperUi.showToast(message: "Logged out successfully");
-                  }
-                },
-              ),
-
-              // User Profile (Hide on Mobile)
-              if (!SizeConfig.isMobile) ...[
-                SizedBox(width: SizeConfig.spacingSM),
-                Row(
-                  children: [
-                    CircleAvatar(
-                      radius: 18,
-                      backgroundColor: AppColor.cAppBackgroundColor,
-                      child: Image.network(
-                        userImage,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
-                          return Icon(
-                            Icons.person,
-                            color: AppColor.cPrimaryButtonColor,
-                          );
-                        },
-                      ),
-                    ),
-                    SizedBox(width: SizeConfig.spacingXS),
-                    Text(
-                      userName,
-                      style: TextStyle(
-                        fontSize: SizeConfig.fontBody,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ],
-          ),
-        ],
-      ),
-    );
+      );
+    });
   }
 
   // ── Phase 4.1: Dashboard filter row ─────────────────────────────────────────
+  // One toolbar above everything it scopes: branch, quick ranges, custom
+  // From → To range, Apply / Clear. Wraps onto extra lines on narrow screens.
 
   Widget _buildFilterRow(BuildContext context) {
-    return Obx(() => Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: SizeConfig.spacingMD,
-        vertical: SizeConfig.spacingSM,
-      ),
-      decoration: BoxDecoration(
-        color: AppColor.whiteColor,
-        border: Border(
-          bottom: BorderSide(
-            color: AppColor.divColor.withValues(alpha: 0.5),
-            width: 1,
-          ),
-        ),
-      ),
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Row(
+    return Obx(() => Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          crossAxisAlignment: WrapCrossAlignment.center,
           children: [
             // ── Branch dropdown ──────────────────────────────────────────────
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
-              decoration: BoxDecoration(
-                border: Border.all(color: AppColor.divColor),
-                borderRadius: BorderRadius.circular(6),
-                color: AppColor.cAppBackgroundColor,
-              ),
-              child: DropdownButton<int?>(
-                value: controller.filterBranchId.value,
-                hint: Text(
-                  'All Branches',
-                  style: TextStyle(
-                    fontSize: SizeConfig.fontCaption,
-                    color: AppColor.fontColorGrey,
-                  ),
-                ),
-                underline: const SizedBox.shrink(),
-                isDense: true,
-                items: [
-                  DropdownMenuItem<int?>(
-                    value: null,
-                    child: Text(
-                      'All Branches',
-                      style: TextStyle(fontSize: SizeConfig.fontCaption),
+            _toolbarBox(
+              padding: const EdgeInsets.only(left: 10, right: 6),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(LucideIcons.store,
+                      size: 16, color: AppColor.textTertiary),
+                  const SizedBox(width: 8),
+                  // Fixed width so long branch names ellipsize instead of
+                  // pushing the toolbar off-screen on phones.
+                  SizedBox(
+                    width: 180,
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<int?>(
+                        isExpanded: true,
+                        value: controller.filterBranchId.value,
+                        hint: Text(
+                          'All Branches',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: AppColor.textSecondary,
+                          ),
+                        ),
+                        isDense: true,
+                        icon: Icon(LucideIcons.chevronDown,
+                            size: 18, color: AppColor.textTertiary),
+                        dropdownColor: AppColor.whiteColor,
+                        borderRadius: BorderRadius.circular(AppRadius.md),
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: AppColor.textPrimary,
+                        ),
+                        items: [
+                          DropdownMenuItem<int?>(
+                            value: null,
+                            child: Text(
+                              'All Branches',
+                              style: TextStyle(fontSize: 13),
+                            ),
+                          ),
+                          ...controller.getAllBranches
+                              .map((b) => DropdownMenuItem<int?>(
+                                    value: b.brId,
+                                    child: Text(
+                                      b.brName,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(fontSize: 13),
+                                    ),
+                                  )),
+                        ],
+                        onChanged: (val) =>
+                            controller.filterBranchId.value = val,
+                      ),
                     ),
                   ),
-                  ...controller.getAllBranches.map((b) => DropdownMenuItem<int?>(
-                    value: b.brId,
-                    child: Text(
-                      b.brName,
-                      style: TextStyle(fontSize: SizeConfig.fontCaption),
-                    ),
-                  )),
                 ],
-                onChanged: (val) => controller.filterBranchId.value = val,
               ),
             ),
-
-            SizedBox(width: SizeConfig.spacingSM),
 
             // ── Quick range presets ──────────────────────────────────────────
-            _presetChip('Today', 'today'),
-            SizedBox(width: SizeConfig.spacingXS),
-            _presetChip('7d', '7d'),
-            SizedBox(width: SizeConfig.spacingXS),
-            _presetChip('30d', '30d'),
-            SizedBox(width: SizeConfig.spacingXS),
-            _presetChip('This month', 'month'),
-            SizedBox(width: SizeConfig.spacingXS),
-            _presetChip('All time', 'all'),
-
-            SizedBox(width: SizeConfig.spacingSM),
-
-            // ── From date ────────────────────────────────────────────────────
-            _buildDateButton(
-              context: context,
-              label: 'From',
-              value: controller.dashFrom.value,
-              onPicked: (d) {
-                controller.dashFrom.value = d;
-                controller.activePreset.value = '';
-              },
-              isLast: false,
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: _toolbarBox(
+                padding: const EdgeInsets.all(3),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _presetChip('Today', 'today'),
+                    _presetChip('7d', '7d'),
+                    _presetChip('30d', '30d'),
+                    _presetChip('This month', 'month'),
+                    _presetChip('All time', 'all'),
+                  ],
+                ),
+              ),
             ),
 
-            SizedBox(width: SizeConfig.spacingSM),
-
-            // ── To date ──────────────────────────────────────────────────────
-            _buildDateButton(
-              context: context,
-              label: 'To',
-              value: controller.dashTo.value,
-              onPicked: (d) {
-                controller.dashTo.value = d;
-                controller.activePreset.value = '';
-              },
-              isLast: false,
+            // ── From → To date range ─────────────────────────────────────────
+            _toolbarBox(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const SizedBox(width: 6),
+                  Icon(LucideIcons.calendar,
+                      size: 15, color: AppColor.textTertiary),
+                  const SizedBox(width: 2),
+                  // ── From date ──────────────────────────────────────────────
+                  _buildDateButton(
+                    context: context,
+                    label: 'From',
+                    value: controller.dashFrom.value,
+                    onPicked: (d) {
+                      controller.dashFrom.value = d;
+                      controller.activePreset.value = '';
+                    },
+                    isLast: false,
+                  ),
+                  Icon(LucideIcons.arrowRight,
+                      size: 14, color: AppColor.lightGrey),
+                  // ── To date ────────────────────────────────────────────────
+                  _buildDateButton(
+                    context: context,
+                    label: 'To',
+                    value: controller.dashTo.value,
+                    onPicked: (d) {
+                      controller.dashTo.value = d;
+                      controller.activePreset.value = '';
+                    },
+                    isLast: false,
+                  ),
+                ],
+              ),
             ),
-
-            SizedBox(width: SizeConfig.spacingSM),
 
             // ── Apply button ─────────────────────────────────────────────────
-            SizedBox(
-              height: 34,
-              child: ElevatedButton(
-                onPressed: controller.applyCustomRange,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColor.cPrimaryButtonColor,
-                  foregroundColor: AppColor.buttonTextWhite,
-                  padding: const EdgeInsets.symmetric(horizontal: 14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  elevation: 0,
-                ),
-                child: const Text('Apply', style: TextStyle(fontSize: 13)),
+            ElevatedButton(
+              onPressed: controller.applyCustomRange,
+              style: ElevatedButton.styleFrom(
+                minimumSize: const Size(0, 36),
+                padding: const EdgeInsets.symmetric(horizontal: 16),
               ),
+              child: const Text('Apply'),
             ),
 
             // ── Clear button (visible only when a filter is active) ──────────
             if (controller.dashFrom.value.isNotEmpty ||
                 controller.dashTo.value.isNotEmpty ||
-                controller.filterBranchId.value != null) ...[
-              SizedBox(width: SizeConfig.spacingXS),
-              TextButton(
+                controller.filterBranchId.value != null)
+              TextButton.icon(
                 onPressed: () {
                   controller.dashFrom.value = '';
                   controller.dashTo.value = '';
@@ -463,38 +326,30 @@ class DashboardView extends GetView<DashboardController> {
                   controller.fetchDashboardStats();
                 },
                 style: TextButton.styleFrom(
-                  foregroundColor: AppColor.fontColorGrey,
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  foregroundColor: AppColor.textSecondary,
+                  minimumSize: const Size(0, 36),
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
                 ),
-                child: const Text('Clear', style: TextStyle(fontSize: 13)),
+                icon: const Icon(LucideIcons.x, size: 16),
+                label: const Text('Clear'),
               ),
-            ],
-
-            SizedBox(width: SizeConfig.spacingSM),
-
-            // ── Last updated + manual refresh ────────────────────────────────
-            if (controller.formattedLastUpdated.isNotEmpty)
-              Text(
-                controller.formattedLastUpdated,
-                style: TextStyle(
-                  fontSize: SizeConfig.fontCaption,
-                  color: AppColor.lightGrey,
-                ),
-              ),
-            IconButton(
-              tooltip: 'Refresh',
-              visualDensity: VisualDensity.compact,
-              icon: Icon(
-                Icons.refresh,
-                size: SizeConfig.iconMD,
-                color: AppColor.cPrimaryButtonColor,
-              ),
-              onPressed: () => controller.refreshDashboard(),
-            ),
           ],
-        ),
+        ));
+  }
+
+  /// 36px bordered control shell shared by the toolbar's custom controls so
+  /// they line up with the theme's buttons and inputs.
+  Widget _toolbarBox({required Widget child, EdgeInsetsGeometry? padding}) {
+    return Container(
+      height: 36,
+      padding: padding,
+      decoration: BoxDecoration(
+        color: AppColor.whiteColor,
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        border: Border.all(color: AppColor.borderStrong),
       ),
-    ));
+      child: child,
+    );
   }
 
   /// Shown when the last stats fetch failed, so stale/zero numbers are not
@@ -505,30 +360,32 @@ class DashboardView extends GetView<DashboardController> {
       if (err.isEmpty) return const SizedBox.shrink();
       return Container(
         width: double.infinity,
-        margin: EdgeInsets.fromLTRB(
-            SizeConfig.spacingMD, SizeConfig.spacingSM, SizeConfig.spacingMD, 0),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        margin: const EdgeInsets.only(top: 16),
+        padding: const EdgeInsets.fromLTRB(14, 6, 6, 6),
         decoration: BoxDecoration(
-          color: Colors.red.withValues(alpha: 0.08),
-          border: Border.all(color: Colors.red.withValues(alpha: 0.4)),
-          borderRadius: BorderRadius.circular(8),
+          color: AppColor.dangerSoft,
+          border: Border.all(color: AppColor.danger.withValues(alpha: 0.3)),
+          borderRadius: BorderRadius.circular(AppRadius.md),
         ),
         child: Row(
           children: [
-            const Icon(Icons.error_outline, color: Colors.red, size: 18),
-            const SizedBox(width: 8),
+            Icon(LucideIcons.circleAlert,
+                color: AppColor.danger, size: 18),
+            const SizedBox(width: 10),
             Expanded(
               child: Text(
                 err,
                 style: TextStyle(
-                  fontSize: SizeConfig.fontCaption,
-                  color: AppColor.fontColorBlack,
+                  fontSize: 13.5,
+                  color: AppColor.textPrimary,
                 ),
               ),
             ),
-            TextButton(
+            TextButton.icon(
               onPressed: () => controller.refreshDashboard(),
-              child: const Text('Retry'),
+              style: TextButton.styleFrom(foregroundColor: AppColor.danger),
+              icon: const Icon(LucideIcons.refreshCw, size: 16),
+              label: const Text('Retry'),
             ),
           ],
         ),
@@ -536,34 +393,36 @@ class DashboardView extends GetView<DashboardController> {
     });
   }
 
-  // ── Quick-range preset chip ─────────────────────────────────────────────────
+  // ── Quick-range preset chip (one segment of the segmented control) ─────────
   Widget _presetChip(String label, String preset) {
     final isActive = controller.activePreset.value == preset;
-    return GestureDetector(
-      onTap: () => controller.applyDatePreset(preset),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-        decoration: BoxDecoration(
-          color: isActive
-              ? AppColor.cPrimaryButtonColor
-              : AppColor.cAppBackgroundColor,
-          border: Border.all(
-            color: isActive ? AppColor.cPrimaryButtonColor : AppColor.divColor,
-          ),
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: SizeConfig.fontCaption,
-            color: isActive ? AppColor.buttonTextWhite : AppColor.fontColorGrey,
-            fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
+    return Material(
+      color: isActive ? AppColor.primarySoft : Colors.transparent,
+      borderRadius: BorderRadius.circular(AppRadius.sm - 1),
+      child: InkWell(
+        onTap: () => controller.applyDatePreset(preset),
+        borderRadius: BorderRadius.circular(AppRadius.sm - 1),
+        child: Container(
+          height: 28,
+          alignment: Alignment.center,
+          padding: const EdgeInsets.symmetric(horizontal: 11),
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 13,
+              color: isActive
+                  ? AppColor.cAppPrimaryColor
+                  : AppColor.textSecondary,
+              fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
+            ),
           ),
         ),
       ),
     );
   }
 
+  /// One end of the From → To range. Tapping opens the date picker; the
+  /// stored value stays 'yyyy-MM-dd', only the display is friendlier.
   Widget _buildDateButton({
     required BuildContext context,
     required String label,
@@ -571,74 +430,61 @@ class DashboardView extends GetView<DashboardController> {
     required ValueChanged<String> onPicked,
     bool isLast = false,
   }) {
-    return GestureDetector(
-      onTap: () async {
-        final now = DateTime.now();
-        DateTime initial = now;
-        if (value.isNotEmpty) {
-          try {
-            initial = DateTime.parse(value);
-          } catch (_) {}
-        }
-        final picked = await showDatePicker(
-          context: context,
-          initialDate: initial,
-          firstDate: DateTime(2020),
-          lastDate: now,
-          builder: (ctx, child) => Theme(
-            data: Theme.of(ctx).copyWith(
-              // Keep the ambient (light/dark) scheme; only brand the accent.
-              colorScheme: Theme.of(ctx).colorScheme.copyWith(
-                primary: AppColor.cPrimaryButtonColor,
-                onPrimary: AppColor.buttonTextWhite,
+    final parsed = value.isNotEmpty ? DateTime.tryParse(value) : null;
+    final display = value.isEmpty
+        ? (label == 'From' ? 'Start date' : 'End date')
+        : (parsed != null ? DateFormat('d MMM yyyy').format(parsed) : value);
+
+    return Tooltip(
+      message: label == 'From' ? 'From date' : 'To date',
+      child: InkWell(
+        borderRadius: BorderRadius.circular(AppRadius.sm),
+        onTap: () async {
+          final now = DateTime.now();
+          DateTime initial = now;
+          if (value.isNotEmpty) {
+            try {
+              initial = DateTime.parse(value);
+            } catch (_) {}
+          }
+          final picked = await showDatePicker(
+            context: context,
+            initialDate: initial,
+            firstDate: DateTime(2020),
+            lastDate: now,
+            builder: (ctx, child) => Theme(
+              data: Theme.of(ctx).copyWith(
+                // Keep the ambient (light/dark) scheme; only brand the accent.
+                colorScheme: Theme.of(ctx).colorScheme.copyWith(
+                  primary: AppColor.cPrimaryButtonColor,
+                  onPrimary: AppColor.buttonTextWhite,
+                ),
               ),
+              child: child!,
             ),
-            child: child!,
-          ),
-        );
-        if (picked != null) {
-          onPicked(
-            '${picked.year}-'
-            '${picked.month.toString().padLeft(2, '0')}-'
-            '${picked.day.toString().padLeft(2, '0')}',
           );
-        }
-      },
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-        decoration: BoxDecoration(
-          border: Border.all(color: AppColor.divColor),
-          borderRadius: BorderRadius.circular(6),
-          color: AppColor.cAppBackgroundColor,
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              '$label: ',
-              style: TextStyle(
-                fontSize: SizeConfig.fontCaption,
-                color: AppColor.fontColorGrey,
-              ),
+          if (picked != null) {
+            onPicked(
+              '${picked.year}-'
+              '${picked.month.toString().padLeft(2, '0')}-'
+              '${picked.day.toString().padLeft(2, '0')}',
+            );
+          }
+        },
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+          child: Text(
+            display,
+            style: TextStyle(
+              fontSize: 13,
+              color: value.isNotEmpty
+                  ? AppColor.textPrimary
+                  : AppColor.textTertiary,
+              fontWeight:
+                  value.isNotEmpty ? FontWeight.w600 : FontWeight.w400,
+              fontFeatures: const [FontFeature.tabularFigures()],
             ),
-            Text(
-              value.isNotEmpty ? value : 'All time',
-              style: TextStyle(
-                fontSize: SizeConfig.fontCaption,
-                color: value.isNotEmpty
-                    ? AppColor.fontColorBlack
-                    : AppColor.lightGrey,
-                fontWeight:
-                    value.isNotEmpty ? FontWeight.w500 : FontWeight.normal,
-              ),
-            ),
-            const SizedBox(width: 4),
-            Icon(
-              Icons.calendar_today_outlined,
-              size: 13,
-              color: AppColor.fontColorGrey,
-            ),
-          ],
+          ),
         ),
       ),
     );

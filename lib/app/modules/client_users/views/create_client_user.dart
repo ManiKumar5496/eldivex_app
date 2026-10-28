@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import 'package:eldivex_app/app/widgets/ui/ui.dart';
 
 import '../../../core/values/color_constants.dart';
 import '../../../core/values/size_configue.dart';
 import '../../../widgets/common_text_form_field.dart';
 import '../controllers/client_users_controller.dart';
+import 'package:eldivex_app/app/core/values/lucide_icons.dart';
 
 class CreateClientUser extends GetView<ClientUsersController> {
   /// True when pushed on top of the shell (from Manage Users), so the page
@@ -27,138 +29,130 @@ class CreateClientUser extends GetView<ClientUsersController> {
 
     return Scaffold(
       backgroundColor: AppColor.cAppBackgroundColor,
-      appBar: showBackButton
-          ? AppBar(
-              backgroundColor: AppColor.whiteColor,
-              elevation: 0,
-              iconTheme: IconThemeData(color: AppColor.fontColorBlack),
-              title: Text('Add Client',
-                  style: TextStyle(color: AppColor.fontColorBlack)),
-            )
-          : null,
-      body: Padding(
+      body: SingleChildScrollView(
         padding: SizeConfig.pagePadding,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Search Client User',
-              style: TextStyle(
-                fontSize: SizeConfig.fontH1,
-                fontWeight: FontWeight.bold,
-                color: AppColor.fontColorBlack,
-                fontFamily: "poppins_regular",
-              ),
-            ),
-            SizedBox(height: SizeConfig.spacingXS),
-            Text(
-              'Enter phone number to search or create a new client',
-              style: TextStyle(
-                fontSize: SizeConfig.fontBodySmall,
-                color: AppColor.fontColorGrey,
-                fontFamily: "poppins_regular",
-              ),
-            ),
-
-            SizedBox(height: SizeConfig.spacingLG),
-
-            // ── Phone Field ──────────────────────────────────────
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
+        child: Align(
+          alignment: Alignment.topLeft,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 680),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Obx(() => Container(
-                      height: 50,
-                      margin: const EdgeInsets.only(bottom: 2),
-                      padding:
-                          EdgeInsets.symmetric(horizontal: SizeConfig.spacingSM),
-                      decoration: BoxDecoration(
-                        color: AppColor.whiteColor,
-                        borderRadius:
-                            BorderRadius.circular(SizeConfig.radiusSM),
-                        border: Border.all(color: AppColor.divColor),
-                      ),
-                      child: DropdownButtonHideUnderline(
-                        child: DropdownButton<String>(
-                          value: controller.selectedCountryCode.value,
-                          dropdownColor: AppColor.whiteColor,
-                          style: TextStyle(
-                            fontSize: SizeConfig.fontBody,
-                            color: AppColor.fontColorBlack,
+                AppPageHeader(
+                  title: 'Add Client',
+                  subtitle:
+                      'Enter phone number to search or create a new client',
+                  breadcrumbs:
+                      showBackButton ? const ['Clients', 'Add Client'] : const [],
+                  // Same behaviour as the AppBar's automatic back button.
+                  onBack: showBackButton
+                      ? () => Navigator.of(context).maybePop()
+                      : null,
+                ),
+                const SizedBox(height: 24),
+                AppCard(
+                  title: 'Search Client User',
+                  subtitle:
+                      'Existing clients open directly; new numbers start a new client',
+                  icon: LucideIcons.userSearch,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      // ── Phone Field ──────────────────────────────
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Obx(() => Container(
+                                height: 50,
+                                margin: const EdgeInsets.only(bottom: 1),
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 12),
+                                decoration: BoxDecoration(
+                                  color: AppColor.fieldColorGrey,
+                                  borderRadius:
+                                      BorderRadius.circular(AppRadius.lg),
+                                  border: Border.all(color: AppColor.divColor),
+                                ),
+                                child: DropdownButtonHideUnderline(
+                                  child: DropdownButton<String>(
+                                    value: controller.selectedCountryCode.value,
+                                    dropdownColor: AppColor.whiteColor,
+                                    borderRadius:
+                                        BorderRadius.circular(AppRadius.md),
+                                    icon: Icon(
+                                        LucideIcons.chevronDown,
+                                        size: 18,
+                                        color: AppColor.textTertiary),
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: AppColor.textPrimary,
+                                    ),
+                                    items: ClientUsersController.countryCodes
+                                        .map((cc) => DropdownMenuItem<String>(
+                                              value: cc['code'],
+                                              child: Text(
+                                                  '${cc['flag']} ${cc['code']}'),
+                                            ))
+                                        .toList(),
+                                    onChanged: (v) {
+                                      if (v != null) {
+                                        controller.selectedCountryCode.value = v;
+                                      }
+                                    },
+                                  ),
+                                ),
+                              )),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: FormTextField(
+                              label: 'Phone Number',
+                              hint: 'e.g. 9876543210',
+                              controller: controller.phoneNumberControllerClient,
+                              prefixIcon: LucideIcons.phone,
+                              required: true,
+                              keyboardType: TextInputType.phone,
+                              inputFormatters: [
+                                FilteringTextInputFormatter.digitsOnly,
+                                LengthLimitingTextInputFormatter(15),
+                              ],
+                            ),
                           ),
-                          items: ClientUsersController.countryCodes
-                              .map((cc) => DropdownMenuItem<String>(
-                                    value: cc['code'],
-                                    child: Text('${cc['flag']} ${cc['code']}'),
-                                  ))
-                              .toList(),
-                          onChanged: (v) {
-                            if (v != null) {
-                              controller.selectedCountryCode.value = v;
-                            }
-                          },
+                        ],
+                      ),
+
+                      const SizedBox(height: 24),
+
+                      // ── Search Button ────────────────────────────
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: Obx(
+                          () => SizedBox(
+                            width: SizeConfig.isMobile ? double.infinity : null,
+                            child: ElevatedButton.icon(
+                              onPressed: controller.isSearchUserLoading.value
+                                  ? null
+                                  : () => controller.addUserClient(),
+                              icon: controller.isSearchUserLoading.value
+                                  ? SizedBox(
+                                      height: 16,
+                                      width: 16,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: AppColor.textTertiary,
+                                      ),
+                                    )
+                                  : const Icon(LucideIcons.search, size: 18),
+                              label: const Text('Search / Add User'),
+                            ),
+                          ),
                         ),
                       ),
-                    )),
-                SizedBox(width: SizeConfig.spacingSM),
-                Expanded(
-                  child: FormTextField(
-                    label: 'Phone Number',
-                    hint: 'e.g. 9876543210',
-                    controller: controller.phoneNumberControllerClient,
-                    prefixIcon: Icons.phone,
-                    required: true,
-                    keyboardType: TextInputType.phone,
-                    inputFormatters: [
-                      FilteringTextInputFormatter.digitsOnly,
-                      LengthLimitingTextInputFormatter(15),
                     ],
                   ),
                 ),
               ],
             ),
-
-            SizedBox(height: SizeConfig.spacingLG),
-
-            // ── Search Button ────────────────────────────────────
-            Obx(
-                  () => SizedBox(
-                width: double.infinity,
-                height: 52,
-                child: ElevatedButton(
-                  onPressed: controller.isSearchUserLoading.value
-                      ? null
-                      : () => controller.addUserClient(),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColor.cPrimaryButtonColor,
-                    foregroundColor: AppColor.buttonTextWhite,
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(SizeConfig.radiusSM),
-                    ),
-                    disabledBackgroundColor:
-                    AppColor.cPrimaryButtonColor.withValues(alpha: 0.6),
-                  ),
-                  child: controller.isSearchUserLoading.value
-                      ? SizedBox(
-                    height: 20,
-                    width: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      valueColor:
-                      AlwaysStoppedAnimation<Color>(AppColor.buttonTextWhite),
-                    ),
-                  )
-                      : Text(
-                    'Search / Add User',
-                    style: TextStyle(
-                      fontSize: SizeConfig.fontBody,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );

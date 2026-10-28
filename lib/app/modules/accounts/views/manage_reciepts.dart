@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:eldivex_app/app/core/values/color_constants.dart';
-import 'package:eldivex_app/app/core/values/text_style_constants.dart';
 import 'package:eldivex_app/app/core/values/size_configue.dart';
+import 'package:eldivex_app/app/widgets/ui/ui.dart';
 import '../../../widgets/common_textfield.dart';
 import '../../../widgets/shimmer_loader.dart';
 import '../controllers/accounts_controller.dart';
 import '../models/invoice_model.dart';
+import 'accounts_format.dart';
+import 'package:eldivex_app/app/core/values/lucide_icons.dart';
 
 class ManageRecieptsView extends GetView<AccountsController> {
   const ManageRecieptsView({super.key});
@@ -15,25 +17,57 @@ class ManageRecieptsView extends GetView<AccountsController> {
   Widget build(BuildContext context) {
     SizeConfig.init(context);
     if (!Get.isRegistered<AccountsController>()) Get.put(AccountsController());
+    final embedded = accountsIsEmbeddedInTabs(context);
+    final isMobile = SizeConfig.isMobile;
+
+    final recordButton = ElevatedButton.icon(
+      onPressed: () => _showRecordReceiptSheet(context),
+      icon: const Icon(LucideIcons.plus, size: 18),
+      label: const Text('Record receipt'),
+    );
+
     return Scaffold(
-      backgroundColor: Colors.transparent,
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _showRecordReceiptSheet(context),
-        backgroundColor: AppColor.cPrimaryButtonColor,
-        icon: Icon(Icons.add, color: AppColor.buttonTextWhite),
-        label: Text(
-          SizeConfig.isMobile ? 'Record' : 'Record Receipt',
-          style: TextStyle(
-              color: AppColor.buttonTextWhite,
-              fontSize: SizeConfig.fontBody,
-              fontWeight: FontWeight.w600),
+      backgroundColor: AppColor.cAppBackgroundColor,
+      floatingActionButton: isMobile
+          ? FloatingActionButton.extended(
+              onPressed: () => _showRecordReceiptSheet(context),
+              icon: const Icon(LucideIcons.plus),
+              label: const Text('Record',
+                  style: TextStyle(fontWeight: FontWeight.w600)),
+            )
+          : null,
+      body: Padding(
+        padding: accountsPagePadding(context, bottom: !isMobile),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (!embedded) ...[
+              AppPageHeader(
+                title: 'Receipts',
+                subtitle: 'Provisional receipts recorded against client invoices',
+                actions: isMobile ? const [] : [recordButton],
+              ),
+              SizedBox(height: isMobile ? 16 : 20),
+            ],
+            if (isMobile) ...[
+              _buildReceiptSearchBar(),
+              const SizedBox(height: 12),
+              Expanded(child: _buildReceiptsList(context)),
+            ] else
+              Expanded(
+                child: AppCard(
+                  expandChild: true,
+                  padding: EdgeInsets.zero,
+                  title: 'Provisional receipts',
+                  actions: [
+                    _buildReceiptSearchBar(width: 320),
+                    if (embedded) recordButton,
+                  ],
+                  child: _buildReceiptsList(context),
+                ),
+              ),
+          ],
         ),
-      ),
-      body: Column(
-        children: [
-          _buildReceiptSearchBar(),
-          Expanded(child: _buildReceiptsList(context)),
-        ],
       ),
     );
   }
@@ -52,8 +86,9 @@ class ManageRecieptsView extends GetView<AccountsController> {
       isDismissible: false,
       enableDrag: false,
       isScrollControlled: true,
+      backgroundColor: AppColor.whiteColor,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.xl)),
       ),
       builder: (ctx) => DraggableScrollableSheet(
         initialChildSize: SizeConfig.isMobile ? 0.92 : 0.85,
@@ -63,33 +98,56 @@ class ManageRecieptsView extends GetView<AccountsController> {
         builder: (ctx2, scrollController) => Column(
           children: [
             Padding(
-              padding: EdgeInsets.fromLTRB(SizeConfig.pagePadding.left,
-                  SizeConfig.spacingMD, SizeConfig.spacingXS, 0),
+              padding: EdgeInsets.fromLTRB(
+                  SizeConfig.isMobile ? 16 : 24, 16, 12, 16),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('Record Receipt',
-                      style: TextStyle(
-                          fontSize: SizeConfig.fontH2,
-                          fontWeight: FontWeight.w600,
-                          color: AppColor.cPrimaryHeadingColor)),
+                  const AppIconTile(
+                      icon: LucideIcons.receiptText, size: 38),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text('Record receipt',
+                            style: TextStyle(
+                                fontSize: 17,
+                                fontWeight: FontWeight.w600,
+                                letterSpacing: -0.2,
+                                color: AppColor.textPrimary)),
+                        const SizedBox(height: 2),
+                        Text('Record a payment received against an invoice',
+                            style: TextStyle(
+                                fontSize: 13, color: AppColor.textTertiary)),
+                      ],
+                    ),
+                  ),
                   IconButton(
-                    icon: const Icon(Icons.close),
+                    tooltip: 'Close',
+                    icon: Icon(LucideIcons.x,
+                        size: 20, color: AppColor.textTertiary),
                     onPressed: () => Navigator.of(ctx).pop(),
                   ),
                 ],
               ),
             ),
-            const Divider(),
+            Divider(height: 1, color: AppColor.borderSubtle),
             Expanded(
               child: SingleChildScrollView(
                 controller: scrollController,
                 padding: EdgeInsets.fromLTRB(
-                    SizeConfig.pagePadding.left,
-                    SizeConfig.spacingSM,
-                    SizeConfig.pagePadding.right,
-                    SizeConfig.spacingLG),
-                child: _buildRecordReceiptContent(ctx),
+                    SizeConfig.isMobile ? 16 : 24,
+                    20,
+                    SizeConfig.isMobile ? 16 : 24,
+                    32),
+                child: Align(
+                  alignment: Alignment.topCenter,
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 720),
+                    child: _buildRecordReceiptContent(ctx),
+                  ),
+                ),
               ),
             ),
           ],
@@ -102,82 +160,52 @@ class ManageRecieptsView extends GetView<AccountsController> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Select Invoice',
-          style: TextStyle(
-              fontSize: SizeConfig.fontBody,
-              fontWeight: FontWeight.w500,
-              color: AppColor.cPrimarySubHeadingColorGrey),
-        ),
-        SizedBox(height: SizeConfig.spacingXS),
+        accountsFieldLabel('Select invoice'),
         Obx(() {
           final pending = controller.invoicesWithBalance;
           if (pending.isEmpty) {
             return Container(
               width: double.infinity,
-              padding: SizeConfig.cardPadding,
               decoration: BoxDecoration(
-                color: Colors.green.shade50,
-                borderRadius:
-                    BorderRadius.circular(SizeConfig.radiusSM),
-                border: Border.all(color: Colors.green.shade200),
+                color: AppColor.successSoft,
+                borderRadius: BorderRadius.circular(AppRadius.lg),
               ),
-              child: Column(
-                children: [
-                  Icon(Icons.check_circle_outline,
-                      color: Colors.green.shade400, size: 32),
-                  SizedBox(height: SizeConfig.spacingXS),
-                  Text('All invoices are fully paid',
-                      style: TextStyle(
-                          color: Colors.green.shade700,
-                          fontWeight: FontWeight.w500,
-                          fontSize: SizeConfig.fontBody)),
-                  SizedBox(height: SizeConfig.spacingXS / 2),
-                  Text('No outstanding balance on any invoice',
-                      style: TextStyle(
-                          fontSize: SizeConfig.fontBodySmall,
-                          color: Colors.green.shade600)),
-                ],
+              child: const AppEmptyState(
+                compact: true,
+                tone: AppTone.success,
+                icon: LucideIcons.circleCheck,
+                title: 'All invoices are fully paid',
+                message: 'No outstanding balance on any invoice',
               ),
             );
           }
-          return Container(
-            padding:
-                EdgeInsets.symmetric(horizontal: SizeConfig.spacingSM),
-            decoration: BoxDecoration(
-              color: AppColor.whiteColor,
-              borderRadius: BorderRadius.circular(SizeConfig.radiusMD),
-              border: Border.all(color: AppColor.textFieldBorderColor),
-            ),
-            child: DropdownButtonHideUnderline(
-              child: DropdownButton<int>(
-                isExpanded: true,
-                value:
-                    controller.selectedInvoiceForPayment.value?.invoiceDbId,
-                hint: Text('Choose an invoice to settle',
-                    style: TextStyle(
-                        color: AppColor.fontColorGrey,
-                        fontSize: SizeConfig.fontBody)),
-                items: pending.map((inv) {
-                  return DropdownMenuItem(
-                    value: inv.invoiceDbId,
-                    child: Text(
-                      '${inv.invoiceId}  •  ${inv.clientName}  •  Balance: ${controller.formatCurrency(inv.balanceDue)}',
-                      style: TextStyle(fontSize: SizeConfig.fontBodySmall),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  );
-                }).toList(),
-                onChanged: (id) {
-                  final inv =
-                      pending.firstWhereOrNull((i) => i.invoiceDbId == id);
-                  if (inv != null) controller.selectInvoiceForPayment(inv);
-                },
-              ),
+          return accountsDropdownShell(
+            child: DropdownButton<int>(
+              icon: const Icon(LucideIcons.chevronDown, size: 18),
+              isExpanded: true,
+              value: controller.selectedInvoiceForPayment.value?.invoiceDbId,
+              hint: Text('Choose an invoice to settle',
+                  style: TextStyle(
+                      color: AppColor.textTertiary, fontSize: 14)),
+              items: pending.map((inv) {
+                return DropdownMenuItem(
+                  value: inv.invoiceDbId,
+                  child: Text(
+                    '${inv.invoiceId}  •  ${inv.clientName}  •  Balance: ${controller.formatCurrency(inv.balanceDue)}',
+                    style: TextStyle(fontSize: 13.5, color: AppColor.textPrimary),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                );
+              }).toList(),
+              onChanged: (id) {
+                final inv =
+                    pending.firstWhereOrNull((i) => i.invoiceDbId == id);
+                if (inv != null) controller.selectInvoiceForPayment(inv);
+              },
             ),
           );
         }),
-        SizedBox(height: SizeConfig.spacingMD),
+        const SizedBox(height: 16),
 
         // Invoice summary card
         Obx(() {
@@ -185,72 +213,60 @@ class ManageRecieptsView extends GetView<AccountsController> {
           if (inv == null) return const SizedBox.shrink();
           return Container(
             width: double.infinity,
-            padding: SizeConfig.cardPadding,
-            margin: EdgeInsets.only(bottom: SizeConfig.spacingMD),
+            padding: const EdgeInsets.all(16),
+            margin: const EdgeInsets.only(bottom: 16),
             decoration: BoxDecoration(
-              color: Colors.teal.shade50,
-              borderRadius: BorderRadius.circular(SizeConfig.radiusSM),
-              border: Border.all(color: Colors.teal.shade100),
+              color: AppColor.surfaceMuted,
+              borderRadius: BorderRadius.circular(AppRadius.lg),
+              border: Border.all(color: AppColor.borderSubtle),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(inv.invoiceId,
-                        style: TextStyle(
-                            fontWeight: FontWeight.w700,
-                            fontSize: SizeConfig.fontBody,
-                            color: AppColor.cPrimaryButtonColor)),
-                    Container(
-                      padding: EdgeInsets.symmetric(
-                          horizontal: SizeConfig.spacingSM, vertical: 3),
-                      decoration: BoxDecoration(
-                        color: Colors.orange.shade100,
-                        borderRadius:
-                            BorderRadius.circular(SizeConfig.radiusSM),
-                      ),
-                      child: Text(inv.status,
+                    Expanded(
+                      child: Text(inv.invoiceId,
                           style: TextStyle(
-                              fontSize: SizeConfig.fontCaption,
-                              fontWeight: FontWeight.w500,
-                              color: Colors.orange.shade800)),
+                              fontWeight: FontWeight.w600,
+                              fontSize: 14,
+                              color: AppColor.cPrimaryButtonColor)),
                     ),
+                    accountsStatusChip(inv.status),
                   ],
                 ),
-                SizedBox(height: SizeConfig.spacingXS),
+                const SizedBox(height: 8),
                 Text(inv.clientName,
                     style: TextStyle(
-                        fontWeight: FontWeight.w500,
-                        fontSize: SizeConfig.fontBody)),
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14,
+                        color: AppColor.textPrimary)),
+                const SizedBox(height: 2),
                 Text('${inv.patientName}  •  ${inv.serviceName ?? ''}',
                     style: TextStyle(
-                        fontSize: SizeConfig.fontBodySmall,
-                        color: AppColor.fontColorGrey)),
-                SizedBox(height: SizeConfig.spacingSM),
+                        fontSize: 13, color: AppColor.textTertiary)),
+                const SizedBox(height: 12),
                 Row(
                   children: [
                     _summaryChip('Invoice',
                         controller.formatCurrency(inv.totalAmount),
-                        Colors.blue),
-                    SizedBox(width: SizeConfig.spacingXS),
+                        AppColor.textPrimary),
+                    const SizedBox(width: 8),
                     _summaryChip(
                         'Paid',
                         controller.formatCurrency(inv.paidAmount),
-                        Colors.green),
-                    SizedBox(width: SizeConfig.spacingXS),
-                    _summaryChip('Balance Due',
+                        AppColor.success),
+                    const SizedBox(width: 8),
+                    _summaryChip('Balance due',
                         controller.formatCurrency(inv.balanceDue),
-                        Colors.red),
+                        AppColor.danger),
                   ],
                 ),
-                SizedBox(height: SizeConfig.spacingXS),
+                const SizedBox(height: 10),
                 Text(
                   'Period: ${inv.periodFrom}  →  ${inv.periodTo}',
-                  style: TextStyle(
-                      fontSize: SizeConfig.fontBodySmall,
-                      color: AppColor.fontColorGrey),
+                  style:
+                      TextStyle(fontSize: 12.5, color: AppColor.textTertiary),
                 ),
               ],
             ),
@@ -264,65 +280,44 @@ class ManageRecieptsView extends GetView<AccountsController> {
           keyboardType: TextInputType.number,
           isMandatory: true,
         ),
-        SizedBox(height: SizeConfig.spacingMD),
+        const SizedBox(height: 16),
 
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                Text('Payment Mode',
-                    style: TextStyle(
-                        fontSize: SizeConfig.fontBody,
-                        fontWeight: FontWeight.w500,
-                        color: AppColor.cPrimarySubHeadingColorGrey)),
-                Text(' *',
-                    style: TextStyle(
-                        color: Colors.red, fontSize: SizeConfig.fontBody)),
-              ],
-            ),
-            SizedBox(height: SizeConfig.spacingXS),
-            Obx(() => Container(
-                  padding: EdgeInsets.symmetric(
-                      horizontal: SizeConfig.spacingSM),
-                  decoration: BoxDecoration(
-                    color: AppColor.whiteColor,
-                    borderRadius:
-                        BorderRadius.circular(SizeConfig.radiusMD),
-                    border: Border.all(color: AppColor.textFieldBorderColor),
-                  ),
-                  child: DropdownButtonHideUnderline(
-                    child: DropdownButton<String>(
-                      isExpanded: true,
-                      value: controller.recordPaymentMode.value.isEmpty
-                          ? null
-                          : controller.recordPaymentMode.value,
-                      hint: Text('Select payment mode',
-                          style: TextStyle(
-                              color: AppColor.fontColorGrey,
-                              fontSize: SizeConfig.fontBody)),
-                      items: controller.paymentModes
-                          .map((m) => DropdownMenuItem(
-                              value: m,
-                              child: Text(m,
-                                  style: TextStyle(
-                                      fontSize: SizeConfig.fontBody))))
-                          .toList(),
-                      onChanged: (v) =>
-                          controller.recordPaymentMode.value = v ?? '',
-                    ),
+            accountsFieldLabel('Payment Mode', required: true),
+            Obx(() => accountsDropdownShell(
+                  child: DropdownButton<String>(
+                    icon: const Icon(LucideIcons.chevronDown, size: 18),
+                    isExpanded: true,
+                    value: controller.recordPaymentMode.value.isEmpty
+                        ? null
+                        : controller.recordPaymentMode.value,
+                    hint: Text('Select payment mode',
+                        style: TextStyle(
+                            color: AppColor.textTertiary, fontSize: 14)),
+                    items: controller.paymentModes
+                        .map((m) => DropdownMenuItem(
+                            value: m,
+                            child: Text(m,
+                                style: TextStyle(
+                                    fontSize: 14,
+                                    color: AppColor.textPrimary))))
+                        .toList(),
+                    onChanged: (v) =>
+                        controller.recordPaymentMode.value = v ?? '',
                   ),
                 )),
           ],
         ),
-        SizedBox(height: SizeConfig.spacingMD),
+        const SizedBox(height: 16),
 
         CommonTextField(
           label: 'Transaction ID',
           hint: 'Enter transaction / reference ID (optional)',
           controller: controller.recordTransactionIdController,
         ),
-        SizedBox(height: SizeConfig.spacingMD),
+        const SizedBox(height: 16),
 
         CommonTextField(
           label: 'Remarks',
@@ -330,7 +325,7 @@ class ManageRecieptsView extends GetView<AccountsController> {
           controller: controller.recordPaymentRemarksController,
           maxLines: 3,
         ),
-        SizedBox(height: SizeConfig.spacingLG),
+        const SizedBox(height: 20),
 
         // Balance preview
         Obx(() {
@@ -339,42 +334,43 @@ class ManageRecieptsView extends GetView<AccountsController> {
           final entered = double.tryParse(enteredText) ?? 0;
           if (inv == null || entered <= 0) return const SizedBox.shrink();
           final remaining = inv.balanceDue - entered;
+          final settled = remaining <= 0;
+          final tone = settled ? AppTone.success : AppTone.warning;
           return Container(
-            padding: EdgeInsets.symmetric(
-                horizontal: SizeConfig.spacingMD, vertical: SizeConfig.spacingSM),
-            margin: EdgeInsets.only(bottom: SizeConfig.spacingMD),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            margin: const EdgeInsets.only(bottom: 16),
             decoration: BoxDecoration(
-              color: remaining <= 0 ? Colors.green.shade50 : Colors.orange.shade50,
-              borderRadius: BorderRadius.circular(SizeConfig.radiusSM),
-              border: Border.all(
-                color: remaining <= 0
-                    ? Colors.green.shade200
-                    : Colors.orange.shade200,
-              ),
+              color: tone.soft,
+              borderRadius: BorderRadius.circular(AppRadius.md),
             ),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  remaining <= 0
-                      ? 'Fully settled ✓'
-                      : 'Remaining after payment:',
-                  style: TextStyle(
-                    fontSize: SizeConfig.fontBody,
-                    color: remaining <= 0
-                        ? Colors.green.shade700
-                        : Colors.orange.shade800,
-                    fontWeight: FontWeight.w500,
+                Icon(
+                    settled
+                        ? LucideIcons.circleCheck
+                        : LucideIcons.info,
+                    size: 18,
+                    color: tone.color),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    settled
+                        ? 'Fully settled ✓'
+                        : 'Remaining after payment:',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: tone.color,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
                 if (remaining > 0)
                   Text(
                     controller.formatCurrency(remaining),
-                    style: TextStyle(
-                      fontSize: SizeConfig.fontBody,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.orange.shade800,
-                    ),
+                    style: accountsAmountStyle(
+                        color: tone.color,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700),
                   ),
               ],
             ),
@@ -383,7 +379,7 @@ class ManageRecieptsView extends GetView<AccountsController> {
 
         SizedBox(
           width: double.infinity,
-          height: 48,
+          height: 44,
           child: Obx(() => ElevatedButton.icon(
                 onPressed: controller.isLoadingReceipts.value
                     ? null
@@ -401,79 +397,51 @@ class ManageRecieptsView extends GetView<AccountsController> {
                         child: CircularProgressIndicator(
                             strokeWidth: 2, color: AppColor.buttonTextWhite),
                       )
-                    : Icon(Icons.check_circle_outline, size: SizeConfig.iconSM),
-                label: Text('Record Payment',
-                    style: TextStyle(
-                        color: AppColor.buttonTextWhite,
-                        fontSize: SizeConfig.fontBody,
-                        fontWeight: FontWeight.w600)),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green.shade600,
-                  disabledBackgroundColor: Colors.green.shade200,
-                  shape: RoundedRectangleBorder(
-                      borderRadius:
-                          BorderRadius.circular(SizeConfig.radiusSM)),
-                ),
+                    : const Icon(LucideIcons.circleCheck, size: 18),
+                label: const Text('Record payment'),
               )),
         ),
       ],
     );
   }
 
-  Widget _summaryChip(String label, String value, Color color) {
+  Widget _summaryChip(String label, String value, Color valueColor) {
     return Expanded(
       child: Container(
-        padding: EdgeInsets.symmetric(
-            horizontal: SizeConfig.spacingSM, vertical: SizeConfig.spacingXS),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.08),
-          borderRadius: BorderRadius.circular(SizeConfig.radiusSM),
-          border: Border.all(color: color.withValues(alpha: 0.2)),
+          color: AppColor.whiteColor,
+          borderRadius: BorderRadius.circular(AppRadius.md),
+          border: Border.all(color: AppColor.borderSubtle),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(label,
-                style: TextStyle(
-                    fontSize: SizeConfig.fontCaption,
-                    color: AppColor.fontColorGrey)),
-            SizedBox(height: SizeConfig.spacingXS / 2),
-            Text(value,
-                style: TextStyle(
-                    fontSize: SizeConfig.fontBodySmall,
-                    fontWeight: FontWeight.w700,
-                    color: color)),
+                style: TextStyle(fontSize: 12, color: AppColor.textTertiary)),
+            const SizedBox(height: 4),
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Text(value,
+                  maxLines: 1,
+                  style: accountsAmountStyle(
+                      color: valueColor,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700)),
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildReceiptSearchBar() {
-    return Padding(
-      padding: SizeConfig.pagePadding,
-      child: Container(
-        height: 44,
-        decoration: BoxDecoration(
-          color: AppColor.whiteColor,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppColor.textFieldBorderColor),
-        ),
-        child: TextField(
-          controller: controller.searchReceiptController,
-          onChanged: controller.searchReceipts,
-          style: TextStyle(fontSize: SizeConfig.fontBody),
-          decoration: InputDecoration(
-            hintText: 'Search by receipt number, client name, mobile...',
-            hintStyle: TextStyle(
-                color: AppColor.fontColorGrey, fontSize: SizeConfig.fontBody),
-            prefixIcon: Icon(Icons.search,
-                color: AppColor.fontColorGrey, size: SizeConfig.iconMD),
-            border: InputBorder.none,
-            contentPadding: const EdgeInsets.symmetric(vertical: 12),
-          ),
-        ),
-      ),
+  Widget _buildReceiptSearchBar({double? width}) {
+    return AppSearchField(
+      controller: controller.searchReceiptController,
+      onChanged: controller.searchReceipts,
+      hint: 'Search by receipt number, client name, mobile…',
+      width: width,
     );
   }
 
@@ -483,16 +451,10 @@ class ManageRecieptsView extends GetView<AccountsController> {
         return const ShimmerLoader.table();
       }
       if (controller.filteredReceipts.isEmpty) {
-        return Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.receipt_long_outlined,
-                  size: 64, color: AppColor.divColor),
-              SizedBox(height: SizeConfig.spacingSM),
-              Text('No receipts found', style: AppTextStyles.regular16Gre),
-            ],
-          ),
+        return const AppEmptyState(
+          icon: LucideIcons.receiptText,
+          title: 'No receipts found',
+          message: 'Receipts recorded against invoices will appear here.',
         );
       }
       return SizeConfig.adaptiveLayout(
@@ -505,11 +467,7 @@ class ManageRecieptsView extends GetView<AccountsController> {
 
   Widget _buildMobileReceiptList(BuildContext context) {
     return ListView.builder(
-      padding: EdgeInsets.fromLTRB(
-          SizeConfig.pagePadding.left,
-          SizeConfig.spacingXS,
-          SizeConfig.pagePadding.right,
-          80),
+      padding: const EdgeInsets.only(bottom: 88),
       itemCount: controller.filteredReceipts.length,
       itemBuilder: (_, i) =>
           _buildMobileReceiptCard(controller.filteredReceipts[i], context),
@@ -517,363 +475,210 @@ class ManageRecieptsView extends GetView<AccountsController> {
   }
 
   Widget _buildMobileReceiptCard(dynamic receipt, BuildContext context) {
-    final statusColor = controller.getStatusColor(receipt.status);
     final isPending = receipt.status == 'Pending';
     final InvoiceModel? linkedInv = controller.invoices
         .firstWhereOrNull((i) => i.bookingId == receipt.bookingId);
 
-    return Container(
-      margin: EdgeInsets.only(bottom: SizeConfig.spacingSM),
-      padding: SizeConfig.cardPadding,
-      decoration: BoxDecoration(
-        color: AppColor.whiteColor,
-        borderRadius: BorderRadius.circular(SizeConfig.radiusMD),
-        border: Border.all(color: AppColor.divColor),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 6,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Row 1: Receipt # + Status
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(receipt.receiptNumber,
-                      style: TextStyle(
-                          color: AppColor.cPrimaryButtonColor,
-                          fontWeight: FontWeight.w600,
-                          fontSize: SizeConfig.fontBody)),
-                  if (linkedInv != null)
-                    Text(linkedInv.invoiceId,
-                        style: TextStyle(
-                            fontSize: SizeConfig.fontCaption,
-                            color: Colors.teal.shade600,
-                            fontWeight: FontWeight.w500)),
-                ],
-              ),
-              Container(
-                padding: EdgeInsets.symmetric(
-                    horizontal: SizeConfig.spacingSM,
-                    vertical: SizeConfig.spacingXS),
-                decoration: BoxDecoration(
-                  color: statusColor.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(receipt.status,
-                    style: TextStyle(
-                        color: statusColor,
-                        fontSize: SizeConfig.fontCaption,
-                        fontWeight: FontWeight.w500)),
-              ),
-            ],
-          ),
-          Divider(height: SizeConfig.spacingLG, color: AppColor.fieldColorGrey),
-
-          // Row 2: Client / Patient
-          Text(receipt.clientName,
-              style: TextStyle(
-                  fontWeight: FontWeight.w600, fontSize: SizeConfig.fontBody)),
-          Text(receipt.patientName,
-              style: TextStyle(
-                  fontSize: SizeConfig.fontCaption,
-                  color: AppColor.fontColorGrey)),
-          SizedBox(height: SizeConfig.spacingXS),
-
-          // Row 3: Service name
-          Text(receipt.serviceName,
-              style: TextStyle(
-                  fontSize: SizeConfig.fontBodySmall,
-                  color: AppColor.fontColorGrey),
-              overflow: TextOverflow.ellipsis),
-          SizedBox(height: SizeConfig.spacingXS),
-
-          // Row 4: Payment mode + Date range
-          Row(
-            children: [
-              Icon(Icons.payment, size: SizeConfig.iconSM, color: AppColor.fontColorGrey),
-              SizedBox(width: SizeConfig.spacingXS),
-              Text(receipt.paymentMode,
-                  style: TextStyle(
-                      fontSize: SizeConfig.fontBodySmall,
-                      fontWeight: FontWeight.w500)),
-              const Spacer(),
-              Text('${receipt.periodFrom} → ${receipt.periodTo}',
-                  style: TextStyle(
-                      fontSize: SizeConfig.fontCaption,
-                      color: AppColor.fontColorGrey)),
-            ],
-          ),
-          Divider(height: SizeConfig.spacingLG, color: AppColor.fieldColorGrey),
-
-          // Row 5: Amount / Tax / Total
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _mobileAmountItem(
-                  'Amount', controller.formatCurrency(receipt.amount), AppColor.fontColorBlack),
-              _mobileAmountItem(
-                  'Tax', controller.formatCurrency(receipt.taxAmount), AppColor.fontColorGrey),
-              _mobileAmountItem('Total',
-                  controller.formatCurrency(receipt.totalAmount), Colors.teal,
-                  bold: true),
-            ],
-          ),
-
-          // Bottom: Action buttons for Pending
-          if (isPending) ...[
-            Divider(height: SizeConfig.spacingLG, color: AppColor.fieldColorGrey),
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: AppCard(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Row 1: Receipt # + Status
             Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Expanded(
-                  child: SizedBox(
-                    height: 44,
-                    child: OutlinedButton.icon(
-                      onPressed: () => controller.cancelReceipt(receipt.id),
-                      icon: Icon(Icons.close,
-                          size: SizeConfig.iconSM, color: Colors.red),
-                      label: Text('Cancel',
-                          style: TextStyle(
-                              color: Colors.red, fontSize: SizeConfig.fontBody)),
-                      style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: Colors.red),
-                        shape: RoundedRectangleBorder(
-                            borderRadius:
-                                BorderRadius.circular(SizeConfig.radiusSM)),
-                      ),
-                    ),
+                  child: accountsCellStack(
+                    receipt.receiptNumber,
+                    subtitle: linkedInv?.invoiceId,
+                    titleColor: AppColor.cPrimaryButtonColor,
                   ),
                 ),
-                SizedBox(width: SizeConfig.spacingSM),
-                Expanded(
-                  child: SizedBox(
-                    height: 44,
-                    child: ElevatedButton.icon(
-                      onPressed: () => controller.approveReceipt(receipt),
-                      icon: Icon(Icons.check,
-                          size: SizeConfig.iconSM, color: AppColor.buttonTextWhite),
-                      label: Text('Approve',
-                          style: TextStyle(
-                              color: AppColor.buttonTextWhite, fontSize: SizeConfig.fontBody)),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.green,
-                        shape: RoundedRectangleBorder(
-                            borderRadius:
-                                BorderRadius.circular(SizeConfig.radiusSM)),
-                      ),
-                    ),
-                  ),
-                ),
+                accountsStatusChip(receipt.status),
               ],
             ),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              child: Divider(height: 1, color: AppColor.borderSubtle),
+            ),
+
+            // Row 2: Client / Patient
+            accountsCellStack(receipt.clientName,
+                subtitle: receipt.patientName),
+            const SizedBox(height: 6),
+
+            // Row 3: Service name
+            Text(receipt.serviceName,
+                style: TextStyle(fontSize: 13, color: AppColor.textSecondary),
+                overflow: TextOverflow.ellipsis),
+            const SizedBox(height: 6),
+
+            // Row 4: Payment mode + Date range
+            Row(
+              children: [
+                Icon(LucideIcons.banknote,
+                    size: 16, color: AppColor.textTertiary),
+                const SizedBox(width: 6),
+                Text(receipt.paymentMode,
+                    style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: AppColor.textSecondary)),
+                const Spacer(),
+                Text('${receipt.periodFrom} → ${receipt.periodTo}',
+                    style: TextStyle(
+                        fontSize: 12, color: AppColor.textTertiary)),
+              ],
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              child: Divider(height: 1, color: AppColor.borderSubtle),
+            ),
+
+            // Row 5: Amount / Tax / Total
+            Row(
+              children: [
+                _mobileAmountItem(
+                    'Amount', controller.formatCurrency(receipt.amount),
+                    AppColor.textPrimary),
+                _mobileAmountItem(
+                    'Tax', controller.formatCurrency(receipt.taxAmount),
+                    AppColor.textTertiary),
+                _mobileAmountItem('Total',
+                    controller.formatCurrency(receipt.totalAmount),
+                    AppColor.textPrimary,
+                    bold: true),
+              ],
+            ),
+
+            // Bottom: Action buttons for Pending
+            if (isPending) ...[
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () => controller.cancelReceipt(receipt.id),
+                      style: AppButtonStyles.dangerOutlined,
+                      icon: const Icon(LucideIcons.x, size: 18),
+                      label: const Text('Cancel'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: () => controller.approveReceipt(receipt),
+                      icon: const Icon(LucideIcons.check, size: 18),
+                      label: const Text('Approve'),
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ],
-        ],
+        ),
       ),
     );
   }
 
   Widget _mobileAmountItem(String label, String value, Color color,
       {bool bold = false}) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        Text(label,
-            style: TextStyle(
-                fontSize: SizeConfig.fontCaption, color: AppColor.fontColorGrey)),
-        SizedBox(height: SizeConfig.spacingXS / 2),
-        Text(value,
-            style: TextStyle(
-                fontSize: SizeConfig.fontBodySmall,
-                fontWeight: bold ? FontWeight.w700 : FontWeight.w500,
-                color: color)),
-      ],
+    return Expanded(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label,
+              style: TextStyle(fontSize: 12, color: AppColor.textTertiary)),
+          const SizedBox(height: 2),
+          Text(value,
+              style: accountsAmountStyle(
+                  color: color,
+                  fontSize: 13.5,
+                  fontWeight: bold ? FontWeight.w700 : FontWeight.w600)),
+        ],
+      ),
     );
   }
 
   Widget _buildScrollableReceiptTable(BuildContext context) {
     return SingleChildScrollView(
-      padding: EdgeInsets.only(
-          left: SizeConfig.pagePadding.left, bottom: SizeConfig.spacingLG),
-      child: Container(
-        width: double.infinity,
-        decoration: BoxDecoration(
-          color: AppColor.whiteColor,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppColor.divColor),
-        ),
-        child: SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: DataTable(
-            headingRowColor: WidgetStateProperty.all(AppColor.fieldColorGrey),
-            headingTextStyle: TextStyle(
-              fontWeight: FontWeight.w600,
-              fontSize: SizeConfig.fontBodySmall,
-              color: AppColor.cPrimaryHeadingColor,
-            ),
-            dataTextStyle: TextStyle(fontSize: SizeConfig.fontBodySmall),
-            columnSpacing: SizeConfig.spacingMD,
-            horizontalMargin: SizeConfig.spacingSM,
-            columns: const [
-              DataColumn(label: Text('Receipt #')),
-              DataColumn(label: Text('Client')),
-              DataColumn(label: Text('Service')),
-              DataColumn(label: Text('Amount')),
-              DataColumn(label: Text('Tax')),
-              DataColumn(label: Text('Total')),
-              DataColumn(label: Text('Mode')),
-              DataColumn(label: Text('Period')),
-              DataColumn(label: Text('Status')),
-              DataColumn(label: Text('Actions')),
-            ],
-            rows: controller.filteredReceipts.map((receipt) {
-              final statusColor = controller.getStatusColor(receipt.status);
-              final isPending = receipt.status == 'Pending';
-              final InvoiceModel? linkedInv = controller.invoices
-                  .firstWhereOrNull((i) => i.bookingId == receipt.bookingId);
-              return DataRow(cells: [
-                DataCell(Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(receipt.receiptNumber,
-                        style: TextStyle(
-                            color: AppColor.cPrimaryButtonColor,
-                            fontWeight: FontWeight.w500,
-                            fontSize: SizeConfig.fontBodySmall)),
-                    if (linkedInv != null)
-                      Text(linkedInv.invoiceId,
-                          style: TextStyle(
-                              fontSize: SizeConfig.fontCaption,
-                              color: Colors.teal.shade600,
-                              fontWeight: FontWeight.w500)),
-                  ],
-                )),
-                DataCell(Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(receipt.clientName,
-                        style: TextStyle(
-                            fontWeight: FontWeight.w500,
-                            fontSize: SizeConfig.fontBodySmall)),
-                    Text(receipt.patientName,
-                        style: TextStyle(
-                            fontSize: SizeConfig.fontCaption,
-                            color: AppColor.fontColorGrey)),
-                  ],
-                )),
-                DataCell(Text(receipt.serviceName,
-                    style:
-                        TextStyle(fontSize: SizeConfig.fontBodySmall))),
-                DataCell(Text(controller.formatCurrency(receipt.amount),
-                    style:
-                        TextStyle(fontSize: SizeConfig.fontBodySmall))),
-                DataCell(Text(controller.formatCurrency(receipt.taxAmount),
-                    style: TextStyle(
-                        fontSize: SizeConfig.fontBodySmall,
-                        color: AppColor.fontColorGrey))),
-                DataCell(Text(controller.formatCurrency(receipt.totalAmount),
-                    style: TextStyle(
-                        fontSize: SizeConfig.fontBodySmall,
-                        fontWeight: FontWeight.w600))),
-                DataCell(Text(receipt.paymentMode,
-                    style:
-                        TextStyle(fontSize: SizeConfig.fontBodySmall))),
-                DataCell(Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(receipt.periodFrom,
-                        style: TextStyle(fontSize: SizeConfig.fontBodySmall)),
-                    Text('to ${receipt.periodTo}',
-                        style: TextStyle(
-                            fontSize: SizeConfig.fontCaption,
-                            color: AppColor.fontColorGrey)),
-                  ],
-                )),
-                DataCell(Container(
-                  padding: EdgeInsets.symmetric(
-                      horizontal: SizeConfig.spacingSM, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: statusColor.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(receipt.status,
-                      style: TextStyle(
-                          color: statusColor,
-                          fontSize: SizeConfig.fontCaption,
-                          fontWeight: FontWeight.w500)),
-                )),
-                DataCell(
-                  isPending
-                      ? Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Tooltip(
-                              message: 'Approve Payment',
-                              child: InkWell(
-                                onTap: () => controller.approveReceipt(receipt),
-                                borderRadius: BorderRadius.circular(6),
-                                child: Container(
-                                  padding: EdgeInsets.symmetric(
-                                      horizontal: SizeConfig.spacingSM,
-                                      vertical: 4),
-                                  decoration: BoxDecoration(
-                                    color: Colors.green.shade50,
-                                    borderRadius:
-                                        BorderRadius.circular(SizeConfig.radiusSM),
-                                    border: Border.all(
-                                        color: Colors.green.shade200),
-                                  ),
-                                  child: Text('Approve',
-                                      style: TextStyle(
-                                          fontSize: SizeConfig.fontCaption,
-                                          color: Colors.green.shade700,
-                                          fontWeight: FontWeight.w500)),
-                                ),
-                              ),
+      child: horizontalTable(
+        DataTable(
+          columns: const [
+            DataColumn(label: Text('Receipt #')),
+            DataColumn(label: Text('Client')),
+            DataColumn(label: Text('Service')),
+            DataColumn(label: Text('Amount'), numeric: true),
+            DataColumn(label: Text('Tax'), numeric: true),
+            DataColumn(label: Text('Total'), numeric: true),
+            DataColumn(label: Text('Mode')),
+            DataColumn(label: Text('Period')),
+            DataColumn(label: Text('Status')),
+            DataColumn(label: Text('Actions')),
+          ],
+          rows: controller.filteredReceipts.map((receipt) {
+            final isPending = receipt.status == 'Pending';
+            final InvoiceModel? linkedInv = controller.invoices
+                .firstWhereOrNull((i) => i.bookingId == receipt.bookingId);
+            return DataRow(cells: [
+              DataCell(accountsCellStack(
+                receipt.receiptNumber,
+                subtitle: linkedInv?.invoiceId,
+                titleColor: AppColor.cPrimaryButtonColor,
+              )),
+              DataCell(accountsCellStack(receipt.clientName,
+                  subtitle: receipt.patientName)),
+              DataCell(Text(receipt.serviceName)),
+              DataCell(Text(controller.formatCurrency(receipt.amount),
+                  style: accountsAmountStyle(fontWeight: FontWeight.w400))),
+              DataCell(Text(controller.formatCurrency(receipt.taxAmount),
+                  style: accountsAmountStyle(
+                      color: AppColor.textTertiary,
+                      fontWeight: FontWeight.w400))),
+              DataCell(Text(controller.formatCurrency(receipt.totalAmount),
+                  style: accountsAmountStyle())),
+              DataCell(Text(receipt.paymentMode)),
+              DataCell(accountsCellStack(receipt.periodFrom,
+                  subtitle: 'to ${receipt.periodTo}',
+                  titleWeight: FontWeight.w400)),
+              DataCell(accountsStatusChip(receipt.status)),
+              DataCell(
+                isPending
+                    ? Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Tooltip(
+                            message: 'Approve Payment',
+                            child: OutlinedButton.icon(
+                              onPressed: () =>
+                                  controller.approveReceipt(receipt),
+                              style: AppButtonStyles.compact.merge(
+                                  OutlinedButton.styleFrom(
+                                      foregroundColor: AppColor.success)),
+                              icon: const Icon(LucideIcons.check, size: 16),
+                              label: const Text('Approve'),
                             ),
-                            SizedBox(width: SizeConfig.spacingXS),
-                            Tooltip(
-                              message: 'Cancel Receipt',
-                              child: InkWell(
-                                onTap: () =>
-                                    controller.cancelReceipt(receipt.id),
-                                borderRadius: BorderRadius.circular(6),
-                                child: Container(
-                                  padding: EdgeInsets.symmetric(
-                                      horizontal: SizeConfig.spacingSM,
-                                      vertical: 4),
-                                  decoration: BoxDecoration(
-                                    color: Colors.red.shade50,
-                                    borderRadius:
-                                        BorderRadius.circular(SizeConfig.radiusSM),
-                                    border: Border.all(
-                                        color: Colors.red.shade200),
-                                  ),
-                                  child: Text('Cancel',
-                                      style: TextStyle(
-                                          fontSize: SizeConfig.fontCaption,
-                                          color: Colors.red.shade700,
-                                          fontWeight: FontWeight.w500)),
-                                ),
-                              ),
+                          ),
+                          const SizedBox(width: 8),
+                          Tooltip(
+                            message: 'Cancel Receipt',
+                            child: OutlinedButton(
+                              onPressed: () =>
+                                  controller.cancelReceipt(receipt.id),
+                              style: AppButtonStyles.compact
+                                  .merge(AppButtonStyles.dangerOutlined),
+                              child: const Text('Cancel'),
                             ),
-                          ],
-                        )
-                      : const SizedBox.shrink(),
-                ),
-              ]);
-            }).toList(),
-          ),
+                          ),
+                        ],
+                      )
+                    : const SizedBox.shrink(),
+              ),
+            ]);
+          }).toList(),
         ),
       ),
     );

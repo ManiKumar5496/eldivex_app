@@ -3,8 +3,10 @@ import 'package:get/get.dart';
 
 import '../../../../core/values/color_constants.dart';
 import '../../../../routes/app_pages.dart';
+import '../../../../widgets/ui/ui.dart';
 import '../../../hp_portal/views/hp_widgets.dart';
 import '../../controllers/client_controller.dart';
+import 'package:eldivex_app/app/core/values/lucide_icons.dart';
 
 class ClientDashboardTab extends StatelessWidget {
   const ClientDashboardTab({super.key});
@@ -15,79 +17,111 @@ class ClientDashboardTab extends StatelessWidget {
     return RefreshIndicator(
       onRefresh: c.refreshDashboard,
       child: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: HpUi.pagePadding(context, top: 20),
         children: [
-          Row(
-            children: [
-              CircleAvatar(
-                radius: 22,
-                backgroundColor: AppColor.cAppPrimaryColor.withValues(alpha: 0.15),
-                child: Icon(Icons.person, color: AppColor.cAppPrimaryColor),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Welcome,', style: TextStyle(color: AppColor.fontColorGrey)),
-                    Text(c.clientName,
-                        style: TextStyle(
-                            fontSize: 18, fontWeight: FontWeight.w700,
-                            color: AppColor.cPrimaryHeadingColor)),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
+          HpUi.greeting('Welcome,', c.clientName),
+          const SizedBox(height: 24),
           Obx(() {
             final o = c.outstanding.value;
-            return HpUi.card(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Outstanding balance', style: TextStyle(color: AppColor.fontColorGrey)),
-                  const SizedBox(height: 6),
-                  Text(HpUi.money(o?['outstanding'] ?? 0),
-                      style: TextStyle(
-                          fontSize: 30, fontWeight: FontWeight.w800,
-                          color: ((o?['outstanding'] ?? 0) as num) > 0
-                              ? AppColor.calenderRed
-                              : AppColor.lightGreen)),
-                  const SizedBox(height: 8),
-                  Row(children: [
-                    HpUi.statusChip('Billed ${HpUi.money(o?['total_invoiced'] ?? 0)}', AppColor.cAppPrimaryColor),
-                    const SizedBox(width: 8),
-                    HpUi.statusChip('Paid ${HpUi.money(o?['total_paid'] ?? 0)}', AppColor.lightGreen),
-                  ]),
-                ],
-              ),
+            final due = ((o?['outstanding'] ?? 0) as num) > 0;
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                AppStatCard(
+                  label: 'Outstanding balance',
+                  value: HpUi.money(o?['outstanding'] ?? 0),
+                  icon: due
+                      ? LucideIcons.circleAlert
+                      : LucideIcons.circleCheck,
+                  tone: due ? AppTone.danger : AppTone.success,
+                ),
+                const SizedBox(height: 12),
+                AppResponsiveGrid(
+                  minItemWidth: 130,
+                  maxColumns: 2,
+                  spacing: 12,
+                  children: [
+                    AppStatCard(
+                      label: 'Billed',
+                      value: HpUi.money(o?['total_invoiced'] ?? 0),
+                      icon: LucideIcons.receiptText,
+                    ),
+                    AppStatCard(
+                      label: 'Paid',
+                      value: HpUi.money(o?['total_paid'] ?? 0),
+                      icon: LucideIcons.banknote,
+                      tone: AppTone.success,
+                    ),
+                  ],
+                ),
+              ],
             );
           }),
-          const SizedBox(height: 16),
+          const SizedBox(height: 24),
           Obx(() {
             final active = c.bookings.where((b) => [2, 4, 5].contains(b['status'])).toList();
-            return HpUi.card(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  HpUi.sectionTitle('Active bookings'),
-                  if (active.isEmpty)
-                    Text('No active bookings.', style: TextStyle(color: AppColor.fontColorGrey))
-                  else
-                    ...active.map((b) => ListTile(
-                          contentPadding: EdgeInsets.zero,
-                          leading: Icon(Icons.medical_services_outlined, color: AppColor.cAppPrimaryColor),
-                          title: Text('${b['patient_name'] ?? 'Patient'} • ${b['service_name'] ?? ''}'),
-                          subtitle: Text('${b['status_label'] ?? ''}'),
-                          trailing: const Icon(Icons.chevron_right),
-                          onTap: () => Get.toNamed(Routes.CLIENT_BOOKING_DETAIL, arguments: b),
-                        )),
-                ],
-              ),
+            return AppCard(
+              title: 'Active bookings',
+              icon: LucideIcons.calendarDays,
+              padding: EdgeInsets.zero,
+              child: active.isEmpty
+                  ? const AppEmptyState(
+                      compact: true,
+                      icon: LucideIcons.calendarX,
+                      title: 'No active bookings',
+                    )
+                  : Material(
+                      type: MaterialType.transparency,
+                      child: Column(
+                        children: [
+                          for (var i = 0; i < active.length; i++) ...[
+                            if (i > 0)
+                              Divider(
+                                  height: 1,
+                                  indent: 64,
+                                  color: AppColor.borderSubtle),
+                            _bookingRow(active[i]),
+                          ],
+                        ],
+                      ),
+                    ),
             );
           }),
         ],
+      ),
+    );
+  }
+
+  Widget _bookingRow(Map<String, dynamic> b) {
+    return InkWell(
+      onTap: () => Get.toNamed(Routes.CLIENT_BOOKING_DETAIL, arguments: b),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Row(
+          children: [
+            const AppIconTile(icon: LucideIcons.stethoscope, size: 36),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('${b['patient_name'] ?? 'Patient'} • ${b['service_name'] ?? ''}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: AppColor.textPrimary)),
+                  const SizedBox(height: 4),
+                  AppStatusBadge.status('${b['status_label'] ?? ''}',
+                      dense: true),
+                ],
+              ),
+            ),
+            Icon(LucideIcons.chevronRight,
+                size: 20, color: AppColor.textTertiary),
+          ],
+        ),
       ),
     );
   }

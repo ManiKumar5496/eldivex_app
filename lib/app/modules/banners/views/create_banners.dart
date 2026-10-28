@@ -5,6 +5,8 @@ import 'package:eldivex_app/app/modules/banners/controllers/banners_controller.d
 import '../../../core/values/color_constants.dart';
 import '../../../widgets/common_file_upload.dart';
 import '../../../widgets/common_text_form_field.dart';
+import '../../../widgets/ui/ui.dart';
+import 'package:eldivex_app/app/core/values/lucide_icons.dart';
 
 class CreateBanners extends GetView<BannersController> {
   const CreateBanners({super.key});
@@ -16,102 +18,83 @@ class CreateBanners extends GetView<BannersController> {
 
   @override
   Widget build(BuildContext context) {
+    final hPad = MediaQuery.sizeOf(context).width < 600 ? 16.0 : 24.0;
     return Scaffold(
       backgroundColor: AppColor.cAppBackgroundColor,
-      body:  SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(20.0),
-          child: Column(
-            children: [
-              SizedBox(height: 20),
-              FormTextField(
-                label: 'Banner Name',
-                hint: 'Enter Banner name',
-                controller: controller.bannerNameController,
-                prefixIcon: Icons.person_outline,
-                required: true,
+      body: SingleChildScrollView(
+        padding: EdgeInsets.fromLTRB(hPad, 20, hPad, 24),
+        child: Align(
+          alignment: Alignment.topLeft,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 760),
+            child: AppCard(
+              icon: LucideIcons.imagePlus,
+              title: 'New banner',
+              subtitle: 'Give the banner a name and upload its image.',
+              footer: Align(
+                alignment: Alignment.centerRight,
+                child: Obx(() => ElevatedButton.icon(
+                      onPressed: controller.createBannersLoading.value
+                          ? null
+                          : controller.createBanner,
+                      icon: controller.createBannersLoading.value
+                          ? const SizedBox(
+                              height: 16,
+                              width: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(LucideIcons.plus, size: 18),
+                      label: Text(controller.createBannersLoading.value
+                          ? "Creating Banner..."
+                          : 'Create Banner'),
+                    )),
               ),
-              SizedBox(height: 20),
-          
-              FormTextField(
-                label: 'Banner Description',
-                hint: 'Enter Banner Description',
-                controller: controller.bannerDescriptionController,
-                maxLines: 3,
-              ),
-              SizedBox(height: 20),
-              Obx(() => CommonFileUpload(
-                key: ValueKey('banner-upload-${controller.formVersion.value}'),
-                label: 'Banner Image',
-                hint: 'Upload JPG / PNG',
-                allowMultiple: false,
-                allowedExtensions: const ['jpg', 'jpeg', 'png'],
-                onFilesSelected: controller.onDocumentsSelected,
-                onFileRemoved: controller.onDocumentRemoved,
-              )),
-
-              SizedBox(height: 30),
-            Obx(() => SizedBox(
-              width: double.infinity,
-              height: 52,
-              child: ElevatedButton(
-                onPressed: controller.createBannersLoading.value
-                    ? null
-                    : controller.createBanner,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColor.cPrimaryButtonColor,
-                  foregroundColor: AppColor.buttonTextWhite,
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  FormTextField(
+                    label: 'Banner Name',
+                    hint: 'Enter Banner name',
+                    controller: controller.bannerNameController,
+                    prefixIcon: LucideIcons.type,
+                    required: true,
                   ),
-                  disabledBackgroundColor:
-                  AppColor.cPrimaryButtonColor.withValues(alpha: 0.6),
-                ),
-                child: controller.createBannersLoading.value
-                    ? Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    SizedBox(
-                      height: 18,
-                      width: 18,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        valueColor:
-                        AlwaysStoppedAnimation<Color>(AppColor.buttonTextWhite),
-                      ),
-                    ),
-                    SizedBox(width: 12),
-                    Text(
-                      "Creating Banner...",
-                      style: TextStyle(fontWeight: FontWeight.w600),
-                    )
-                  ],
-                )
-                    : const Text(
-                  'Create Banner',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
+                  const SizedBox(height: 16),
+                  FormTextField(
+                    label: 'Banner Description',
+                    hint: 'Enter Banner Description',
+                    controller: controller.bannerDescriptionController,
+                    maxLines: 3,
                   ),
-                ),
+                  const SizedBox(height: 16),
+                  Obx(() => CommonFileUpload(
+                        key: ValueKey(
+                            'banner-upload-${controller.formVersion.value}'),
+                        label: 'Banner Image',
+                        hint: 'Upload JPG / PNG',
+                        allowMultiple: false,
+                        allowedExtensions: const ['jpg', 'jpeg', 'png'],
+                        onFilesSelected: controller.onDocumentsSelected,
+                        onFileRemoved: controller.onDocumentRemoved,
+                      )),
+                ],
               ),
-            ))
-            ]
+            ),
           ),
         ),
       ),
     );
   }
+
   Widget sectionTitle(String title) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 20),
+      padding: const EdgeInsets.only(bottom: 16),
       child: Text(
         title,
         style: TextStyle(
-          fontSize: 16,
+          fontSize: 15,
           fontWeight: FontWeight.w600,
-          color: AppColor.fontColorGrey,
+          color: AppColor.textPrimary,
         ),
       ),
     );

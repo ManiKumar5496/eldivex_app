@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../../core/values/color_constants.dart';
-import '../../../core/values/text_style_constants.dart';
+import '../../../widgets/ui/ui.dart';
 import '../controllers/settings_controller.dart';
+import 'package:eldivex_app/app/core/values/lucide_icons.dart';
 
 /// Per-organisation service catalogue. Each tenant defines its own product
 /// categories (e.g. Caregiving, Nursing, Baby Care) — they are never shared
@@ -30,14 +31,15 @@ class _ServiceCategoriesViewState extends State<ServiceCategoriesView> {
 
   @override
   Widget build(BuildContext context) {
+    final narrow = MediaQuery.sizeOf(context).width < 600;
 
     return Scaffold(
       backgroundColor: AppColor.cAppBackgroundColor,
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(24),
+          padding: EdgeInsets.all(narrow ? 16 : 24),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               _Header(controller: controller),
               const SizedBox(height: 24),
@@ -58,47 +60,15 @@ class _Header extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        IconButton(
-          onPressed: () => Get.back(),
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
-          style: IconButton.styleFrom(
-            backgroundColor: AppColor.whiteColor,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
-              side: BorderSide(color: AppColor.divColor),
-            ),
-          ),
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Service Categories', style: AppTextStyles.heading),
-              const SizedBox(height: 4),
-              Text(
-                'Define the service categories your organisation offers.',
-                style: AppTextStyles.regular14Gre,
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(width: 16),
+    return AppPageHeader(
+      title: 'Service Categories',
+      subtitle: 'Define the service categories your organisation offers.',
+      onBack: () => Get.back(),
+      actions: [
         ElevatedButton.icon(
           onPressed: () => _showCategoryDialog(context, controller),
-          icon: Icon(Icons.add, size: 18, color: AppColor.buttonTextWhite),
-          label: Text('Add Category', style: AppTextStyles.regular14white),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppColor.cPrimaryButtonColor,
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
-            elevation: 0,
-          ),
+          icon: const Icon(LucideIcons.plus, size: 18),
+          label: const Text('Add Category'),
         ),
       ],
     );
@@ -106,6 +76,9 @@ class _Header extends StatelessWidget {
 }
 
 // ── Categories List ─────────────────────────────────────────────────────────
+
+const double _kStatusCol = 96;
+const double _kActionCol = 64;
 
 class _CategoriesList extends StatelessWidget {
   const _CategoriesList({required this.controller});
@@ -118,84 +91,89 @@ class _CategoriesList extends StatelessWidget {
         return const Center(child: CircularProgressIndicator());
       }
       if (controller.serviceCategoriesList.isEmpty) {
-        return Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.category_outlined, size: 56, color: AppColor.lightGrey),
-              const SizedBox(height: 16),
-              Text('No categories yet', style: AppTextStyles.regular16Gre),
-              const SizedBox(height: 8),
-              Text(
+        return AppCard(
+          child: AppEmptyState(
+            icon: LucideIcons.shapes,
+            tone: AppTone.primary,
+            title: 'No categories yet',
+            message:
                 'Click "Add Category" to create your first product category.',
-                style: AppTextStyles.regular14Gre,
-              ),
-            ],
+            actionLabel: 'Add Category',
+            actionIcon: LucideIcons.plus,
+            onAction: () => _showCategoryDialog(context, controller),
           ),
         );
       }
 
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Search
-          Container(
-            margin: const EdgeInsets.only(bottom: 12),
-            decoration: BoxDecoration(
-              color: AppColor.whiteColor,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: AppColor.divColor),
-            ),
-            child: TextField(
-              onChanged: controller.searchServiceCategories,
-              decoration: const InputDecoration(
-                hintText: 'Search categories by name...',
-                prefixIcon: Icon(Icons.search),
-                border: InputBorder.none,
-                contentPadding:
-                    EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-              ),
-            ),
-          ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: BoxDecoration(
-              color: AppColor.fieldColorGrey,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text('Category Name',
-                      style: AppTextStyles.regular14Gre
-                          .copyWith(fontWeight: FontWeight.w600)),
-                ),
-                SizedBox(
-                  width: 80,
-                  child: Text('Status',
-                      style: AppTextStyles.regular14Gre
-                          .copyWith(fontWeight: FontWeight.w600)),
-                ),
-                const SizedBox(width: 80),
-              ],
-            ),
-          ),
-          const SizedBox(height: 8),
-          Expanded(
-            child: ListView.separated(
-              itemCount: controller.filteredServiceCategories.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 8),
-              itemBuilder: (context, index) {
-                final cat = controller.filteredServiceCategories[index];
-                return _CategoryRow(
-                  category: cat,
-                  controller: controller,
-                  onEdit: () => _showCategoryDialog(context, controller, cat),
-                );
-              },
-            ),
+      final count = controller.filteredServiceCategories.length;
+      final total = controller.serviceCategoriesList.length;
+      final headerStyle = TextStyle(
+        fontSize: 12.5,
+        fontWeight: FontWeight.w600,
+        color: AppColor.textTertiary,
+      );
+
+      return AppCard(
+        expandChild: true,
+        padding: EdgeInsets.zero,
+        title: 'All categories',
+        subtitle: '$count of $total ${total == 1 ? 'category' : 'categories'}',
+        actions: [
+          AppSearchField(
+            hint: 'Search categories by name...',
+            onChanged: controller.searchServiceCategories,
+            width: MediaQuery.sizeOf(context).width < 600 ? null : 300,
           ),
         ],
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 11),
+              decoration: BoxDecoration(
+                color: AppColor.surfaceMuted,
+                border:
+                    Border(bottom: BorderSide(color: AppColor.borderSubtle)),
+              ),
+              child: Row(
+                children: [
+                  Expanded(child: Text('Category Name', style: headerStyle)),
+                  SizedBox(
+                      width: _kStatusCol,
+                      child: Text('Status', style: headerStyle)),
+                  SizedBox(
+                    width: _kActionCol,
+                    child: Text('Actions',
+                        style: headerStyle, textAlign: TextAlign.right),
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: count == 0
+                  ? const AppEmptyState(
+                      icon: LucideIcons.searchX,
+                      title: 'No matching categories',
+                      message: 'Try a different name.',
+                      compact: true,
+                    )
+                  : ListView.separated(
+                      itemCount: controller.filteredServiceCategories.length,
+                      separatorBuilder: (_, __) =>
+                          Divider(height: 1, color: AppColor.borderSubtle),
+                      itemBuilder: (context, index) {
+                        final cat = controller.filteredServiceCategories[index];
+                        return _CategoryRow(
+                          category: cat,
+                          controller: controller,
+                          onEdit: () =>
+                              _showCategoryDialog(context, controller, cat),
+                        );
+                      },
+                    ),
+            ),
+          ],
+        ),
       );
     });
   }
@@ -220,38 +198,88 @@ class _CategoryRow extends StatelessWidget {
     final status = SettingsController.toInt(category['status'], fallback: 0);
     final isActive = status == 1;
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      decoration: BoxDecoration(
-        color: AppColor.whiteColor,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppColor.divColor),
+    return _HoverRow(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+        child: Row(
+          children: [
+            Expanded(
+              child: Row(
+                children: [
+                  AppIconTile(
+                    icon: LucideIcons.shapes,
+                    tone: isActive ? AppTone.primary : AppTone.neutral,
+                    size: 32,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: AppColor.textPrimary,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            SizedBox(
+              width: _kStatusCol,
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Tooltip(
+                  message:
+                      isActive ? 'Deactivate category' : 'Activate category',
+                  child: Switch(
+                    value: isActive,
+                    onChanged: (_) =>
+                        controller.toggleServiceCategoryStatus(id, status),
+                  ),
+                ),
+              ),
+            ),
+            SizedBox(
+              width: _kActionCol,
+              child: Align(
+                alignment: Alignment.centerRight,
+                child: IconButton(
+                  tooltip: 'Edit category',
+                  onPressed: onEdit,
+                  icon: const Icon(LucideIcons.pencil, size: 18),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(name,
-                style: AppTextStyles.regular16
-                    .copyWith(fontWeight: FontWeight.w500)),
-          ),
-          SizedBox(
-            width: 80,
-            child: Switch(
-              value: isActive,
-              activeThumbColor: AppColor.cAppPrimaryColor,
-              activeTrackColor: AppColor.cAppPrimaryColor.withValues(alpha: 0.3),
-              onChanged: (_) =>
-                  controller.toggleServiceCategoryStatus(id, status),
-            ),
-          ),
-          SizedBox(
-            width: 80,
-            child: TextButton(
-              onPressed: onEdit,
-              child: Text('Edit', style: AppTextStyles.regular16blue),
-            ),
-          ),
-        ],
+    );
+  }
+}
+
+/// Table row background that tints on mouse hover.
+class _HoverRow extends StatefulWidget {
+  const _HoverRow({required this.child});
+  final Widget child;
+
+  @override
+  State<_HoverRow> createState() => _HoverRowState();
+}
+
+class _HoverRowState extends State<_HoverRow> {
+  bool _hover = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hover = true),
+      onExit: (_) => setState(() => _hover = false),
+      child: ColoredBox(
+        color: _hover ? AppColor.surfaceMuted : Colors.transparent,
+        child: widget.child,
       ),
     );
   }
@@ -271,32 +299,15 @@ void _showCategoryDialog(
   showDialog<void>(
     context: context,
     builder: (ctx) {
-      return AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        title: Text(
-          isEdit ? 'Edit Category' : 'Add Category',
-          style: AppTextStyles.heading.copyWith(fontSize: 20),
-        ),
-        content: SizedBox(
-          width: 420,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Category Name *', style: AppTextStyles.fieldsHeading16),
-              const SizedBox(height: 6),
-              TextField(
-                controller: nameCtrl,
-                autofocus: true,
-                decoration: _inputDecoration('e.g. Caregiving, Nursing, Baby Care'),
-              ),
-            ],
-          ),
-        ),
+      return AppDialog(
+        title: isEdit ? 'Edit Category' : 'Add Category',
+        subtitle: 'Services are grouped under these categories.',
+        icon: LucideIcons.shapes,
+        maxWidth: 460,
         actions: [
-          TextButton(
+          OutlinedButton(
             onPressed: () => Navigator.of(ctx).pop(),
-            child: Text('Cancel', style: AppTextStyles.regular16Gre),
+            child: const Text('Cancel'),
           ),
           Obx(() {
             final loading = controller.isCategorySubmitting.value;
@@ -313,12 +324,6 @@ void _showCategoryDialog(
                           : await controller.createServiceCategory(name);
                       if (ok && ctx.mounted) Navigator.of(ctx).pop();
                     },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColor.cPrimaryButtonColor,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8)),
-                elevation: 0,
-              ),
               child: loading
                   ? SizedBox(
                       width: 18,
@@ -326,34 +331,32 @@ void _showCategoryDialog(
                       child: CircularProgressIndicator(
                           strokeWidth: 2, color: AppColor.buttonTextWhite),
                     )
-                  : Text(isEdit ? 'Save Changes' : 'Create',
-                      style: AppTextStyles.regular16white),
+                  : Text(isEdit ? 'Save Changes' : 'Create'),
             );
           }),
         ],
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              'Category Name *',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: AppColor.textSecondary,
+              ),
+            ),
+            const SizedBox(height: 6),
+            TextField(
+              controller: nameCtrl,
+              autofocus: true,
+              decoration: const InputDecoration(
+                  hintText: 'e.g. Caregiving, Nursing, Baby Care'),
+            ),
+          ],
+        ),
       );
     },
-  );
-}
-
-InputDecoration _inputDecoration(String hint) {
-  return InputDecoration(
-    hintText: hint,
-    hintStyle: AppTextStyles.regular14Gre,
-    filled: true,
-    fillColor: AppColor.fieldColorGrey,
-    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-    border: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(8),
-      borderSide: BorderSide(color: AppColor.textFieldBorderColor),
-    ),
-    enabledBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(8),
-      borderSide: BorderSide(color: AppColor.textFieldBorderColor),
-    ),
-    focusedBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(8),
-      borderSide: BorderSide(color: AppColor.cPrimaryButtonColor, width: 1.5),
-    ),
   );
 }

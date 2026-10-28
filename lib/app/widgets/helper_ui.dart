@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:eldivex_app/app/core/values/lucide_icons.dart';
 import 'package:toastification/toastification.dart';
 
+import '../core/theme/theme_state.dart';
+import '../core/values/color_constants.dart';
 import 'shimmer_loader.dart';
+import 'ui/app_tokens.dart';
 
 class HelperUi {
   Widget loader({ShimmerType type = ShimmerType.table, int itemCount = 6}) {
@@ -20,28 +24,34 @@ class HelperUi {
 
     final ToastificationType type;
     final Color primary;
-    final Color bg;
+    final IconData icon;
     switch (_toastKind(backgroundColor)) {
       case ToastificationType.success:
         type = ToastificationType.success;
-        primary = const Color(0xFF1B6B3A);
-        bg = const Color(0xFFE6F4EC);
+        primary = AppColor.success;
+        icon = LucideIcons.circleCheck;
         break;
       case ToastificationType.error:
         type = ToastificationType.error;
-        primary = const Color(0xFFC0392B);
-        bg = const Color(0xFFFDECEA);
+        primary = AppColor.danger;
+        icon = LucideIcons.circleAlert;
         break;
       case ToastificationType.warning:
         type = ToastificationType.warning;
-        primary = const Color(0xFFD4AC0D);
-        bg = const Color(0xFFFEF9E7);
+        primary = AppColor.warning;
+        icon = LucideIcons.triangleAlert;
         break;
       default:
         type = ToastificationType.info;
-        primary = const Color(0xFF1A5276);
-        bg = const Color(0xFFEAF4FB);
+        primary = AppColor.info;
+        icon = LucideIcons.info;
     }
+    // Theme surface with a faint wash of the tone, so the toast reads in both
+    // light and dark mode; the icon, border and progress bar carry the tone.
+    final bg = Color.alphaBlend(
+      primary.withValues(alpha: ThemeState.isDark ? 0.12 : 0.06),
+      AppColor.whiteColor,
+    );
 
     toastification.show(
       context: context,
@@ -51,9 +61,10 @@ class HelperUi {
       title: Text(
         message,
         style: TextStyle(
-          color: primary,
+          color: AppColor.textPrimary,
           fontWeight: FontWeight.w600,
           fontSize: fontSize ?? 14,
+          height: 1.35,
         ),
       ),
       alignment: Alignment.topRight,
@@ -63,21 +74,30 @@ class HelperUi {
         return FadeTransition(opacity: animation, child: child);
       },
       showIcon: true,
+      icon: Icon(icon, color: primary, size: 20),
       primaryColor: primary,
       backgroundColor: bg,
-      foregroundColor: primary,
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+      foregroundColor: AppColor.textPrimary,
+      borderSide: BorderSide(color: primary.withValues(alpha: 0.28)),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      borderRadius: BorderRadius.circular(12),
-      boxShadow: [
-        BoxShadow(
-          color: primary.withValues(alpha: 0.15),
-          blurRadius: 16,
-          offset: const Offset(0, 8),
-        ),
-      ],
+      borderRadius: BorderRadius.circular(AppRadius.lg),
+      boxShadow: AppShadows.overlay,
+      progressBarTheme: ProgressIndicatorThemeData(
+        color: primary,
+        linearTrackColor: primary.withValues(alpha: 0.14),
+        linearMinHeight: 2,
+      ),
       showProgressBar: true,
-      closeButton: ToastCloseButton(showType: CloseButtonShowType.onHover),
+      closeButton: ToastCloseButton(
+        showType: CloseButtonShowType.onHover,
+        buttonBuilder: (context, onClose) => IconButton(
+          tooltip: 'Dismiss',
+          onPressed: onClose,
+          visualDensity: VisualDensity.compact,
+          icon: Icon(LucideIcons.x, size: 16, color: AppColor.textTertiary),
+        ),
+      ),
       closeOnClick: false,
       pauseOnHover: true,
       dragToClose: true,
@@ -118,7 +138,8 @@ class HelperUi {
     showDialog(
       context: context,
       builder: (_) => Dialog(
-        insetPadding: EdgeInsets.all(16),
+        insetPadding: const EdgeInsets.all(16),
+        clipBehavior: Clip.antiAlias,
         child: InteractiveViewer(
           child: Image.network(imageUrl, fit: BoxFit.contain),
         ),

@@ -3,10 +3,11 @@ import 'package:get/get.dart';
 import 'package:eldivex_app/app/modules/dashboard/controllers/dashboard_controller.dart';
 import '../../../core/values/color_constants.dart';
 import '../../../core/values/size_configue.dart';
-import '../../../core/values/text_style_constants.dart';
 import '../../../widgets/common_textfield.dart';
 import '../../../routes/app_pages.dart';
 import '../../../widgets/helper_ui.dart';
+import '../../../widgets/ui/ui.dart';
+import 'package:eldivex_app/app/core/values/lucide_icons.dart';
 
 class CreateUserRoles extends GetView<DashboardController> {
   const CreateUserRoles({super.key});
@@ -19,99 +20,54 @@ class CreateUserRoles extends GetView<DashboardController> {
     }
     return Scaffold(
       backgroundColor: AppColor.cAppBackgroundColor,
-      body: Column(
-        children: [
-          _buildHeader(),
-          Expanded(
-            child: SingleChildScrollView(
-              child: Padding(
-                padding: EdgeInsets.all(SizeConfig.blockSizeHorizontal * 2),
-                child: Column(
-                  children: [
-                    _buildRoleDetailsCard(),
-                    SizedBox(height: SizeConfig.blockSizeVertical * 2),
-                    _buildAccessListCard(),
-                    SizedBox(height: SizeConfig.blockSizeVertical * 3),
-                    _buildActionButtons(),
-                  ],
-                ),
-              ),
+      body: SingleChildScrollView(
+        padding: SizeConfig.pagePadding,
+        child: Align(
+          alignment: Alignment.topCenter,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 1100),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _buildHeader(),
+                const SizedBox(height: 24),
+                _buildRoleDetailsCard(),
+                const SizedBox(height: 20),
+                _buildAccessListCard(),
+                const SizedBox(height: 24),
+                _buildActionButtons(),
+                const SizedBox(height: 8),
+              ],
             ),
           ),
-        ],
+        ),
       ),
     );
   }
 
   Widget _buildHeader() {
-    return Container(
-      color: AppColor.whiteColor,
-      padding: EdgeInsets.symmetric(
-        horizontal: SizeConfig.blockSizeHorizontal * 2,
-        vertical: SizeConfig.blockSizeVertical * 2,
-      ),
-      child: Row(
-        children: [
-          IconButton(
-            onPressed: () => HelperUi.safeBack(Routes.MAIN),
-            icon: Icon(
-              Icons.arrow_back,
-              size: SizeConfig.blockSizeHorizontal * 2,
-              color: AppColor.fontColorGrey,
-            ),
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(),
-          ),
-          SizedBox(width: SizeConfig.blockSizeHorizontal * 1.5),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Create User Role', style: AppTextStyles.heading),
-              SizedBox(height: SizeConfig.blockSizeVertical * 0.5),
-              Text(
-                'Add a new role with access permissions',
-                style: AppTextStyles.regular14Gre,
-              ),
-            ],
-          ),
-        ],
-      ),
+    return AppPageHeader(
+      title: 'Create User Role',
+      subtitle: 'Add a new role with access permissions',
+      breadcrumbs: const ['Roles & Permissions', 'Create Role'],
+      onBack: () => HelperUi.safeBack(Routes.MAIN),
     );
   }
 
   Widget _buildRoleDetailsCard() {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColor.whiteColor,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColor.divColor),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      padding: EdgeInsets.all(SizeConfig.blockSizeHorizontal * 2),
+    return AppCard(
+      title: 'Role Details',
+      subtitle: 'Name the role so it is easy to pick when adding employees',
+      icon: LucideIcons.idCard,
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(
-            'Role Details',
-            style: TextStyle(
-              fontSize: SizeConfig.blockSizeHorizontal * 1.5,
-              fontWeight: FontWeight.w600,
-              color: AppColor.fontColorBlack,
-            ),
-          ),
-          SizedBox(height: SizeConfig.blockSizeVertical * 2),
           CommonTextField(
             label: 'Role Name',
             hint: 'Enter role name (e.g., Super Admin, Manager)',
             controller: controller.roleNameController,
           ),
-          SizedBox(height: SizeConfig.blockSizeVertical * 1.5),
+          const SizedBox(height: 16),
           CommonTextField(
             label: 'Role Description (Optional)',
             hint: 'Enter role description',
@@ -124,49 +80,21 @@ class CreateUserRoles extends GetView<DashboardController> {
   }
 
   Widget _buildAccessListCard() {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColor.whiteColor,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColor.divColor),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      padding: EdgeInsets.all(SizeConfig.blockSizeHorizontal * 2),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Access Permissions',
-                    style: TextStyle(
-                      fontSize: SizeConfig.blockSizeHorizontal * 1.5,
-                      fontWeight: FontWeight.w600,
-                      color: AppColor.fontColorBlack,
-                    ),
-                  ),
-                  SizedBox(height: SizeConfig.blockSizeVertical * 0.5),
-                  Obx(() => Text(
-                    '${controller.selectedAccessList.length} permissions selected',
-                    style: TextStyle(
-                      fontSize: SizeConfig.blockSizeHorizontal * 1.1,
-                      color: AppColor.fontColorGrey,
-                    ),
-                  )),
-                ],
-              ),
-              Obx(() => controller.getMasterModuleData.isNotEmpty
-                  ? TextButton(
+    return AppCard(
+      title: 'Access Permissions',
+      subtitle: 'Modules people with this role can open',
+      icon: LucideIcons.lockOpen,
+      actions: [
+        Obx(() => AppStatusBadge(
+              label:
+                  '${controller.selectedAccessList.length} permissions selected',
+              tone: controller.selectedAccessList.isEmpty
+                  ? AppTone.neutral
+                  : AppTone.primary,
+              showDot: false,
+            )),
+        Obx(() => controller.getMasterModuleData.isNotEmpty
+            ? TextButton(
                 onPressed: () {
                   if (controller.selectedAccessList.length ==
                       controller.getMasterModuleData.length) {
@@ -180,199 +108,160 @@ class CreateUserRoles extends GetView<DashboardController> {
                 },
                 child: Text(
                   controller.selectedAccessList.length ==
-                      controller.getMasterModuleData.length
+                          controller.getMasterModuleData.length
                       ? 'Deselect All'
                       : 'Select All',
-                  style: TextStyle(
-                    fontSize: SizeConfig.blockSizeHorizontal * 1.1,
-                    color: AppColor.cPrimaryButtonColor,
-                    fontWeight: FontWeight.w600,
-                  ),
                 ),
               )
-                  : const SizedBox.shrink()),
-            ],
-          ),
-          SizedBox(height: SizeConfig.blockSizeVertical * 2),
-          Obx(() {
-            // Show loading indicator while fetching
-            if (controller.getMasterModuleListLoading.value) {
-              return Center(
-                child: Padding(
-                  padding:
-                  EdgeInsets.symmetric(vertical: SizeConfig.blockSizeVertical * 3),
-                  child: Column(
-                    children: [
-                      CircularProgressIndicator(
-                        color: AppColor.cPrimaryButtonColor,
-                      ),
-                      SizedBox(height: SizeConfig.blockSizeVertical * 1),
-                      Text(
-                        'Loading access modules...',
-                        style: TextStyle(
-                          fontSize: SizeConfig.blockSizeHorizontal * 1.1,
-                          color: AppColor.fontColorGrey,
-                        ),
-                      ),
-                    ],
+            : const SizedBox.shrink()),
+      ],
+      child: Obx(() {
+        // Show loading indicator while fetching
+        if (controller.getMasterModuleListLoading.value) {
+          return Padding(
+            padding: const EdgeInsets.symmetric(vertical: 24),
+            child: Column(
+              children: [
+                SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2.5,
+                    color: AppColor.cPrimaryButtonColor,
                   ),
                 ),
-              );
-            }
-
-            // Show message if no modules available
-            if (controller.getMasterModuleData.isEmpty) {
-              return Center(
-                child: Padding(
-                  padding:
-                  EdgeInsets.symmetric(vertical: SizeConfig.blockSizeVertical * 3),
-                  child: Column(
-                    children: [
-                      Icon(
-                        Icons.info_outline,
-                        size: SizeConfig.blockSizeHorizontal * 4,
-                        color: AppColor.lightGrey,
-                      ),
-                      SizedBox(height: SizeConfig.blockSizeVertical * 1),
-                      Text(
-                        'No access modules available',
-                        style: TextStyle(
-                          fontSize: SizeConfig.blockSizeHorizontal * 1.2,
-                          color: AppColor.fontColorGrey,
-                        ),
-                      ),
-                      SizedBox(height: SizeConfig.blockSizeVertical * 0.5),
-                      TextButton.icon(
-                        onPressed: () => controller.getMasterModulesApi(),
-                        icon: Icon(Icons.refresh,
-                            size: SizeConfig.blockSizeHorizontal * 1.2),
-                        label: Text(
-                          'Retry',
-                          style:
-                          TextStyle(fontSize: SizeConfig.blockSizeHorizontal * 1.1),
-                        ),
-                      ),
-                    ],
-                  ),
+                const SizedBox(height: 12),
+                Text(
+                  'Loading access modules...',
+                  style: TextStyle(fontSize: 13, color: AppColor.textTertiary),
                 ),
-              );
-            }
+              ],
+            ),
+          );
+        }
 
-            // Show chips when modules are loaded
-            return Wrap(
-              spacing: SizeConfig.blockSizeHorizontal * 1,
-              runSpacing: SizeConfig.blockSizeVertical * 1,
-              children: controller.getMasterModuleData.map((module) {
-                final moduleId = module.id.toString();
-                final isSelected = controller.selectedAccessList.contains(moduleId);
-                return _buildAccessChip(
-                  id: moduleId,
-                  label: module.moduleName,
-                  isSelected: isSelected,
-                );
-              }).toList(),
+        // Show message if no modules available
+        if (controller.getMasterModuleData.isEmpty) {
+          return AppEmptyState(
+            compact: true,
+            icon: LucideIcons.info,
+            title: 'No access modules available',
+            actionLabel: 'Retry',
+            actionIcon: LucideIcons.refreshCw,
+            onAction: () => controller.getMasterModulesApi(),
+          );
+        }
+
+        // Checkbox rows when modules are loaded
+        return AppResponsiveGrid(
+          minItemWidth: 220,
+          maxColumns: 3,
+          spacing: 10,
+          children: controller.getMasterModuleData.map((module) {
+            final moduleId = module.id.toString();
+            final isSelected = controller.selectedAccessList.contains(moduleId);
+            return _buildAccessChip(
+              id: moduleId,
+              label: module.moduleName,
+              isSelected: isSelected,
             );
-          }),
-        ],
-      ),
+          }).toList(),
+        );
+      }),
     );
   }
 
+  /// A module as a checkbox row; the whole row toggles it.
   Widget _buildAccessChip({
     required String id,
     required String label,
     required bool isSelected,
   }) {
-    return FilterChip(
-      label: Text(label),
-      selected: isSelected,
-      onSelected: (selected) {
-        if (selected) {
-          controller.selectedAccessList.add(id);
-        } else {
-          controller.selectedAccessList.remove(id);
-        }
-      },
-      labelStyle: TextStyle(
-        fontSize: SizeConfig.blockSizeHorizontal * 1.1,
-        fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-        color: isSelected ? AppColor.cPrimaryButtonColor : AppColor.fontColorGrey,
-      ),
-      backgroundColor: AppColor.whiteColor,
-      selectedColor: AppColor.cPrimaryButtonColor.withOpacity(0.1),
-      checkmarkColor: AppColor.cPrimaryButtonColor,
-      side: BorderSide(
-        color: isSelected ? AppColor.cPrimaryButtonColor : AppColor.divColor,
-        width: isSelected ? 2 : 1,
-      ),
-      padding: EdgeInsets.symmetric(
-        horizontal: SizeConfig.blockSizeHorizontal * 1.5,
-        vertical: SizeConfig.blockSizeVertical * 0.8,
-      ),
+    void onSelected(bool selected) {
+      if (selected) {
+        controller.selectedAccessList.add(id);
+      } else {
+        controller.selectedAccessList.remove(id);
+      }
+    }
+
+    final radius = BorderRadius.circular(AppRadius.md);
+    return Material(
+      color: isSelected ? AppColor.primarySoft : AppColor.whiteColor,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: radius,
+        side: BorderSide(
+          color: isSelected
+              ? AppColor.cPrimaryButtonColor.withValues(alpha: 0.45)
+              : AppColor.divColor,
+        ),
+      ),
+      child: InkWell(
+        borderRadius: radius,
+        onTap: () => onSelected(!isSelected),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(4, 2, 12, 2),
+          child: Row(
+            children: [
+              Checkbox(
+                value: isSelected,
+                onChanged: (v) => onSelected(v ?? false),
+                visualDensity: VisualDensity.compact,
+              ),
+              const SizedBox(width: 4),
+              Expanded(
+                child: Text(
+                  label,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 13.5,
+                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                    color: isSelected
+                        ? AppColor.textPrimary
+                        : AppColor.textSecondary,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
 
   Widget _buildActionButtons() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.end,
+    return Wrap(
+      alignment: WrapAlignment.end,
+      spacing: 8,
+      runSpacing: 8,
       children: [
         OutlinedButton(
           onPressed: () {
             controller.clearRoleForm();
             HelperUi.safeBack(Routes.MAIN);
           },
-          style: OutlinedButton.styleFrom(
-            foregroundColor: AppColor.fontColorGrey,
-            side: BorderSide(color: AppColor.divColor),
-            padding: EdgeInsets.symmetric(
-              horizontal: SizeConfig.blockSizeHorizontal * 3,
-              vertical: SizeConfig.blockSizeVertical * 1.5,
-            ),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
-          ),
-          child: Text(
-            'Cancel',
-            style: TextStyle(fontSize: SizeConfig.blockSizeHorizontal * 1.2),
-          ),
+          child: const Text('Cancel'),
         ),
-        SizedBox(width: SizeConfig.blockSizeHorizontal * 1.5),
         Obx(() => ElevatedButton.icon(
           onPressed: controller.isCreateRoleLoading.value
               ? null
               : () => controller.createUserRole(),
           icon: controller.isCreateRoleLoading.value
               ? SizedBox(
-            width: SizeConfig.blockSizeHorizontal * 1.5,
-            height: SizeConfig.blockSizeHorizontal * 1.5,
+            width: 16,
+            height: 16,
             child: CircularProgressIndicator(
               strokeWidth: 2,
-              color: AppColor.buttonTextWhite,
+              color: AppColor.textTertiary,
             ),
           )
-              : Icon(
-            Icons.check,
-            size: SizeConfig.blockSizeHorizontal * 1.5,
+              : const Icon(
+            LucideIcons.check,
+            size: 18,
           ),
           label: Text(
             controller.isCreateRoleLoading.value ? 'Creating...' : 'Create Role',
-            style: TextStyle(fontSize: SizeConfig.blockSizeHorizontal * 1.2),
-          ),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppColor.cPrimaryButtonColor,
-            foregroundColor: AppColor.buttonTextWhite,
-            padding: EdgeInsets.symmetric(
-              horizontal: SizeConfig.blockSizeHorizontal * 3,
-              vertical: SizeConfig.blockSizeVertical * 1.5,
-            ),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
-            elevation: 0,
           ),
         )),
       ],

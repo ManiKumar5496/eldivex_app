@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:eldivex_app/app/core/values/color_constants.dart';
-import 'package:eldivex_app/app/core/values/text_style_constants.dart';
+import 'package:eldivex_app/app/widgets/ui/ui.dart';
 import '../../controllers/outstanding_controller.dart';
 import '../../../../routes/app_pages.dart';
 import '../../models/active_booking_client_model.dart';
 import '../accounts_format.dart';
+import 'package:eldivex_app/app/core/values/lucide_icons.dart';
 
 class OutstandingDashboardView extends GetView<OutstandingController> {
   const OutstandingDashboardView({super.key});
@@ -16,143 +17,142 @@ class OutstandingDashboardView extends GetView<OutstandingController> {
 
   String _fmtFull(double v) => formatInr(v);
 
+  /// Aging buckets run from current → oldest.
+  static const _agingTones = [
+    AppTone.success,
+    AppTone.warning,
+    AppTone.warning,
+    AppTone.danger,
+    AppTone.danger,
+  ];
+
   // ─── build ─────────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
     // Ensure controller is available; loadActiveClients is called in onInit.
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _buildPageHeader(),
-        Expanded(
-          child: Obx(() {
-            if (controller.isLoading.value && controller.activeClients.isEmpty) {
-              return const Center(child: CircularProgressIndicator());
-            }
-            return SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+    final pad = MediaQuery.sizeOf(context).width < 600 ? 16.0 : 24.0;
+    return Scaffold(
+      backgroundColor: AppColor.cAppBackgroundColor,
+      body: SingleChildScrollView(
+        padding: EdgeInsets.all(pad),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _buildPageHeader(),
+            const SizedBox(height: 24),
+            Obx(() {
+              if (controller.isLoading.value &&
+                  controller.activeClients.isEmpty) {
+                return const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 64),
+                  child: Center(child: CircularProgressIndicator()),
+                );
+              }
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   _buildFilterBar(),
                   const SizedBox(height: 20),
                   _buildKpiRow(),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 20),
                   _buildAgingSection(),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 20),
                   _buildClientList(),
                 ],
-              ),
-            );
-          }),
+              );
+            }),
+          ],
         ),
-      ],
+      ),
     );
   }
 
   // ─── page header ───────────────────────────────────────────────────────────
 
   Widget _buildPageHeader() {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
-      decoration: BoxDecoration(
-        color: AppColor.whiteColor,
-        border: Border(bottom: BorderSide(color: AppColor.divColor)),
-      ),
-      child: Row(
-        children: [
-          Expanded(child: Text('Accounts Receivable', style: AppTextStyles.heading)),
-          TextButton.icon(
-            onPressed: controller.refreshDashboard,
-            icon: const Icon(Icons.refresh, size: 18),
-            label: const Text('Refresh'),
-          ),
-        ],
-      ),
+    return AppPageHeader(
+      title: 'Accounts Receivable',
+      subtitle: 'Outstanding balances, collections and invoice aging',
+      actions: [
+        OutlinedButton.icon(
+          onPressed: controller.refreshDashboard,
+          icon: const Icon(LucideIcons.refreshCw, size: 18),
+          label: const Text('Refresh'),
+        ),
+      ],
     );
   }
 
   // ─── filter bar ────────────────────────────────────────────────────────────
 
   Widget _buildFilterBar() {
-    return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: AppColor.divColor),
-      ),
-      color: AppColor.whiteColor,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Obx(() => Wrap(
-          spacing: 12,
-          runSpacing: 12,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          children: [
-            // Client filter — getActiveClients is per booking, so dedupe by user_id.
-            (() {
-              final clients = ClientOption.fromBookingRows(controller.activeClients);
-              final selected = clients.any((c) => c.userId == controller.selectedClientId.value)
-                  ? controller.selectedClientId.value
-                  : null;
-              return Container(
-                width: 260,
-                height: 44,
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                decoration: BoxDecoration(
-                  color: AppColor.whiteColor,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: AppColor.textFieldBorderColor),
-                ),
-                child: DropdownButton<int>(
-                  value: selected,
-                  hint: Text('All Clients', style: TextStyle(fontSize: 13, color: AppColor.fontColorGrey)),
-                  isExpanded: true,
-                  underline: const SizedBox.shrink(),
-                  style: TextStyle(fontSize: 13, color: AppColor.fontColorBlack),
-                  items: [
-                    const DropdownMenuItem<int>(value: null, child: Text('All Clients')),
-                    ...clients.map((c) => DropdownMenuItem<int>(
-                          value: c.userId,
-                          child: Text(c.label, overflow: TextOverflow.ellipsis),
-                        )),
-                  ],
-                  onChanged: (v) => controller.selectedClientId.value = v,
-                ),
-              );
-            })(),
-            // Apply
-            SizedBox(
-              height: 44,
-              child: ElevatedButton.icon(
+    return AppCard(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Obx(() => Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              // Client filter — getActiveClients is per booking, so dedupe by user_id.
+              (() {
+                final clients =
+                    ClientOption.fromBookingRows(controller.activeClients);
+                final selected = clients
+                        .any((c) => c.userId == controller.selectedClientId.value)
+                    ? controller.selectedClientId.value
+                    : null;
+                return ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 280),
+                  child: InputDecorator(
+                    decoration: InputDecoration(
+                      isDense: true,
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 8),
+                      prefixIcon: Icon(LucideIcons.userSearch,
+                          size: 18, color: AppColor.textTertiary),
+                      prefixIconConstraints:
+                          const BoxConstraints(minWidth: 38, minHeight: 36),
+                    ),
+                    child: DropdownButton<int>(
+                      value: selected,
+                      hint: Text('All Clients',
+                          style: TextStyle(
+                              fontSize: 14, color: AppColor.textTertiary)),
+                      isExpanded: true,
+                      isDense: true,
+                      underline: const SizedBox.shrink(),
+                      icon: Icon(LucideIcons.chevronDown,
+                          size: 18, color: AppColor.textTertiary),
+                      borderRadius: BorderRadius.circular(AppRadius.md),
+                      style: TextStyle(fontSize: 14, color: AppColor.textPrimary),
+                      items: [
+                        const DropdownMenuItem<int>(
+                            value: null, child: Text('All Clients')),
+                        ...clients.map((c) => DropdownMenuItem<int>(
+                              value: c.userId,
+                              child: Text(c.label, overflow: TextOverflow.ellipsis),
+                            )),
+                      ],
+                      onChanged: (v) => controller.selectedClientId.value = v,
+                    ),
+                  ),
+                );
+              })(),
+              // Apply
+              ElevatedButton.icon(
                 onPressed: controller.applyFilters,
-                icon: const Icon(Icons.refresh, size: 18),
+                icon: const Icon(LucideIcons.refreshCw, size: 18),
                 label: const Text('Reload'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColor.cPrimaryButtonColor,
-                  foregroundColor: AppColor.buttonTextWhite,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                  padding: const EdgeInsets.symmetric(horizontal: 18),
-                ),
               ),
-            ),
-            // Clear
-            SizedBox(
-              height: 44,
-              child: OutlinedButton.icon(
+              // Clear
+              OutlinedButton.icon(
                 onPressed: controller.clearFilters,
-                icon: const Icon(Icons.clear, size: 18),
+                icon: const Icon(LucideIcons.x, size: 18),
                 label: const Text('Clear'),
-                style: OutlinedButton.styleFrom(
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                  padding: const EdgeInsets.symmetric(horizontal: 18),
-                ),
               ),
-            ),
-          ],
-        )),
-      ),
+            ],
+          )),
     );
   }
 
@@ -175,117 +175,156 @@ class OutstandingDashboardView extends GetView<OutstandingController> {
           : controller.totalOutstanding.value;
       final rate = billed > 0 ? (collected / billed * 100).clamp(0, 100) : 0.0;
 
-      return LayoutBuilder(builder: (context, constraints) {
-        // Two cards per row on phones, four on wide screens.
-        final perRow = constraints.maxWidth < 600 ? 2 : 4;
-        final width = (constraints.maxWidth - 14 * (perRow - 1)) / perRow;
-        return Wrap(
-          spacing: 14,
-          runSpacing: 14,
-          children: [
-            _kpiCard('Total Outstanding', _fmtFull(outstanding), Colors.red,    Icons.account_balance_wallet_outlined, width),
-            _kpiCard('Total Billed',       _fmtFull(billed),      Colors.blue,   Icons.receipt_long_outlined, width),
-            _kpiCard('Total Collected',    _fmtFull(collected),   Colors.green,  Icons.payments_outlined, width),
-            _kpiCard('Collection Rate',    '${rate.toStringAsFixed(1)}%', const Color(0xFF7C3AED), Icons.pie_chart_outline, width),
-          ],
-        );
-      });
-    });
-  }
-
-  Widget _kpiCard(String label, String value, Color color, IconData icon, double width) {
-    return Container(
-      width: width,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColor.whiteColor,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withValues(alpha: 0.20)),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 8, offset: const Offset(0, 2)),
-        ],
-      ),
-      child: Row(
+      // Two cards per row on phones, four on wide screens.
+      return AppResponsiveGrid(
+        minItemWidth: 150,
+        maxColumns: 4,
         children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.10),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Icon(icon, color: color, size: 22),
+          AppStatCard(
+            label: 'Total Outstanding',
+            value: _fmtFull(outstanding),
+            icon: LucideIcons.wallet,
+            tone: AppTone.danger,
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(label, style: TextStyle(fontSize: 11, color: AppColor.fontColorGrey)),
-                const SizedBox(height: 4),
-                FittedBox(
-                  fit: BoxFit.scaleDown,
-                  alignment: Alignment.centerLeft,
-                  child: Text(value, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: color)),
-                ),
-              ],
-            ),
+          AppStatCard(
+            label: 'Total Billed',
+            value: _fmtFull(billed),
+            icon: LucideIcons.receiptText,
+            tone: AppTone.info,
+          ),
+          AppStatCard(
+            label: 'Total Collected',
+            value: _fmtFull(collected),
+            icon: LucideIcons.banknote,
+            tone: AppTone.success,
+          ),
+          AppStatCard(
+            label: 'Collection Rate',
+            value: '${rate.toStringAsFixed(1)}%',
+            icon: LucideIcons.chartPie,
+            tone: AppTone.violet,
           ),
         ],
-      ),
-    );
+      );
+    });
   }
 
   // ─── aging summary ─────────────────────────────────────────────────────────
 
   Widget _buildAgingSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('Aging Summary', style: AppTextStyles.semiBold18),
-        const SizedBox(height: 12),
-        Obx(() {
-          // Org-wide AR aging from getAgingReport (unpaid invoice balances).
-          final buckets = controller.agingBuckets;
-          if (buckets.isEmpty) {
-            return Text(
-              controller.isSummaryLoading.value ? 'Loading…' : 'No outstanding invoices.',
-              style: TextStyle(fontSize: 13, color: AppColor.fontColorGrey),
+    return AppCard(
+      title: 'Aging Summary',
+      subtitle: 'Unpaid invoice balances by age',
+      icon: LucideIcons.hourglass,
+      iconTone: AppTone.warning,
+      child: Obx(() {
+        // Org-wide AR aging from getAgingReport (unpaid invoice balances).
+        final buckets = controller.agingBuckets;
+        if (buckets.isEmpty) {
+          if (controller.isSummaryLoading.value) {
+            return Row(
+              children: [
+                const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+                const SizedBox(width: 10),
+                Text('Loading…',
+                    style:
+                        TextStyle(fontSize: 13, color: AppColor.textTertiary)),
+              ],
             );
           }
-          const colors = [Colors.green, Colors.amber, Colors.orange, Colors.deepOrange, Colors.red];
-          return Wrap(
-            spacing: 12,
-            runSpacing: 12,
-            children: [
-              for (var i = 0; i < buckets.length; i++)
-                _agingBox(
-                  '${buckets[i].label} (${buckets[i].count})',
-                  _fmt(buckets[i].amount),
-                  colors[i.clamp(0, colors.length - 1)],
-                ),
-            ],
+          return const AppEmptyState(
+            icon: LucideIcons.circleCheck,
+            tone: AppTone.success,
+            title: 'No outstanding invoices.',
+            compact: true,
           );
-        }),
-      ],
+        }
+        final total = buckets.fold<double>(0, (s, b) => s + b.amount);
+        AppTone toneAt(int i) => _agingTones[i.clamp(0, _agingTones.length - 1)];
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (total > 0) ...[
+              ClipRRect(
+                borderRadius: BorderRadius.circular(AppRadius.xs),
+                child: SizedBox(
+                  height: 8,
+                  child: Row(
+                    children: [
+                      for (var i = 0; i < buckets.length; i++)
+                        if (buckets[i].amount > 0)
+                          Expanded(
+                            flex: ((buckets[i].amount / total) * 1000)
+                                .round()
+                                .clamp(1, 1000),
+                            child: Container(color: toneAt(i).color),
+                          ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
+            AppResponsiveGrid(
+              minItemWidth: 150,
+              maxColumns: 5,
+              spacing: 12,
+              children: [
+                for (var i = 0; i < buckets.length; i++)
+                  _agingBox(
+                    '${buckets[i].label} (${buckets[i].count})',
+                    _fmt(buckets[i].amount),
+                    toneAt(i),
+                  ),
+              ],
+            ),
+          ],
+        );
+      }),
     );
   }
 
-  Widget _agingBox(String label, String amount, Color color) {
+  Widget _agingBox(String label, String amount, AppTone tone) {
     return Container(
-      width: 160,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: color.withValues(alpha: 0.25)),
+        color: AppColor.surfaceMuted,
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        border: Border.all(color: AppColor.borderSubtle),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: TextStyle(fontSize: 12, color: color, fontWeight: FontWeight.w600)),
+          Row(
+            children: [
+              Container(
+                width: 8,
+                height: 8,
+                decoration:
+                    BoxDecoration(color: tone.color, shape: BoxShape.circle),
+              ),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(label,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                        fontSize: 12.5,
+                        color: AppColor.textSecondary,
+                        fontWeight: FontWeight.w600)),
+              ),
+            ],
+          ),
           const SizedBox(height: 6),
-          Text(amount, style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: color)),
+          Text(amount,
+              style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: AppColor.textPrimary,
+                  fontFeatures: const [FontFeature.tabularFigures()])),
         ],
       ),
     );
@@ -294,107 +333,67 @@ class OutstandingDashboardView extends GetView<OutstandingController> {
   // ─── client outstanding list ────────────────────────────────────────────────
 
   Widget _buildClientList() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('Outstanding by Client', style: AppTextStyles.semiBold18),
-        const SizedBox(height: 12),
-        Obx(() {
-          final clients = controller.clientReceivables;
-          if (clients.isEmpty) {
-            return Center(
-              child: Padding(
-                padding: const EdgeInsets.all(32),
-                child: Column(
-                  children: [
-                    Icon(Icons.people_outline, size: 56, color: AppColor.divColor),
-                    const SizedBox(height: 12),
-                    Text('No clients found', style: AppTextStyles.regular16Gre),
-                  ],
-                ),
-              ),
-            );
-          }
-
-          return Container(
-            decoration: BoxDecoration(
-              color: AppColor.whiteColor,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColor.divColor),
-            ),
-            child: horizontalTable(DataTable(
-                headingRowColor: WidgetStateProperty.all(AppColor.fieldColorGrey),
-                headingTextStyle: TextStyle(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 13,
-                  color: AppColor.cPrimaryHeadingColor,
-                ),
-                dataTextStyle: const TextStyle(fontSize: 13),
-                columnSpacing: 28,
-                horizontalMargin: 16,
-                columns: const [
-                  DataColumn(label: Text('Client')),
-                  DataColumn(label: Text('Bookings'),    numeric: true),
-                  DataColumn(label: Text('Billed'),      numeric: true),
-                  DataColumn(label: Text('Paid'),        numeric: true),
-                  DataColumn(label: Text('Outstanding'), numeric: true),
-                ],
-                rows: clients.map((r) {
-                  final id          = r.client.userId;
-                  final name        = r.client.name.isNotEmpty ? r.client.name : 'Client #$id';
-                  final billed      = r.billed;
-                  final paid        = r.paid;
-                  final outstanding = r.outstanding;
-
-                  return DataRow(
-                    onSelectChanged: (_) => Get.toNamed(
-                      Routes.CLIENT_OUTSTANDING,
-                      arguments: {'client_id': id, 'client_name': name},
-                      parameters: {'client_id': '$id'},
-                    ),
-                    cells: [
-                      DataCell(Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Container(
-                            width: 32,
-                            height: 32,
-                            decoration: BoxDecoration(
-                              color: AppColor.cPrimaryButtonColor.withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                            child: Center(
-                              child: Text(
-                                name.isNotEmpty ? name[0].toUpperCase() : '?',
-                                style: TextStyle(
-                                  color: AppColor.cPrimaryButtonColor,
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 13,
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          Text(name, style: const TextStyle(fontWeight: FontWeight.w500)),
-                        ],
-                      )),
-                      DataCell(Text('${r.client.bookingCount}')),
-                      DataCell(Text(_fmtFull(billed),   style: TextStyle(color: AppColor.cPrimaryHeadingColor))),
-                      DataCell(Text(_fmtFull(paid),     style: const TextStyle(color: Colors.green))),
-                      DataCell(Text(
-                        _fmtFull(outstanding),
-                        style: TextStyle(
-                          fontWeight: FontWeight.w700,
-                          color: outstanding > 0 ? Colors.red : Colors.green,
-                        ),
-                      )),
-                    ],
-                  );
-                }).toList(),
-              )),
+    return AppCard(
+      title: 'Outstanding by Client',
+      subtitle: 'Select a client to see the booking breakdown',
+      icon: LucideIcons.users,
+      padding: EdgeInsets.zero,
+      child: Obx(() {
+        final clients = controller.clientReceivables;
+        if (clients.isEmpty) {
+          return const AppEmptyState(
+            icon: LucideIcons.users,
+            title: 'No clients found',
           );
-        }),
-      ],
+        }
+
+        return horizontalTable(DataTable(
+          showCheckboxColumn: false,
+          columns: const [
+            DataColumn(label: Text('Client')),
+            DataColumn(label: Text('Bookings'), numeric: true),
+            DataColumn(label: Text('Billed'), numeric: true),
+            DataColumn(label: Text('Paid'), numeric: true),
+            DataColumn(label: Text('Outstanding'), numeric: true),
+          ],
+          rows: clients.map((r) {
+            final id          = r.client.userId;
+            final name        = r.client.name.isNotEmpty ? r.client.name : 'Client #$id';
+            final billed      = r.billed;
+            final paid        = r.paid;
+            final outstanding = r.outstanding;
+
+            return DataRow(
+              onSelectChanged: (_) => Get.toNamed(
+                Routes.CLIENT_OUTSTANDING,
+                arguments: {'client_id': id, 'client_name': name},
+                parameters: {'client_id': '$id'},
+              ),
+              cells: [
+                DataCell(Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    AppAvatar(name: name, size: 30),
+                    const SizedBox(width: 10),
+                    Text(name, style: const TextStyle(fontWeight: FontWeight.w600)),
+                  ],
+                )),
+                DataCell(Text('${r.client.bookingCount}')),
+                DataCell(Text(_fmtFull(billed))),
+                DataCell(Text(_fmtFull(paid),
+                    style: TextStyle(color: AppColor.success))),
+                DataCell(Text(
+                  _fmtFull(outstanding),
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    color: outstanding > 0 ? AppColor.danger : AppColor.success,
+                  ),
+                )),
+              ],
+            );
+          }).toList(),
+        ));
+      }),
     );
   }
 }

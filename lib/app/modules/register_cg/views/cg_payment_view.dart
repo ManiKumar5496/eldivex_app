@@ -1,15 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
+import 'package:eldivex_app/app/widgets/ui/ui.dart';
 
 import '../../../core/values/color_constants.dart';
-import '../../../core/values/text_style_constants.dart';
 import '../../../core/values/size_configue.dart';
 import '../../../widgets/dropdown_common.dart';
 import '../controllers/cg_payment_controller.dart';
 import '../controllers/hp_payouts_controller.dart';
 import '../controllers/register_cg_controller.dart';
 import '../models/cg_payment_summary.dart';
+import 'package:eldivex_app/app/core/values/lucide_icons.dart';
 
 class CgPaymentView extends StatelessWidget {
   const CgPaymentView({super.key});
@@ -21,23 +22,26 @@ class CgPaymentView extends StatelessWidget {
     Get.lazyPut<HpPayoutsController>(() => HpPayoutsController(), fenix: true);
 
     SizeConfig.init(context);
+    final pad = SizeConfig.pagePadding;
 
     return Scaffold(
       backgroundColor: AppColor.cAppBackgroundColor,
       body: Padding(
-        padding: EdgeInsets.all(SizeConfig.isMobile ? 12 : 24),
+        // Bottom padding is applied inside each tab so content can scroll
+        // to the edge.
+        padding: EdgeInsets.fromLTRB(pad.left, pad.top, pad.right, 0),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            _Header(),
-            const SizedBox(height: 24),
+            const _Header(),
+            const SizedBox(height: 16),
             Expanded(
               child: DefaultTabController(
                 length: 2,
                 child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     _buildTabBar(),
-                    const SizedBox(height: 16),
                     const Expanded(
                       child: TabBarView(
                         children: [
@@ -57,35 +61,13 @@ class CgPaymentView extends StatelessWidget {
   }
 
   Widget _buildTabBar() {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColor.fieldColorGrey,
-        borderRadius: BorderRadius.circular(10),
-      ),
-      padding: const EdgeInsets.all(4),
-      child: TabBar(
-        indicator: BoxDecoration(
-          color: AppColor.whiteColor,
-          borderRadius: BorderRadius.circular(8),
-          boxShadow: [
-            BoxShadow(
-              color: AppColor.divColor.withValues(alpha: 0.8),
-              blurRadius: 4,
-            ),
-          ],
-        ),
-        labelColor: AppColor.cPrimaryHeadingColor,
-        unselectedLabelColor: AppColor.fontColorGrey,
-        labelStyle:
-            AppTextStyles.regular16.copyWith(fontWeight: FontWeight.w600),
-        unselectedLabelStyle: AppTextStyles.regular16Gre,
-        dividerColor: Colors.transparent,
-        indicatorSize: TabBarIndicatorSize.tab,
-        tabs: const [
-          Tab(text: 'Calculate Payment'),
-          Tab(text: 'Payout History'),
-        ],
-      ),
+    return const TabBar(
+      isScrollable: true,
+      tabAlignment: TabAlignment.start,
+      tabs: [
+        Tab(text: 'Calculate Payment'),
+        Tab(text: 'Payout History'),
+      ],
     );
   }
 }
@@ -97,16 +79,9 @@ class _Header extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('CG Payments', style: AppTextStyles.heading),
-        const SizedBox(height: 4),
-        Text(
-          'Calculate attendance-based pay and generate caregiver payouts',
-          style: AppTextStyles.regular14Gre,
-        ),
-      ],
+    return const AppPageHeader(
+      title: 'CG Payments',
+      subtitle: 'Calculate attendance-based pay and generate caregiver payouts',
     );
   }
 }
@@ -122,13 +97,19 @@ class _CalculateTab extends GetView<CgPaymentController> {
     final registerCtrl = Get.find<RegisterCgController>();
 
     return SingleChildScrollView(
+      padding: EdgeInsets.only(top: 20, bottom: isMobile ? 16 : 24),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           // ── CG selector + date range ────────────────────────────────────
-          isMobile
-              ? _buildFiltersMobile(registerCtrl)
-              : _buildFiltersDesktop(registerCtrl),
+          AppCard(
+            title: 'Pay period',
+            subtitle: 'Pick a caregiver and date range to calculate attendance-based pay',
+            icon: LucideIcons.calculator,
+            child: isMobile
+                ? _buildFiltersMobile(registerCtrl)
+                : _buildFiltersDesktop(registerCtrl),
+          ),
 
           const SizedBox(height: 20),
 
@@ -138,12 +119,11 @@ class _CalculateTab extends GetView<CgPaymentController> {
             if (s == null) {
               return const SizedBox.shrink();
             }
-            return isMobile
-                ? _buildSummaryMobile(s)
-                : _buildSummaryDesktop(s);
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 20),
+              child: _buildSummary(s),
+            );
           }),
-
-          const SizedBox(height: 20),
 
           // ── Pay breakdown table ──────────────────────────────────────────
           Obx(() {
@@ -154,7 +134,7 @@ class _CalculateTab extends GetView<CgPaymentController> {
             return _buildBreakdownTable(s);
           }),
 
-          const SizedBox(height: 24),
+          const SizedBox(height: 20),
 
           // ── Generate payout row ──────────────────────────────────────────
           Obx(() {
@@ -165,8 +145,6 @@ class _CalculateTab extends GetView<CgPaymentController> {
                 ? _buildGenerateMobile(context)
                 : _buildGenerateDesktop(context);
           }),
-
-          const SizedBox(height: 24),
         ],
       ),
     );
@@ -199,7 +177,7 @@ class _CalculateTab extends GetView<CgPaymentController> {
             Expanded(child: _datePicker('To', controller.periodToCtrl)),
           ],
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 16),
         SizedBox(width: double.infinity, child: _fetchButton()),
       ],
     );
@@ -233,47 +211,61 @@ class _CalculateTab extends GetView<CgPaymentController> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(label,
-            style: AppTextStyles.regular14Gre
-                .copyWith(fontWeight: FontWeight.w500)),
-        const SizedBox(height: 6),
-        InkWell(
-          onTap: () async {
-            final initial = DateTime.tryParse(ctrl.text) ?? DateTime.now();
-            final picked = await showDatePicker(
-              context: Get.context!,
-              initialDate: initial,
-              firstDate: DateTime(2020),
-              lastDate: DateTime.now().add(const Duration(days: 1)),
-              builder: (ctx, child) => Theme(
-                data: ThemeData.light().copyWith(
-                  colorScheme:
-                      ColorScheme.light(primary: AppColor.cPrimaryButtonColor),
+            style: TextStyle(fontSize: 14, color: AppColor.textSecondary)),
+        const SizedBox(height: 8),
+        Material(
+          color: AppColor.whiteColor,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppRadius.md),
+            side: BorderSide(color: AppColor.textFieldBorderColor),
+          ),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(AppRadius.md),
+            onTap: () async {
+              final initial = DateTime.tryParse(ctrl.text) ?? DateTime.now();
+              final picked = await showDatePicker(
+                context: Get.context!,
+                initialDate: initial,
+                firstDate: DateTime(2020),
+                lastDate: DateTime.now().add(const Duration(days: 1)),
+                builder: (ctx, child) => Theme(
+                  data: ThemeData.light().copyWith(
+                    colorScheme:
+                        ColorScheme.light(primary: AppColor.cPrimaryButtonColor),
+                  ),
+                  child: child!,
                 ),
-                child: child!,
+              );
+              if (picked != null) {
+                ctrl.text = DateFormat('yyyy-MM-dd').format(picked);
+              }
+            },
+            child: Container(
+              height: 44,
+              padding: const EdgeInsets.symmetric(horizontal: 14),
+              // Rebuilds when the picked date is written to [ctrl].
+              child: ValueListenableBuilder<TextEditingValue>(
+                valueListenable: ctrl,
+                builder: (context, value, _) => Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        value.text.isNotEmpty ? value.text : 'YYYY-MM-DD',
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: value.text.isNotEmpty
+                              ? AppColor.textPrimary
+                              : AppColor.textTertiary,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Icon(LucideIcons.calendar,
+                        size: 16, color: AppColor.textTertiary),
+                  ],
+                ),
               ),
-            );
-            if (picked != null) {
-              ctrl.text = DateFormat('yyyy-MM-dd').format(picked);
-            }
-          },
-          child: Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-            decoration: BoxDecoration(
-              color: AppColor.whiteColor,
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: AppColor.divColor),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(ctrl.text.isNotEmpty ? ctrl.text : 'YYYY-MM-DD',
-                    style: ctrl.text.isNotEmpty
-                        ? AppTextStyles.regular14black
-                        : AppTextStyles.regular14Gre),
-                Icon(Icons.calendar_today,
-                    size: 16, color: AppColor.fontColorGrey),
-              ],
             ),
           ),
         ),
@@ -282,299 +274,328 @@ class _CalculateTab extends GetView<CgPaymentController> {
   }
 
   Widget _fetchButton() {
-    return Obx(() => ElevatedButton.icon(
-          onPressed: controller.isLoading.value
-              ? null
-              : controller.fetchAndCalculate,
-          icon: controller.isLoading.value
-              ? SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(
-                      strokeWidth: 2, color: AppColor.buttonTextWhite),
-                )
-              : Icon(Icons.calculate, color: AppColor.buttonTextWhite, size: 18),
-          label: Text(
-            controller.isLoading.value ? 'Calculating...' : 'Fetch & Calculate',
-            style: TextStyle(color: AppColor.buttonTextWhite),
-          ),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppColor.cPrimaryButtonColor,
-            padding:
-                const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-            shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8)),
-            elevation: 0,
+    return Obx(() => SizedBox(
+          height: 44,
+          child: ElevatedButton.icon(
+            onPressed: controller.isLoading.value
+                ? null
+                : controller.fetchAndCalculate,
+            icon: controller.isLoading.value
+                ? SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(
+                        strokeWidth: 2, color: AppColor.cAppPrimaryColor),
+                  )
+                : const Icon(LucideIcons.calculator, size: 18),
+            label: Text(
+              controller.isLoading.value ? 'Calculating...' : 'Fetch & Calculate',
+            ),
           ),
         ));
   }
 
   // ── Summary Cards ────────────────────────────────────────────────────────────
 
-  Widget _buildSummaryDesktop(CgPaymentSummary s) {
-    return Row(
+  Widget _buildSummary(CgPaymentSummary s) {
+    return AppResponsiveGrid(
+      minItemWidth: 160,
+      maxColumns: 5,
+      spacing: SizeConfig.isMobile ? 12 : 16,
       children: [
-        _summaryCard('Total Days',  s.totalDays,   Icons.date_range,    AppColor.cPrimaryButtonColor),
-        _summaryCard('Live-In',     s.liveInDays,  Icons.home,          Colors.teal),
-        _summaryCard('Live-Out',    s.liveOutDays, Icons.directions_run, Colors.indigo),
-        _summaryCard('Half Days',   s.halfDays,    Icons.access_time,   Colors.orange),
-        _summaryCard('Absent',      s.absentDays,  Icons.cancel,        AppColor.calenderRed),
+        AppStatCard(
+          label: 'Total Days',
+          value: '${s.totalDays}',
+          icon: LucideIcons.calendarRange,
+          tone: AppTone.primary,
+        ),
+        AppStatCard(
+          label: 'Live-In',
+          value: '${s.liveInDays}',
+          icon: LucideIcons.house,
+          tone: AppTone.info,
+        ),
+        AppStatCard(
+          label: 'Live-Out',
+          value: '${s.liveOutDays}',
+          icon: LucideIcons.personStanding,
+          tone: AppTone.violet,
+        ),
+        AppStatCard(
+          label: 'Half Days',
+          value: '${s.halfDays}',
+          icon: LucideIcons.clock,
+          tone: AppTone.warning,
+        ),
+        AppStatCard(
+          label: 'Absent',
+          value: '${s.absentDays}',
+          icon: LucideIcons.circleX,
+          tone: AppTone.danger,
+        ),
       ],
-    );
-  }
-
-  Widget _buildSummaryMobile(CgPaymentSummary s) {
-    return Column(
-      children: [
-        Row(
-          children: [
-            Expanded(child: _summaryCard('Total Days', s.totalDays, Icons.date_range, AppColor.cPrimaryButtonColor)),
-            const SizedBox(width: 8),
-            Expanded(child: _summaryCard('Live-In', s.liveInDays, Icons.home, Colors.teal)),
-            const SizedBox(width: 8),
-            Expanded(child: _summaryCard('Live-Out', s.liveOutDays, Icons.directions_run, Colors.indigo)),
-          ],
-        ),
-        const SizedBox(height: 8),
-        Row(
-          children: [
-            Expanded(child: _summaryCard('Half Days', s.halfDays, Icons.access_time, Colors.orange)),
-            const SizedBox(width: 8),
-            Expanded(child: _summaryCard('Absent', s.absentDays, Icons.cancel, AppColor.calenderRed)),
-            const Expanded(child: SizedBox()),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _summaryCard(String title, int count, IconData icon, Color color) {
-    return Expanded(
-      child: Container(
-        margin: const EdgeInsets.only(right: 8),
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: AppColor.whiteColor,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppColor.divColor),
-        ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(icon, color: color, size: 18),
-            ),
-            const SizedBox(width: 10),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title,
-                    style: AppTextStyles.regular12Gre,
-                    overflow: TextOverflow.ellipsis),
-                Text('$count', style: AppTextStyles.semiBold16),
-              ],
-            ),
-          ],
-        ),
-      ),
     );
   }
 
   // ── Breakdown Table ──────────────────────────────────────────────────────────
 
+  static const double _breakdownMinWidth = 600;
+
   Widget _buildBreakdownTable(CgPaymentSummary s) {
     final fmt = NumberFormat('#,##0.00');
 
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColor.whiteColor,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColor.divColor),
-      ),
-      child: Column(
-        children: [
-          // Header
-          Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: BoxDecoration(
-              color: AppColor.fieldColorGrey,
-              borderRadius:
-                  const BorderRadius.vertical(top: Radius.circular(12)),
-            ),
-            child: Row(
+    return AppCard(
+      title: 'Pay breakdown',
+      icon: LucideIcons.receiptText,
+      padding: EdgeInsets.zero,
+      child: LayoutBuilder(builder: (context, constraints) {
+        final width = constraints.maxWidth < _breakdownMinWidth
+            ? _breakdownMinWidth
+            : constraints.maxWidth;
+        return SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: SizedBox(
+            width: width,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                _th('Shift Type', flex: 2),
-                _th('Full Days',  flex: 2),
-                _th('Half Days',  flex: 2),
-                _th('Rate / Day', flex: 2),
-                _th('Subtotal',   flex: 2),
-              ],
-            ),
-          ),
-
-          // Rows
-          ...s.breakdowns.map((b) => Container(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 16, vertical: 14),
-                decoration: BoxDecoration(
-                  border: Border(
-                      bottom: BorderSide(color: AppColor.divColor)),
-                ),
-                child: Row(
-                  children: [
-                    _td(b.label, flex: 2, bold: true),
-                    _td('${b.fullDays}', flex: 2),
-                    _td('${b.halfDays}', flex: 2),
-                    _td('₹${fmt.format(b.rate)}', flex: 2),
-                    _td('₹${fmt.format(b.subtotal)}', flex: 2,
-                        color: AppColor.cAppPrimaryColor, bold: true),
-                  ],
-                ),
-              )),
-
-          // Gross pay row
-          Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            decoration: BoxDecoration(
-              color: AppColor.cPrimaryButtonColor.withValues(alpha: 0.05),
-              borderRadius: s.hostelDeduction > 0
-                  ? null
-                  : const BorderRadius.vertical(bottom: Radius.circular(12)),
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  flex: 8,
-                  child: Text(s.hostelDeduction > 0 ? 'GROSS PAY' : 'TOTAL PAY',
-                      textAlign: TextAlign.right,
-                      style: AppTextStyles.semiBold16
-                          .copyWith(color: AppColor.fontColorGrey)),
-                ),
-                Expanded(
-                  flex: 2,
-                  child: Text(
-                    '₹${fmt.format(s.totalPay)}',
-                    style: AppTextStyles.heading.copyWith(
-                      fontSize: 20,
-                      color: AppColor.cPrimaryButtonColor,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          // ── Hostel deductions (only when the CG stayed in a hostel) ──────────
-          if (s.hostelDeduction > 0) ...[
-            ...s.hostelLines.map((h) => Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                // Header
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 11),
                   decoration: BoxDecoration(
-                    border: Border(top: BorderSide(color: AppColor.divColor)),
+                    color: AppColor.surfaceMuted,
+                    border: Border(
+                        bottom: BorderSide(color: AppColor.borderSubtle)),
                   ),
+                  child: Row(
+                    children: [
+                      _th('Shift Type', flex: 2),
+                      _th('Full Days',  flex: 2, numeric: true),
+                      _th('Half Days',  flex: 2, numeric: true),
+                      _th('Rate / Day', flex: 2, numeric: true),
+                      _th('Subtotal',   flex: 2, numeric: true),
+                    ],
+                  ),
+                ),
+
+                // Rows
+                ...s.breakdowns.map((b) => Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 20, vertical: 13),
+                      decoration: BoxDecoration(
+                        border: Border(
+                            bottom: BorderSide(color: AppColor.borderSubtle)),
+                      ),
+                      child: Row(
+                        children: [
+                          _td(b.label, flex: 2, bold: true),
+                          _td('${b.fullDays}', flex: 2, numeric: true),
+                          _td('${b.halfDays}', flex: 2, numeric: true),
+                          _td('₹${fmt.format(b.rate)}', flex: 2, numeric: true),
+                          _td('₹${fmt.format(b.subtotal)}', flex: 2,
+                              bold: true, numeric: true),
+                        ],
+                      ),
+                    )),
+
+                // Gross pay row
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                  color: s.hostelDeduction > 0
+                      ? AppColor.surfaceMuted
+                      : AppColor.primarySoft,
                   child: Row(
                     children: [
                       Expanded(
                         flex: 8,
                         child: Text(
-                          'Hostel: ${h.hostelName}  (${h.nights} nights × ₹${fmt.format(h.ratePerDay)})',
-                          textAlign: TextAlign.right,
-                          style: AppTextStyles.regular14black
-                              .copyWith(color: AppColor.fontColorGrey),
-                        ),
+                            s.hostelDeduction > 0 ? 'GROSS PAY' : 'TOTAL PAY',
+                            textAlign: TextAlign.right,
+                            style: _totalLabelStyle),
                       ),
                       Expanded(
                         flex: 2,
-                        child: Text('− ₹${fmt.format(h.amount)}',
-                            style: AppTextStyles.regular14black
-                                .copyWith(color: AppColor.calenderRed, fontWeight: FontWeight.w600)),
+                        child: Text(
+                          '₹${fmt.format(s.totalPay)}',
+                          textAlign: TextAlign.right,
+                          style: _moneyStyle(
+                            size: 18,
+                            color: s.hostelDeduction > 0
+                                ? AppColor.textPrimary
+                                : AppColor.cPrimaryButtonColor,
+                          ),
+                        ),
                       ),
                     ],
                   ),
-                )),
+                ),
 
-            // Net pay row
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-              decoration: BoxDecoration(
-                color: AppColor.cPrimaryButtonColor.withValues(alpha: 0.12),
-                borderRadius:
-                    const BorderRadius.vertical(bottom: Radius.circular(12)),
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    flex: 8,
-                    child: Text('NET PAY',
-                        textAlign: TextAlign.right,
-                        style: AppTextStyles.semiBold16
-                            .copyWith(color: AppColor.blackColor)),
-                  ),
-                  Expanded(
-                    flex: 2,
-                    child: Text(
-                      '₹${fmt.format(s.netPay)}',
-                      style: AppTextStyles.heading.copyWith(
-                        fontSize: 22,
-                        color: AppColor.cPrimaryButtonColor,
-                      ),
+                // ── Hostel deductions (only when the CG stayed in a hostel) ──
+                if (s.hostelDeduction > 0) ...[
+                  ...s.hostelLines.map((h) => Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 20, vertical: 12),
+                        decoration: BoxDecoration(
+                          border: Border(
+                              top: BorderSide(color: AppColor.borderSubtle)),
+                        ),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              flex: 8,
+                              child: Text(
+                                'Hostel: ${h.hostelName}  (${h.nights} nights × ₹${fmt.format(h.ratePerDay)})',
+                                textAlign: TextAlign.right,
+                                style: TextStyle(
+                                    fontSize: 13.5,
+                                    color: AppColor.textSecondary),
+                              ),
+                            ),
+                            Expanded(
+                              flex: 2,
+                              child: Text('− ₹${fmt.format(h.amount)}',
+                                  textAlign: TextAlign.right,
+                                  style: _moneyStyle(
+                                      size: 13.5,
+                                      color: AppColor.danger,
+                                      weight: FontWeight.w600)),
+                            ),
+                          ],
+                        ),
+                      )),
+
+                  // Net pay row
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 20, vertical: 16),
+                    decoration: BoxDecoration(
+                      color: AppColor.primarySoft,
+                      border: Border(
+                          top: BorderSide(color: AppColor.borderSubtle)),
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          flex: 8,
+                          child: Text('NET PAY',
+                              textAlign: TextAlign.right,
+                              style: _totalLabelStyle.copyWith(
+                                  color: AppColor.textPrimary)),
+                        ),
+                        Expanded(
+                          flex: 2,
+                          child: Text(
+                            '₹${fmt.format(s.netPay)}',
+                            textAlign: TextAlign.right,
+                            style: _moneyStyle(
+                              size: 20,
+                              color: AppColor.cPrimaryButtonColor,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
-              ),
+              ],
             ),
-          ],
-        ],
-      ),
+          ),
+        );
+      }),
     );
   }
 
-  Widget _th(String text, {required int flex}) => Expanded(
+  TextStyle get _totalLabelStyle => TextStyle(
+        fontSize: 12.5,
+        fontWeight: FontWeight.w600,
+        letterSpacing: 0.4,
+        color: AppColor.textSecondary,
+      );
+
+  TextStyle _moneyStyle({
+    required double size,
+    required Color color,
+    FontWeight weight = FontWeight.w700,
+  }) =>
+      TextStyle(
+        fontSize: size,
+        fontWeight: weight,
+        color: color,
+        fontFeatures: const [FontFeature.tabularFigures()],
+      );
+
+  Widget _th(String text, {required int flex, bool numeric = false}) =>
+      Expanded(
         flex: flex,
-        child: Text(text,
-            style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: AppColor.fontColorGrey)),
+        child: Padding(
+          padding: EdgeInsets.only(left: numeric ? 12 : 0),
+          child: Text(text,
+              textAlign: numeric ? TextAlign.right : TextAlign.left,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.2,
+                  color: AppColor.textSecondary)),
+        ),
       );
 
   Widget _td(String text,
-      {required int flex, Color? color, bool bold = false}) =>
+      {required int flex,
+      Color? color,
+      bool bold = false,
+      bool numeric = false}) =>
       Expanded(
         flex: flex,
-        child: Text(text,
-            style: AppTextStyles.regular14black.copyWith(
-              color: color,
-              fontWeight: bold ? FontWeight.w600 : FontWeight.normal,
-            ),
-            overflow: TextOverflow.ellipsis),
+        child: Padding(
+          padding: EdgeInsets.only(left: numeric ? 12 : 0),
+          child: Text(text,
+              textAlign: numeric ? TextAlign.right : TextAlign.left,
+              style: TextStyle(
+                fontSize: 13.5,
+                color: color ?? AppColor.textPrimary,
+                fontWeight: bold ? FontWeight.w600 : FontWeight.w400,
+                fontFeatures:
+                    numeric ? const [FontFeature.tabularFigures()] : null,
+              ),
+              overflow: TextOverflow.ellipsis),
+        ),
       );
 
   // ── Generate Payout ──────────────────────────────────────────────────────────
 
   Widget _buildGenerateDesktop(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(flex: 2, child: _paymentModeDropdown()),
-        const SizedBox(width: 16),
-        Expanded(flex: 2, child: _generateButton(context)),
-        const Expanded(flex: 2, child: SizedBox()),
-      ],
+    return AppCard(
+      title: 'Generate payout',
+      subtitle: 'Record the calculated amount as a caregiver payout',
+      icon: LucideIcons.banknote,
+      iconTone: AppTone.success,
+      child: Wrap(
+        spacing: 16,
+        runSpacing: 12,
+        crossAxisAlignment: WrapCrossAlignment.end,
+        children: [
+          SizedBox(width: 280, child: _paymentModeDropdown()),
+          _generateButton(context),
+        ],
+      ),
     );
   }
 
   Widget _buildGenerateMobile(BuildContext context) {
-    return Column(
-      children: [
-        _paymentModeDropdown(),
-        const SizedBox(height: 12),
-        SizedBox(width: double.infinity, child: _generateButton(context)),
-      ],
+    return AppCard(
+      title: 'Generate payout',
+      icon: LucideIcons.banknote,
+      iconTone: AppTone.success,
+      child: Column(
+        children: [
+          _paymentModeDropdown(),
+          const SizedBox(height: 16),
+          SizedBox(width: double.infinity, child: _generateButton(context)),
+        ],
+      ),
     );
   }
 
@@ -593,31 +614,25 @@ class _CalculateTab extends GetView<CgPaymentController> {
   }
 
   Widget _generateButton(BuildContext context) {
-    return Obx(() => ElevatedButton.icon(
-          onPressed: controller.isGeneratingPayout.value
-              ? null
-              : () => _confirmGenerate(context),
-          icon: controller.isGeneratingPayout.value
-              ? SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(
-                      strokeWidth: 2, color: AppColor.buttonTextWhite),
-                )
-              : Icon(Icons.payment, color: AppColor.buttonTextWhite, size: 18),
-          label: Text(
-            controller.isGeneratingPayout.value
-                ? 'Generating...'
-                : 'Generate Payout',
-            style: TextStyle(color: AppColor.buttonTextWhite),
-          ),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppColor.lightGreen,
-            padding:
-                const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-            shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8)),
-            elevation: 0,
+    return Obx(() => SizedBox(
+          height: 44,
+          child: ElevatedButton.icon(
+            onPressed: controller.isGeneratingPayout.value
+                ? null
+                : () => _confirmGenerate(context),
+            icon: controller.isGeneratingPayout.value
+                ? SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(
+                        strokeWidth: 2, color: AppColor.cAppPrimaryColor),
+                  )
+                : const Icon(LucideIcons.banknote, size: 18),
+            label: Text(
+              controller.isGeneratingPayout.value
+                  ? 'Generating...'
+                  : 'Generate Payout',
+            ),
           ),
         ));
   }
@@ -628,77 +643,35 @@ class _CalculateTab extends GetView<CgPaymentController> {
     final fmt = NumberFormat('#,##0.00');
 
     Get.dialog(
-      Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        child: Container(
-          width: 400,
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: AppColor.lightGreen.withValues(alpha: 0.1),
-                  shape: BoxShape.circle,
-                ),
-                child:
-                    Icon(Icons.payment, size: 32, color: AppColor.lightGreen),
-              ),
-              const SizedBox(height: 16),
-              Text('Confirm Payout', style: AppTextStyles.semiBold18),
-              const SizedBox(height: 8),
-              Text(
-                'Generate ₹${fmt.format(s.netPay)} payout for ${s.hpName}?\n'
-                '${s.hostelDeduction > 0 ? 'Gross ₹${fmt.format(s.totalPay)} − hostel ₹${fmt.format(s.hostelDeduction)}\n' : ''}'
-                'Period: ${s.periodFrom} → ${s.periodTo}',
-                style: AppTextStyles.regular14Gre,
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 24),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: () => Get.back(),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: AppColor.fontColorBlack,
-                        side: BorderSide(color: AppColor.divColor),
-                        padding:
-                            const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8)),
-                      ),
-                      child: const Text('Cancel'),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: () async {
-                        Get.back();
-                        final ok = await controller.generatePayout();
-                        if (ok) {
-                          // Refresh history tab
-                          Get.find<HpPayoutsController>().fetchPendingPayouts();
-                        }
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColor.lightGreen,
-                        foregroundColor: AppColor.buttonTextWhite,
-                        padding:
-                            const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8)),
-                        elevation: 0,
-                      ),
-                      child: const Text('Generate'),
-                    ),
-                  ),
-                ],
-              ),
-            ],
+      AppDialog(
+        title: 'Confirm Payout',
+        icon: LucideIcons.banknote,
+        tone: AppTone.success,
+        maxWidth: 440,
+        onClose: () => Get.back(),
+        actions: [
+          OutlinedButton(
+            onPressed: () => Get.back(),
+            child: const Text('Cancel'),
           ),
+          ElevatedButton(
+            onPressed: () async {
+              Get.back();
+              final ok = await controller.generatePayout();
+              if (ok) {
+                // Refresh history tab
+                Get.find<HpPayoutsController>().fetchPendingPayouts();
+              }
+            },
+            child: const Text('Generate'),
+          ),
+        ],
+        child: Text(
+          'Generate ₹${fmt.format(s.netPay)} payout for ${s.hpName}?\n'
+          '${s.hostelDeduction > 0 ? 'Gross ₹${fmt.format(s.totalPay)} − hostel ₹${fmt.format(s.hostelDeduction)}\n' : ''}'
+          'Period: ${s.periodFrom} → ${s.periodTo}',
+          style: TextStyle(
+              fontSize: 14, height: 1.6, color: AppColor.textSecondary),
         ),
       ),
       barrierDismissible: false,
@@ -706,23 +679,11 @@ class _CalculateTab extends GetView<CgPaymentController> {
   }
 
   Widget _emptyPlaceholder() {
-    return Container(
-      padding: const EdgeInsets.all(40),
-      decoration: BoxDecoration(
-        color: AppColor.whiteColor,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColor.divColor),
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.calculate_outlined,
-              size: 56, color: AppColor.divColor),
-          const SizedBox(height: 16),
-          Text('Select a caregiver and date range, then tap Fetch & Calculate',
-              style: AppTextStyles.regular14Gre,
-              textAlign: TextAlign.center),
-        ],
+    return const AppCard(
+      child: AppEmptyState(
+        icon: LucideIcons.calculator,
+        title: 'No calculation yet',
+        message: 'Select a caregiver and date range, then tap Fetch & Calculate',
       ),
     );
   }
@@ -733,45 +694,69 @@ class _CalculateTab extends GetView<CgPaymentController> {
 class _HistoryTab extends GetView<HpPayoutsController> {
   const _HistoryTab();
 
+  static const double _tableMinWidth = 760;
+
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        _FilterRow(ctrl: controller),
-        const SizedBox(height: 12),
-        Expanded(
-          child: Obx(() {
-            if (controller.isHistoryLoading.value) {
-              return const Center(child: CircularProgressIndicator());
-            }
-            if (controller.payoutHistory.isEmpty) {
-              return Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.history,
-                        size: 56, color: AppColor.divColor),
-                    const SizedBox(height: 16),
-                    Text('No payout history yet',
-                        style: AppTextStyles.regular16Gre),
-                  ],
-                ),
-              );
-            }
-            return RefreshIndicator(
-              onRefresh: controller.fetchPayoutHistory,
-              child: ListView.separated(
-                itemCount: controller.payoutHistory.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 10),
-                itemBuilder: (context, index) {
-                  final p = controller.payoutHistory[index];
-                  return _PayoutHistoryCard(payout: p);
-                },
-              ),
-            );
-          }),
+    return Padding(
+      padding: EdgeInsets.only(top: 20, bottom: SizeConfig.isMobile ? 12 : 24),
+      child: AppCard(
+        padding: EdgeInsets.zero,
+        expandChild: true,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: _FilterRow(ctrl: controller),
+            ),
+            Divider(height: 1, color: AppColor.borderSubtle),
+            Expanded(
+              child: Obx(() {
+                if (controller.isHistoryLoading.value) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                if (controller.payoutHistory.isEmpty) {
+                  return const AppEmptyState(
+                    icon: LucideIcons.history,
+                    title: 'No payout history yet',
+                  );
+                }
+                final count = controller.payoutHistory.length;
+                return LayoutBuilder(builder: (context, constraints) {
+                  final width = constraints.maxWidth < _tableMinWidth
+                      ? _tableMinWidth
+                      : constraints.maxWidth;
+                  return SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: SizedBox(
+                      width: width,
+                      height: constraints.maxHeight,
+                      child: Column(
+                        children: [
+                          const _HistoryHeaderRow(),
+                          Expanded(
+                            child: RefreshIndicator(
+                              onRefresh: controller.fetchPayoutHistory,
+                              child: ListView.builder(
+                                itemCount: count,
+                                itemBuilder: (context, index) {
+                                  final p = controller.payoutHistory[index];
+                                  return _PayoutHistoryRow(payout: p);
+                                },
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                });
+              }),
+            ),
+          ],
         ),
-      ],
+      ),
     );
   }
 }
@@ -784,19 +769,21 @@ class _FilterRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
+    return Wrap(
+      spacing: 12,
+      runSpacing: 12,
+      crossAxisAlignment: WrapCrossAlignment.center,
       children: [
-        Expanded(
+        SizedBox(
+          width: 190,
           child: TextField(
             controller: ctrl.fromDateCtrl,
             readOnly: true,
-            decoration: InputDecoration(
+            decoration: const InputDecoration(
               labelText: 'From',
               hintText: 'YYYY-MM-DD',
-              border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8)),
-              contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 14, vertical: 12),
+              isDense: true,
+              suffixIcon: Icon(LucideIcons.calendar, size: 16),
             ),
             onTap: () async {
               final picked = await showDatePicker(
@@ -812,18 +799,16 @@ class _FilterRow extends StatelessWidget {
             },
           ),
         ),
-        const SizedBox(width: 12),
-        Expanded(
+        SizedBox(
+          width: 190,
           child: TextField(
             controller: ctrl.toDateCtrl,
             readOnly: true,
-            decoration: InputDecoration(
+            decoration: const InputDecoration(
               labelText: 'To',
               hintText: 'YYYY-MM-DD',
-              border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8)),
-              contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 14, vertical: 12),
+              isDense: true,
+              suffixIcon: Icon(LucideIcons.calendar, size: 16),
             ),
             onTap: () async {
               final picked = await showDatePicker(
@@ -839,40 +824,67 @@ class _FilterRow extends StatelessWidget {
             },
           ),
         ),
-        const SizedBox(width: 12),
-        ElevatedButton(
+        OutlinedButton.icon(
           onPressed: ctrl.applyHistoryFilter,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppColor.cPrimaryButtonColor,
-            padding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8)),
-            elevation: 0,
-          ),
-          child: Text('Filter', style: AppTextStyles.regular14white),
+          icon: const Icon(LucideIcons.listFilter, size: 18),
+          label: const Text('Filter'),
         ),
-        const SizedBox(width: 8),
-        OutlinedButton(
+        TextButton(
           onPressed: ctrl.clearHistoryFilter,
-          style: OutlinedButton.styleFrom(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            side: BorderSide(color: AppColor.divColor),
-            shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8)),
-          ),
-          child: Text('Clear', style: AppTextStyles.regular14Gre),
+          child: const Text('Clear'),
         ),
       ],
     );
   }
 }
 
-// ── Payout History Card ───────────────────────────────────────────────────────
+// ── Payout History Table ──────────────────────────────────────────────────────
 
-class _PayoutHistoryCard extends StatelessWidget {
-  const _PayoutHistoryCard({required this.payout});
+/// Column flexes shared by [_HistoryHeaderRow] and [_PayoutHistoryRow].
+const _kHistoryFlex = [3, 3, 2, 2, 2, 2];
+
+class _HistoryHeaderRow extends StatelessWidget {
+  const _HistoryHeaderRow();
+
+  @override
+  Widget build(BuildContext context) {
+    const labels = ['Caregiver', 'Period', 'Mode', 'Paid on', 'Status', 'Amount'];
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: AppColor.surfaceMuted,
+        border: Border(bottom: BorderSide(color: AppColor.borderSubtle)),
+      ),
+      child: Row(
+        children: [
+          for (var i = 0; i < labels.length; i++)
+            Expanded(
+              flex: _kHistoryFlex[i],
+              child: Padding(
+                padding: EdgeInsets.only(
+                    right: i == labels.length - 1 ? 0 : 12),
+                child: Text(
+                  labels[i],
+                  textAlign:
+                      i == labels.length - 1 ? TextAlign.right : TextAlign.left,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.2,
+                    color: AppColor.textSecondary,
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PayoutHistoryRow extends StatelessWidget {
+  const _PayoutHistoryRow({required this.payout});
   final Map<String, dynamic> payout;
 
   @override
@@ -888,71 +900,65 @@ class _PayoutHistoryCard extends StatelessWidget {
     final fmt = NumberFormat('#,##0.00');
     final fmtAmt = double.tryParse(amount);
 
+    final textStyle = TextStyle(fontSize: 13.5, color: AppColor.textPrimary);
+
+    Widget cell(int i, Widget child) => Expanded(
+          flex: _kHistoryFlex[i],
+          child: Padding(
+            padding: EdgeInsets.only(right: i == _kHistoryFlex.length - 1 ? 0 : 12),
+            child: child,
+          ),
+        );
+
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: AppColor.whiteColor,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColor.divColor),
+        border: Border(bottom: BorderSide(color: AppColor.borderSubtle)),
       ),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          cell(
+            0,
+            Row(
               children: [
-                Row(
-                  children: [
-                    Text(hpName,
-                        style: AppTextStyles.regular16
-                            .copyWith(fontWeight: FontWeight.w600)),
-                    const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 3),
-                      decoration: BoxDecoration(
-                        color: AppColor.lightGreen.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Text('Paid',
-                          style: TextStyle(
-                              color: AppColor.lightGreen,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w500)),
-                    ),
-                  ],
+                AppAvatar(name: hpName, size: 28),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    hpName,
+                    overflow: TextOverflow.ellipsis,
+                    style: textStyle.copyWith(fontWeight: FontWeight.w600),
+                  ),
                 ),
-                const SizedBox(height: 8),
-                Wrap(spacing: 20, runSpacing: 4, children: [
-                  _info('Period', '$periodFrom → $periodTo'),
-                  _info('Mode', paymentMode),
-                  if (paymentDate != null) _info('Paid on', paymentDate),
-                ]),
               ],
             ),
           ),
-          Text(
-            '₹${fmtAmt != null ? fmt.format(fmtAmt) : amount}',
-            style: AppTextStyles.heading.copyWith(
-                fontSize: 20, color: AppColor.cAppPrimaryColor),
+          cell(1, Text('$periodFrom → $periodTo',
+              overflow: TextOverflow.ellipsis, style: textStyle)),
+          cell(2, Text(paymentMode,
+              overflow: TextOverflow.ellipsis, style: textStyle)),
+          cell(3, Text(paymentDate ?? '—',
+              overflow: TextOverflow.ellipsis,
+              style: textStyle.copyWith(color: AppColor.textSecondary))),
+          cell(
+            4,
+            Align(
+              alignment: Alignment.centerLeft,
+              child: AppStatusBadge.status('Paid', dense: true),
+            ),
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget _info(String label, String value) {
-    return RichText(
-      text: TextSpan(
-        style: TextStyle(fontSize: 13, color: AppColor.fontColorGrey),
-        children: [
-          TextSpan(text: '$label: '),
-          TextSpan(
-              text: value,
-              style: TextStyle(
-                  color: AppColor.fontColorBlack,
-                  fontWeight: FontWeight.w500)),
+          cell(
+            5,
+            Text(
+              '₹${fmtAmt != null ? fmt.format(fmtAmt) : amount}',
+              textAlign: TextAlign.right,
+              overflow: TextOverflow.ellipsis,
+              style: textStyle.copyWith(
+                fontWeight: FontWeight.w600,
+                fontFeatures: const [FontFeature.tabularFigures()],
+              ),
+            ),
+          ),
         ],
       ),
     );

@@ -3,12 +3,14 @@ import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:eldivex_app/app/core/values/color_constants.dart';
 import 'package:eldivex_app/app/core/values/size_configue.dart';
-import 'package:eldivex_app/app/core/values/text_style_constants.dart';
 import 'package:eldivex_app/app/modules/bookings/models/get_bookings_model.dart';
 import 'package:eldivex_app/app/widgets/date_picker_common.dart';
 import 'package:eldivex_app/app/widgets/shimmer_loader.dart';
+import 'package:eldivex_app/app/widgets/ui/ui.dart';
+import '../../../routes/app_pages.dart';
 import '../controllers/bookings_controller.dart';
 import 'manage_bookings.dart';
+import 'package:eldivex_app/app/core/values/lucide_icons.dart';
 
 class BookingsExtensionView extends StatefulWidget {
   const BookingsExtensionView({super.key});
@@ -19,6 +21,9 @@ class BookingsExtensionView extends StatefulWidget {
 
 class _BookingsExtensionViewState extends State<BookingsExtensionView> {
   late final BookingsController controller;
+
+  /// Below this width the desktop table scrolls horizontally.
+  static const double _tableMinWidth = 960;
 
   @override
   void initState() {
@@ -35,30 +40,41 @@ class _BookingsExtensionViewState extends State<BookingsExtensionView> {
   @override
   Widget build(BuildContext context) {
     SizeConfig.init(context);
-    final isMobile = SizeConfig.isMobile;
+    final pad = SizeConfig.pagePadding;
 
     return Scaffold(
-      backgroundColor: AppColor.fieldColorGrey,
+      backgroundColor: AppColor.cAppBackgroundColor,
       body: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _buildHeader(context),
+          Padding(
+            padding: EdgeInsets.fromLTRB(pad.left, pad.top, pad.right, 20),
+            child: _buildHeader(context),
+          ),
           Expanded(
             child: Obx(() {
               if (controller.getAllBookingsLoading.value) {
                 return const ShimmerLoader.table();
               }
               return SingleChildScrollView(
-                child: Padding(
-                  padding: EdgeInsets.all(isMobile ? 12 : SizeConfig.blockSizeHorizontal * 2),
-                  child: Column(
-                    children: [
-                      _buildTabsAndFilter(),
-                      SizedBox(height: isMobile ? 12 : SizeConfig.blockSizeVertical * 2),
-                      _buildExtensionSummary(),
-                      SizedBox(height: isMobile ? 12 : SizeConfig.blockSizeVertical * 2),
-                      _buildExtensionList(),
-                    ],
-                  ),
+                padding: EdgeInsets.fromLTRB(pad.left, 0, pad.right, pad.bottom),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _buildExtensionSummary(),
+                    const SizedBox(height: 20),
+                    AppCard(
+                      padding: EdgeInsets.zero,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          _buildTabsAndFilter(),
+                          Divider(height: 1, color: AppColor.borderSubtle),
+                          _buildExtensionList(),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               );
             }),
@@ -72,39 +88,14 @@ class _BookingsExtensionViewState extends State<BookingsExtensionView> {
   // Header
   // ─────────────────────────────────────────────
   Widget _buildHeader(BuildContext context) {
-    final isMobile = SizeConfig.isMobile;
-    return Container(
-      color: AppColor.whiteColor,
-      padding: EdgeInsets.symmetric(
-        horizontal: isMobile ? 12 : SizeConfig.blockSizeHorizontal * 2,
-        vertical: isMobile ? 12 : SizeConfig.blockSizeVertical * 2,
-      ),
-      child: Row(
-        children: [
-          IconButton(
-            onPressed: () => Get.back(),
-            icon: Icon(
-              Icons.arrow_back,
-              size: isMobile ? 24 : SizeConfig.blockSizeHorizontal * 2.5,
-              color: AppColor.fontColorBlack,
-            ),
-          ),
-          SizedBox(width: isMobile ? 4 : 0),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Booking Extensions', style: AppTextStyles.heading),
-                SizedBox(height: SizeConfig.blockSizeVertical * 0.5),
-                Text(
-                  'View and manage booking extension requests',
-                  style: AppTextStyles.regular16W400,
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
+    // In the main shell the sidebar handles navigation, so the back button is
+    // only shown if this page is ever opened as a standalone route.
+    final routeName = ModalRoute.of(context)?.settings.name ?? '';
+    final inShell = routeName.startsWith(Routes.MAIN);
+    return AppPageHeader(
+      title: 'Booking Extensions',
+      subtitle: 'View and manage booking extension requests',
+      onBack: inShell ? null : () => Get.back(),
     );
   }
 
@@ -114,123 +105,106 @@ class _BookingsExtensionViewState extends State<BookingsExtensionView> {
   Widget _buildTabsAndFilter() {
     final isMobile = SizeConfig.isMobile;
 
-    return Container(
-      decoration: _cardDecoration(),
-      padding: EdgeInsets.all(isMobile ? 12 : SizeConfig.blockSizeHorizontal * 2),
-      child: Column(
-        children: [
-          if (isMobile) ...[
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Obx(() => Row(
-                children: [
-                  _buildTab('Today', 0, controller.todayExtensions.length),
-                  const SizedBox(width: 8),
-                  _buildTab('Tomorrow', 1, controller.tomorrowExtensions.length),
-                  const SizedBox(width: 8),
-                  _buildTab('Next Day', 2, controller.nextDayExtensions.length),
-                ],
-              )),
-            ),
-            const SizedBox(height: 12),
-            _buildDateFilter(),
-          ] else
-            Row(
+    final tabs = Obx(() => Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            _buildTab('Today', 0, controller.todayExtensions.length),
+            _buildTab('Tomorrow', 1, controller.tomorrowExtensions.length),
+            _buildTab('Next Day', 2, controller.nextDayExtensions.length),
+          ],
+        ));
+
+    return Padding(
+      padding: EdgeInsets.all(isMobile ? 16 : 20),
+      child: isMobile
+          ? Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Obx(() => Row(
-                  children: [
-                    _buildTab('Today', 0, controller.todayExtensions.length),
-                    SizedBox(width: SizeConfig.blockSizeHorizontal * 1),
-                    _buildTab('Tomorrow', 1, controller.tomorrowExtensions.length),
-                    SizedBox(width: SizeConfig.blockSizeHorizontal * 1),
-                    _buildTab('Next Day', 2, controller.nextDayExtensions.length),
-                  ],
-                )),
-                const Spacer(),
-                SizedBox(
-                  width: SizeConfig.blockSizeHorizontal * 20,
-                  child: _buildDateFilter(),
-                ),
+                tabs,
+                const SizedBox(height: 16),
+                _buildDateFilter(),
+              ],
+            )
+          : Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Expanded(child: Align(alignment: Alignment.bottomLeft, child: tabs)),
+                const SizedBox(width: 16),
+                SizedBox(width: 300, child: _buildDateFilter()),
               ],
             ),
-        ],
-      ),
     );
+  }
+
+  AppTone _tabTone(int index) {
+    switch (index) {
+      case 0:
+        return AppTone.warning;
+      case 1:
+        return AppTone.info;
+      case 2:
+        return AppTone.violet;
+      default:
+        return AppTone.neutral;
+    }
   }
 
   Widget _buildTab(String label, int index, int count) {
     final isSelected = controller.selectedExtensionTab.value == index;
-    final isMobile = SizeConfig.isMobile;
+    final tone = _tabTone(index);
+    final radius = BorderRadius.circular(AppRadius.md);
 
-    Color tabColor;
-    switch (index) {
-      case 0:
-        tabColor = Colors.orange.shade600;
-        break;
-      case 1:
-        tabColor = Colors.blue.shade600;
-        break;
-      case 2:
-        tabColor = Colors.purple.shade600;
-        break;
-      default:
-        tabColor = AppColor.fontColorGrey;
-    }
-
-    return GestureDetector(
-      onTap: () => controller.selectedExtensionTab.value = index,
-      child: Container(
-        padding: EdgeInsets.symmetric(
-          horizontal: isMobile ? 16 : SizeConfig.blockSizeHorizontal * 1.5,
-          vertical: isMobile ? 10 : SizeConfig.blockSizeVertical * 1,
+    return Material(
+      color: isSelected ? tone.soft : AppColor.whiteColor,
+      shape: RoundedRectangleBorder(
+        borderRadius: radius,
+        side: BorderSide(
+          color: isSelected ? tone.color.withValues(alpha: 0.55) : AppColor.divColor,
         ),
-        decoration: BoxDecoration(
-          color: isSelected ? tabColor.withValues(alpha: 0.1) : Colors.transparent,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: isSelected ? tabColor : AppColor.divColor,
-            width: isSelected ? 1.5 : 1,
-          ),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: isMobile ? 13 : SizeConfig.blockSizeHorizontal * 1.1,
-                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-                color: isSelected ? tabColor : AppColor.fontColorGrey,
-              ),
-            ),
-            SizedBox(width: isMobile ? 6 : SizeConfig.blockSizeHorizontal * 0.5),
-            Container(
-              padding: EdgeInsets.symmetric(
-                horizontal: isMobile ? 8 : SizeConfig.blockSizeHorizontal * 0.6,
-                vertical: isMobile ? 2 : SizeConfig.blockSizeVertical * 0.2,
-              ),
-              decoration: BoxDecoration(
-                color: isSelected ? tabColor : AppColor.lightGrey,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Text(
-                '$count',
+      ),
+      child: InkWell(
+        onTap: () => controller.selectedExtensionTab.value = index,
+        borderRadius: radius,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                label,
                 style: TextStyle(
-                  fontSize: isMobile ? 11 : SizeConfig.blockSizeHorizontal * 0.9,
+                  fontSize: 13.5,
                   fontWeight: FontWeight.w600,
-                  color: AppColor.buttonTextWhite,
+                  color: isSelected ? tone.color : AppColor.textSecondary,
                 ),
               ),
-            ),
-          ],
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 1),
+                decoration: BoxDecoration(
+                  color: isSelected ? tone.color : AppColor.neutralSoft,
+                  borderRadius: BorderRadius.circular(AppRadius.xs),
+                ),
+                child: Text(
+                  '$count',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: isSelected ? AppColor.pureWhite : AppColor.textSecondary,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 
   Widget _buildDateFilter() {
-    final isMobile = SizeConfig.isMobile;
     return Row(
+      crossAxisAlignment: CrossAxisAlignment.end,
       children: [
         Expanded(
           child: Obx(() => CommonDatePicker(
@@ -243,14 +217,14 @@ class _BookingsExtensionViewState extends State<BookingsExtensionView> {
         Obx(() {
           if (controller.extensionFilterDate.value == null) return const SizedBox.shrink();
           return Padding(
-            padding: EdgeInsets.only(left: isMobile ? 4 : 8, top: 18),
+            padding: const EdgeInsets.only(left: 8),
             child: IconButton(
               onPressed: () => controller.clearExtensionFilter(),
-              icon: Icon(Icons.clear, size: isMobile ? 20 : SizeConfig.blockSizeHorizontal * 1.5),
+              icon: const Icon(LucideIcons.x, size: 18),
               tooltip: 'Clear filter',
               style: IconButton.styleFrom(
-                backgroundColor: Colors.red.shade50,
-                foregroundColor: Colors.red.shade600,
+                backgroundColor: AppColor.dangerSoft,
+                foregroundColor: AppColor.danger,
               ),
             ),
           );
@@ -263,86 +237,32 @@ class _BookingsExtensionViewState extends State<BookingsExtensionView> {
   // Summary Cards
   // ─────────────────────────────────────────────
   Widget _buildExtensionSummary() {
-    final isMobile = SizeConfig.isMobile;
-
     return Obx(() {
       final summaryItems = [
-        _SummaryData('Total Extensions', controller.extensionBookings.length, Icons.extension, Colors.indigo),
-        _SummaryData('Today', controller.todayExtensions.length, Icons.today, Colors.orange),
-        _SummaryData('Tomorrow', controller.tomorrowExtensions.length, Icons.upcoming, Colors.blue),
-        _SummaryData('Next Day', controller.nextDayExtensions.length, Icons.calendar_month, Colors.purple),
+        _SummaryData('Total Extensions', controller.extensionBookings.length,
+            LucideIcons.calendarPlus, AppTone.primary),
+        _SummaryData('Today', controller.todayExtensions.length,
+            LucideIcons.calendarCheck2, AppTone.warning),
+        _SummaryData('Tomorrow', controller.tomorrowExtensions.length,
+            LucideIcons.calendarClock, AppTone.info),
+        _SummaryData('Next Day', controller.nextDayExtensions.length,
+            LucideIcons.calendarDays, AppTone.violet),
       ];
 
-      if (isMobile) {
-        return GridView.count(
-          crossAxisCount: 2,
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          mainAxisSpacing: 8,
-          crossAxisSpacing: 8,
-          childAspectRatio: 2.2,
-          children: summaryItems.map((s) => _buildSummaryCard(s)).toList(),
-        );
-      }
-
-      return Row(
-        children: summaryItems
-            .expand((s) => [
-                  Expanded(child: _buildSummaryCard(s)),
-                  SizedBox(width: SizeConfig.blockSizeHorizontal * 1.5),
-                ])
-            .toList()
-          ..removeLast(),
+      return AppResponsiveGrid(
+        minItemWidth: 200,
+        maxColumns: 4,
+        children: summaryItems.map((s) => _buildSummaryCard(s)).toList(),
       );
     });
   }
 
   Widget _buildSummaryCard(_SummaryData data) {
-    final isMobile = SizeConfig.isMobile;
-    return Container(
-      decoration: _cardDecoration(),
-      padding: EdgeInsets.all(isMobile ? 12 : SizeConfig.blockSizeHorizontal * 1.5),
-      child: Row(
-        children: [
-          Container(
-            padding: EdgeInsets.all(isMobile ? 8 : SizeConfig.blockSizeHorizontal * 0.8),
-            decoration: BoxDecoration(
-              color: data.color.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(
-              data.icon,
-              size: isMobile ? 20 : SizeConfig.blockSizeHorizontal * 1.8,
-              color: data.color,
-            ),
-          ),
-          SizedBox(width: isMobile ? 10 : SizeConfig.blockSizeHorizontal * 1),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  '${data.count}',
-                  style: TextStyle(
-                    fontSize: isMobile ? 20 : SizeConfig.blockSizeHorizontal * 1.8,
-                    fontWeight: FontWeight.w700,
-                    color: AppColor.fontColorBlack,
-                  ),
-                ),
-                Text(
-                  data.label,
-                  style: TextStyle(
-                    fontSize: isMobile ? 11 : SizeConfig.blockSizeHorizontal * 0.9,
-                    color: AppColor.fontColorGrey,
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
+    return AppStatCard(
+      label: data.label,
+      value: '${data.count}',
+      icon: data.icon,
+      tone: data.tone,
     );
   }
 
@@ -356,44 +276,53 @@ class _BookingsExtensionViewState extends State<BookingsExtensionView> {
       final bookings = controller.currentExtensionTabBookings;
 
       if (bookings.isEmpty) {
-        return Container(
-          decoration: _cardDecoration(),
-          padding: EdgeInsets.all(isMobile ? 40 : SizeConfig.blockSizeVertical * 5),
-          child: Center(
-            child: Column(
-              children: [
-                Icon(
-                  Icons.extension_off,
-                  size: isMobile ? 48 : SizeConfig.blockSizeHorizontal * 5,
-                  color: AppColor.lightGrey,
-                ),
-                SizedBox(height: isMobile ? 16 : SizeConfig.blockSizeVertical * 2),
-                Text(
-                  'No extension bookings found',
-                  style: TextStyle(
-                    fontSize: isMobile ? 16 : SizeConfig.blockSizeHorizontal * 1.5,
-                    color: AppColor.fontColorGrey,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-            ),
-          ),
+        return const AppEmptyState(
+          icon: LucideIcons.calendarX2,
+          title: 'No extension bookings found',
+          message: 'Try another day or clear the date filter.',
         );
       }
 
       return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Padding(
-            padding: EdgeInsets.only(bottom: isMobile ? 8 : SizeConfig.blockSizeVertical * 1),
+          if (isMobile)
+            for (var i = 0; i < bookings.length; i++) ...[
+              _buildMobileCard(bookings[i]),
+              if (i < bookings.length - 1)
+                Divider(height: 1, color: AppColor.borderSubtle),
+            ]
+          else
+            LayoutBuilder(builder: (context, constraints) {
+              final width = constraints.maxWidth < _tableMinWidth
+                  ? _tableMinWidth
+                  : constraints.maxWidth;
+              return SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: SizedBox(
+                  width: width,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _buildTableHeader(),
+                      for (var i = 0; i < bookings.length; i++)
+                        _buildDesktopRow(bookings[i],
+                            showDivider: i < bookings.length - 1),
+                    ],
+                  ),
+                ),
+              );
+            }),
+          Container(
+            padding: EdgeInsets.symmetric(horizontal: isMobile ? 16 : 20, vertical: 12),
+            decoration: BoxDecoration(
+              border: Border(top: BorderSide(color: AppColor.borderSubtle)),
+            ),
             child: Text(
               'Showing ${bookings.length} extension bookings',
-              style: AppTextStyles.regular16Gre,
+              style: TextStyle(fontSize: 13, color: AppColor.textTertiary),
             ),
           ),
-          if (!isMobile) _buildTableHeader(),
-          ...bookings.map((b) => isMobile ? _buildMobileCard(b) : _buildDesktopRow(b)),
         ],
       );
     });
@@ -401,17 +330,10 @@ class _BookingsExtensionViewState extends State<BookingsExtensionView> {
 
   Widget _buildTableHeader() {
     return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: SizeConfig.blockSizeHorizontal * 1.5,
-        vertical: SizeConfig.blockSizeVertical * 1.2,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
       decoration: BoxDecoration(
-        color: AppColor.fieldColorGrey,
-        borderRadius: const BorderRadius.only(
-          topLeft: Radius.circular(8),
-          topRight: Radius.circular(8),
-        ),
-        border: Border.all(color: AppColor.divColor),
+        color: AppColor.surfaceMuted,
+        border: Border(bottom: BorderSide(color: AppColor.borderSubtle)),
       ),
       child: Row(
         children: [
@@ -422,151 +344,137 @@ class _BookingsExtensionViewState extends State<BookingsExtensionView> {
           _headerCell('City', flex: 1),
           _headerCell('Status', flex: 2),
           _headerCell('Care Manager', flex: 2),
-          _headerCell('Actions', flex: 1),
+          _headerCell('Actions', flex: 1, alignEnd: true),
         ],
       ),
     );
   }
 
-  Widget _headerCell(String title, {int flex = 1}) {
+  Widget _headerCell(String title, {int flex = 1, bool alignEnd = false}) {
     return Expanded(
       flex: flex,
-      child: Text(
-        title,
-        style: TextStyle(
-          fontSize: SizeConfig.blockSizeHorizontal * 1.1,
-          fontWeight: FontWeight.w600,
-          color: AppColor.fontColorGrey,
+      child: Padding(
+        padding: const EdgeInsets.only(right: 12),
+        child: Text(
+          title,
+          textAlign: alignEnd ? TextAlign.right : TextAlign.left,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            fontSize: 12.5,
+            fontWeight: FontWeight.w600,
+            color: AppColor.textTertiary,
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildDesktopRow(GetBookingsModel booking) {
+  Widget _cell(Widget child, {int flex = 1}) => Expanded(
+        flex: flex,
+        child: Padding(padding: const EdgeInsets.only(right: 12), child: child),
+      );
+
+  Widget _buildDesktopRow(GetBookingsModel booking, {bool showDivider = true}) {
+    final primary = TextStyle(fontSize: 14, color: AppColor.textPrimary);
     return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: SizeConfig.blockSizeHorizontal * 1.5,
-        vertical: SizeConfig.blockSizeVertical * 1.5,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
       decoration: BoxDecoration(
-        color: AppColor.whiteColor,
-        border: Border(
-          left: BorderSide(color: AppColor.divColor),
-          right: BorderSide(color: AppColor.divColor),
-          bottom: BorderSide(color: AppColor.divColor),
-        ),
+        border: showDivider
+            ? Border(bottom: BorderSide(color: AppColor.borderSubtle))
+            : null,
       ),
       child: Row(
         children: [
-          Expanded(
-            flex: 1,
-            child: Container(
-              padding: EdgeInsets.symmetric(
-                horizontal: SizeConfig.blockSizeHorizontal * 0.8,
-                vertical: SizeConfig.blockSizeVertical * 0.4,
-              ),
-              decoration: BoxDecoration(
-                color: AppColor.cPrimaryButtonColor,
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Text(
-                'BK-${booking.id}',
-                style: TextStyle(
-                  fontSize: SizeConfig.blockSizeHorizontal * 0.95,
-                  fontWeight: FontWeight.w600,
-                  color: AppColor.buttonTextWhite,
-                ),
-                textAlign: TextAlign.center,
+          _cell(
+            Text(
+              'BK-${booking.id}',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: AppColor.textPrimary,
               ),
             ),
+            flex: 1,
           ),
-          Expanded(
-            flex: 2,
-            child: Column(
+          _cell(
+            Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   booking.patientName ?? '-',
-                  style: TextStyle(
-                    fontSize: SizeConfig.blockSizeHorizontal * 1.1,
-                    fontWeight: FontWeight.w500,
-                    color: AppColor.fontColorBlack,
-                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: primary.copyWith(fontWeight: FontWeight.w600),
                 ),
+                const SizedBox(height: 2),
                 Text(
                   'Age: ${booking.patientAge ?? '-'}',
-                  style: TextStyle(
-                    fontSize: SizeConfig.blockSizeHorizontal * 0.9,
-                    color: AppColor.fontColorGrey,
-                  ),
+                  style: TextStyle(fontSize: 12.5, color: AppColor.textTertiary),
                 ),
               ],
             ),
-          ),
-          Expanded(
             flex: 2,
-            child: Column(
+          ),
+          _cell(
+            Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   booking.serviceName ?? '-',
-                  style: TextStyle(
-                    fontSize: SizeConfig.blockSizeHorizontal * 1.1,
-                    color: AppColor.fontColorBlack,
-                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: primary,
                 ),
+                const SizedBox(height: 4),
                 _buildServiceTypeBadge(booking.serviceTypeName),
               ],
             ),
-          ),
-          Expanded(
             flex: 2,
-            child: Text(
-              _formatDate(booking.serviceEndDate),
-              style: TextStyle(
-                fontSize: SizeConfig.blockSizeHorizontal * 1.1,
-                color: AppColor.fontColorBlack,
-              ),
-            ),
           ),
-          Expanded(
-            flex: 1,
-            child: Text(
+          _cell(
+            Text(_formatDate(booking.serviceEndDate), style: primary),
+            flex: 2,
+          ),
+          _cell(
+            Text(
               booking.city ?? '-',
-              style: TextStyle(
-                fontSize: SizeConfig.blockSizeHorizontal * 1.1,
-                color: AppColor.fontColorGrey,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(fontSize: 14, color: AppColor.textSecondary),
+            ),
+            flex: 1,
+          ),
+          _cell(
+            Align(
+              alignment: Alignment.centerLeft,
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: _buildStatusBadge(booking.status ?? 'Unknown'),
               ),
             ),
-          ),
-          Expanded(
             flex: 2,
-            child: _buildStatusBadge(booking.status ?? 'Unknown'),
           ),
-          Expanded(
-            flex: 2,
-            child: Text(
+          _cell(
+            Text(
               booking.careManagerName ?? '-',
-              style: TextStyle(
-                fontSize: SizeConfig.blockSizeHorizontal * 1.1,
-                color: AppColor.fontColorBlack,
-              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: primary,
             ),
+            flex: 2,
           ),
           Expanded(
             flex: 1,
-            child: Row(
-              children: [
-                IconButton(
-                  onPressed: () => Get.to(() => ManageBookingView(bookingId: booking.id)),
-                  icon: Icon(
-                    Icons.visibility_outlined,
-                    size: SizeConfig.blockSizeHorizontal * 1.5,
-                    color: Colors.blue.shade600,
-                  ),
-                  tooltip: 'View Booking',
-                ),
-              ],
+            child: Align(
+              alignment: Alignment.centerRight,
+              child: IconButton(
+                onPressed: () => Get.to(() => ManageBookingView(bookingId: booking.id)),
+                icon: const Icon(LucideIcons.eye, size: 18),
+                tooltip: 'View Booking',
+              ),
             ),
           ),
         ],
@@ -575,63 +483,50 @@ class _BookingsExtensionViewState extends State<BookingsExtensionView> {
   }
 
   Widget _buildMobileCard(GetBookingsModel booking) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      decoration: _cardDecoration(),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: AppColor.cPrimaryButtonColor,
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Text(
-                    'BK-${booking.id}',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: AppColor.buttonTextWhite,
-                    ),
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'BK-${booking.id}',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: AppColor.textPrimary,
                   ),
                 ),
-                _buildStatusBadge(booking.status ?? 'Unknown'),
-              ],
-            ),
-            const SizedBox(height: 10),
-            _mobileField(Icons.person_outline, 'Patient', booking.patientName ?? '-'),
-            const SizedBox(height: 6),
-            _mobileField(Icons.medical_services_outlined, 'Service', booking.serviceName ?? '-'),
-            const SizedBox(height: 6),
-            _mobileField(Icons.calendar_today, 'Service End', _formatDate(booking.serviceEndDate)),
-            const SizedBox(height: 6),
-            _mobileField(Icons.location_on_outlined, 'City', booking.city ?? '-'),
-            const SizedBox(height: 6),
-            _mobileField(Icons.support_agent, 'Care Manager', booking.careManagerName ?? '-'),
-            const SizedBox(height: 6),
-            Row(
-              children: [
-                _buildServiceTypeBadge(booking.serviceTypeName),
-                const Spacer(),
-                TextButton.icon(
-                  onPressed: () => Get.to(() => ManageBookingView(bookingId: booking.id)),
-                  icon: const Icon(Icons.visibility_outlined, size: 16),
-                  label: const Text('View', style: TextStyle(fontSize: 13)),
-                  style: TextButton.styleFrom(
-                    foregroundColor: Colors.blue.shade600,
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
+              ),
+              _buildStatusBadge(booking.status ?? 'Unknown'),
+            ],
+          ),
+          const SizedBox(height: 12),
+          _mobileField(LucideIcons.user, 'Patient', booking.patientName ?? '-'),
+          const SizedBox(height: 6),
+          _mobileField(LucideIcons.stethoscope, 'Service', booking.serviceName ?? '-'),
+          const SizedBox(height: 6),
+          _mobileField(LucideIcons.calendar, 'Service End', _formatDate(booking.serviceEndDate)),
+          const SizedBox(height: 6),
+          _mobileField(LucideIcons.mapPin, 'City', booking.city ?? '-'),
+          const SizedBox(height: 6),
+          _mobileField(LucideIcons.headset, 'Care Manager', booking.careManagerName ?? '-'),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Flexible(child: _buildServiceTypeBadge(booking.serviceTypeName)),
+              const Spacer(),
+              TextButton.icon(
+                onPressed: () => Get.to(() => ManageBookingView(bookingId: booking.id)),
+                icon: const Icon(LucideIcons.eye, size: 18),
+                label: const Text('View'),
+                style: AppButtonStyles.compact,
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -639,16 +534,16 @@ class _BookingsExtensionViewState extends State<BookingsExtensionView> {
   Widget _mobileField(IconData icon, String label, String value) {
     return Row(
       children: [
-        Icon(icon, size: 16, color: AppColor.fontColorGrey),
-        const SizedBox(width: 6),
+        Icon(icon, size: 16, color: AppColor.textTertiary),
+        const SizedBox(width: 8),
         Text(
           '$label: ',
-          style: TextStyle(fontSize: 13, color: AppColor.fontColorGrey),
+          style: TextStyle(fontSize: 13, color: AppColor.textTertiary),
         ),
         Expanded(
           child: Text(
             value,
-            style: TextStyle(fontSize: 13, color: AppColor.fontColorBlack, fontWeight: FontWeight.w500),
+            style: TextStyle(fontSize: 13, color: AppColor.textPrimary, fontWeight: FontWeight.w600),
             overflow: TextOverflow.ellipsis,
           ),
         ),
@@ -665,97 +560,36 @@ class _BookingsExtensionViewState extends State<BookingsExtensionView> {
   }
 
   Widget _buildStatusBadge(String status) {
-    Color bgColor;
-    Color textColor;
-    final isMobile = SizeConfig.isMobile;
-
-    switch (status.toLowerCase()) {
-      case 'active':
-        bgColor = Colors.green.shade50;
-        textColor = Colors.green.shade700;
-        break;
-      case 'hp assigned':
-        bgColor = Colors.teal.shade50;
-        textColor = Colors.teal.shade700;
-        break;
-      case 'booking submitted':
-        bgColor = Colors.orange.shade50;
-        textColor = Colors.orange.shade700;
-        break;
-      case 'cancelled':
-        bgColor = Colors.red.shade50;
-        textColor = Colors.red.shade700;
-        break;
-      case 'completed':
-        bgColor = Colors.blue.shade50;
-        textColor = Colors.blue.shade700;
-        break;
-      default:
-        bgColor = AppColor.fieldColorGrey;
-        textColor = AppColor.fontColorGrey;
-    }
-
-    return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: isMobile ? 10 : SizeConfig.blockSizeHorizontal * 1,
-        vertical: isMobile ? 4 : SizeConfig.blockSizeVertical * 0.5,
-      ),
-      decoration: BoxDecoration(
-        color: bgColor,
-        borderRadius: BorderRadius.circular(6),
-      ),
-      child: Text(
-        status,
-        style: TextStyle(
-          fontSize: isMobile ? 12 : SizeConfig.blockSizeHorizontal * 0.95,
-          fontWeight: FontWeight.w500,
-          color: textColor,
-        ),
-      ),
-    );
+    return AppStatusBadge(label: status, tone: toneForStatus(status));
   }
 
   Widget _buildServiceTypeBadge(String? serviceType) {
-    final isMobile = SizeConfig.isMobile;
+    const tone = AppTone.violet;
     return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: isMobile ? 8 : SizeConfig.blockSizeHorizontal * 0.8,
-        vertical: isMobile ? 2 : SizeConfig.blockSizeVertical * 0.3,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       decoration: BoxDecoration(
-        color: Colors.pink.shade50,
-        borderRadius: BorderRadius.circular(4),
+        color: tone.soft,
+        borderRadius: BorderRadius.circular(AppRadius.xs),
       ),
       child: Text(
         serviceType ?? '-',
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
         style: TextStyle(
-          fontSize: isMobile ? 11 : SizeConfig.blockSizeHorizontal * 0.85,
-          fontWeight: FontWeight.w500,
-          color: Colors.pink.shade700,
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+          color: tone.color,
         ),
       ),
     );
   }
-
-  BoxDecoration _cardDecoration() => BoxDecoration(
-    color: AppColor.whiteColor,
-    borderRadius: BorderRadius.circular(12),
-    border: Border.all(color: AppColor.divColor),
-    boxShadow: [
-      BoxShadow(
-        color: Colors.black.withOpacity(0.05),
-        blurRadius: 10,
-        offset: const Offset(0, 2),
-      ),
-    ],
-  );
 }
 
 class _SummaryData {
   final String label;
   final int count;
   final IconData icon;
-  final Color color;
+  final AppTone tone;
 
-  _SummaryData(this.label, this.count, this.icon, this.color);
+  _SummaryData(this.label, this.count, this.icon, this.tone);
 }

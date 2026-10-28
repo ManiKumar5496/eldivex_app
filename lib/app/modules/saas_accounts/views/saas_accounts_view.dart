@@ -8,6 +8,7 @@ import 'account_list_tab.dart';
 import 'create_account_wizard.dart';
 import 'saas_billing_view.dart';
 import 'subscription_management_view.dart';
+import 'package:eldivex_app/app/core/values/lucide_icons.dart';
 
 class SaasAccountsView extends GetView<SaasAccountsController> {
   const SaasAccountsView({super.key});
@@ -41,7 +42,7 @@ class SaasAccountsView extends GetView<SaasAccountsController> {
                     ),
                     ElevatedButton.icon(
                       onPressed: CreateAccountWizard.show,
-                      icon: const Icon(Icons.add, size: 18),
+                      icon: const Icon(LucideIcons.plus, size: 18),
                       label: const Text('New Account'),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColor.cPrimaryButtonColor,

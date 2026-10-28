@@ -3,16 +3,17 @@ import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:eldivex_app/app/core/values/color_constants.dart';
 import 'package:eldivex_app/app/core/values/size_configue.dart';
-import 'package:eldivex_app/app/core/values/text_style_constants.dart';
 import 'package:eldivex_app/app/modules/bookings/models/get_bookings_model.dart';
 import 'package:eldivex_app/app/modules/bookings/views/edit_booking_view.dart';
 import 'package:eldivex_app/app/modules/bookings/views/manage_bookings.dart';
 import 'package:eldivex_app/app/widgets/common_textfield.dart';
 import 'package:eldivex_app/app/widgets/date_picker_common.dart';
 import 'package:eldivex_app/app/widgets/dropdown_common.dart';
+import 'package:eldivex_app/app/widgets/ui/ui.dart';
 import '../../../routes/app_pages.dart';
 import '../../../widgets/shimmer_loader.dart';
 import '../controllers/bookings_controller.dart';
+import 'package:eldivex_app/app/core/values/lucide_icons.dart';
 
 class BookingsView extends StatefulWidget {
   const BookingsView({super.key});
@@ -25,6 +26,10 @@ class _BookingsViewState extends State<BookingsView> {
   late final BookingsController controller;
   Map<String, dynamic>? data;
   int? _clientUserId;
+
+  /// Below this width the desktop table scrolls horizontally instead of
+  /// squeezing its columns.
+  static const double _tableMinWidth = 1040;
 
   @override
   void initState() {
@@ -56,12 +61,17 @@ class _BookingsViewState extends State<BookingsView> {
   @override
   Widget build(BuildContext context) {
     SizeConfig.init(context);
+    final pad = SizeConfig.pagePadding;
 
     return Scaffold(
-      backgroundColor: AppColor.fieldColorGrey,
+      backgroundColor: AppColor.cAppBackgroundColor,
       body: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _buildHeader(context),
+          Padding(
+            padding: EdgeInsets.fromLTRB(pad.left, pad.top, pad.right, 20),
+            child: _buildHeader(context),
+          ),
           Expanded(
             child: Obx(() {
               if (controller.getAllBookingsLoading.value) {
@@ -70,32 +80,17 @@ class _BookingsViewState extends State<BookingsView> {
               final showFilters = controller.isFilterVisible.value;
               final isEmpty = controller.filteredBookings.isEmpty;
               final page = controller.pagedBookings;
-              final leading = <Widget Function()>[
-                if (showFilters)
-                  () => Column(
-                        children: [
-                          _buildFiltersCard(),
-                          SizedBox(height: SizeConfig.blockSizeVertical * 2),
-                        ],
-                      ),
-                _buildListSummary,
-              ];
-              final bodyCount = isEmpty ? 1 : page.length;
-              // Lazy list: only the visible booking cards are built.
-              return ListView.builder(
-                padding: EdgeInsets.all(SizeConfig.blockSizeHorizontal * 2),
-                itemCount: leading.length + bodyCount + 1,
-                itemBuilder: (context, index) {
-                  if (index < leading.length) return leading[index]();
-                  final i = index - leading.length;
-                  if (i < bodyCount) {
-                    return isEmpty ? _buildEmptyState() : _buildBookingCard(page[i]);
-                  }
-                  return Padding(
-                    padding: EdgeInsets.only(top: SizeConfig.blockSizeVertical * 2),
-                    child: _buildPagination(),
-                  );
-                },
+              return ListView(
+                padding: EdgeInsets.fromLTRB(pad.left, 0, pad.right, pad.bottom),
+                children: [
+                  _buildStatusFilterRow(),
+                  const SizedBox(height: 16),
+                  _buildBookingsCard(
+                    page: page,
+                    isEmpty: isEmpty,
+                    showFilters: showFilters,
+                  ),
+                ],
               );
             }),
           ),
@@ -104,80 +99,34 @@ class _BookingsViewState extends State<BookingsView> {
     );
   }
 
+  // ─────────────────────────────────────────────
+  // Header
+  // ─────────────────────────────────────────────
   Widget _buildHeader(BuildContext context) {
-    final isMobile = SizeConfig.isMobile;
-    return Container(
-      color: AppColor.whiteColor,
-      padding: EdgeInsets.symmetric(
-        horizontal: isMobile ? 12 : SizeConfig.blockSizeHorizontal * 2,
-        vertical: isMobile ? 12 : SizeConfig.blockSizeVertical * 2,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              IconButton(
-                onPressed: () {
-                  if (Navigator.canPop(context)) {
-                    Get.back();
-                  } else {
-                    Get.offAllNamed(Routes.MAIN);
-                  }
-                },
-                icon: Icon(Icons.arrow_back_rounded),
-              ),
-              SizedBox(width: isMobile ? 8 : SizeConfig.blockSizeHorizontal * 2),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Manage Bookings', style: AppTextStyles.heading),
-                    SizedBox(height: SizeConfig.blockSizeVertical * 0.5),
-                    Text(
-                      'View and manage all booking reservations',
-                      style: AppTextStyles.regular16W400,
-                    ),
-                  ],
-                ),
-              ),
-              if (!isMobile) ...[
-                Row(
-                  children: [
-                    _buildFilterButton(),
-                    SizedBox(width: SizeConfig.blockSizeHorizontal * 1),
-                    _buildExportButton(),
-                    SizedBox(width: SizeConfig.blockSizeHorizontal * 1),
-                    if (data?["userId"] != null) _buildNewBookingButton(),
-                  ],
-                ),
-              ],
-            ],
-          ),
-          if (isMobile) ...[
-            const SizedBox(height: 8),
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: [
-                  _buildFilterButton(),
-                  const SizedBox(width: 8),
-                  _buildExportButton(),
-                  if (data?["userId"] != null) ...[
-                    const SizedBox(width: 8),
-                    _buildNewBookingButton(),
-                  ],
-                ],
-              ),
-            ),
-          ],
-        ],
-      ),
+    // Inside the main shell the sidebar handles navigation; the back button is
+    // only shown when this page is opened as its own route (e.g. from a client).
+    final routeName = ModalRoute.of(context)?.settings.name ?? '';
+    final inShell = routeName.startsWith(Routes.MAIN);
+    return AppPageHeader(
+      title: 'Manage Bookings',
+      subtitle: 'View and manage all booking reservations',
+      onBack: inShell
+          ? null
+          : () {
+              if (Navigator.canPop(context)) {
+                Get.back();
+              } else {
+                Get.offAllNamed(Routes.MAIN);
+              }
+            },
+      actions: [
+        _buildExportButton(),
+        if (data?["userId"] != null) _buildNewBookingButton(),
+      ],
     );
   }
 
   Widget _buildFilterButton() {
-    final isMobile = SizeConfig.isMobile;
     return Obx(
       () => OutlinedButton.icon(
         onPressed: () {
@@ -185,326 +134,324 @@ class _BookingsViewState extends State<BookingsView> {
         },
         icon: Icon(
           controller.isFilterVisible.value
-              ? Icons.expand_less
-              : Icons.filter_list,
-          size: isMobile ? 18 : SizeConfig.blockSizeHorizontal * 1.5,
+              ? LucideIcons.chevronUp
+              : LucideIcons.listFilter,
+          size: 18,
         ),
         label: Text(
-          controller.isFilterVisible.value ? 'Hide Filters' : 'Filters',
-          style: TextStyle(
-            fontSize: isMobile ? 13 : SizeConfig.blockSizeHorizontal * 1.2,
-          ),
+          controller.isFilterVisible.value ? 'Hide filters' : 'Filters',
         ),
-        style: OutlinedButton.styleFrom(
-          foregroundColor: controller.isFilterVisible.value
-              ? Colors.blue.shade700
-              : AppColor.fontColorGrey,
-          side: BorderSide(
-            color: controller.isFilterVisible.value
-                ? Colors.blue.shade300
-                : AppColor.divColor,
-          ),
-          backgroundColor: controller.isFilterVisible.value
-              ? Colors.blue.shade50
-              : AppColor.whiteColor,
-          padding: EdgeInsets.symmetric(
-            horizontal: isMobile ? 12 : SizeConfig.blockSizeHorizontal * 1.5,
-            vertical: isMobile ? 10 : SizeConfig.blockSizeVertical * 1.5,
-          ),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
-          ),
-        ),
+        style: controller.isFilterVisible.value
+            ? OutlinedButton.styleFrom(
+                foregroundColor: AppColor.cAppPrimaryColor,
+                backgroundColor: AppColor.primarySoft,
+                side: BorderSide(
+                  color: AppColor.cAppPrimaryColor.withValues(alpha: 0.4),
+                ),
+              )
+            : null,
       ),
     );
   }
 
   Widget _buildExportButton() {
-    final isMobile = SizeConfig.isMobile;
     return OutlinedButton.icon(
       onPressed: controller.exportBookingsCsv,
-      icon: Icon(
-        Icons.download,
-        size: isMobile ? 18 : SizeConfig.blockSizeHorizontal * 1.5,
-      ),
-      label: Text(
-        'Export',
-        style: TextStyle(
-          fontSize: isMobile ? 13 : SizeConfig.blockSizeHorizontal * 1.2,
-        ),
-      ),
-      style: OutlinedButton.styleFrom(
-        foregroundColor: AppColor.fontColorGrey,
-        side: BorderSide(color: AppColor.divColor),
-        padding: EdgeInsets.symmetric(
-          horizontal: isMobile ? 12 : SizeConfig.blockSizeHorizontal * 1.5,
-          vertical: isMobile ? 10 : SizeConfig.blockSizeVertical * 1.5,
-        ),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
-        ),
-      ),
+      icon: const Icon(LucideIcons.download, size: 18),
+      label: const Text('Export'),
     );
   }
 
   Widget _buildNewBookingButton() {
-    final isMobile = SizeConfig.isMobile;
     return ElevatedButton.icon(
       onPressed: () {
         controller.resetCreateBookingForm();
         Get.toNamed(Routes.createBookings, arguments: data);
       },
-      icon: Icon(
-        Icons.add,
-        size: isMobile ? 16 : SizeConfig.blockSizeHorizontal * 0.9,
-        color: AppColor.buttonTextWhite,
+      icon: const Icon(LucideIcons.plus, size: 18),
+      label: const Text('New booking'),
+    );
+  }
+
+  // ─────────────────────────────────────────────
+  // Status KPI / quick filter row
+  // ─────────────────────────────────────────────
+  /// One tile per booking status with its count in the loaded list. Tapping a
+  /// tile sets the same status filter the filter panel uses and re-applies
+  /// the filters, exactly like choosing it there and pressing Search.
+  Widget _buildStatusFilterRow() {
+    final all = controller.allBookings.value;
+    final counts = <String, int>{};
+    for (final b in all) {
+      final label = BookingsController.statusLabel(b.status);
+      counts[label] = (counts[label] ?? 0) + 1;
+    }
+    final selected = controller.selectedBookingStatus.value;
+
+    final tiles = <Widget>[
+      _StatusFilterTile(
+        label: 'All bookings',
+        count: all.length,
+        tone: AppTone.primary,
+        selected: selected.isEmpty,
+        onTap: () {
+          controller.selectedBookingStatus.value = '';
+          controller.searchBookings();
+        },
       ),
-      label: Text(
-        'New Booking',
-        style: TextStyle(
-          fontSize: isMobile ? 13 : SizeConfig.blockSizeHorizontal * 0.9,
-          color: AppColor.buttonTextWhite,
+      for (final label in controller.bookingStatuses)
+        _StatusFilterTile(
+          label: label,
+          count: counts[label] ?? 0,
+          tone: toneForStatus(label),
+          selected: selected == label,
+          onTap: () {
+            controller.selectedBookingStatus.value = label;
+            controller.searchBookings();
+          },
         ),
-      ),
-      style: ElevatedButton.styleFrom(
-        backgroundColor: AppColor.cPrimaryButtonColor,
-        foregroundColor: AppColor.buttonTextWhite,
-        padding: EdgeInsets.symmetric(
-          horizontal: isMobile ? 12 : SizeConfig.blockSizeHorizontal * 1,
-          vertical: isMobile ? 10 : SizeConfig.blockSizeVertical * 1.5,
-        ),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
-        ),
-        elevation: 0,
+    ];
+
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: tiles
+            .expand((t) => [t, const SizedBox(width: 12)])
+            .toList()
+          ..removeLast(),
       ),
     );
   }
 
-  Widget _buildFilterRow(List<Widget> children) {
-    if (SizeConfig.isMobile) {
-      return Column(
-        children: children
-            .expand((w) => [w, const SizedBox(height: 10)])
-            .toList()
-          ..removeLast(),
-      );
-    }
-    return Row(
-      children: children
-          .expand((w) => [
-                Expanded(child: w),
-                SizedBox(width: SizeConfig.blockSizeHorizontal * 1.2),
-              ])
-          .toList()
-        ..removeLast(),
+  // ─────────────────────────────────────────────
+  // List card (toolbar + filters + table + pagination)
+  // ─────────────────────────────────────────────
+  Widget _buildBookingsCard({
+    required List<GetBookingsModel> page,
+    required bool isEmpty,
+    required bool showFilters,
+  }) {
+    final isMobile = SizeConfig.isMobile;
+    return AppCard(
+      title: 'Bookings',
+      subtitle: _listSummaryText(),
+      padding: EdgeInsets.zero,
+      actions: [
+        AppSearchField(
+          controller: controller.nameController,
+          hint: 'Search client name…',
+          width: isMobile ? null : 260,
+          onChanged: (_) => controller.searchBookings(),
+        ),
+        _buildFilterButton(),
+      ],
+      footer: isEmpty ? null : _buildPagination(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (showFilters) ...[
+            _buildFiltersCard(),
+            Divider(height: 1, color: AppColor.borderSubtle),
+          ],
+          if (isEmpty)
+            _buildEmptyState()
+          else if (isMobile)
+            ..._buildMobileList(page)
+          else
+            _buildDesktopTable(page),
+        ],
+      ),
     );
   }
 
   Widget _buildFiltersCard() {
     final isMobile = SizeConfig.isMobile;
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 300),
-      curve: Curves.easeInOut,
-      decoration: BoxDecoration(
-        color: AppColor.whiteColor,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColor.divColor),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      padding: EdgeInsets.all(isMobile ? 12 : SizeConfig.blockSizeHorizontal * 1.5),
+    return Container(
+      color: AppColor.surfaceMuted,
+      padding: EdgeInsets.all(isMobile ? 16 : 20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                children: [
-                  Icon(
-                    Icons.filter_list,
-                    size: isMobile ? 18 : SizeConfig.blockSizeHorizontal * 1.2,
-                    color: AppColor.fontColorGrey,
+              Icon(LucideIcons.slidersHorizontal, size: 18, color: AppColor.textTertiary),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Filters',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: AppColor.textPrimary,
                   ),
-                  SizedBox(width: isMobile ? 8 : SizeConfig.blockSizeHorizontal * 0.8),
-                  Text('Filters', style: AppTextStyles.catT16W400),
-                ],
+                ),
               ),
               IconButton(
+                tooltip: 'Close filters',
                 onPressed: () {
                   controller.toggleFilters();
                 },
                 icon: Icon(
-                  Icons.close,
-                  size: isMobile ? 20 : SizeConfig.blockSizeHorizontal * 1.8,
-                  color: AppColor.cPrimaryHeadingColor,
+                  LucideIcons.x,
+                  size: 18,
+                  color: AppColor.textTertiary,
                 ),
                 padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(),
+                constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
               ),
             ],
           ),
-          SizedBox(height: isMobile ? 12 : SizeConfig.blockSizeVertical * 1.5),
-          _buildFilterRow([
-            CommonTextField(
-              label: 'User ID',
-              hint: 'Search by ID',
-              controller: controller.userIdController,
-            ),
-            CommonTextField(
-              label: 'Name',
-              hint: 'Search by Name',
-              controller: controller.nameController,
-            ),
-            CommonTextField(
-              label: 'Phone Number',
-              hint: 'Search by Number',
-              controller: controller.phoneController,
-              keyboardType: TextInputType.phone,
-            ),
-          ]),
-          SizedBox(height: isMobile ? 10 : SizeConfig.blockSizeVertical * 1.2),
-          _buildFilterRow([
-            Obx(
-              () => AppDropdown<int>(
-                label: 'Care Manager',
-                hint: 'Select Care Manager',
-                value: controller.careManagers
-                        .any((m) => m.id == controller.selectedCareManagerId.value)
-                    ? controller.selectedCareManagerId.value
-                    : null,
-                items: [
-                  const DropdownMenuItem<int>(value: 0, child: Text('All Care Managers')),
-                  ...controller.careManagers.map(
-                    (manager) => DropdownMenuItem<int>(
-                      value: manager.id,
-                      child: Text(manager.userName),
-                    ),
-                  ),
-                ],
-                onChanged: (value) =>
-                    controller.selectedCareManagerId.value = value ?? 0,
+          const SizedBox(height: 12),
+          AppResponsiveGrid(
+            minItemWidth: 220,
+            maxColumns: 3,
+            spacing: 16,
+            children: [
+              CommonTextField(
+                label: 'User ID',
+                hint: 'Search by ID',
+                controller: controller.userIdController,
               ),
-            ),
-            Obx(
-              () => AppDropdown<int>(
-                label: 'Service',
-                hint: 'Select Service',
-                value: controller.filterServices
-                        .any((s) => s['id'] == controller.selectedServiceFilterId.value)
-                    ? controller.selectedServiceFilterId.value
-                    : null,
-                items: [
-                  const DropdownMenuItem<int>(value: 0, child: Text('All Services')),
-                  ...controller.filterServices.map(
-                    (s) => DropdownMenuItem<int>(
-                      value: s['id'] as int,
-                      child: Text(s['name'] as String, overflow: TextOverflow.ellipsis),
-                    ),
-                  ),
-                ],
-                onChanged: (value) =>
-                    controller.selectedServiceFilterId.value = value ?? 0,
+              CommonTextField(
+                label: 'Name',
+                hint: 'Search by Name',
+                controller: controller.nameController,
               ),
-            ),
-            Obx(
-              () {
-                final branches = controller.dashboardController.getAllBranches;
-                return AppDropdown<int>(
-                  label: 'Branch',
-                  hint: 'Select Branch',
-                  value: branches
-                          .any((b) => b.brId == controller.selectedBranchFilterId.value)
-                      ? controller.selectedBranchFilterId.value
+              CommonTextField(
+                label: 'Phone Number',
+                hint: 'Search by Number',
+                controller: controller.phoneController,
+                keyboardType: TextInputType.phone,
+              ),
+              Obx(
+                () => AppDropdown<int>(
+                  label: 'Care Manager',
+                  hint: 'Select Care Manager',
+                  value: controller.careManagers
+                          .any((m) => m.id == controller.selectedCareManagerId.value)
+                      ? controller.selectedCareManagerId.value
                       : null,
                   items: [
-                    const DropdownMenuItem<int>(value: 0, child: Text('All Branches')),
-                    ...branches.map(
-                      (b) => DropdownMenuItem<int>(
-                        value: b.brId,
-                        child: Text(b.brName, overflow: TextOverflow.ellipsis),
+                    const DropdownMenuItem<int>(value: 0, child: Text('All Care Managers')),
+                    ...controller.careManagers.map(
+                      (manager) => DropdownMenuItem<int>(
+                        value: manager.id,
+                        child: Text(manager.userName),
                       ),
                     ),
                   ],
                   onChanged: (value) =>
-                      controller.selectedBranchFilterId.value = value ?? 0,
-                );
-              },
-            ),
-          ]),
-          SizedBox(height: isMobile ? 10 : SizeConfig.blockSizeVertical * 1.2),
-          _buildFilterRow([
-            CommonTextField(
-              label: 'Booking ID',
-              hint: 'Search by ID',
-              controller: controller.bookingIdController,
-            ),
-            Obx(
-              () => CommonDatePicker(
-                label: 'Service Started On/After',
-                hint: 'dd/mm/yyyy',
-                selectedDate: controller.serviceStartedOnAfter.value,
-                onDateSelected: (date) {
-                  controller.serviceStartedOnAfter.value = date;
+                      controller.selectedCareManagerId.value = value ?? 0,
+                ),
+              ),
+              Obx(
+                () => AppDropdown<int>(
+                  label: 'Service',
+                  hint: 'Select Service',
+                  value: controller.filterServices
+                          .any((s) => s['id'] == controller.selectedServiceFilterId.value)
+                      ? controller.selectedServiceFilterId.value
+                      : null,
+                  items: [
+                    const DropdownMenuItem<int>(value: 0, child: Text('All Services')),
+                    ...controller.filterServices.map(
+                      (s) => DropdownMenuItem<int>(
+                        value: s['id'] as int,
+                        child: Text(s['name'] as String, overflow: TextOverflow.ellipsis),
+                      ),
+                    ),
+                  ],
+                  onChanged: (value) =>
+                      controller.selectedServiceFilterId.value = value ?? 0,
+                ),
+              ),
+              Obx(
+                () {
+                  final branches = controller.dashboardController.getAllBranches;
+                  return AppDropdown<int>(
+                    label: 'Branch',
+                    hint: 'Select Branch',
+                    value: branches
+                            .any((b) => b.brId == controller.selectedBranchFilterId.value)
+                        ? controller.selectedBranchFilterId.value
+                        : null,
+                    items: [
+                      const DropdownMenuItem<int>(value: 0, child: Text('All Branches')),
+                      ...branches.map(
+                        (b) => DropdownMenuItem<int>(
+                          value: b.brId,
+                          child: Text(b.brName, overflow: TextOverflow.ellipsis),
+                        ),
+                      ),
+                    ],
+                    onChanged: (value) =>
+                        controller.selectedBranchFilterId.value = value ?? 0,
+                  );
                 },
               ),
-            ),
-            Obx(
-              () => CommonDatePicker(
-                label: 'Service Started On/Before',
-                hint: 'dd/mm/yyyy',
-                selectedDate: controller.serviceStartedOnBefore.value,
-                onDateSelected: (date) {
-                  controller.serviceStartedOnBefore.value = date;
-                },
+              CommonTextField(
+                label: 'Booking ID',
+                hint: 'Search by ID',
+                controller: controller.bookingIdController,
               ),
-            ),
-          ]),
-          SizedBox(height: isMobile ? 10 : SizeConfig.blockSizeVertical * 1.2),
-          _buildFilterRow([
-            Obx(
-              () => CommonDropdown(
-                label: 'Booking Status',
-                hint: 'Select Status',
-                value: controller.selectedBookingStatus.value.isEmpty
-                    ? null
-                    : controller.selectedBookingStatus.value,
-                items: controller.bookingStatuses,
-                onChanged: (value) {
-                  if (value != null) {
-                    controller.selectedBookingStatus.value = value;
-                  }
-                },
+              Obx(
+                () => CommonDatePicker(
+                  label: 'Service Started On/After',
+                  hint: 'dd/mm/yyyy',
+                  selectedDate: controller.serviceStartedOnAfter.value,
+                  onDateSelected: (date) {
+                    controller.serviceStartedOnAfter.value = date;
+                  },
+                ),
               ),
-            ),
-            Obx(
-              () => CommonDatePicker(
-                label: 'Booking Submitted On/After',
-                hint: 'dd/mm/yyyy',
-                selectedDate: controller.bookingSubmittedOnAfter.value,
-                onDateSelected: (date) {
-                  controller.bookingSubmittedOnAfter.value = date;
-                },
+              Obx(
+                () => CommonDatePicker(
+                  label: 'Service Started On/Before',
+                  hint: 'dd/mm/yyyy',
+                  selectedDate: controller.serviceStartedOnBefore.value,
+                  onDateSelected: (date) {
+                    controller.serviceStartedOnBefore.value = date;
+                  },
+                ),
               ),
-            ),
-            Obx(
-              () => CommonDatePicker(
-                label: 'Booking Submitted On/Before',
-                hint: 'dd/mm/yyyy',
-                selectedDate: controller.bookingSubmittedOnBefore.value,
-                onDateSelected: (date) {
-                  controller.bookingSubmittedOnBefore.value = date;
-                },
+              Obx(
+                () => CommonDropdown(
+                  label: 'Booking Status',
+                  hint: 'Select Status',
+                  value: controller.selectedBookingStatus.value.isEmpty
+                      ? null
+                      : controller.selectedBookingStatus.value,
+                  items: controller.bookingStatuses,
+                  onChanged: (value) {
+                    if (value != null) {
+                      controller.selectedBookingStatus.value = value;
+                    }
+                  },
+                ),
               ),
-            ),
-          ]),
-          SizedBox(height: isMobile ? 12 : SizeConfig.blockSizeVertical * 1.5),
+              Obx(
+                () => CommonDatePicker(
+                  label: 'Booking Submitted On/After',
+                  hint: 'dd/mm/yyyy',
+                  selectedDate: controller.bookingSubmittedOnAfter.value,
+                  onDateSelected: (date) {
+                    controller.bookingSubmittedOnAfter.value = date;
+                  },
+                ),
+              ),
+              Obx(
+                () => CommonDatePicker(
+                  label: 'Booking Submitted On/Before',
+                  hint: 'dd/mm/yyyy',
+                  selectedDate: controller.bookingSubmittedOnBefore.value,
+                  onDateSelected: (date) {
+                    controller.bookingSubmittedOnBefore.value = date;
+                  },
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
           isMobile
               ? Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -516,14 +463,6 @@ class _BookingsViewState extends State<BookingsView> {
                             onPressed: () {
                               controller.clearFilters();
                             },
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: AppColor.fontColorGrey,
-                              side: BorderSide(color: AppColor.divColor),
-                              padding: const EdgeInsets.symmetric(vertical: 12),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                            ),
                             child: const Text('Clear'),
                           ),
                         ),
@@ -533,17 +472,8 @@ class _BookingsViewState extends State<BookingsView> {
                             onPressed: () {
                               controller.searchBookings();
                             },
-                            icon: const Icon(Icons.search, size: 18),
+                            icon: const Icon(LucideIcons.search, size: 18),
                             label: const Text('Search'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColor.cPrimaryButtonColor,
-                              foregroundColor: AppColor.buttonTextWhite,
-                              padding: const EdgeInsets.symmetric(vertical: 12),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              elevation: 0,
-                            ),
                           ),
                         ),
                       ],
@@ -554,79 +484,33 @@ class _BookingsViewState extends State<BookingsView> {
                         onPressed: () {
                           controller.clearFilters();
                         },
-                        child: Text(
-                          'Reset All Filters',
-                          style: AppTextStyles.regular16blue,
-                        ),
+                        child: const Text('Reset all filters'),
                       ),
                     ),
                   ],
                 )
               : Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     TextButton(
                       onPressed: () {
                         controller.clearFilters();
                       },
-                      child: Text(
-                        'Reset All Filters',
-                        style: AppTextStyles.regular16blue,
-                      ),
+                      child: const Text('Reset all filters'),
                     ),
-                    Row(
-                      children: [
-                        OutlinedButton(
-                          onPressed: () {
-                            controller.clearFilters();
-                          },
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: AppColor.fontColorGrey,
-                            side: BorderSide(color: AppColor.divColor),
-                            padding: EdgeInsets.symmetric(
-                              horizontal: SizeConfig.blockSizeHorizontal * 2,
-                              vertical: SizeConfig.blockSizeVertical * 1.2,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                          ),
-                          child: Text(
-                            'Clear',
-                            style: TextStyle(
-                              fontSize: SizeConfig.blockSizeHorizontal * 1.2,
-                            ),
-                          ),
-                        ),
-                        SizedBox(width: SizeConfig.blockSizeHorizontal * 1),
-                        ElevatedButton.icon(
-                          onPressed: () {
-                            controller.searchBookings();
-                          },
-                          icon: Icon(
-                            Icons.search,
-                            size: SizeConfig.blockSizeHorizontal * 1.3,
-                          ),
-                          label: Text(
-                            'Search',
-                            style: TextStyle(
-                              fontSize: SizeConfig.blockSizeHorizontal * 1.2,
-                            ),
-                          ),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColor.cPrimaryButtonColor,
-                            foregroundColor: AppColor.buttonTextWhite,
-                            padding: EdgeInsets.symmetric(
-                              horizontal: SizeConfig.blockSizeHorizontal * 1.8,
-                              vertical: SizeConfig.blockSizeVertical * 1,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            elevation: 0,
-                          ),
-                        ),
-                      ],
+                    const Spacer(),
+                    OutlinedButton(
+                      onPressed: () {
+                        controller.clearFilters();
+                      },
+                      child: const Text('Clear'),
+                    ),
+                    const SizedBox(width: 8),
+                    ElevatedButton.icon(
+                      onPressed: () {
+                        controller.searchBookings();
+                      },
+                      icon: const Icon(LucideIcons.search, size: 18),
+                      label: const Text('Search'),
                     ),
                   ],
                 ),
@@ -635,42 +519,15 @@ class _BookingsViewState extends State<BookingsView> {
     );
   }
 
-  Widget _buildListSummary() {
-    return Padding(
-      padding: EdgeInsets.symmetric(
-        vertical: SizeConfig.blockSizeVertical * 1,
-      ),
-      child: Text(
-        'Showing ${controller.filteredBookings.length} of ${controller.allBookings.value.length} bookings',
-        style: AppTextStyles.regular16Gre,
-      ),
-    );
+  String _listSummaryText() {
+    return 'Showing ${controller.filteredBookings.length} of ${controller.allBookings.value.length} bookings';
   }
 
   Widget _buildEmptyState() {
-    final isMobile = SizeConfig.isMobile;
-    return Center(
-      child: Padding(
-        padding: EdgeInsets.all(isMobile ? 40 : SizeConfig.blockSizeVertical * 5),
-        child: Column(
-          children: [
-            Icon(
-              Icons.event_busy,
-              size: isMobile ? 48 : SizeConfig.blockSizeHorizontal * 5,
-              color: AppColor.lightGrey,
-            ),
-            SizedBox(height: isMobile ? 16 : SizeConfig.blockSizeVertical * 2),
-            Text(
-              'No bookings found',
-              style: TextStyle(
-                fontSize: isMobile ? 16 : SizeConfig.blockSizeHorizontal * 1.5,
-                color: AppColor.fontColorGrey,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ],
-        ),
-      ),
+    return const AppEmptyState(
+      icon: LucideIcons.calendarX,
+      title: 'No bookings found',
+      message: 'Try a different status or adjust the filters.',
     );
   }
 
@@ -684,418 +541,308 @@ class _BookingsViewState extends State<BookingsView> {
     return endDate.difference(startDate).inDays + 1;
   }
 
+  String _totalText(GetBookingsModel booking, int days) =>
+      'Total: ${(booking.finalRate ?? (double.tryParse(booking.baseRate) ?? 0) * days).toStringAsFixed(0)}';
+
+  Widget _statusBadge(String? status) {
+    final label = BookingsController.statusLabel(status);
+    return AppStatusBadge(label: label, tone: toneForStatus(label));
+  }
+
+  // ─────────────────────────────────────────────
+  // Desktop / tablet table
+  // ─────────────────────────────────────────────
+  static const _colFlex = <int>[17, 20, 17, 14, 14, 12, 16, 12];
+  static const double _actionsWidth = 44;
+  static const double _cellGap = 12;
+
+  Widget _tableRow(List<Widget> cells, {Widget? trailing}) {
+    final children = <Widget>[];
+    for (var i = 0; i < cells.length; i++) {
+      children.add(Expanded(flex: _colFlex[i], child: cells[i]));
+      children.add(const SizedBox(width: _cellGap));
+    }
+    children.add(SizedBox(
+      width: _actionsWidth,
+      child: Align(alignment: Alignment.topRight, child: trailing),
+    ));
+    return Row(crossAxisAlignment: CrossAxisAlignment.start, children: children);
+  }
+
+  Widget _buildDesktopTable(List<GetBookingsModel> page) {
+    return LayoutBuilder(builder: (context, constraints) {
+      final width = constraints.maxWidth < _tableMinWidth
+          ? _tableMinWidth
+          : constraints.maxWidth;
+      return SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: SizedBox(
+          width: width,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _buildTableHeader(),
+              for (var i = 0; i < page.length; i++)
+                _HoverRow(
+                  showDivider: i < page.length - 1,
+                  child: _buildBookingCard(page[i]),
+                ),
+            ],
+          ),
+        ),
+      );
+    });
+  }
+
+  Widget _buildTableHeader() {
+    Widget h(String text, {bool numeric = false}) => Text(
+          text,
+          textAlign: numeric ? TextAlign.right : TextAlign.left,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            fontSize: 12.5,
+            fontWeight: FontWeight.w600,
+            color: AppColor.textTertiary,
+          ),
+        );
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+      decoration: BoxDecoration(
+        color: AppColor.surfaceMuted,
+        border: Border(bottom: BorderSide(color: AppColor.borderSubtle)),
+      ),
+      child: _tableRow([
+        h('Booking'),
+        h('Client & patient'),
+        h('Service'),
+        h('Location'),
+        h('Schedule'),
+        h('Rate', numeric: true),
+        h('Care manager'),
+        h('Remarks'),
+      ]),
+    );
+  }
+
   Widget _buildBookingCard(GetBookingsModel booking) {
     final days = _calculateDays(
       booking.serviceStartDate,
       booking.serviceEndDate,
     );
-    final isMobile = SizeConfig.isMobile;
-
-    return Container(
-      margin: EdgeInsets.only(bottom: isMobile ? 12 : SizeConfig.blockSizeVertical * 1.5),
-      decoration: BoxDecoration(
-        color: AppColor.whiteColor,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColor.divColor),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Padding(
-        padding: EdgeInsets.all(isMobile ? 12 : SizeConfig.blockSizeHorizontal * 1.5),
-        child: isMobile ? _buildMobileBookingCardContent(booking, days) : _buildDesktopBookingCardContent(booking, days),
-      ),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+      child: _buildDesktopBookingCardContent(booking, days),
     );
   }
 
   Widget _buildDesktopBookingCardContent(GetBookingsModel booking, int days) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
+    return _tableRow(
+      [
         // Booking Details
-        Expanded(
-          flex: 2,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                padding: EdgeInsets.symmetric(
-                  horizontal: SizeConfig.blockSizeHorizontal * 1,
-                  vertical: SizeConfig.blockSizeVertical * 0.5,
-                ),
-                decoration: BoxDecoration(
-                  color: AppColor.cPrimaryButtonColor,
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Text(
-                  'BK-${booking.id}',
-                  style: TextStyle(
-                    fontSize: SizeConfig.blockSizeHorizontal * 1,
-                    fontWeight: FontWeight.w600,
-                    color: AppColor.buttonTextWhite,
-                  ),
-                ),
-              ),
-              SizedBox(height: SizeConfig.blockSizeVertical * 0.8),
-              Row(
-                children: [
-                  Icon(
-                    Icons.calendar_today,
-                    size: SizeConfig.blockSizeHorizontal * 1.2,
-                    color: AppColor.fontColorGrey,
-                  ),
-                  SizedBox(width: SizeConfig.blockSizeHorizontal * 0.5),
-                  Text(
-                    _formatDate(booking.createdOn),
-                    style: TextStyle(
-                      fontSize: SizeConfig.blockSizeHorizontal * 1,
-                      color: AppColor.fontColorGrey,
-                    ),
-                  ),
-                ],
-              ),
-              SizedBox(height: SizeConfig.blockSizeVertical * 0.5),
-              Container(
-                padding: EdgeInsets.symmetric(
-                  horizontal: SizeConfig.blockSizeHorizontal * 0.8,
-                  vertical: SizeConfig.blockSizeVertical * 0.4,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.blue.shade50,
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: Text(
-                  BookingsController.statusLabel(booking.status),
-                  style: TextStyle(
-                    fontSize: SizeConfig.blockSizeHorizontal * 0.9,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.blue.shade700,
-                  ),
-                ),
-              ),
-            ],
-          ),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'BK-${booking.id}',
+              style: _strong,
+            ),
+            const SizedBox(height: 4),
+            _IconText(
+              icon: LucideIcons.calendar,
+              text: _formatDate(booking.createdOn),
+            ),
+            const SizedBox(height: 8),
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: _statusBadge(booking.status),
+            ),
+          ],
         ),
         // User & Patient
-        Expanded(
-          flex: 2,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Icon(
-                    Icons.person_outline,
-                    size: SizeConfig.blockSizeHorizontal * 1.3,
-                    color: AppColor.fontColorGrey,
-                  ),
-                  SizedBox(width: SizeConfig.blockSizeHorizontal * 0.5),
-                  Expanded(
-                    child: Text(
-                      booking.userName ?? '-',
-                      style: AppTextStyles.regular16,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ],
-              ),
-              SizedBox(height: SizeConfig.blockSizeVertical * 0.3),
-              Row(
-                children: [
-                  Icon(
-                    Icons.phone_outlined,
-                    size: SizeConfig.blockSizeHorizontal * 1.1,
-                    color: AppColor.fontColorGrey,
-                  ),
-                  SizedBox(width: SizeConfig.blockSizeHorizontal * 0.3),
-                  Text(
-                    booking.userMobile ?? '-',
-                    style: AppTextStyles.regular16Gre,
-                  ),
-                ],
-              ),
-              SizedBox(height: SizeConfig.blockSizeVertical * 0.8),
-              Text(
-                'Patient: ${booking.patientName ?? '-'}',
-                style: AppTextStyles.regular16,
-              ),
-              Text(
-                'Age: ${booking.patientAge ?? '-'}',
-                style: AppTextStyles.regular16Gre,
-              ),
-            ],
-          ),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              booking.userName ?? '-',
+              style: _strong,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 4),
+            _IconText(icon: LucideIcons.phone, text: booking.userMobile ?? '-'),
+            const SizedBox(height: 8),
+            Text(
+              'Patient: ${booking.patientName ?? '-'}',
+              style: _body,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 2),
+            Text('Age: ${booking.patientAge ?? '-'}', style: _caption),
+          ],
         ),
         // Service
-        Expanded(
-          flex: 2,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                booking.serviceTypeName ?? '-',
-                style: AppTextStyles.regular16,
-              ),
-              SizedBox(height: SizeConfig.blockSizeVertical * 0.5),
-              Container(
-                padding: EdgeInsets.symmetric(
-                  horizontal: SizeConfig.blockSizeHorizontal * 0.8,
-                  vertical: SizeConfig.blockSizeVertical * 0.3,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.pink.shade50,
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: Text(
-                  booking.serviceName ?? '-',
-                  style: TextStyle(
-                    fontSize: SizeConfig.blockSizeHorizontal * 0.6,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.pink.shade700,
-                  ),
-                ),
-              ),
-            ],
-          ),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              booking.serviceTypeName ?? '-',
+              style: _body,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 6),
+            _Pill(text: booking.serviceName ?? '-', tone: AppTone.violet),
+          ],
         ),
         // Address
-        Expanded(
-          flex: 2,
-          child: Row(
-            children: [
-              Icon(
-                Icons.location_on_outlined,
-                size: SizeConfig.blockSizeHorizontal * 1.3,
-                color: AppColor.fontColorGrey,
-              ),
-              SizedBox(width: SizeConfig.blockSizeHorizontal * 0.5),
-              Expanded(
-                child: Text(
-                  booking.landmark ?? '-',
-                  style: TextStyle(
-                    fontSize: SizeConfig.blockSizeHorizontal * 1,
-                    color: AppColor.cPrimaryHeadingColor,
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ],
-          ),
+        _IconText(
+          icon: LucideIcons.mapPin,
+          text: booking.landmark ?? '-',
+          maxLines: 2,
+          style: _body,
         ),
         // Period
-        Expanded(
-          flex: 2,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Icon(
-                    Icons.calendar_today_outlined,
-                    size: SizeConfig.blockSizeHorizontal * 0.9,
-                    color: AppColor.verifyContinue,
-                  ),
-                  SizedBox(width: SizeConfig.blockSizeHorizontal * 0.5),
-                  Text(
-                    _formatDate(booking.serviceStartDate),
-                    style: TextStyle(
-                      fontSize: SizeConfig.blockSizeHorizontal * 0.9,
-                      color: AppColor.cPrimaryHeadingColor,
-                    ),
-                  ),
-                ],
-              ),
-              SizedBox(height: SizeConfig.blockSizeVertical * 0.3),
-              Row(
-                children: [
-                  Icon(
-                    Icons.calendar_today_outlined,
-                    size: SizeConfig.blockSizeHorizontal * 0.9,
-                    color: AppColor.calenderRed,
-                  ),
-                  SizedBox(width: SizeConfig.blockSizeHorizontal * 0.5),
-                  Text(
-                    _formatDate(booking.serviceEndDate),
-                    style: TextStyle(
-                      fontSize: SizeConfig.blockSizeHorizontal * 0.9,
-                      color: AppColor.cPrimaryHeadingColor,
-                    ),
-                  ),
-                ],
-              ),
-              SizedBox(height: SizeConfig.blockSizeVertical * 0.5),
-              Text('$days days', style: AppTextStyles.regular16Gre),
-            ],
-          ),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _IconText(
+              icon: LucideIcons.calendar,
+              iconColor: AppColor.success,
+              text: _formatDate(booking.serviceStartDate),
+              style: _body,
+            ),
+            const SizedBox(height: 4),
+            _IconText(
+              icon: LucideIcons.calendar,
+              iconColor: AppColor.danger,
+              text: _formatDate(booking.serviceEndDate),
+              style: _body,
+            ),
+            const SizedBox(height: 4),
+            Text('$days days', style: _caption),
+          ],
         ),
         // Rate
-        Expanded(
-          flex: 1,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 8,
-                  vertical: 3,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.cyan.shade500,
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Text(
-                  '${booking.baseRate}/day',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w400,
-                    color: AppColor.buttonTextWhite,
-                  ),
-                ),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            _Pill(text: '${booking.baseRate}/day', tone: AppTone.info),
+            const SizedBox(height: 6),
+            Text(
+              _totalText(booking, days),
+              textAlign: TextAlign.right,
+              style: _caption.copyWith(
+                fontWeight: FontWeight.w600,
+                color: AppColor.textSecondary,
+                fontFeatures: const [FontFeature.tabularFigures()],
               ),
-              SizedBox(height: SizeConfig.blockSizeVertical * 0.5),
-              Text(
-                'Total: ${(booking.finalRate ?? (double.tryParse(booking.baseRate) ?? 0) * days).toStringAsFixed(0)}',
-                style: TextStyle(
-                  fontSize: SizeConfig.blockSizeHorizontal * 1,
-                  fontWeight: FontWeight.w500,
-                  color: AppColor.fontColorGrey,
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
         // Health Professional
-        Expanded(
-          flex: 2,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                booking.careManagerName ?? '-',
-                style: AppTextStyles.regular16,
-              ),
-              SizedBox(height: SizeConfig.blockSizeVertical * 0.3),
-              Row(
-                children: [
-                  Icon(
-                    Icons.phone_outlined,
-                    size: SizeConfig.blockSizeHorizontal * 1.1,
-                    color: AppColor.fontColorGrey,
-                  ),
-                  SizedBox(width: SizeConfig.blockSizeHorizontal * 0.5),
-                  Flexible(
-                    child: Text(
-                      booking.careManagerMobile ?? '-',
-                      style: AppTextStyles.regular16Gre,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              booking.careManagerName ?? '-',
+              style: _body,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 4),
+            _IconText(
+              icon: LucideIcons.phone,
+              text: booking.careManagerMobile ?? '-',
+            ),
+          ],
         ),
         // Remarks
-        Expanded(
-          flex: 1,
-          child: Text(
-            booking.splCareRequirements ?? booking.splInstructions ?? '',
-            style: TextStyle(fontSize: 14, color: AppColor.fontColorGrey),
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ),
-        // Actions
-        SizedBox(
-          width: SizeConfig.blockSizeHorizontal * 3,
-          child: _buildBookingPopupMenu(booking),
+        Text(
+          booking.splCareRequirements ?? booking.splInstructions ?? '',
+          style: _caption,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
         ),
       ],
+      // Actions
+      trailing: _buildBookingPopupMenu(booking),
     );
   }
 
+  // ─────────────────────────────────────────────
+  // Mobile list
+  // ─────────────────────────────────────────────
+  List<Widget> _buildMobileList(List<GetBookingsModel> page) {
+    return [
+      for (var i = 0; i < page.length; i++) ...[
+        Padding(
+          padding: const EdgeInsets.all(16),
+          child: _buildMobileBookingCardContent(
+            page[i],
+            _calculateDays(page[i].serviceStartDate, page[i].serviceEndDate),
+          ),
+        ),
+        if (i < page.length - 1) Divider(height: 1, color: AppColor.borderSubtle),
+      ],
+    ];
+  }
+
   Widget _buildMobileBookingCardContent(GetBookingsModel booking, int days) {
+    final remarks = booking.splCareRequirements ?? booking.splInstructions;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // Top row: Booking ID, Status, Actions
         Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: AppColor.cPrimaryButtonColor,
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Text(
-                    'BK-${booking.id}',
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: AppColor.buttonTextWhite,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: Colors.blue.shade50,
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: Text(
-                    BookingsController.statusLabel(booking.status),
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                      color: Colors.blue.shade700,
-                    ),
-                  ),
-                ),
-              ],
+            Expanded(
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 6,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  Text('BK-${booking.id}', style: _strong.copyWith(fontSize: 15)),
+                  _statusBadge(booking.status),
+                ],
+              ),
             ),
             _buildBookingPopupMenu(booking),
           ],
         ),
-        const SizedBox(height: 10),
         // Created date
-        Row(
-          children: [
-            Icon(Icons.calendar_today, size: 14, color: AppColor.fontColorGrey),
-            const SizedBox(width: 4),
-            Text(
-              _formatDate(booking.createdOn),
-              style: TextStyle(fontSize: 13, color: AppColor.fontColorGrey),
-            ),
-          ],
+        _IconText(
+          icon: LucideIcons.calendar,
+          text: _formatDate(booking.createdOn),
         ),
-        const Divider(height: 16),
+        const SizedBox(height: 12),
         // User & Patient info
         Row(
           children: [
-            Icon(Icons.person_outline, size: 16, color: AppColor.fontColorGrey),
-            const SizedBox(width: 4),
+            Icon(LucideIcons.user, size: 16, color: AppColor.textTertiary),
+            const SizedBox(width: 6),
             Expanded(
-              child: Text(booking.userName ?? '-', style: AppTextStyles.regular16),
+              child: Text(
+                booking.userName ?? '-',
+                style: _strong,
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
-            Icon(Icons.phone_outlined, size: 14, color: AppColor.fontColorGrey),
+            const SizedBox(width: 8),
+            Icon(LucideIcons.phone, size: 14, color: AppColor.textTertiary),
             const SizedBox(width: 4),
-            Text(booking.userMobile ?? '-', style: AppTextStyles.regular16Gre),
+            Text(booking.userMobile ?? '-', style: _caption),
           ],
         ),
         const SizedBox(height: 4),
-        Text('Patient: ${booking.patientName ?? '-'}  |  Age: ${booking.patientAge ?? '-'}',
-          style: AppTextStyles.regular16Gre,
+        Text(
+          'Patient: ${booking.patientName ?? '-'}  |  Age: ${booking.patientAge ?? '-'}',
+          style: _caption,
         ),
-        const Divider(height: 16),
+        const SizedBox(height: 12),
         // Service & Address
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1104,118 +851,99 @@ class _BookingsViewState extends State<BookingsView> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(booking.serviceTypeName ?? '-', style: AppTextStyles.regular16),
+                  Text(booking.serviceTypeName ?? '-', style: _body),
                   const SizedBox(height: 4),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: Colors.pink.shade50,
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Text(
-                      booking.serviceName ?? '-',
-                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: Colors.pink.shade700),
-                    ),
-                  ),
+                  _Pill(text: booking.serviceName ?? '-', tone: AppTone.violet),
                 ],
               ),
             ),
             const SizedBox(width: 12),
             Expanded(
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              child: _IconText(
+                icon: LucideIcons.mapPin,
+                text: booking.landmark ?? '-',
+                maxLines: 2,
+                style: _body,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        // Period & Rate
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: AppColor.surfaceMuted,
+            borderRadius: BorderRadius.circular(AppRadius.md),
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _IconText(
+                      icon: LucideIcons.calendar,
+                      iconColor: AppColor.success,
+                      text: _formatDate(booking.serviceStartDate),
+                      style: _body,
+                    ),
+                    const SizedBox(height: 4),
+                    _IconText(
+                      icon: LucideIcons.calendar,
+                      iconColor: AppColor.danger,
+                      text: _formatDate(booking.serviceEndDate),
+                      style: _body,
+                    ),
+                    const SizedBox(height: 4),
+                    Text('$days days', style: _caption),
+                  ],
+                ),
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  Icon(Icons.location_on_outlined, size: 16, color: AppColor.fontColorGrey),
-                  const SizedBox(width: 4),
-                  Expanded(
-                    child: Text(
-                      booking.landmark ?? '-',
-                      style: TextStyle(fontSize: 13, color: AppColor.cPrimaryHeadingColor),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
+                  _Pill(text: '${booking.baseRate}/day', tone: AppTone.info),
+                  const SizedBox(height: 6),
+                  Text(
+                    _totalText(booking, days),
+                    style: _caption.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: AppColor.textSecondary,
                     ),
                   ),
                 ],
               ),
-            ),
-          ],
-        ),
-        const Divider(height: 16),
-        // Period & Rate
-        Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Icon(Icons.calendar_today_outlined, size: 13, color: AppColor.verifyContinue),
-                      const SizedBox(width: 4),
-                      Text(_formatDate(booking.serviceStartDate),
-                        style: TextStyle(fontSize: 13, color: AppColor.cPrimaryHeadingColor),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 3),
-                  Row(
-                    children: [
-                      Icon(Icons.calendar_today_outlined, size: 13, color: AppColor.calenderRed),
-                      const SizedBox(width: 4),
-                      Text(_formatDate(booking.serviceEndDate),
-                        style: TextStyle(fontSize: 13, color: AppColor.cPrimaryHeadingColor),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  Text('$days days', style: AppTextStyles.regular16Gre),
-                ],
-              ),
-            ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: Colors.cyan.shade500,
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Text(
-                    '${booking.baseRate}/day',
-                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w400, color: AppColor.buttonTextWhite),
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Total: ${(booking.finalRate ?? (double.tryParse(booking.baseRate) ?? 0) * days).toStringAsFixed(0)}',
-                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: AppColor.fontColorGrey),
-                ),
-              ],
-            ),
-          ],
+            ],
+          ),
         ),
         // Care Manager
         if (booking.careManagerName != null) ...[
-          const Divider(height: 16),
+          const SizedBox(height: 12),
           Row(
             children: [
-              Text('Care Manager: ', style: TextStyle(fontSize: 13, color: AppColor.fontColorGrey)),
-              Expanded(child: Text(booking.careManagerName ?? '-', style: AppTextStyles.regular16)),
+              Text('Care Manager: ', style: _caption),
+              Expanded(
+                child: Text(
+                  booking.careManagerName ?? '-',
+                  style: _body,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
               if (booking.careManagerMobile != null) ...[
-                Icon(Icons.phone_outlined, size: 14, color: AppColor.fontColorGrey),
+                Icon(LucideIcons.phone, size: 14, color: AppColor.textTertiary),
                 const SizedBox(width: 4),
-                Text(booking.careManagerMobile ?? '-', style: AppTextStyles.regular16Gre),
+                Text(booking.careManagerMobile ?? '-', style: _caption),
               ],
             ],
           ),
         ],
         // Remarks
-        if ((booking.splCareRequirements ?? booking.splInstructions) != null) ...[
-          const SizedBox(height: 6),
+        if (remarks != null) ...[
+          const SizedBox(height: 8),
           Text(
             booking.splCareRequirements ?? booking.splInstructions ?? '',
-            style: TextStyle(fontSize: 13, color: AppColor.fontColorGrey),
+            style: _caption,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
           ),
@@ -1225,12 +953,12 @@ class _BookingsViewState extends State<BookingsView> {
   }
 
   Widget _buildBookingPopupMenu(GetBookingsModel booking) {
-    final isMobile = SizeConfig.isMobile;
     return PopupMenuButton<String>(
+      tooltip: 'Actions',
       icon: Icon(
-        Icons.more_vert,
-        color: AppColor.fontColorGrey,
-        size: isMobile ? 22 : SizeConfig.blockSizeHorizontal * 1.5,
+        LucideIcons.ellipsis,
+        color: AppColor.textTertiary,
+        size: 20,
       ),
       onSelected: (value) {
         if (value == 'view') {
@@ -1240,23 +968,23 @@ class _BookingsViewState extends State<BookingsView> {
         }
       },
       itemBuilder: (BuildContext context) => [
-        PopupMenuItem(
+        const PopupMenuItem(
           value: 'view',
           child: Row(
             children: [
-              Icon(Icons.visibility_outlined, size: isMobile ? 18 : SizeConfig.blockSizeHorizontal * 1.3),
-              SizedBox(width: isMobile ? 8 : SizeConfig.blockSizeHorizontal * 0.8),
-              const Text('Manage Booking'),
+              Icon(LucideIcons.eye, size: 18),
+              SizedBox(width: 10),
+              Text('Manage Booking'),
             ],
           ),
         ),
-        PopupMenuItem(
+        const PopupMenuItem(
           value: 'edit',
           child: Row(
             children: [
-              Icon(Icons.edit_outlined, size: isMobile ? 18 : SizeConfig.blockSizeHorizontal * 1.3),
-              SizedBox(width: isMobile ? 8 : SizeConfig.blockSizeHorizontal * 0.8),
-              const Text('Edit'),
+              Icon(LucideIcons.pencil, size: 18),
+              SizedBox(width: 10),
+              Text('Edit'),
             ],
           ),
         ),
@@ -1264,6 +992,9 @@ class _BookingsViewState extends State<BookingsView> {
     );
   }
 
+  // ─────────────────────────────────────────────
+  // Pagination (card footer)
+  // ─────────────────────────────────────────────
   Widget _buildPagination() {
     final isMobile = SizeConfig.isMobile;
     final total = controller.filteredBookings.length;
@@ -1277,19 +1008,10 @@ class _BookingsViewState extends State<BookingsView> {
     final last = (first + 4).clamp(0, pages - 1);
     first = (last - 4).clamp(0, pages - 1);
 
-    final fontSize = isMobile ? 13.0 : SizeConfig.blockSizeHorizontal * 1.1;
     Widget navButton(String label, VoidCallback? onPressed) => OutlinedButton(
           onPressed: onPressed,
-          style: OutlinedButton.styleFrom(
-            foregroundColor: AppColor.fontColorGrey,
-            side: BorderSide(color: AppColor.divColor),
-            padding: EdgeInsets.symmetric(
-              horizontal: isMobile ? 16 : SizeConfig.blockSizeHorizontal * 2,
-              vertical: isMobile ? 10 : SizeConfig.blockSizeVertical * 1.2,
-            ),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          ),
-          child: Text(label, style: TextStyle(fontSize: fontSize)),
+          style: AppButtonStyles.compact,
+          child: Text(label),
         );
 
     final controls = Row(
@@ -1299,28 +1021,14 @@ class _BookingsViewState extends State<BookingsView> {
             current > 0 ? () => controller.goToBookingsPage(current - 1) : null),
         const SizedBox(width: 6),
         for (var p = first; p <= last; p++) ...[
-          InkWell(
+          _PageNumber(
+            number: p + 1,
+            selected: p == current,
             onTap: () => controller.goToBookingsPage(p),
-            borderRadius: BorderRadius.circular(8),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(
-                color: p == current ? Colors.blue.shade600 : AppColor.whiteColor,
-                border: p != current ? Border.all(color: AppColor.divColor) : null,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(
-                '${p + 1}',
-                style: TextStyle(
-                  fontSize: fontSize,
-                  color: p == current ? AppColor.buttonTextWhite : AppColor.fontColorGrey,
-                  fontWeight: p == current ? FontWeight.w500 : FontWeight.normal,
-                ),
-              ),
-            ),
           ),
-          const SizedBox(width: 6),
+          const SizedBox(width: 4),
         ],
+        const SizedBox(width: 2),
         navButton('Next',
             current < pages - 1 ? () => controller.goToBookingsPage(current + 1) : null),
       ],
@@ -1328,7 +1036,7 @@ class _BookingsViewState extends State<BookingsView> {
 
     final summary = Text(
       'Showing $from–$to of $total bookings',
-      style: TextStyle(fontSize: fontSize, color: AppColor.fontColorGrey),
+      style: TextStyle(fontSize: 13, color: AppColor.textTertiary),
     );
 
     if (isMobile) {
@@ -1340,9 +1048,254 @@ class _BookingsViewState extends State<BookingsView> {
         ],
       );
     }
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return Wrap(
+      alignment: WrapAlignment.spaceBetween,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      spacing: 16,
+      runSpacing: 10,
       children: [summary, controls],
+    );
+  }
+
+  // ─────────────────────────────────────────────
+  // Text styles
+  // ─────────────────────────────────────────────
+  TextStyle get _strong => TextStyle(
+        fontSize: 14,
+        fontWeight: FontWeight.w600,
+        color: AppColor.textPrimary,
+      );
+
+  TextStyle get _body => TextStyle(fontSize: 13.5, color: AppColor.textPrimary);
+
+  TextStyle get _caption => TextStyle(fontSize: 12.5, color: AppColor.textTertiary);
+}
+
+// ─────────────────────────────────────────────
+// Private presentation widgets
+// ─────────────────────────────────────────────
+
+/// Selectable KPI tile for the status quick-filter strip.
+class _StatusFilterTile extends StatelessWidget {
+  const _StatusFilterTile({
+    required this.label,
+    required this.count,
+    required this.tone,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final int count;
+  final AppTone tone;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final radius = BorderRadius.circular(AppRadius.lg);
+    return Material(
+      color: selected ? AppColor.primarySoft : AppColor.whiteColor,
+      shape: RoundedRectangleBorder(
+        borderRadius: radius,
+        side: BorderSide(
+          color: selected
+              ? AppColor.cAppPrimaryColor.withValues(alpha: 0.55)
+              : AppColor.divColor,
+        ),
+      ),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: radius,
+        child: Container(
+          constraints: const BoxConstraints(minWidth: 148),
+          padding: const EdgeInsets.fromLTRB(14, 12, 18, 12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 7,
+                    height: 7,
+                    decoration: BoxDecoration(
+                      color: tone.color,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    label,
+                    style: TextStyle(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w600,
+                      color: selected
+                          ? AppColor.cAppPrimaryColor
+                          : AppColor.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              Text(
+                '$count',
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: -0.4,
+                  color: AppColor.textPrimary,
+                  fontFeatures: const [FontFeature.tabularFigures()],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Table row with a hover tint and an optional bottom hairline.
+class _HoverRow extends StatefulWidget {
+  const _HoverRow({required this.child, this.showDivider = true});
+
+  final Widget child;
+  final bool showDivider;
+
+  @override
+  State<_HoverRow> createState() => _HoverRowState();
+}
+
+class _HoverRowState extends State<_HoverRow> {
+  bool _hover = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hover = true),
+      onExit: (_) => setState(() => _hover = false),
+      child: Container(
+        decoration: BoxDecoration(
+          color: _hover ? AppColor.surfaceMuted : Colors.transparent,
+          border: widget.showDivider
+              ? Border(bottom: BorderSide(color: AppColor.borderSubtle))
+              : null,
+        ),
+        child: widget.child,
+      ),
+    );
+  }
+}
+
+/// Small tinted label that ellipsizes inside narrow table cells.
+class _Pill extends StatelessWidget {
+  const _Pill({required this.text, required this.tone});
+
+  final String text;
+  final AppTone tone;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: tone.soft,
+        borderRadius: BorderRadius.circular(AppRadius.xs),
+      ),
+      child: Text(
+        text,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+          color: tone.color,
+        ),
+      ),
+    );
+  }
+}
+
+/// Muted leading icon + text, ellipsized.
+class _IconText extends StatelessWidget {
+  const _IconText({
+    required this.icon,
+    required this.text,
+    this.iconColor,
+    this.style,
+    this.maxLines = 1,
+  });
+
+  final IconData icon;
+  final String text;
+  final Color? iconColor;
+  final TextStyle? style;
+  final int maxLines;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(top: 2),
+          child: Icon(icon, size: 13, color: iconColor ?? AppColor.textTertiary),
+        ),
+        const SizedBox(width: 6),
+        Expanded(
+          child: Text(
+            text,
+            maxLines: maxLines,
+            overflow: TextOverflow.ellipsis,
+            style: style ??
+                TextStyle(fontSize: 12.5, color: AppColor.textTertiary),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Page number button for the pagination footer.
+class _PageNumber extends StatelessWidget {
+  const _PageNumber({
+    required this.number,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final int number;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final radius = BorderRadius.circular(AppRadius.sm);
+    return Material(
+      color: selected ? AppColor.cAppPrimaryColor : AppColor.whiteColor,
+      shape: RoundedRectangleBorder(
+        borderRadius: radius,
+        side: selected ? BorderSide.none : BorderSide(color: AppColor.divColor),
+      ),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: radius,
+        child: Container(
+          constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+          padding: const EdgeInsets.symmetric(horizontal: 8),
+          alignment: Alignment.center,
+          child: Text(
+            '$number',
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+              color: selected ? AppColor.buttonTextWhite : AppColor.textSecondary,
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

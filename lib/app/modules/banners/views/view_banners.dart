@@ -6,6 +6,8 @@ import 'package:toggle_switch/toggle_switch.dart';
 import '../../../core/values/color_constants.dart';
 import '../../../widgets/helper_ui.dart';
 import '../../../widgets/shimmer_loader.dart';
+import '../../../widgets/ui/ui.dart';
+import 'package:eldivex_app/app/core/values/lucide_icons.dart';
 
 
 class ViewBanners extends GetView<BannersController> {
@@ -18,6 +20,8 @@ class ViewBanners extends GetView<BannersController> {
 
   @override
   Widget build(BuildContext context) {
+    final narrow = MediaQuery.sizeOf(context).width < 600;
+    final hPad = narrow ? 16.0 : 24.0;
     return Scaffold(
       backgroundColor: AppColor.cAppBackgroundColor,
       body:  Obx(() {
@@ -28,221 +32,207 @@ class ViewBanners extends GetView<BannersController> {
 
         if (controller.loadError.value.isNotEmpty &&
             controller.allBannersData.value.isEmpty) {
-          return Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.error_outline, size: 40, color: AppColor.fontColorGrey),
-                const SizedBox(height: 8),
-                Text(controller.loadError.value,
-                    style: TextStyle(color: AppColor.fontColorGrey)),
-                const SizedBox(height: 8),
-                OutlinedButton.icon(
-                  onPressed: controller.getBannersFromApi,
-                  icon: const Icon(Icons.refresh),
-                  label: const Text('Retry'),
-                ),
-              ],
-            ),
+          return AppEmptyState(
+            icon: LucideIcons.circleAlert,
+            tone: AppTone.danger,
+            title: "Couldn't load banners",
+            message: controller.loadError.value,
+            actionLabel: 'Retry',
+            actionIcon: LucideIcons.refreshCw,
+            onAction: controller.getBannersFromApi,
           );
         }
 
         if (controller.allBannersData.value.isEmpty) {
-          return const Center(
-            child: Text(
-              "No Data Found",
-              style: TextStyle(
-                fontFamily: "poppins_regular",
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
+          return const AppEmptyState(
+            icon: LucideIcons.image,
+            title: "No Data Found",
+            message: 'Banners you create will appear here.',
           );
         }
         final banners = controller.filteredBanners;
         final rows = banners.map<DataRow>((banners) {
           return DataRow(
             cells: [
-              DataCell(Text(banners.bannerName ?? '—')),
-              DataCell(Text(banners.bannerDescription ?? '—')),
+              DataCell(Text(
+                banners.bannerName ?? '—',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: AppColor.textPrimary,
+                ),
+              )),
+              DataCell(Text(
+                banners.bannerDescription ?? '—',
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(fontSize: 13.5, color: AppColor.textSecondary),
+              )),
               DataCell(
                 InkWell(
+                  borderRadius: BorderRadius.circular(AppRadius.xs),
                   onTap: () {
                     if (banners.bannerImage != null &&
                         banners.bannerImage!.isNotEmpty) {
                       Get.dialog(
-                        Dialog(
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Container(
-                            color: AppColor.whiteColor,
-                            padding: const EdgeInsets.all(16),
-                            width: 500,
-                            height: 400,
-                            child: Column(
-                              children: [
-                                Expanded(
-                                  child: Image.network(
+                        AppDialog(
+                          title: 'Banner image',
+                          subtitle: banners.bannerName,
+                          icon: LucideIcons.image,
+                          maxWidth: 560,
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Container(
+                                height: 340,
+                                decoration: BoxDecoration(
+                                  color: AppColor.surfaceMuted,
+                                  borderRadius:
+                                      BorderRadius.circular(AppRadius.md),
+                                  border:
+                                      Border.all(color: AppColor.borderSubtle),
+                                ),
+                                clipBehavior: Clip.antiAlias,
+                                child: Image.network(
                                   banners.bannerImage!,
                                   fit: BoxFit.contain,
                                   errorBuilder: (context, error, stackTrace) {
-                                    return const Center(
-                                      child: Text("Failed to load image"),
+                                    return const AppEmptyState(
+                                      icon: LucideIcons.imageOff,
+                                      title: "Failed to load image",
+                                      compact: true,
                                     );
                                   },
                                 ),
+                              ),
+                              const SizedBox(height: 10),
+                              SelectableText(
+                                banners.bannerImage!,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: AppColor.textTertiary,
                                 ),
-                                const SizedBox(height: 10),
-                                Text(
-                                  banners.bannerImage!,
-                                  style: const TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.blue,
-                                  ),
-                                )
-                              ],
-                            ),
+                              )
+                            ],
                           ),
                         ),
                       );
                     }
                   },
-                  child: Text(
-                    "View Image",
-                    style: const TextStyle(
-                      color: Colors.blue,
-                      decoration: TextDecoration.underline,
-                      fontWeight: FontWeight.w500,
+                  child: Padding(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(LucideIcons.image,
+                            size: 16, color: AppColor.cAppPrimaryColor),
+                        const SizedBox(width: 6),
+                        Text(
+                          "View Image",
+                          style: TextStyle(
+                            fontSize: 13.5,
+                            color: AppColor.cAppPrimaryColor,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
               ),
-              DataCell(Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    SizedBox(
-                      height: 25,
-                      width: 100,
-                      child: Center(
-                        child: ToggleSwitch(
-                          minWidth: 100.0,
-                          cornerRadius: 20.0,
-                          activeBgColors: [
-                            [Colors.green[800]!],
-                            [Colors.red[800]!]
-                          ],
-                          activeFgColor: AppColor.buttonTextWhite,
-                          inactiveBgColor: AppColor.fontColorGrey,
-                          inactiveFgColor: AppColor.buttonTextWhite,
-                          changeOnTap: banners.bannerId != null &&
-                              controller.togglingBannerId.value == null,
-                          initialLabelIndex:
-                          banners.bannerStatus == 1 ? 0 : 1,
-                          totalSwitches: 2,
-                          labels: const ['Yes', 'No'],
-                          radiusStyle:
-                          true, // animate must be set to trut be set to true when using custom curve
-                          onToggle: (index) {
-                            final id = banners.bannerId;
-                            if (id == null || index == null) return;
-                            final newStatus = index == 0 ? 1 : 0;
-                            if (newStatus == (banners.bannerStatus == 1 ? 1 : 0)) return;
-                            controller.updateBannerStatus(newStatus, id);
-                          },
-                        ),
-                      ),
-                    )
-                  ],
+              DataCell(
+                SizedBox(
+                  height: 28,
+                  width: 104,
+                  child: ToggleSwitch(
+                    minWidth: 52.0,
+                    minHeight: 28.0,
+                    cornerRadius: 8.0,
+                    fontSize: 12.5,
+                    dividerColor: Colors.transparent,
+                    activeBgColors: [
+                      [AppColor.success],
+                      [AppColor.danger]
+                    ],
+                    activeFgColor: AppColor.pureWhite,
+                    inactiveBgColor: AppColor.neutralSoft,
+                    inactiveFgColor: AppColor.textSecondary,
+                    changeOnTap: banners.bannerId != null &&
+                        controller.togglingBannerId.value == null,
+                    initialLabelIndex:
+                    banners.bannerStatus == 1 ? 0 : 1,
+                    totalSwitches: 2,
+                    labels: const ['Yes', 'No'],
+                    radiusStyle:
+                    true, // animate must be set to trut be set to true when using custom curve
+                    onToggle: (index) {
+                      final id = banners.bannerId;
+                      if (id == null || index == null) return;
+                      final newStatus = index == 0 ? 1 : 0;
+                      if (newStatus == (banners.bannerStatus == 1 ? 1 : 0)) return;
+                      controller.updateBannerStatus(newStatus, id);
+                    },
+                  ),
                 ),
-              )),
+              ),
             ],
           );
         }).toList();
         return Padding(
-          padding: const EdgeInsets.all(20.0),
+          padding: EdgeInsets.fromLTRB(hPad, 20, hPad, hPad),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Container(
-                margin: const EdgeInsets.only(bottom: 12),
-                decoration: BoxDecoration(
-                  color: AppColor.whiteColor,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: AppColor.divColor),
-                ),
-                child: TextField(
-                  onChanged: controller.searchBanners,
-                  decoration: InputDecoration(
-                    hintText: 'Search banners by name or description...',
-                    prefixIcon: const Icon(Icons.search),
-                    border: InputBorder.none,
-                    contentPadding:
-                        const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                  ),
-                ),
-              ),
               Expanded(
-          child: controller.getAllBannersLoading.value
-              ? const ShimmerLoader.table()
-              : DataTable2(
-                bottomMargin: 20,
-                checkboxHorizontalMargin: 12,
-                dividerThickness: 0.5,
-                dataRowHeight: 80,
-                headingTextStyle: TextStyle(
-                  fontFamily: "poppins_regular",
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                  color: AppColor.fontColorBlack,
+                child: AppCard(
+                  expandChild: true,
+                  padding: EdgeInsets.zero,
+                  title: 'All banners',
+                  subtitle:
+                      '${banners.length} ${banners.length == 1 ? 'banner' : 'banners'}',
+                  actions: [
+                    AppSearchField(
+                      onChanged: controller.searchBanners,
+                      hint: 'Search banners by name or description...',
+                      width: narrow ? null : 340,
+                    ),
+                  ],
+                  child: controller.getAllBannersLoading.value
+                      ? const ShimmerLoader.table()
+                      : DataTable2(
+                          isVerticalScrollBarVisible: true,
+                          dataRowHeight: 60,
+                          columnSpacing: 16,
+                          horizontalMargin: 20,
+                          minWidth: 720,
+                          empty: const AppEmptyState(
+                            icon: LucideIcons.searchX,
+                            title: 'No matching banners',
+                            message: 'Try a different name or description.',
+                            compact: true,
+                          ),
+                          columns: const [
+                            DataColumn2(
+                              label: Text('Banner Name'),
+                              size: ColumnSize.M,
+                            ),
+                            DataColumn2(
+                              label: Text('Banner Description'),
+                              size: ColumnSize.L,
+                            ),
+                            DataColumn2(
+                              label: Text('Banner Image'),
+                              size: ColumnSize.S,
+                            ),
+                            DataColumn2(
+                              label: Text('Active'),
+                              fixedWidth: 140,
+                            ),
+                          ],
+                          rows: rows),
                 ),
-                dataTextStyle: TextStyle(
-                  fontFamily: "poppins_regular",
-                  fontSize: 13,
-                  color: AppColor.fontColorBlack,
-                ),
-                showBottomBorder: true,
-                isVerticalScrollBarVisible: true,
-                headingRowColor:
-                WidgetStateProperty.all<Color>(AppColor.fieldColorGrey),
-                decoration: BoxDecoration(
-                  color: AppColor.whiteColor,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                columnSpacing: 12,
-                horizontalMargin: 12,
-                border: TableBorder(
-                  horizontalInside: BorderSide(
-                    color: AppColor.divColor,
-                    width: 0.5,
-                  ),
-                  verticalInside: BorderSide(
-                    color: AppColor.divColor,
-                    width: 0.5,
-                  ),
-                ),
-                minWidth: 400,
-                columns: [
-
-                  DataColumn(
-                    label: const Text('Banner Name'),
-
-                  ),
-                  DataColumn(
-                    label: Text('Banner Description'),
-                    //numeric: true,
-                  ),
-                  DataColumn(
-                    label: const Text('Banner Image'),
-                  ),
-                  const DataColumn(
-                    label: Text('Action'),
-                    //numeric: true,
-                  ),
-                ],
-                rows: rows),
               ),
             ],
           ),

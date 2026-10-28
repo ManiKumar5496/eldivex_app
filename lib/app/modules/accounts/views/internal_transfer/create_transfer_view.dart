@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:eldivex_app/app/core/values/color_constants.dart';
+import 'package:eldivex_app/app/widgets/ui/ui.dart';
 import '../../controllers/internal_transfer_controller.dart';
 import '../../models/parse_utils.dart';
 import '../../../../routes/app_pages.dart';
 import '../../../../widgets/helper_ui.dart';
 import '../accounts_format.dart';
+import 'package:eldivex_app/app/core/values/lucide_icons.dart';
 
 class CreateTransferView extends StatefulWidget {
   const CreateTransferView({super.key});
@@ -44,28 +46,81 @@ class _CreateTransferViewState extends State<CreateTransferView> {
   Widget _fieldLabel(String label, {bool required = false}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
+      child: Text.rich(
+        TextSpan(
+          text: label,
+          children: [
+            if (required)
+              TextSpan(text: ' *', style: TextStyle(color: AppColor.danger)),
+          ],
+        ),
+        style: TextStyle(
+          fontSize: 13,
+          fontWeight: FontWeight.w600,
+          color: AppColor.textSecondary,
+        ),
+      ),
+    );
+  }
+
+  /// Theme-styled field frame for a [DropdownButton].
+  Widget _dropdownFrame({required Widget child, bool enabled = true}) {
+    return InputDecorator(
+      decoration: InputDecoration(
+        enabled: enabled,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 14),
+      ),
+      child: DropdownButtonHideUnderline(child: child),
+    );
+  }
+
+  Icon get _dropdownIcon => Icon(LucideIcons.chevronDown,
+      size: 18, color: AppColor.textTertiary);
+
+  Text _hint(String text) =>
+      Text(text, style: TextStyle(color: AppColor.textTertiary, fontSize: 14));
+
+  /// Small tinted status line under a field.
+  Widget _notice(AppTone tone, IconData icon, String text) {
+    return Container(
+      margin: const EdgeInsets.only(top: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: tone.soft,
+        borderRadius: BorderRadius.circular(AppRadius.sm),
+      ),
       child: Row(
         children: [
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-              color: AppColor.cPrimarySubHeadingColorGrey,
+          Icon(icon, size: 16, color: tone.color),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              text,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: tone.color,
+              ),
             ),
           ),
-          if (required)
-            const Text(' *', style: TextStyle(color: Colors.red, fontSize: 14)),
         ],
       ),
     );
   }
 
-  BoxDecoration _dropdownDecoration() => BoxDecoration(
-        color: AppColor.whiteColor,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColor.textFieldBorderColor),
+  /// Two columns when the card is wide enough, one on phones.
+  Widget _formGrid(List<Widget> fields) {
+    return LayoutBuilder(builder: (context, c) {
+      final cols = c.maxWidth >= 600 ? 2 : 1;
+      final w = (c.maxWidth - 20 * (cols - 1)) / cols;
+      return Wrap(
+        spacing: 20,
+        runSpacing: 16,
+        crossAxisAlignment: WrapCrossAlignment.start,
+        children: [for (final f in fields) SizedBox(width: w, child: f)],
       );
+    });
+  }
 
   // ─────────────────────────────────────────────
   // Build
@@ -73,103 +128,81 @@ class _CreateTransferViewState extends State<CreateTransferView> {
 
   @override
   Widget build(BuildContext context) {
+    final pad = MediaQuery.sizeOf(context).width < 600 ? 16.0 : 24.0;
     return Scaffold(
       backgroundColor: AppColor.cAppBackgroundColor,
-      appBar: AppBar(
-        backgroundColor: AppColor.whiteColor,
-        elevation: 0,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_new,
-              size: 18, color: AppColor.cPrimaryHeadingColor),
-          onPressed: () => HelperUi.safeBack(Routes.MAIN),
-        ),
-        title: Text(
-          'Create Internal Transfer',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w600,
-            color: AppColor.cPrimaryHeadingColor,
-          ),
-        ),
-      ),
+      bottomNavigationBar: _buildActionBar(pad),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
+        padding: EdgeInsets.all(pad),
         child: Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 720),
+            constraints: const BoxConstraints(maxWidth: 1100),
             child: Form(
               key: _formKey,
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // Warning banner
-                  _buildWarningBanner(),
+                  AppPageHeader(
+                    title: 'Create Internal Transfer',
+                    subtitle:
+                        'Move a credit balance from one booking to another',
+                    breadcrumbs: const ['Accounts', 'Internal Transfers'],
+                    onBack: () => HelperUi.safeBack(Routes.MAIN),
+                  ),
                   const SizedBox(height: 24),
 
-                  // Form card
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(24),
-                    decoration: BoxDecoration(
-                      color: AppColor.whiteColor,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: AppColor.divColor),
-                    ),
+                  // Warning banner
+                  _buildWarningBanner(),
+                  const SizedBox(height: 20),
+
+                  // Bookings
+                  AppCard(
+                    title: 'Transfer Details',
+                    subtitle: 'Client and the two bookings involved',
+                    icon: LucideIcons.arrowLeftRight,
                     child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        // Section header
-                        Row(
-                          children: [
-                            Icon(Icons.swap_horiz,
-                                color: AppColor.cPrimaryButtonColor, size: 22),
-                            const SizedBox(width: 10),
-                            Text(
-                              'Transfer Details',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                                color: AppColor.cPrimaryHeadingColor,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const Divider(height: 28),
-
                         // Client selector
-                        _buildClientSelector(),
-                        const SizedBox(height: 20),
+                        _formGrid([_buildClientSelector()]),
+                        const SizedBox(height: 16),
+                        _formGrid([
+                          // Source booking
+                          _buildSourceBookingSelector(),
+                          // Target booking
+                          _buildTargetBookingSelector(),
+                        ]),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 20),
 
-                        // Source booking
-                        _buildSourceBookingSelector(),
-                        const SizedBox(height: 20),
-
-                        // Target booking
-                        _buildTargetBookingSelector(),
-                        const SizedBox(height: 20),
-
-                        // Transfer Amount
-                        _buildAmountField(),
+                  // Amount + type
+                  AppCard(
+                    title: 'Amount',
+                    subtitle: 'How much to move and why',
+                    icon: LucideIcons.indianRupee,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        _formGrid([
+                          // Transfer Amount
+                          _buildAmountField(),
+                          // Transfer Type
+                          _buildTransferTypeDropdown(),
+                        ]),
                         const SizedBox(height: 8),
 
                         // Live preview
                         _buildLivePreview(),
-                        const SizedBox(height: 20),
+                        const SizedBox(height: 8),
 
-                        // Transfer Type
-                        _buildTransferTypeDropdown(),
-                        const SizedBox(height: 20),
-
-                        // Reason
-                        _buildReasonField(),
-                        const SizedBox(height: 20),
-
-                        // Notes
-                        _buildNotesField(),
-                        const SizedBox(height: 28),
-
-                        // Submit
-                        _buildSubmitButton(),
+                        _formGrid([
+                          // Reason
+                          _buildReasonField(),
+                          // Notes
+                          _buildNotesField(),
+                        ]),
                       ],
                     ),
                   ),
@@ -189,24 +222,23 @@ class _CreateTransferViewState extends State<CreateTransferView> {
   Widget _buildWarningBanner() {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: Colors.amber.shade50,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.amber.shade300),
+        color: AppColor.warningSoft,
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        border: Border.all(color: AppColor.warning.withValues(alpha: 0.3)),
       ),
       child: Row(
         children: [
-          Icon(Icons.info_outline_rounded,
-              color: Colors.amber.shade800, size: 22),
+          Icon(LucideIcons.info, color: AppColor.warning, size: 20),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
               'This transfer requires Finance Head approval before it takes effect.',
               style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-                color: Colors.amber.shade900,
+                fontSize: 13.5,
+                fontWeight: FontWeight.w600,
+                color: AppColor.textPrimary,
               ),
             ),
           ),
@@ -221,7 +253,7 @@ class _CreateTransferViewState extends State<CreateTransferView> {
 
   Widget _buildClientSelector() {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _fieldLabel('Client', required: true),
         Obx(() {
@@ -233,33 +265,30 @@ class _CreateTransferViewState extends State<CreateTransferView> {
             return seen.add(id);
           }).toList();
 
-          return Container(
-            height: 48,
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            decoration: _dropdownDecoration(),
-            child: DropdownButtonHideUnderline(
-              child: DropdownButton<int>(
-                isExpanded: true,
-                value: ctrl.selectedClientId.value,
-                hint: Text('Select client',
-                    style: TextStyle(
-                        color: AppColor.fontColorGrey, fontSize: 14)),
-                items: unique.map((c) {
-                  final id = toInt(field(c, 'user_id'));
-                  final name = c['client_name']?.toString() ??
-                      c['name']?.toString() ??
-                      'Client $id';
-                  return DropdownMenuItem<int>(
-                    value: id,
-                    child: Text(name, style: const TextStyle(fontSize: 14)),
-                  );
-                }).toList(),
-                onChanged: (id) {
-                  if (id == null) return;
-                  ctrl.selectedClientId.value = id;
-                  ctrl.loadClientBookings(id);
-                },
-              ),
+          return _dropdownFrame(
+            child: DropdownButton<int>(
+              isExpanded: true,
+              value: ctrl.selectedClientId.value,
+              icon: _dropdownIcon,
+              borderRadius: BorderRadius.circular(AppRadius.md),
+              hint: _hint('Select client'),
+              items: unique.map((c) {
+                final id = toInt(field(c, 'user_id'));
+                final name = c['client_name']?.toString() ??
+                    c['name']?.toString() ??
+                    'Client $id';
+                return DropdownMenuItem<int>(
+                  value: id,
+                  child: Text(name,
+                      style: TextStyle(
+                          fontSize: 14, color: AppColor.textPrimary)),
+                );
+              }).toList(),
+              onChanged: (id) {
+                if (id == null) return;
+                ctrl.selectedClientId.value = id;
+                ctrl.loadClientBookings(id);
+              },
             ),
           );
         }),
@@ -273,7 +302,7 @@ class _CreateTransferViewState extends State<CreateTransferView> {
 
   Widget _buildSourceBookingSelector() {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _fieldLabel('Source Booking (Credit)', required: true),
         Obx(() {
@@ -281,57 +310,55 @@ class _CreateTransferViewState extends State<CreateTransferView> {
           final targetId = ctrl.selectedTargetBookingId.value;
 
           return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Container(
-                height: 48,
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                decoration: _dropdownDecoration(),
-                child: DropdownButtonHideUnderline(
-                  child: DropdownButton<int>(
-                    isExpanded: true,
-                    value: ctrl.selectedSourceBookingId.value,
-                    hint: Text(
-                      bookings.isEmpty
-                          ? 'Select a client first'
-                          : 'Select source booking',
-                      style: TextStyle(
-                          color: AppColor.fontColorGrey, fontSize: 14),
-                    ),
-                    items: bookings
-                        .where((b) {
-                          final id = toInt(field(b, 'booking_id'));
-                          return id != targetId;
-                        })
-                        .map((b) {
-                          final id = toInt(field(b, 'booking_id'));
-                          final ref = b['booking_ref']?.toString() ?? '#$id';
-                          final balance = toDouble(field(b, 'outstanding_amount'));
-                          final credit = balance < 0;
-                          return DropdownMenuItem<int>(
-                            value: id,
-                            child: Row(
-                              children: [
-                                Text(ref,
-                                    style: const TextStyle(fontSize: 14)),
-                                const SizedBox(width: 8),
-                                if (credit)
-                                  Text(
-                                    'Credit: ${_formatCurrency(balance.abs())}',
-                                    style: const TextStyle(
-                                        fontSize: 12,
-                                        color: Colors.green,
-                                        fontWeight: FontWeight.w500),
-                                  ),
-                              ],
-                            ),
-                          );
-                        })
-                        .toList(),
-                    onChanged: bookings.isEmpty
-                        ? null
-                        : (id) => ctrl.onSourceBookingChanged(id),
+              _dropdownFrame(
+                enabled: bookings.isNotEmpty,
+                child: DropdownButton<int>(
+                  isExpanded: true,
+                  value: ctrl.selectedSourceBookingId.value,
+                  icon: _dropdownIcon,
+                  borderRadius: BorderRadius.circular(AppRadius.md),
+                  hint: _hint(
+                    bookings.isEmpty
+                        ? 'Select a client first'
+                        : 'Select source booking',
                   ),
+                  items: bookings
+                      .where((b) {
+                        final id = toInt(field(b, 'booking_id'));
+                        return id != targetId;
+                      })
+                      .map((b) {
+                        final id = toInt(field(b, 'booking_id'));
+                        final ref = b['booking_ref']?.toString() ?? '#$id';
+                        final balance = toDouble(field(b, 'outstanding_amount'));
+                        final credit = balance < 0;
+                        return DropdownMenuItem<int>(
+                          value: id,
+                          child: Row(
+                            children: [
+                              Text(ref,
+                                  style: TextStyle(
+                                      fontSize: 14,
+                                      color: AppColor.textPrimary)),
+                              const SizedBox(width: 8),
+                              if (credit)
+                                Text(
+                                  'Credit: ${_formatCurrency(balance.abs())}',
+                                  style: TextStyle(
+                                      fontSize: 12,
+                                      color: AppColor.success,
+                                      fontWeight: FontWeight.w600),
+                                ),
+                            ],
+                          ),
+                        );
+                      })
+                      .toList(),
+                  onChanged: bookings.isEmpty
+                      ? null
+                      : (id) => ctrl.onSourceBookingChanged(id),
                 ),
               ),
 
@@ -340,44 +367,14 @@ class _CreateTransferViewState extends State<CreateTransferView> {
                 final ob = ctrl.sourceBookingOutstanding.value;
                 if (ob == null) return const SizedBox.shrink();
                 final credit = ob.outstandingAmount < 0;
-                return Container(
-                  margin: const EdgeInsets.only(top: 10),
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: credit
-                        ? Colors.green.shade50
-                        : Colors.orange.shade50,
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(
-                      color: credit
-                          ? Colors.green.shade200
-                          : Colors.orange.shade200,
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        credit
-                            ? Icons.check_circle_outline
-                            : Icons.warning_amber_outlined,
-                        size: 18,
-                        color: credit ? Colors.green : Colors.orange,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        credit
-                            ? 'Available credit: ${_formatCurrency(ob.outstandingAmount.abs())}'
-                            : 'No credit available — Outstanding: ${_formatCurrency(ob.outstandingAmount)}',
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w500,
-                          color: credit
-                              ? Colors.green.shade800
-                              : Colors.orange.shade800,
-                        ),
-                      ),
-                    ],
-                  ),
+                return _notice(
+                  credit ? AppTone.success : AppTone.warning,
+                  credit
+                      ? LucideIcons.circleCheck
+                      : LucideIcons.triangleAlert,
+                  credit
+                      ? 'Available credit: ${_formatCurrency(ob.outstandingAmount.abs())}'
+                      : 'No credit available — Outstanding: ${_formatCurrency(ob.outstandingAmount)}',
                 );
               }),
             ],
@@ -393,7 +390,7 @@ class _CreateTransferViewState extends State<CreateTransferView> {
 
   Widget _buildTargetBookingSelector() {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _fieldLabel('Target Booking (Outstanding)', required: true),
         Obx(() {
@@ -401,42 +398,39 @@ class _CreateTransferViewState extends State<CreateTransferView> {
           final sourceId = ctrl.selectedSourceBookingId.value;
 
           return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Container(
-                height: 48,
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                decoration: _dropdownDecoration(),
-                child: DropdownButtonHideUnderline(
-                  child: DropdownButton<int>(
-                    isExpanded: true,
-                    value: ctrl.selectedTargetBookingId.value,
-                    hint: Text(
-                      bookings.isEmpty
-                          ? 'Select a client first'
-                          : 'Select target booking',
-                      style: TextStyle(
-                          color: AppColor.fontColorGrey, fontSize: 14),
-                    ),
-                    items: bookings
-                        .where((b) {
-                          final id = toInt(field(b, 'booking_id'));
-                          return id != sourceId;
-                        })
-                        .map((b) {
-                          final id = toInt(field(b, 'booking_id'));
-                          final ref = b['booking_ref']?.toString() ?? '#$id';
-                          return DropdownMenuItem<int>(
-                            value: id,
-                            child: Text(ref,
-                                style: const TextStyle(fontSize: 14)),
-                          );
-                        })
-                        .toList(),
-                    onChanged: bookings.isEmpty
-                        ? null
-                        : (id) => ctrl.onTargetBookingChanged(id),
+              _dropdownFrame(
+                enabled: bookings.isNotEmpty,
+                child: DropdownButton<int>(
+                  isExpanded: true,
+                  value: ctrl.selectedTargetBookingId.value,
+                  icon: _dropdownIcon,
+                  borderRadius: BorderRadius.circular(AppRadius.md),
+                  hint: _hint(
+                    bookings.isEmpty
+                        ? 'Select a client first'
+                        : 'Select target booking',
                   ),
+                  items: bookings
+                      .where((b) {
+                        final id = toInt(field(b, 'booking_id'));
+                        return id != sourceId;
+                      })
+                      .map((b) {
+                        final id = toInt(field(b, 'booking_id'));
+                        final ref = b['booking_ref']?.toString() ?? '#$id';
+                        return DropdownMenuItem<int>(
+                          value: id,
+                          child: Text(ref,
+                              style: TextStyle(
+                                  fontSize: 14, color: AppColor.textPrimary)),
+                        );
+                      })
+                      .toList(),
+                  onChanged: bookings.isEmpty
+                      ? null
+                      : (id) => ctrl.onTargetBookingChanged(id),
                 ),
               ),
 
@@ -445,44 +439,14 @@ class _CreateTransferViewState extends State<CreateTransferView> {
                 final ob = ctrl.targetBookingOutstanding.value;
                 if (ob == null) return const SizedBox.shrink();
                 final hasOutstanding = ob.outstandingAmount > 0;
-                return Container(
-                  margin: const EdgeInsets.only(top: 10),
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: hasOutstanding
-                        ? Colors.red.shade50
-                        : Colors.green.shade50,
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(
-                      color: hasOutstanding
-                          ? Colors.red.shade200
-                          : Colors.green.shade200,
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        hasOutstanding
-                            ? Icons.receipt_long_outlined
-                            : Icons.check_circle_outline,
-                        size: 18,
-                        color: hasOutstanding ? Colors.red : Colors.green,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        hasOutstanding
-                            ? 'Outstanding: ${_formatCurrency(ob.outstandingAmount)}'
-                            : 'No outstanding amount',
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w500,
-                          color: hasOutstanding
-                              ? Colors.red.shade800
-                              : Colors.green.shade800,
-                        ),
-                      ),
-                    ],
-                  ),
+                return _notice(
+                  hasOutstanding ? AppTone.danger : AppTone.success,
+                  hasOutstanding
+                      ? LucideIcons.receiptText
+                      : LucideIcons.circleCheck,
+                  hasOutstanding
+                      ? 'Outstanding: ${_formatCurrency(ob.outstandingAmount)}'
+                      : 'No outstanding amount',
                 );
               }),
             ],
@@ -498,7 +462,7 @@ class _CreateTransferViewState extends State<CreateTransferView> {
 
   Widget _buildAmountField() {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Obx(() {
           final src = ctrl.sourceBookingOutstanding.value;
@@ -516,31 +480,14 @@ class _CreateTransferViewState extends State<CreateTransferView> {
         TextFormField(
           controller: ctrl.transferAmountCtrl,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          style: const TextStyle(fontSize: 14),
+          style: TextStyle(fontSize: 14, color: AppColor.textPrimary),
           decoration: InputDecoration(
             hintText: 'e.g. 5000.00',
-            hintStyle:
-                TextStyle(color: AppColor.fontColorGrey, fontSize: 14),
             prefixText: '₹  ',
-            prefixStyle: const TextStyle(
-                fontSize: 14, fontWeight: FontWeight.w500),
-            filled: true,
-            fillColor: AppColor.whiteColor,
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: AppColor.textFieldBorderColor),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: AppColor.textFieldBorderColor),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide:
-                  BorderSide(color: AppColor.cPrimaryButtonColor, width: 1.5),
-            ),
+            prefixStyle: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: AppColor.textSecondary),
           ),
           validator: (v) {
             if (v == null || v.trim().isEmpty) return 'Required';
@@ -572,27 +519,26 @@ class _CreateTransferViewState extends State<CreateTransferView> {
       final tgtAfter = tgt != null ? tgt.outstandingAmount - amount : null;
 
       return Container(
-        margin: const EdgeInsets.only(top: 4, bottom: 4),
+        margin: const EdgeInsets.only(top: 8, bottom: 8),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.blue.shade50,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.blue.shade100),
+          color: AppColor.surfaceMuted,
+          borderRadius: BorderRadius.circular(AppRadius.md),
+          border: Border.all(color: AppColor.borderSubtle),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
-                Icon(Icons.preview_outlined,
-                    size: 16, color: Colors.blue.shade700),
+                Icon(LucideIcons.eye, size: 16, color: AppColor.info),
                 const SizedBox(width: 6),
                 Text(
                   'Transfer Preview',
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
-                    color: Colors.blue.shade700,
+                    color: AppColor.textPrimary,
                   ),
                 ),
               ],
@@ -609,7 +555,7 @@ class _CreateTransferViewState extends State<CreateTransferView> {
                     ),
                   ),
                 if (src != null && tgt != null && tgtAfter != null)
-                  const SizedBox(width: 16),
+                  const SizedBox(width: 12),
                 if (tgt != null && tgtAfter != null)
                   Expanded(
                     child: _previewColumn(
@@ -632,44 +578,46 @@ class _CreateTransferViewState extends State<CreateTransferView> {
     required double after,
   }) {
     final improved = after < before;
+    final tone = improved ? AppColor.success : AppColor.danger;
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: AppColor.whiteColor,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.blue.shade100),
+        borderRadius: BorderRadius.circular(AppRadius.sm),
+        border: Border.all(color: AppColor.divColor),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(label,
               style: TextStyle(
-                  fontSize: 11,
-                  color: AppColor.fontColorGrey,
-                  fontWeight: FontWeight.w500)),
+                  fontSize: 12,
+                  color: AppColor.textTertiary,
+                  fontWeight: FontWeight.w600)),
           const SizedBox(height: 6),
-          Row(
+          Wrap(
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 6,
+            runSpacing: 4,
             children: [
               Text(
                 _formatCurrency(before),
                 style: TextStyle(
                     fontSize: 13,
-                    color: AppColor.fontColorGrey,
+                    color: AppColor.textTertiary,
                     decoration: TextDecoration.lineThrough),
               ),
-              const SizedBox(width: 8),
               Icon(
-                improved ? Icons.arrow_downward : Icons.arrow_upward,
+                improved ? LucideIcons.arrowDown : LucideIcons.arrowUp,
                 size: 14,
-                color: improved ? Colors.green : Colors.red,
+                color: tone,
               ),
-              const SizedBox(width: 4),
               Text(
                 _formatCurrency(after),
                 style: TextStyle(
                   fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                  color: improved ? Colors.green.shade700 : Colors.red.shade700,
+                  fontWeight: FontWeight.w600,
+                  color: tone,
                 ),
               ),
             ],
@@ -685,28 +633,26 @@ class _CreateTransferViewState extends State<CreateTransferView> {
 
   Widget _buildTransferTypeDropdown() {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _fieldLabel('Transfer Type', required: true),
-        Obx(() => Container(
-              height: 48,
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              decoration: _dropdownDecoration(),
-              child: DropdownButtonHideUnderline(
-                child: DropdownButton<String>(
-                  isExpanded: true,
-                  value: ctrl.transferType.value,
-                  items: _transferTypes
-                      .map((t) => DropdownMenuItem<String>(
-                            value: t['value'],
-                            child: Text(t['label']!,
-                                style: const TextStyle(fontSize: 14)),
-                          ))
-                      .toList(),
-                  onChanged: (v) {
-                    if (v != null) ctrl.transferType.value = v;
-                  },
-                ),
+        Obx(() => _dropdownFrame(
+              child: DropdownButton<String>(
+                isExpanded: true,
+                value: ctrl.transferType.value,
+                icon: _dropdownIcon,
+                borderRadius: BorderRadius.circular(AppRadius.md),
+                items: _transferTypes
+                    .map((t) => DropdownMenuItem<String>(
+                          value: t['value'],
+                          child: Text(t['label']!,
+                              style: TextStyle(
+                                  fontSize: 14, color: AppColor.textPrimary)),
+                        ))
+                    .toList(),
+                onChanged: (v) {
+                  if (v != null) ctrl.transferType.value = v;
+                },
               ),
             )),
       ],
@@ -719,34 +665,15 @@ class _CreateTransferViewState extends State<CreateTransferView> {
 
   Widget _buildReasonField() {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _fieldLabel('Reason', required: true),
         TextFormField(
           controller: ctrl.reasonCtrl,
           maxLines: 3,
-          style: const TextStyle(fontSize: 14),
-          decoration: InputDecoration(
+          style: TextStyle(fontSize: 14, color: AppColor.textPrimary),
+          decoration: const InputDecoration(
             hintText: 'Explain why this transfer is required...',
-            hintStyle:
-                TextStyle(color: AppColor.fontColorGrey, fontSize: 14),
-            filled: true,
-            fillColor: AppColor.whiteColor,
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: AppColor.textFieldBorderColor),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: AppColor.textFieldBorderColor),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide:
-                  BorderSide(color: AppColor.cPrimaryButtonColor, width: 1.5),
-            ),
           ),
           validator: (v) {
             if (v == null || v.trim().isEmpty) return 'Reason is required';
@@ -763,34 +690,15 @@ class _CreateTransferViewState extends State<CreateTransferView> {
 
   Widget _buildNotesField() {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _fieldLabel('Notes (optional)'),
         TextFormField(
           controller: ctrl.notesCtrl,
-          maxLines: 2,
-          style: const TextStyle(fontSize: 14),
-          decoration: InputDecoration(
+          maxLines: 3,
+          style: TextStyle(fontSize: 14, color: AppColor.textPrimary),
+          decoration: const InputDecoration(
             hintText: 'Additional notes...',
-            hintStyle:
-                TextStyle(color: AppColor.fontColorGrey, fontSize: 14),
-            filled: true,
-            fillColor: AppColor.whiteColor,
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: AppColor.textFieldBorderColor),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: AppColor.textFieldBorderColor),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide:
-                  BorderSide(color: AppColor.cPrimaryButtonColor, width: 1.5),
-            ),
           ),
         ),
       ],
@@ -798,48 +706,61 @@ class _CreateTransferViewState extends State<CreateTransferView> {
   }
 
   // ─────────────────────────────────────────────
-  // Submit button
+  // Bottom action bar (Cancel + Submit)
   // ─────────────────────────────────────────────
 
+  Widget _buildActionBar(double pad) {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColor.whiteColor,
+        border: Border(top: BorderSide(color: AppColor.divColor)),
+      ),
+      padding: EdgeInsets.symmetric(horizontal: pad, vertical: 12),
+      child: SafeArea(
+        top: false,
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 1100),
+            child: Wrap(
+              alignment: WrapAlignment.end,
+              spacing: 12,
+              runSpacing: 8,
+              children: [
+                OutlinedButton(
+                  onPressed: () => HelperUi.safeBack(Routes.MAIN),
+                  child: const Text('Cancel'),
+                ),
+                _buildSubmitButton(),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildSubmitButton() {
-    return Obx(() => SizedBox(
-          width: double.infinity,
-          height: 48,
-          child: ElevatedButton.icon(
-            onPressed: ctrl.isSubmitting.value
-                ? null
-                : () async {
-                    if (_formKey.currentState?.validate() ?? false) {
-                      final ok = await ctrl.createTransfer();
-                      if (ok) HelperUi.safeBack(Routes.MAIN);
-                    }
-                  },
-            icon: ctrl.isSubmitting.value
-                ? SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(
-                        color: AppColor.buttonTextWhite, strokeWidth: 2),
-                  )
-                : Icon(Icons.send_rounded,
-                    color: AppColor.buttonTextWhite, size: 18),
-            label: Text(
-              ctrl.isSubmitting.value
-                  ? 'Submitting...'
-                  : 'Submit Transfer for Approval',
-              style: TextStyle(
-                color: AppColor.buttonTextWhite,
-                fontSize: 15,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColor.cPrimaryButtonColor,
-              disabledBackgroundColor:
-                  AppColor.cPrimaryButtonColor.withValues(alpha: 0.5),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12)),
-            ),
+    return Obx(() => ElevatedButton.icon(
+          onPressed: ctrl.isSubmitting.value
+              ? null
+              : () async {
+                  if (_formKey.currentState?.validate() ?? false) {
+                    final ok = await ctrl.createTransfer();
+                    if (ok) HelperUi.safeBack(Routes.MAIN);
+                  }
+                },
+          icon: ctrl.isSubmitting.value
+              ? SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(
+                      color: AppColor.cAppPrimaryColor, strokeWidth: 2),
+                )
+              : const Icon(LucideIcons.send, size: 18),
+          label: Text(
+            ctrl.isSubmitting.value
+                ? 'Submitting...'
+                : 'Submit Transfer for Approval',
           ),
         ));
   }

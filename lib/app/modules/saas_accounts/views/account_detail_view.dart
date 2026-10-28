@@ -9,6 +9,7 @@ import 'widgets/destructive_action_dialog.dart';
 import 'widgets/plan_chip.dart';
 import 'widgets/status_transition_dialog.dart';
 import 'widgets/usage_progress_bar.dart';
+import 'package:eldivex_app/app/core/values/lucide_icons.dart';
 
 class AccountDetailView extends GetView<SaasAccountsController> {
   const AccountDetailView({super.key, required this.account});
@@ -22,7 +23,7 @@ class AccountDetailView extends GetView<SaasAccountsController> {
         backgroundColor: AppColor.whiteColor,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: AppColor.fontColorBlack),
+          icon: Icon(LucideIcons.arrowLeft, color: AppColor.fontColorBlack),
           onPressed: () => Get.back(),
         ),
         title: Text(account.name,
@@ -210,7 +211,7 @@ class _ActionMenu extends GetView<SaasAccountsController> {
   @override
   Widget build(BuildContext context) {
     return PopupMenuButton<String>(
-      icon: Icon(Icons.more_vert, color: AppColor.fontColorBlack),
+      icon: Icon(LucideIcons.ellipsisVertical, color: AppColor.fontColorBlack),
       onSelected: (v) => _onAction(context, v),
       itemBuilder: (_) => [
         const PopupMenuItem(value: 'transition', child: Text('Change Status')),

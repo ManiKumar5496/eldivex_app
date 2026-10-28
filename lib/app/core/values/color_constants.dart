@@ -22,7 +22,7 @@ class AppColor {
   // canvas without harsh contrast.
   /// Scaffold / page background.
   static Color get cAppBackgroundColor =>
-      ThemeState.mode(HexColor.fromHex('#F8FAFC'), HexColor.fromHex('#0B0F17'));
+      ThemeState.mode(HexColor.fromHex('#F2F4F7'), HexColor.fromHex('#0B0F17'));
 
   /// Card / panel / app-bar / sidebar surface. Historically "white"; now
   /// theme-aware so the thousands of `AppColor.whiteColor` surfaces flip.
@@ -66,6 +66,65 @@ class AppColor {
   static Color get pisioCColor => HexColor.fromHex('#E6672D');
   static Color get dioCColor => HexColor.fromHex('#E6672D');
   static Color get calenderRed => HexColor.fromHex('#FF6467');
+
+  // ── Semantic UI tokens (design system) ──────────────────────────────────────
+  // Prefer these in new/updated UI. Each "soft" token is a low-alpha tint of
+  // its base, for badge/icon-tile/selected backgrounds.
+
+  /// Primary tint for selected nav items, icon tiles and soft buttons.
+  static Color get primarySoft =>
+      ThemeState.primary.withValues(alpha: ThemeState.isDark ? 0.18 : 0.08);
+
+  /// Table header / hover / zebra surface — a half step off [whiteColor].
+  static Color get surfaceMuted =>
+      ThemeState.mode(HexColor.fromHex('#F7F8FA'), HexColor.fromHex('#1A212D'));
+
+  // ── Sidebar (brand rail) ────────────────────────────────────────────────────
+  // A deep shade of the palette primary with white-alpha content, so the rail
+  // carries the brand and follows the selected palette.
+
+  static Color get sidebarBg => ThemeState.sidebar;
+  static Color get sidebarFg => pureWhite.withValues(alpha: 0.94);
+  static Color get sidebarFgMuted => pureWhite.withValues(alpha: 0.66);
+  static Color get sidebarFgSubtle => pureWhite.withValues(alpha: 0.42);
+  static Color get sidebarHover => pureWhite.withValues(alpha: 0.06);
+  static Color get sidebarActiveBg => pureWhite.withValues(alpha: 0.12);
+  static Color get sidebarBorder => pureWhite.withValues(alpha: 0.08);
+
+  /// Active-item marker — the palette accent (cyan for the default Blue).
+  static Color get sidebarAccent => ThemeState.accent;
+
+  /// Hairline inside cards (row dividers, header separators).
+  static Color get borderSubtle =>
+      ThemeState.mode(HexColor.fromHex('#EEF0F3'), HexColor.fromHex('#222A36'));
+
+  /// Outline of interactive controls (inputs, secondary buttons).
+  static Color get borderStrong =>
+      ThemeState.mode(HexColor.fromHex('#D0D5DD'), HexColor.fromHex('#3A4454'));
+
+  static Color get textPrimary => cPrimaryHeadingColor;
+  static Color get textSecondary => cPrimarySubHeadingColorGrey;
+  static Color get textTertiary => fontColorGrey;
+
+  static Color get success =>
+      ThemeState.mode(HexColor.fromHex('#16A34A'), HexColor.fromHex('#4ADE80'));
+  static Color get warning =>
+      ThemeState.mode(HexColor.fromHex('#D97706'), HexColor.fromHex('#FBBF24'));
+  static Color get danger =>
+      ThemeState.mode(HexColor.fromHex('#DC2626'), HexColor.fromHex('#F87171'));
+  static Color get info =>
+      ThemeState.mode(HexColor.fromHex('#2563EB'), HexColor.fromHex('#60A5FA'));
+  static Color get violet =>
+      ThemeState.mode(HexColor.fromHex('#7C3AED'), HexColor.fromHex('#A78BFA'));
+
+  static Color get successSoft => success.withValues(alpha: _softAlpha);
+  static Color get warningSoft => warning.withValues(alpha: _softAlpha);
+  static Color get dangerSoft => danger.withValues(alpha: _softAlpha);
+  static Color get infoSoft => info.withValues(alpha: _softAlpha);
+  static Color get violetSoft => violet.withValues(alpha: _softAlpha);
+  static Color get neutralSoft => fontColorGrey.withValues(alpha: _softAlpha);
+
+  static double get _softAlpha => ThemeState.isDark ? 0.16 : 0.10;
 
   // ── Always-on tokens (never remapped to a surface) ──────────────────────────
   /// Text / icon color that sits on top of a colored (primary) button — stays

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:eldivex_app/app/core/values/color_constants.dart';
-import 'package:eldivex_app/app/core/values/text_style_constants.dart';
+import 'package:eldivex_app/app/widgets/ui/ui.dart';
 import '../../controllers/outstanding_controller.dart';
 import '../../models/outstanding_balance_model.dart';
 import '../../models/transaction_entry_model.dart';
@@ -9,6 +9,7 @@ import '../../models/parse_utils.dart';
 import '../../../../routes/app_pages.dart';
 import '../../../../widgets/helper_ui.dart';
 import '../accounts_format.dart';
+import 'package:eldivex_app/app/core/values/lucide_icons.dart';
 
 class BookingOutstandingDetail extends GetView<OutstandingController> {
   const BookingOutstandingDetail({super.key});
@@ -19,22 +20,22 @@ class BookingOutstandingDetail extends GetView<OutstandingController> {
 
   String _formatDate(String? raw) => formatAccDate(raw, pattern: 'dd/MM/yyyy', empty: '-');
 
-  Color _typeColor(String type) {
+  AppTone _typeTone(String type) {
     switch (type.toUpperCase()) {
       case 'INVOICE':
-        return Colors.blue;
+        return AppTone.info;
       case 'PAYMENT':
-        return Colors.green;
+        return AppTone.success;
       case 'CREDIT_NOTE':
-        return AppColor.cPrimaryButtonColor;
+        return AppTone.primary;
       case 'WRITE_OFF':
-        return Colors.orange;
+        return AppTone.warning;
       case 'REFUND':
-        return Colors.purple;
+        return AppTone.violet;
       case 'REVERSAL':
-        return Colors.red.shade800;
+        return AppTone.danger;
       default:
-        return AppColor.fontColorGrey;
+        return AppTone.neutral;
     }
   }
 
@@ -61,51 +62,62 @@ class BookingOutstandingDetail extends GetView<OutstandingController> {
       });
     }
 
+    final pad = MediaQuery.sizeOf(context).width < 600 ? 16.0 : 24.0;
     return Scaffold(
-      appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => HelperUi.safeBack(Routes.MAIN),
-        ),
-        title: Text('Booking Outstanding', style: AppTextStyles.semiBold18),
-        centerTitle: false,
-        backgroundColor: AppColor.whiteColor,
-        foregroundColor: AppColor.cPrimaryHeadingColor,
-        elevation: 0,
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(1),
-          child: Divider(height: 1, color: AppColor.divColor),
+      backgroundColor: AppColor.cAppBackgroundColor,
+      body: SingleChildScrollView(
+        padding: EdgeInsets.all(pad),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 1200),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                AppPageHeader(
+                  title: 'Booking Outstanding',
+                  subtitle: bookingId > 0
+                      ? (service.isNotEmpty ? '$bookingRef · $service' : bookingRef)
+                      : null,
+                  breadcrumbs: const ['Accounts', 'Receivables'],
+                  onBack: () => HelperUi.safeBack(Routes.MAIN),
+                ),
+                const SizedBox(height: 24),
+                Obx(() {
+                  // Read an observable on every path so Obx always subscribes.
+                  final loading = controller.isLoading.value;
+                  if (bookingId <= 0) {
+                    return recordNotFound(
+                        title: 'Booking',
+                        onBack: () => HelperUi.safeBack(Routes.MAIN));
+                  }
+                  if (loading) {
+                    return const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 64),
+                      child: Center(child: CircularProgressIndicator()),
+                    );
+                  }
+
+                  final loaded = controller.bookingOutstanding.value;
+                  final obs = loaded?.bookingId == bookingId ? loaded : null;
+
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _buildBookingHeader(bookingRef, service, obs),
+                      const SizedBox(height: 20),
+                      if (obs != null) ...[
+                        _buildBreakdownCards(obs),
+                        const SizedBox(height: 20),
+                      ],
+                      _buildLedgerSection(bookingId),
+                    ],
+                  );
+                }),
+              ],
+            ),
+          ),
         ),
       ),
-      backgroundColor: AppColor.cAppBackgroundColor,
-      body: Obx(() {
-        if (bookingId <= 0) {
-          return recordNotFound(
-              title: 'Booking', onBack: () => HelperUi.safeBack(Routes.MAIN));
-        }
-        if (controller.isLoading.value) {
-          return const Center(child: CircularProgressIndicator());
-        }
-
-        final loaded = controller.bookingOutstanding.value;
-        final obs = loaded?.bookingId == bookingId ? loaded : null;
-
-        return SingleChildScrollView(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildBookingHeader(bookingRef, service, obs),
-              const SizedBox(height: 20),
-              if (obs != null) ...[
-                _buildBreakdownCards(obs),
-                const SizedBox(height: 24),
-              ],
-              _buildLedgerSection(bookingId),
-            ],
-          ),
-        );
-      }),
     );
   }
 
@@ -116,77 +128,77 @@ class BookingOutstandingDetail extends GetView<OutstandingController> {
     final outstanding = obs?.outstandingAmount ?? 0.0;
     final isOwed      = outstanding > 0;
 
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: AppColor.whiteColor,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColor.divColor),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+    final identity = Row(
+      children: [
+        const AppIconTile(icon: LucideIcons.calendarDays, size: 48),
+        const SizedBox(width: 14),
+        Flexible(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color: AppColor.cPrimaryButtonColor.withValues(alpha: 0.08),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  bookingRef,
-                  style: TextStyle(
-                    color: AppColor.cPrimaryButtonColor,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 14,
-                  ),
+              Text(
+                bookingRef,
+                style: TextStyle(
+                  color: AppColor.textPrimary,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 16,
                 ),
               ),
-              if (service.isNotEmpty) ...[
-                const SizedBox(width: 10),
+              if (service.isNotEmpty)
                 Text(service,
-                    style: TextStyle(fontSize: 14, color: AppColor.fontColorGrey)),
-              ],
+                    style: TextStyle(
+                        fontSize: 13, color: AppColor.textTertiary)),
             ],
           ),
-          const SizedBox(height: 20),
-          Center(
-            child: Column(
-              children: [
-                Text('Outstanding Amount',
-                    style: TextStyle(fontSize: 13, color: AppColor.fontColorGrey)),
-                const SizedBox(height: 6),
-                Text(
-                  _fmt(outstanding),
-                  style: TextStyle(
-                    fontSize: 36,
-                    fontWeight: FontWeight.w800,
-                    color: isOwed ? Colors.red : Colors.green,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: (isOwed ? Colors.red : Colors.green).withValues(alpha: 0.08),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    isOwed ? 'Amount Owed' : 'Fully Settled',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                      color: isOwed ? Colors.red : Colors.green,
-                    ),
-                  ),
-                ),
-              ],
-            ),
+        ),
+      ],
+    );
+
+    final amount = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text('Outstanding Amount',
+            style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: AppColor.textSecondary)),
+        const SizedBox(height: 4),
+        Text(
+          _fmt(outstanding),
+          style: TextStyle(
+            fontSize: 30,
+            fontWeight: FontWeight.w700,
+            letterSpacing: -0.6,
+            color: isOwed ? AppColor.danger : AppColor.success,
+            fontFeatures: const [FontFeature.tabularFigures()],
           ),
-        ],
-      ),
+        ),
+        const SizedBox(height: 6),
+        AppStatusBadge(
+          label: isOwed ? 'Amount Owed' : 'Fully Settled',
+          tone: isOwed ? AppTone.danger : AppTone.success,
+        ),
+      ],
+    );
+
+    return AppCard(
+      child: LayoutBuilder(builder: (context, c) {
+        if (c.maxWidth < 560) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [identity, const SizedBox(height: 20), amount],
+          );
+        }
+        return Row(
+          children: [
+            Expanded(child: identity),
+            const SizedBox(width: 16),
+            amount,
+          ],
+        );
+      }),
     );
   }
 
@@ -194,170 +206,114 @@ class BookingOutstandingDetail extends GetView<OutstandingController> {
 
   Widget _buildBreakdownCards(OutstandingBalanceModel obs) {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text('Breakdown', style: AppTextStyles.semiBold16),
+        const AppSectionTitle(title: 'Breakdown'),
         const SizedBox(height: 12),
-        Wrap(
-          spacing: 12,
-          runSpacing: 12,
+        AppResponsiveGrid(
+          minItemWidth: 170,
+          maxColumns: 3,
           children: [
-            _summaryBox('Billed',          _fmt(obs.totalBilled),            Colors.blue),
-            _summaryBox('Paid',            _fmt(obs.totalPaid),              Colors.green),
-            _summaryBox('Write-off',       _fmt(obs.totalWriteOff),          Colors.orange),
-            _summaryBox('Credit Applied',  _fmt(obs.totalCreditNoteApplied), AppColor.cPrimaryButtonColor),
-            _summaryBox('Refunded',        _fmt(obs.totalRefunded),          Colors.purple),
-            _summaryBox('Net Outstanding', _fmt(obs.outstandingAmount),
-                obs.outstandingAmount > 0 ? Colors.red : Colors.green),
+            _summaryBox('Billed', _fmt(obs.totalBilled), AppTone.info,
+                LucideIcons.receiptText),
+            _summaryBox('Paid', _fmt(obs.totalPaid), AppTone.success,
+                LucideIcons.banknote),
+            _summaryBox('Write-off', _fmt(obs.totalWriteOff), AppTone.warning,
+                LucideIcons.banknoteX),
+            _summaryBox('Credit Applied', _fmt(obs.totalCreditNoteApplied),
+                AppTone.primary, LucideIcons.notebookPen),
+            _summaryBox('Refunded', _fmt(obs.totalRefunded), AppTone.violet,
+                LucideIcons.arrowLeftRight),
+            _summaryBox(
+                'Net Outstanding',
+                _fmt(obs.outstandingAmount),
+                obs.outstandingAmount > 0 ? AppTone.danger : AppTone.success,
+                LucideIcons.wallet),
           ],
         ),
       ],
     );
   }
 
-  Widget _summaryBox(String label, String value, Color color) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.06),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: color.withValues(alpha: 0.18)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(label, style: TextStyle(fontSize: 11, color: AppColor.fontColorGrey)),
-          const SizedBox(height: 6),
-          Text(value,
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: color)),
-        ],
-      ),
-    );
+  Widget _summaryBox(String label, String value, AppTone tone, IconData icon) {
+    return AppStatCard(label: label, value: value, tone: tone, icon: icon);
   }
 
   // ─── transaction ledger ────────────────────────────────────────────────────
 
   Widget _buildLedgerSection(int bookingId) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
+    return AppCard(
+      title: 'Transaction Ledger',
+      icon: LucideIcons.receiptText,
+      padding: EdgeInsets.zero,
+      actions: const [
+        AppStatusBadge(label: 'Last 50 entries', showDot: false, dense: true),
+      ],
+      child: Obx(() {
+        if (controller.isLedgerLoading.value && controller.ledgerEntries.isEmpty) {
+          return const Center(
+            child: Padding(
+              padding: EdgeInsets.all(32),
+              child: CircularProgressIndicator(),
+            ),
+          );
+        }
+
+        final entries = controller.ledgerEntries;
+
+        if (entries.isEmpty) {
+          return const AppEmptyState(
+            icon: LucideIcons.receiptText,
+            title: 'No transactions recorded',
+            compact: true,
+          );
+        }
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text('Transaction Ledger', style: AppTextStyles.semiBold18),
-            const SizedBox(width: 10),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: AppColor.fontColorGrey.withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Text(
-                'Last 50 entries',
-                style: TextStyle(fontSize: 11, color: AppColor.fontColorGrey),
-              ),
+            horizontalTable(DataTable(
+              columns: const [
+                DataColumn(label: Text('Date')),
+                DataColumn(label: Text('Type')),
+                DataColumn(label: Text('Dir')),
+                DataColumn(label: Text('Amount'),          numeric: true),
+                DataColumn(label: Text('Running Balance'), numeric: true),
+                DataColumn(label: Text('Reference')),
+                DataColumn(label: Text('Description')),
+              ],
+              rows: entries.map((e) => _ledgerRow(e)).toList(),
+            )),
+            Divider(height: 1, color: AppColor.borderSubtle),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              child: _buildLoadMoreButton(),
             ),
           ],
-        ),
-        const SizedBox(height: 12),
-        Obx(() {
-          if (controller.isLedgerLoading.value && controller.ledgerEntries.isEmpty) {
-            return const Center(
-              child: Padding(
-                padding: EdgeInsets.all(32),
-                child: CircularProgressIndicator(),
-              ),
-            );
-          }
-
-          final entries = controller.ledgerEntries;
-
-          if (entries.isEmpty) {
-            return Center(
-              child: Padding(
-                padding: const EdgeInsets.all(32),
-                child: Column(
-                  children: [
-                    Icon(Icons.receipt_long_outlined,
-                        size: 56, color: AppColor.divColor),
-                    const SizedBox(height: 12),
-                    Text('No transactions recorded', style: AppTextStyles.regular16Gre),
-                  ],
-                ),
-              ),
-            );
-          }
-
-          return Column(
-            children: [
-              Container(
-                decoration: BoxDecoration(
-                  color: AppColor.whiteColor,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColor.divColor),
-                ),
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: DataTable(
-                    headingRowColor: WidgetStateProperty.all(AppColor.fieldColorGrey),
-                    headingTextStyle: TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 13,
-                      color: AppColor.cPrimaryHeadingColor,
-                    ),
-                    dataTextStyle: const TextStyle(fontSize: 13),
-                    columnSpacing: 22,
-                    horizontalMargin: 16,
-                    columns: const [
-                      DataColumn(label: Text('Date')),
-                      DataColumn(label: Text('Type')),
-                      DataColumn(label: Text('Dir')),
-                      DataColumn(label: Text('Amount'),          numeric: true),
-                      DataColumn(label: Text('Running Balance'), numeric: true),
-                      DataColumn(label: Text('Reference')),
-                      DataColumn(label: Text('Description')),
-                    ],
-                    rows: entries.map((e) => _ledgerRow(e)).toList(),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              _buildLoadMoreButton(),
-            ],
-          );
-        }),
-      ],
+        );
+      }),
     );
   }
 
   DataRow _ledgerRow(TransactionEntryModel e) {
     final isDebit   = e.direction.toUpperCase() == 'DEBIT';
-    final amtColor  = isDebit ? Colors.red : Colors.green;
+    final amtColor  = isDebit ? AppColor.danger : AppColor.success;
     final dirLabel  = isDebit ? '↑' : '↓';
     final balance   = e.runningBalanceBooking ?? e.runningBalanceClient ?? 0.0;
-    final typeColor = _typeColor(e.transactionType);
 
     return DataRow(cells: [
       DataCell(Text(_formatDate(e.createdOn))),
-      DataCell(Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-        decoration: BoxDecoration(
-          color: typeColor.withValues(alpha: 0.10),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Text(
-          e.transactionType.replaceAll('_', ' '),
-          style: TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.w500,
-            color: typeColor,
-          ),
-        ),
+      DataCell(AppStatusBadge(
+        label: humanizeLabel(e.transactionType),
+        tone: _typeTone(e.transactionType),
+        showDot: false,
+        dense: true,
       )),
       DataCell(Text(
         dirLabel,
         style: TextStyle(
           fontSize: 16,
-          fontWeight: FontWeight.w700,
+          fontWeight: FontWeight.w600,
           color: amtColor,
         ),
       )),
@@ -369,21 +325,21 @@ class BookingOutstandingDetail extends GetView<OutstandingController> {
         _fmt(balance),
         style: TextStyle(
           fontWeight: FontWeight.w600,
-          color: balance > 0 ? Colors.red : Colors.green,
+          color: balance > 0 ? AppColor.danger : AppColor.success,
         ),
       )),
       DataCell(Text(
         e.referenceType != null && e.referenceId != null
             ? '${e.referenceType} #${e.referenceId}'
             : '-',
-        style: TextStyle(fontSize: 12, color: AppColor.cPrimaryButtonColor),
+        style: TextStyle(color: AppColor.cAppPrimaryColor),
       )),
       DataCell(SizedBox(
         width: 220,
         child: Text(
           e.description ?? '-',
           overflow: TextOverflow.ellipsis,
-          style: const TextStyle(fontSize: 12),
+          style: TextStyle(color: AppColor.textSecondary),
         ),
       )),
     ]);
@@ -398,7 +354,7 @@ class BookingOutstandingDetail extends GetView<OutstandingController> {
         return Center(
           child: Text(
             'All entries loaded',
-            style: TextStyle(fontSize: 12, color: AppColor.fontColorGrey),
+            style: TextStyle(fontSize: 12.5, color: AppColor.textTertiary),
           ),
         );
       }
@@ -414,12 +370,8 @@ class BookingOutstandingDetail extends GetView<OutstandingController> {
                   height: 16,
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
-              : const Icon(Icons.expand_more, size: 18),
+              : const Icon(LucideIcons.chevronDown, size: 18),
           label: Text(controller.isLedgerLoading.value ? 'Loading...' : 'Load More'),
-          style: OutlinedButton.styleFrom(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-          ),
         ),
       );
     });

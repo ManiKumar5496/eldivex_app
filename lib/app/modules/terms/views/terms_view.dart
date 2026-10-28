@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../../core/values/color_constants.dart';
+import '../../../widgets/ui/ui.dart';
+import '../../login/views/login_view.dart';
 import '../controllers/terms_controller.dart';
+import 'package:eldivex_app/app/core/values/lucide_icons.dart';
 
 /// First-login Terms & Conditions gate.
 ///
@@ -13,74 +16,89 @@ class TermsView extends GetView<TermsController> {
 
   @override
   Widget build(BuildContext context) {
+    final narrow = MediaQuery.sizeOf(context).width < 600;
     return Scaffold(
       backgroundColor: AppColor.cAppBackgroundColor,
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 900),
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Obx(() {
-              if (controller.isLoading.value) {
-                return const Center(child: CircularProgressIndicator());
-              }
-              if (controller.loadError.value.isNotEmpty) {
-                return _ErrorState(
-                  message: controller.loadError.value,
-                  onRetry: controller.fetchTerms,
-                );
-              }
-              return _buildCard(context);
-            }),
+      body: SafeArea(
+        child: Center(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: 760 + (narrow ? 32 : 48)),
+            child: Padding(
+              padding: EdgeInsets.symmetric(
+                  horizontal: narrow ? 16 : 24, vertical: narrow ? 16 : 24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _brandRow(),
+                  SizedBox(height: narrow ? 16 : 20),
+                  Expanded(
+                    child: Obx(() {
+                      if (controller.isLoading.value) {
+                        return const Center(child: CircularProgressIndicator());
+                      }
+                      if (controller.loadError.value.isNotEmpty) {
+                        return _ErrorState(
+                          message: controller.loadError.value,
+                          onRetry: controller.fetchTerms,
+                        );
+                      }
+                      return _buildCard(context);
+                    }),
+                  ),
+                ],
+              ),
+            ),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildCard(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColor.whiteColor,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColor.divColor),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.06),
-            blurRadius: 24,
-            offset: const Offset(0, 8),
+  Widget _brandRow() {
+    return Row(
+      children: [
+        const EldivexMark(size: 32),
+        const SizedBox(width: 10),
+        Text(
+          'Eldivex',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
+            letterSpacing: -0.2,
+            color: AppColor.textPrimary,
           ),
-        ],
-      ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCard(BuildContext context) {
+    final narrow = MediaQuery.sizeOf(context).width < 600;
+    return AppCard(
+      padding: EdgeInsets.zero,
+      expandChild: true,
       child: Column(
-        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _header(),
-          Divider(height: 1, color: AppColor.divColor),
-          Flexible(child: _body()),
-          Divider(height: 1, color: AppColor.divColor),
-          _footer(context),
+          _header(narrow),
+          Divider(height: 1, color: AppColor.borderSubtle),
+          Expanded(child: _body(narrow)),
+          Divider(height: 1, color: AppColor.borderSubtle),
+          _footer(context, narrow),
         ],
       ),
     );
   }
 
-  Widget _header() {
+  Widget _header(bool narrow) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(28, 24, 28, 18),
+      padding: EdgeInsets.fromLTRB(
+          narrow ? 16 : 28, narrow ? 16 : 22, narrow ? 16 : 28, narrow ? 14 : 18),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: AppColor.cAppPrimaryColor.withOpacity(0.12),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(Icons.gpp_good_outlined,
-                color: AppColor.cAppPrimaryColor, size: 26),
-          ),
-          const SizedBox(width: 16),
+          AppIconTile(icon: LucideIcons.shieldCheck, size: narrow ? 36 : 40),
+          const SizedBox(width: 14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -88,9 +106,10 @@ class TermsView extends GetView<TermsController> {
                 Obx(() => Text(
                       controller.title.value,
                       style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w700,
-                        color: AppColor.cPrimaryHeadingColor,
+                        fontSize: narrow ? 17 : 19,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: -0.3,
+                        color: AppColor.textPrimary,
                       ),
                     )),
                 const SizedBox(height: 4),
@@ -98,7 +117,7 @@ class TermsView extends GetView<TermsController> {
                       _subtitle(),
                       style: TextStyle(
                         fontSize: 13,
-                        color: AppColor.cPrimarySubHeadingColorGrey,
+                        color: AppColor.textTertiary,
                       ),
                     )),
               ],
@@ -122,7 +141,7 @@ class TermsView extends GetView<TermsController> {
     return parts.join('  •  ');
   }
 
-  Widget _body() {
+  Widget _body(bool narrow) {
     return Stack(
       children: [
         Scrollbar(
@@ -130,20 +149,22 @@ class TermsView extends GetView<TermsController> {
           thumbVisibility: true,
           child: SingleChildScrollView(
             controller: controller.scrollController,
-            padding: const EdgeInsets.fromLTRB(28, 20, 28, 28),
+            padding: EdgeInsets.fromLTRB(
+                narrow ? 16 : 32, narrow ? 18 : 24, narrow ? 16 : 32, 40),
             child: Obx(() => SelectableText(
                   controller.content.value,
                   style: TextStyle(
-                    fontSize: 13.5,
-                    height: 1.55,
-                    color: AppColor.fontColorBlack,
+                    fontSize: 14,
+                    height: 1.7,
+                    color: AppColor.textSecondary,
                   ),
                 )),
           ),
         ),
         // Bottom "read progress" pill.
         Positioned(
-          right: 20,
+          left: 0,
+          right: 0,
           bottom: 16,
           child: Obx(() {
             final done = controller.reachedBottom.value;
@@ -152,33 +173,29 @@ class TermsView extends GetView<TermsController> {
               duration: const Duration(milliseconds: 250),
               child: IgnorePointer(
                 ignoring: done,
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: AppColor.cAppPrimaryColor,
-                    borderRadius: BorderRadius.circular(30),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.15),
-                        blurRadius: 8,
-                        offset: const Offset(0, 3),
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.keyboard_double_arrow_down,
-                          size: 16, color: AppColor.buttonTextWhite),
-                      const SizedBox(width: 6),
-                      Text('Scroll to the end',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: AppColor.buttonTextWhite,
-                          )),
-                    ],
+                child: Center(
+                  child: Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: AppColor.cAppPrimaryColor,
+                      borderRadius: BorderRadius.circular(999),
+                      boxShadow: AppShadows.overlay,
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(LucideIcons.chevronsDown,
+                            size: 16, color: AppColor.buttonTextWhite),
+                        const SizedBox(width: 6),
+                        Text('Scroll to the end',
+                            style: TextStyle(
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w600,
+                              color: AppColor.buttonTextWhite,
+                            )),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -189,11 +206,13 @@ class TermsView extends GetView<TermsController> {
     );
   }
 
-  Widget _footer(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(28, 16, 28, 22),
+  Widget _footer(BuildContext context, bool narrow) {
+    return Container(
+      color: AppColor.surfaceMuted,
+      padding: EdgeInsets.fromLTRB(
+          narrow ? 16 : 28, 16, narrow ? 16 : 28, narrow ? 16 : 20),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Obx(() {
             final unlocked = controller.reachedBottom.value;
@@ -203,18 +222,17 @@ class TermsView extends GetView<TermsController> {
                 onTap: unlocked
                     ? () => controller.agreed.value = !controller.agreed.value
                     : null,
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(AppRadius.sm),
                 child: Padding(
                   padding: const EdgeInsets.symmetric(vertical: 4),
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       SizedBox(
-                        height: 24,
-                        width: 24,
+                        height: 22,
+                        width: 22,
                         child: Checkbox(
                           value: controller.agreed.value,
-                          activeColor: AppColor.cAppPrimaryColor,
                           onChanged: unlocked
                               ? (v) => controller.agreed.value = v ?? false
                               : null,
@@ -227,8 +245,9 @@ class TermsView extends GetView<TermsController> {
                           'Conditions above, and I am authorised to accept them '
                           'on behalf of my organisation.',
                           style: TextStyle(
-                            fontSize: 13,
-                            color: AppColor.fontColorBlack,
+                            fontSize: 13.5,
+                            height: 1.45,
+                            color: AppColor.textSecondary,
                           ),
                         ),
                       ),
@@ -239,43 +258,40 @@ class TermsView extends GetView<TermsController> {
             );
           }),
           const SizedBox(height: 16),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
+          Wrap(
+            alignment: WrapAlignment.end,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 8,
+            runSpacing: 8,
             children: [
-              TextButton(
-                onPressed: controller.isSubmitting.value
-                    ? null
-                    : controller.decline,
-                child: Text('Decline & Sign out',
-                    style: TextStyle(color: AppColor.fontColorGrey)),
-              ),
-              const SizedBox(width: 12),
-              Obx(() => ElevatedButton(
-                    onPressed: controller.canAgree ? controller.accept : null,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColor.cPrimaryButtonColor,
-                      disabledBackgroundColor:
-                          AppColor.cPrimaryButtonColor.withOpacity(0.4),
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 28, vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
+              Obx(() => TextButton(
+                    onPressed: controller.isSubmitting.value
+                        ? null
+                        : controller.decline,
+                    style: TextButton.styleFrom(
+                      foregroundColor: AppColor.textSecondary,
+                      minimumSize: const Size(48, 44),
                     ),
-                    child: controller.isSubmitting.value
-                        ? SizedBox(
-                            height: 18,
-                            width: 18,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: AppColor.buttonTextWhite,
-                            ),
-                          )
-                        : Text('Agree & Continue',
-                            style: TextStyle(
-                              color: AppColor.buttonTextWhite,
-                              fontWeight: FontWeight.w600,
-                            )),
+                    child: const Text('Decline & Sign out'),
+                  )),
+              Obx(() => SizedBox(
+                    height: 44,
+                    child: ElevatedButton(
+                      onPressed: controller.canAgree ? controller.accept : null,
+                      style: controller.isSubmitting.value
+                          ? authPrimaryButtonStyle()
+                          : null,
+                      child: controller.isSubmitting.value
+                          ? SizedBox(
+                              height: 18,
+                              width: 18,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: AppColor.buttonTextWhite,
+                              ),
+                            )
+                          : const Text('Agree & Continue'),
+                    ),
                   )),
             ],
           ),
@@ -293,23 +309,18 @@ class _ErrorState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.error_outline, size: 42, color: AppColor.calenderRed),
-          const SizedBox(height: 12),
-          Text(message,
-              textAlign: TextAlign.center,
-              style: TextStyle(color: AppColor.fontColorBlack)),
-          const SizedBox(height: 16),
-          ElevatedButton(
-            onPressed: onRetry,
-            style: ElevatedButton.styleFrom(
-                backgroundColor: AppColor.cPrimaryButtonColor),
-            child: Text('Retry',
-                style: TextStyle(color: AppColor.buttonTextWhite)),
+      child: SingleChildScrollView(
+        child: AppCard(
+          child: AppEmptyState(
+            icon: LucideIcons.circleAlert,
+            tone: AppTone.danger,
+            title: 'Could not load the Terms & Conditions',
+            message: message,
+            actionLabel: 'Retry',
+            actionIcon: LucideIcons.refreshCw,
+            onAction: onRetry,
           ),
-        ],
+        ),
       ),
     );
   }

@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:eldivex_app/app/core/values/color_constants.dart';
-import 'package:eldivex_app/app/core/values/text_style_constants.dart';
+import 'package:eldivex_app/app/widgets/ui/ui.dart';
 import '../../controllers/credit_note_controller.dart';
 import '../../models/active_booking_client_model.dart';
 import '../../models/parse_utils.dart';
 import '../../../../routes/app_pages.dart';
 import '../../../../widgets/helper_ui.dart';
 import '../accounts_format.dart';
+import 'package:eldivex_app/app/core/values/lucide_icons.dart';
 
 class CreateCreditNoteView extends GetView<CreditNoteController> {
   const CreateCreditNoteView({super.key});
@@ -20,243 +21,253 @@ class CreateCreditNoteView extends GetView<CreditNoteController> {
     if (!Get.isRegistered<CreditNoteController>()) {
       Get.put(CreditNoteController());
     }
+    applyClientArgument(context, _selectClient);
+    final pad = MediaQuery.sizeOf(context).width < 600 ? 16.0 : 24.0;
     return Scaffold(
       backgroundColor: AppColor.cAppBackgroundColor,
-      appBar: AppBar(
-        backgroundColor: AppColor.whiteColor,
-        elevation: 0,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_new,
-              size: 18, color: AppColor.cPrimaryHeadingColor),
-          onPressed: () => HelperUi.safeBack(Routes.MAIN),
-        ),
-        title: Text(
-          'Create Credit Note',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w600,
-            color: AppColor.cPrimaryHeadingColor,
-          ),
-        ),
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(1),
-          child: Divider(height: 1, color: AppColor.divColor),
-        ),
-      ),
+      bottomNavigationBar: _buildActionBar(pad),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
+        padding: EdgeInsets.all(pad),
         child: Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 640),
-            child: _buildForm(context),
+            constraints: const BoxConstraints(maxWidth: 1100),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                AppPageHeader(
+                  title: 'Create Credit Note',
+                  subtitle: 'Fill in the details to create a new credit note.',
+                  breadcrumbs: const ['Accounts', 'Credit Notes'],
+                  onBack: () => HelperUi.safeBack(Routes.MAIN),
+                ),
+                const SizedBox(height: 24),
+                _buildForm(context),
+              ],
+            ),
           ),
         ),
       ),
     );
   }
 
+  /// Client dropdown change — also used to preselect the client passed by
+  /// the outstanding page's Quick Actions.
+  void _selectClient(int? val) {
+    controller.selectedClientId.value = val;
+    controller.selectedBookingId.value = null;
+    controller.selectedInvoiceId.value = null;
+    controller.targetInvoices.clear();
+  }
+
   Widget _buildForm(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        AppCard(
+          title: 'Client & booking',
+          subtitle: 'Who the credit is issued to',
+          icon: LucideIcons.user,
+          child: _formGrid([
+            // ── Client selector (getActiveClients is per booking → dedupe) ──
+            _field(
+              _buildLabel('Client', required: true),
+              Obx(() {
+                final clients =
+                    ClientOption.fromBookingRows(controller.activeClients);
+                final selected = clients
+                        .any((c) => c.userId == controller.selectedClientId.value)
+                    ? controller.selectedClientId.value
+                    : null;
+                return _buildDropdownField<int>(
+                  hint: 'Select a client',
+                  value: selected,
+                  items: clients
+                      .map((c) => DropdownMenuItem<int>(
+                            value: c.userId,
+                            child: Text(c.label, overflow: TextOverflow.ellipsis),
+                          ))
+                      .toList(),
+                  onChanged: _selectClient,
+                );
+              }),
+            ),
+
+            // ── Booking selector ──────────────────────────────────────
+            _field(
+              _buildLabel('Booking', required: true),
+              Obx(() {
+                final bookings = bookingRowsForUser(
+                    controller.activeClients, controller.selectedClientId.value);
+                return _buildDropdownField<int>(
+                  hint: controller.selectedClientId.value == null
+                      ? 'Select a client first'
+                      : 'Select a booking',
+                  value: controller.selectedBookingId.value,
+                  items: bookings.map<DropdownMenuItem<int>>((b) {
+                    final id =
+                        toInt(field(b, 'booking_id'), toInt(field(b, 'id')));
+                    return DropdownMenuItem<int>(
+                      value: id,
+                      child: Text(bookingRowLabel(b),
+                          overflow: TextOverflow.ellipsis),
+                    );
+                  }).toList(),
+                  onChanged: bookings.isEmpty
+                      ? null
+                      : (val) {
+                          controller.selectedBookingId.value = val;
+                          controller.selectedInvoiceId.value = null;
+                          if (val != null) controller.loadTargetInvoices(val);
+                        },
+                );
+              }),
+            ),
+
+            // ── Invoice selector (optional) ───────────────────────────
+            _field(
+              _buildLabel('Invoice (Optional)'),
+              Obx(() {
+                final invoices = controller.targetInvoices;
+                final bookingSelected =
+                    controller.selectedBookingId.value != null;
+                return _buildDropdownField<int>(
+                  hint: bookingSelected
+                      ? (invoices.isEmpty
+                          ? 'No invoices found'
+                          : 'Select an invoice')
+                      : 'Select a booking first',
+                  value: controller.selectedInvoiceId.value,
+                  items: invoices.map<DropdownMenuItem<int>>((inv) {
+                    // getInvoices: invoice_db_id = PK, invoice_id = 'INV-<id>'.
+                    final id = toInt(field(inv, 'invoice_db_id'));
+                    final ref = toStr(field(inv, 'invoice_id'), '#$id');
+                    final amt = toDouble(field(inv, 'balance_due'));
+                    return DropdownMenuItem<int>(
+                      value: id,
+                      child: Text(
+                        '$ref — Balance: ${formatInr(amt)}',
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    );
+                  }).toList(),
+                  onChanged: bookingSelected && invoices.isNotEmpty
+                      ? (val) => controller.selectedInvoiceId.value = val
+                      : null,
+                );
+              }),
+            ),
+          ]),
+        ),
+        const SizedBox(height: 20),
+        AppCard(
+          title: 'Credit details',
+          subtitle: 'Type, amount and the reason for the credit',
+          icon: LucideIcons.notebookPen,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _formGrid([
+                // ── Credit Type ─────────────────────────────────────────
+                _field(
+                  _buildLabel('Credit Type', required: true),
+                  Obx(() => _buildDropdownField<String>(
+                        hint: 'Select type',
+                        value: _creditTypes.contains(controller.creditType.value)
+                            ? controller.creditType.value
+                            : null,
+                        items: _creditTypes
+                            .map((t) => DropdownMenuItem<String>(
+                                value: t, child: Text(t)))
+                            .toList(),
+                        onChanged: (val) {
+                          if (val != null) controller.creditType.value = val;
+                        },
+                      )),
+                ),
+
+                // ── Amount ─────────────────────────────────────────────
+                _field(
+                  _buildLabel('Amount (₹)', required: true),
+                  _buildTextField(
+                    controller: controller.amountCtrl,
+                    hint: '0.00',
+                    keyboardType:
+                        const TextInputType.numberWithOptions(decimal: true),
+                    prefixIcon: const Icon(LucideIcons.indianRupee, size: 18),
+                  ),
+                ),
+
+                // ── Credit Date ─────────────────────────────────────────
+                _field(
+                  _buildLabel('Credit Date'),
+                  _buildDatePickerField(context),
+                ),
+              ]),
+              const SizedBox(height: 16),
+
+              // ── Reason ───────────────────────────────────────────────
+              _field(
+                _buildLabel('Reason', required: true),
+                _buildTextField(
+                  controller: controller.reasonCtrl,
+                  hint: 'Describe the reason for this credit note...',
+                  maxLines: 3,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ─────────────────────────────────────────────
+  // Bottom action bar (Cancel + Submit)
+  // ─────────────────────────────────────────────
+  Widget _buildActionBar(double pad) {
     return Container(
-      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         color: AppColor.whiteColor,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColor.divColor),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        border: Border(top: BorderSide(color: AppColor.divColor)),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Credit Note Details',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: AppColor.cPrimaryHeadingColor,
-              )),
-          const SizedBox(height: 4),
-          Text('Fill in the details to create a new credit note.',
-              style: AppTextStyles.regular14Gre),
-          const SizedBox(height: 24),
-          Divider(color: AppColor.divColor),
-          const SizedBox(height: 20),
-
-          // ── Client selector (getActiveClients is per booking → dedupe) ──
-          _buildLabel('Client', required: true),
-          const SizedBox(height: 8),
-          Obx(() {
-            final clients = ClientOption.fromBookingRows(controller.activeClients);
-            final selected = clients.any((c) => c.userId == controller.selectedClientId.value)
-                ? controller.selectedClientId.value
-                : null;
-            return _buildDropdownField<int>(
-              hint: 'Select a client',
-              value: selected,
-              items: clients
-                  .map((c) => DropdownMenuItem<int>(
-                        value: c.userId,
-                        child: Text(c.label, overflow: TextOverflow.ellipsis),
-                      ))
-                  .toList(),
-              onChanged: (val) {
-                controller.selectedClientId.value = val;
-                controller.selectedBookingId.value = null;
-                controller.selectedInvoiceId.value = null;
-                controller.targetInvoices.clear();
-              },
-            );
-          }),
-          const SizedBox(height: 18),
-
-          // ── Booking selector ──────────────────────────────────────
-          _buildLabel('Booking', required: true),
-          const SizedBox(height: 8),
-          Obx(() {
-            final bookings = bookingRowsForUser(
-                controller.activeClients, controller.selectedClientId.value);
-            return _buildDropdownField<int>(
-              hint: controller.selectedClientId.value == null
-                  ? 'Select a client first'
-                  : 'Select a booking',
-              value: controller.selectedBookingId.value,
-              items: bookings.map<DropdownMenuItem<int>>((b) {
-                final id = toInt(field(b, 'booking_id'), toInt(field(b, 'id')));
-                return DropdownMenuItem<int>(
-                  value: id,
-                  child: Text(bookingRowLabel(b), overflow: TextOverflow.ellipsis),
-                );
-              }).toList(),
-              onChanged: bookings.isEmpty
-                  ? null
-                  : (val) {
-                      controller.selectedBookingId.value = val;
-                      controller.selectedInvoiceId.value = null;
-                      if (val != null) controller.loadTargetInvoices(val);
-                    },
-            );
-          }),
-          const SizedBox(height: 18),
-
-          // ── Invoice selector (optional) ───────────────────────────
-          _buildLabel('Invoice (Optional)'),
-          const SizedBox(height: 8),
-          Obx(() {
-            final invoices = controller.targetInvoices;
-            final bookingSelected = controller.selectedBookingId.value != null;
-            return _buildDropdownField<int>(
-              hint: bookingSelected
-                  ? (invoices.isEmpty ? 'No invoices found' : 'Select an invoice')
-                  : 'Select a booking first',
-              value: controller.selectedInvoiceId.value,
-              items: invoices.map<DropdownMenuItem<int>>((inv) {
-                // getInvoices: invoice_db_id = PK, invoice_id = 'INV-<id>'.
-                final id = toInt(field(inv, 'invoice_db_id'));
-                final ref = toStr(field(inv, 'invoice_id'), '#$id');
-                final amt = toDouble(field(inv, 'balance_due'));
-                return DropdownMenuItem<int>(
-                  value: id,
-                  child: Text(
-                    '$ref — Balance: ${formatInr(amt)}',
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                );
-              }).toList(),
-              onChanged: bookingSelected && invoices.isNotEmpty
-                  ? (val) => controller.selectedInvoiceId.value = val
-                  : null,
-            );
-          }),
-          const SizedBox(height: 18),
-
-          // ── Credit Type ───────────────────────────────────────────
-          _buildLabel('Credit Type', required: true),
-          const SizedBox(height: 8),
-          Obx(() => _buildDropdownField<String>(
-                hint: 'Select type',
-                value: _creditTypes.contains(controller.creditType.value)
-                    ? controller.creditType.value
-                    : null,
-                items: _creditTypes
-                    .map((t) => DropdownMenuItem<String>(value: t, child: Text(t)))
-                    .toList(),
-                onChanged: (val) {
-                  if (val != null) controller.creditType.value = val;
-                },
-              )),
-          const SizedBox(height: 18),
-
-          // ── Amount ───────────────────────────────────────────────
-          _buildLabel('Amount (₹)', required: true),
-          const SizedBox(height: 8),
-          _buildTextField(
-            controller: controller.amountCtrl,
-            hint: '0.00',
-            keyboardType:
-                const TextInputType.numberWithOptions(decimal: true),
-            prefixIcon: Icon(Icons.currency_rupee,
-                size: 18, color: AppColor.fontColorGrey),
-          ),
-          const SizedBox(height: 18),
-
-          // ── Credit Date ───────────────────────────────────────────
-          _buildLabel('Credit Date'),
-          const SizedBox(height: 8),
-          _buildDatePickerField(context),
-          const SizedBox(height: 18),
-
-          // ── Reason ───────────────────────────────────────────────
-          _buildLabel('Reason', required: true),
-          const SizedBox(height: 8),
-          _buildTextField(
-            controller: controller.reasonCtrl,
-            hint: 'Describe the reason for this credit note...',
-            maxLines: 3,
-          ),
-          const SizedBox(height: 18),
-
-          // ── Submit ───────────────────────────────────────────────
-          Obx(() => SizedBox(
-                width: double.infinity,
-                height: 48,
-                child: ElevatedButton(
-                  onPressed: controller.isSubmitting.value
-                      ? null
-                      : () async {
-                          final ok = await controller.createCreditNote();
-                          if (ok) HelperUi.safeBack(Routes.MAIN);
-                        },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColor.cPrimaryButtonColor,
-                    disabledBackgroundColor:
-                        AppColor.cPrimaryButtonColor.withValues(alpha: 0.5),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10)),
-                  ),
-                  child: controller.isSubmitting.value
-                      ? SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            valueColor:
-                                AlwaysStoppedAnimation<Color>(AppColor.buttonTextWhite),
-                          ),
-                        )
-                      : Text(
-                          'Create Credit Note',
-                          style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w600,
-                              color: AppColor.buttonTextWhite),
-                        ),
+      padding: EdgeInsets.symmetric(horizontal: pad, vertical: 12),
+      child: SafeArea(
+        top: false,
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 1100),
+            child: Wrap(
+              alignment: WrapAlignment.end,
+              spacing: 12,
+              runSpacing: 8,
+              children: [
+                OutlinedButton(
+                  onPressed: () => HelperUi.safeBack(Routes.MAIN),
+                  child: const Text('Cancel'),
                 ),
-              )),
-        ],
+                // ── Submit ─────────────────────────────────────────────
+                Obx(() => ElevatedButton(
+                      onPressed: controller.isSubmitting.value
+                          ? null
+                          : () async {
+                              final ok = await controller.createCreditNote();
+                              if (ok) HelperUi.safeBack(Routes.MAIN);
+                            },
+                      child: controller.isSubmitting.value
+                          ? SizedBox(
+                              height: 18,
+                              width: 18,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: AppColor.cAppPrimaryColor,
+                              ),
+                            )
+                          : const Text('Create Credit Note'),
+                    )),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -277,54 +288,35 @@ class CreateCreditNoteView extends GetView<CreditNoteController> {
             initialDate: DateTime.now(),
             firstDate: DateTime(DateTime.now().year - 2),
             lastDate: DateTime.now(),
-            builder: (ctx, child) => Theme(
-              data: Theme.of(ctx).copyWith(
-                colorScheme: ColorScheme.light(
-                  primary: AppColor.cPrimaryButtonColor,
-                ),
-              ),
-              child: child!,
-            ),
           );
           if (picked != null) {
             controller.creditDateCtrl.text =
                 '${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}';
           }
         },
-        borderRadius: BorderRadius.circular(10),
-        child: Container(
-          height: 48,
-          padding: const EdgeInsets.symmetric(horizontal: 14),
-          decoration: BoxDecoration(
-            color: AppColor.fieldColorGrey,
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: AppColor.textFieldBorderColor),
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        child: InputDecorator(
+          decoration: InputDecoration(
+            prefixIcon: Icon(LucideIcons.calendar,
+                size: 18,
+                color: hasDate
+                    ? AppColor.cAppPrimaryColor
+                    : AppColor.textTertiary),
+            suffixIcon: hasDate
+                ? IconButton(
+                    tooltip: 'Clear',
+                    onPressed: () => controller.creditDateCtrl.clear(),
+                    icon: Icon(LucideIcons.x,
+                        size: 16, color: AppColor.textTertiary),
+                  )
+                : null,
           ),
-          child: Row(
-            children: [
-              Icon(Icons.calendar_today_outlined,
-                  size: 18,
-                  color: hasDate
-                      ? AppColor.cPrimaryButtonColor
-                      : AppColor.fontColorGrey),
-              const SizedBox(width: 10),
-              Text(
-                hasDate ? _formatDate(dateText) : 'Today',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: hasDate
-                      ? AppColor.cPrimaryHeadingColor
-                      : AppColor.fontColorGrey,
-                ),
-              ),
-              const Spacer(),
-              if (hasDate)
-                GestureDetector(
-                  onTap: () => controller.creditDateCtrl.clear(),
-                  child: Icon(Icons.close,
-                      size: 16, color: AppColor.fontColorGrey),
-                ),
-            ],
+          child: Text(
+            hasDate ? _formatDate(dateText) : 'Today',
+            style: TextStyle(
+              fontSize: 14,
+              color: hasDate ? AppColor.textPrimary : AppColor.textTertiary,
+            ),
           ),
         ),
       );
@@ -334,20 +326,42 @@ class CreateCreditNoteView extends GetView<CreditNoteController> {
   // ─────────────────────────────────────────────
   // Reusable helpers
   // ─────────────────────────────────────────────
+
+  /// Two columns when the card is wide enough, one on phones.
+  Widget _formGrid(List<Widget> fields) {
+    return LayoutBuilder(builder: (context, c) {
+      final cols = c.maxWidth >= 600 ? 2 : 1;
+      final w = (c.maxWidth - 20 * (cols - 1)) / cols;
+      return Wrap(
+        spacing: 20,
+        runSpacing: 16,
+        children: [for (final f in fields) SizedBox(width: w, child: f)],
+      );
+    });
+  }
+
+  Widget _field(Widget label, Widget input) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      children: [label, const SizedBox(height: 8), input],
+    );
+  }
+
   Widget _buildLabel(String label, {bool required = false}) {
     return RichText(
       text: TextSpan(
         text: label,
         style: TextStyle(
           fontSize: 13,
-          fontWeight: FontWeight.w500,
-          color: AppColor.cPrimarySubHeadingColorGrey,
+          fontWeight: FontWeight.w600,
+          color: AppColor.textSecondary,
         ),
         children: required
             ? [
-                const TextSpan(
+                TextSpan(
                   text: ' *',
-                  style: TextStyle(color: Colors.red),
+                  style: TextStyle(color: AppColor.danger),
                 )
               ]
             : [],
@@ -362,26 +376,14 @@ class CreateCreditNoteView extends GetView<CreditNoteController> {
     TextInputType keyboardType = TextInputType.text,
     Widget? prefixIcon,
   }) {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColor.fieldColorGrey,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppColor.textFieldBorderColor),
-      ),
-      child: TextField(
-        controller: controller,
-        maxLines: maxLines,
-        keyboardType: keyboardType,
-        style: const TextStyle(fontSize: 14),
-        decoration: InputDecoration(
-          hintText: hint,
-          hintStyle:
-              TextStyle(fontSize: 14, color: AppColor.fontColorGrey),
-          prefixIcon: prefixIcon,
-          border: InputBorder.none,
-          contentPadding:
-              const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        ),
+    return TextField(
+      controller: controller,
+      maxLines: maxLines,
+      keyboardType: keyboardType,
+      style: TextStyle(fontSize: 14, color: AppColor.textPrimary),
+      decoration: InputDecoration(
+        hintText: hint,
+        prefixIcon: prefixIcon,
       ),
     );
   }
@@ -392,24 +394,21 @@ class CreateCreditNoteView extends GetView<CreditNoteController> {
     required List<DropdownMenuItem<T>> items,
     required ValueChanged<T?>? onChanged,
   }) {
-    return Container(
-      height: 48,
-      padding: const EdgeInsets.symmetric(horizontal: 14),
-      decoration: BoxDecoration(
-        color: AppColor.fieldColorGrey,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppColor.textFieldBorderColor),
+    return InputDecorator(
+      decoration: InputDecoration(
+        enabled: onChanged != null,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 14),
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<T>(
           value: value,
           hint: Text(hint,
-              style:
-                  TextStyle(fontSize: 14, color: AppColor.fontColorGrey)),
+              style: TextStyle(fontSize: 14, color: AppColor.textTertiary)),
           isExpanded: true,
-          icon: Icon(Icons.keyboard_arrow_down,
-              color: AppColor.fontColorGrey, size: 20),
-          style: TextStyle(fontSize: 14, color: AppColor.cPrimaryHeadingColor),
+          icon: Icon(LucideIcons.chevronDown,
+              color: AppColor.textTertiary, size: 18),
+          style: TextStyle(fontSize: 14, color: AppColor.textPrimary),
+          borderRadius: BorderRadius.circular(AppRadius.md),
           onChanged: onChanged,
           items: items,
         ),

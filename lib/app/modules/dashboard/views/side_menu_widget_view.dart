@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
+import 'package:eldivex_app/app/core/theme/theme_controller.dart';
 import 'package:eldivex_app/app/core/values/color_constants.dart';
 import 'package:eldivex_app/app/modules/accounts/views/credit_notes_view.dart';
 import 'package:eldivex_app/app/modules/accounts/views/insurance_claims_view.dart';
@@ -10,9 +11,11 @@ import 'package:eldivex_app/app/modules/accounts/views/revenue_recognition_view.
 import 'package:eldivex_app/app/modules/bookings/views/bookings_extension_view.dart';
 import 'package:eldivex_app/app/modules/bookings/views/bookings_view.dart';
 import 'package:eldivex_app/app/modules/client_users/views/create_client_user.dart';
+import 'package:eldivex_app/app/modules/notifications/views/notification_panel.dart';
 import 'package:eldivex_app/app/modules/register_cg/views/register_cg_view.dart';
 import 'package:eldivex_app/app/modules/support/views/support_view.dart';
-import '../../../core/values/text_style_constants.dart';
+import 'package:eldivex_app/app/widgets/helper_ui.dart';
+import 'package:eldivex_app/app/widgets/ui/ui.dart';
 import '../../accounts/views/client_statement.dart';
 import '../../banners/views/banners_view.dart';
 import '../../client_users/views/manage_client_users.dart';
@@ -49,6 +52,11 @@ import '../../accounts/views/refund/refund_list_view.dart';
 import '../../accounts/views/credit_note/credit_note_list_view.dart';
 import '../../accounts/views/internal_transfer/transfer_list_view.dart';
 import '../../accounts/views/outstanding/outstanding_dashboard_view.dart';
+import 'package:eldivex_app/app/core/values/lucide_icons.dart';
+
+/// Sidebar sections, in display order. Menu order is independent of page
+/// order: each item carries its own page index.
+const List<String> _kMenuSections = ['Overview', 'Operations', 'Finance', 'Admin'];
 
 class SideMenuWidgetView extends StatefulWidget {
   const SideMenuWidgetView({super.key});
@@ -145,8 +153,9 @@ class _SideMenuWidgetViewState extends State<SideMenuWidgetView> {
 
     if (hasAccess('Home')) {
       menuItems.add(MenuItemData(
-        title: 'Home',
-        icon: Icons.home_outlined,
+        title: 'Dashboard',
+        icon: LucideIcons.layoutDashboard,
+        section: 'Overview',
         pageIndex: pageIndex,
       ));
       pages.add(const DashboardView());
@@ -169,20 +178,21 @@ class _SideMenuWidgetViewState extends State<SideMenuWidgetView> {
       menuItems.add(
         MenuItemData(
           title: 'Accounts',
-          icon: Icons.account_balance,
+          icon: LucideIcons.wallet,
+          section: 'Finance',
           hasSubmenu: true,
           children: [
-            MenuItemData(title: 'Reciepts',            pageIndex: reciepts),
-            MenuItemData(title: 'User Statement',      pageIndex: userStateMent),
-            MenuItemData(title: 'Invoice List',        pageIndex: invoiceList),
-            MenuItemData(title: 'Credit Notes',        pageIndex: creditNotes),
-            MenuItemData(title: 'Insurance Claims',    pageIndex: insuranceClaims),
             MenuItemData(title: 'Finance Dashboard',   pageIndex: finDashboard),
-            MenuItemData(title: 'Write-offs',          pageIndex: writeOffs),
-            MenuItemData(title: 'Refunds',             pageIndex: refunds),
-            MenuItemData(title: 'Credit Note Mgmt',    pageIndex: creditNotesList),
-            MenuItemData(title: 'Internal Transfers',  pageIndex: internalTransfers),
+            MenuItemData(title: 'Receipts',            pageIndex: reciepts),
+            MenuItemData(title: 'Invoices',            pageIndex: invoiceList),
+            MenuItemData(title: 'User Statement',      pageIndex: userStateMent),
             MenuItemData(title: 'Outstanding',         pageIndex: outstanding),
+            MenuItemData(title: 'Credit Notes',        pageIndex: creditNotes),
+            MenuItemData(title: 'Credit Note Mgmt',    pageIndex: creditNotesList),
+            MenuItemData(title: 'Refunds',             pageIndex: refunds),
+            MenuItemData(title: 'Write-offs',          pageIndex: writeOffs),
+            MenuItemData(title: 'Internal Transfers',  pageIndex: internalTransfers),
+            MenuItemData(title: 'Insurance Claims',    pageIndex: insuranceClaims),
           ],
         ),
       );
@@ -207,12 +217,13 @@ class _SideMenuWidgetViewState extends State<SideMenuWidgetView> {
 
       menuItems.add(
         MenuItemData(
-          title: 'User',
-          icon: Icons.people_outline,
+          title: 'Clients',
+          icon: LucideIcons.users,
+          section: 'Operations',
           hasSubmenu: true,
           children: [
-            MenuItemData(title: 'Create Users', pageIndex: createClientUser),
-            MenuItemData(title: 'Manage Users', pageIndex: manageClientUsers),
+            MenuItemData(title: 'Manage Clients', pageIndex: manageClientUsers),
+            MenuItemData(title: 'Add Client', pageIndex: createClientUser),
           ],
         ),
       );
@@ -229,11 +240,12 @@ class _SideMenuWidgetViewState extends State<SideMenuWidgetView> {
       menuItems.add(
         MenuItemData(
           title: 'Bookings',
-          icon: Icons.calendar_today_outlined,
+          icon: LucideIcons.calendarDays,
+          section: 'Operations',
           hasSubmenu: true,
           children: [
             MenuItemData(title: 'Manage Bookings', pageIndex: manageBookingsIndex),
-            MenuItemData(title: 'Extension List', pageIndex: createBookingsIndex),
+            MenuItemData(title: 'Extensions', pageIndex: createBookingsIndex),
           ],
         ),
       );
@@ -256,15 +268,16 @@ class _SideMenuWidgetViewState extends State<SideMenuWidgetView> {
 
       menuItems.add(
         MenuItemData(
-          title: 'HP Management',
-          icon: Icons.app_registration,
+          title: 'Health Professionals',
+          icon: LucideIcons.stethoscope,
+          section: 'Operations',
           hasSubmenu: true,
           children: [
-            MenuItemData(title: 'Register HP',       pageIndex: registerCgIndex),
             MenuItemData(title: 'Manage HP',          pageIndex: manageCgIndex),
-            MenuItemData(title: 'Manage Attendance',  pageIndex: manageAttendanceIndex),
+            MenuItemData(title: 'Register HP',        pageIndex: registerCgIndex),
+            MenuItemData(title: 'Attendance',         pageIndex: manageAttendanceIndex),
             MenuItemData(title: 'CG Payments',        pageIndex: cgPaymentIndex),
-            MenuItemData(title: 'Manage Hostels',     pageIndex: manageHostelsIndex),
+            MenuItemData(title: 'Hostels',            pageIndex: manageHostelsIndex),
             MenuItemData(title: 'Hostel Settlements', pageIndex: hostelSettlementIndex),
           ],
         ),
@@ -286,11 +299,12 @@ class _SideMenuWidgetViewState extends State<SideMenuWidgetView> {
       menuItems.add(
         MenuItemData(
           title: 'Support',
-          icon: Icons.support,
+          icon: LucideIcons.headset,
+          section: 'Admin',
           hasSubmenu: true,
           children: [
+            MenuItemData(title: 'All Tickets', pageIndex: manageSupportTicketsIndex),
             MenuItemData(title: 'Create Ticket', pageIndex: createSupportTicketIndex),
-            MenuItemData(title: 'Manage Support', pageIndex: manageSupportTicketsIndex),
           ],
         ),
       );
@@ -305,7 +319,8 @@ class _SideMenuWidgetViewState extends State<SideMenuWidgetView> {
       final reportsIndex = pageIndex;
       menuItems.add(MenuItemData(
         title:   'Reports',
-        icon:    Icons.bar_chart_outlined,
+        icon:    LucideIcons.chartLine,
+        section: 'Overview',
         pageIndex: reportsIndex,
       ));
       pages.add(const ReportsView());
@@ -326,18 +341,19 @@ class _SideMenuWidgetViewState extends State<SideMenuWidgetView> {
       menuItems.add(
         MenuItemData(
           title: 'Settings',
-          icon: Icons.settings,
+          icon: LucideIcons.settings,
+          section: 'Admin',
           hasSubmenu: true,
           children: [
             MenuItemData(title: 'Organisation Profile',  pageIndex: orgProfileIndex),
-            MenuItemData(title: 'Manage Emp Roles',     pageIndex: manageEmpRolesIndex),
-            MenuItemData(title: 'Manage Employees',      pageIndex: addEmployees),
-            MenuItemData(title: 'Manage Banners',        pageIndex: bannersIndex),
-            MenuItemData(title: 'OTP & Cupon',           pageIndex: otpCuponIndex),
-            MenuItemData(title: 'Audit Log',             pageIndex: auditLogIndex),
-            MenuItemData(title: 'Branch Management',     pageIndex: branchManagementIndex),
+            MenuItemData(title: 'Employees',             pageIndex: addEmployees),
+            MenuItemData(title: 'Roles & Permissions',   pageIndex: manageEmpRolesIndex),
+            MenuItemData(title: 'Branches',              pageIndex: branchManagementIndex),
             MenuItemData(title: 'Service Categories',    pageIndex: serviceCategoriesIndex),
-            MenuItemData(title: 'Services Management',   pageIndex: servicesManagementIndex),
+            MenuItemData(title: 'Services',              pageIndex: servicesManagementIndex),
+            MenuItemData(title: 'Banners',               pageIndex: bannersIndex),
+            MenuItemData(title: 'OTP & Coupons',         pageIndex: otpCuponIndex),
+            MenuItemData(title: 'Audit Log',             pageIndex: auditLogIndex),
           ],
         ),
       );
@@ -372,16 +388,26 @@ class _SideMenuWidgetViewState extends State<SideMenuWidgetView> {
   }
 
   double _getSidebarWidth(BuildContext context, DeviceType deviceType) {
-    final screenWidth = MediaQuery.of(context).size.width;
-
     switch (deviceType) {
       case DeviceType.mobile:
-        return isExpanded.value ? screenWidth * 0.75 : 0;
+        final w = MediaQuery.of(context).size.width;
+        return w * 0.82 > 300 ? 300 : w * 0.82;
       case DeviceType.tablet:
-        return isExpanded.value ? 240 : 70;
+        return isExpanded.value ? 240 : 72;
       case DeviceType.desktop:
-        return isExpanded.value ? screenWidth * 0.18 : screenWidth * 0.07;
+        return isExpanded.value ? 260 : 72;
     }
+  }
+
+  /// (group, page) titles for the top-bar breadcrumb.
+  (String?, String) _locate(List<MenuItemData> menuItems, int index) {
+    for (final item in menuItems) {
+      if (item.pageIndex == index) return (null, item.title);
+      for (final child in item.children) {
+        if (child.pageIndex == index) return (item.title, child.title);
+      }
+    }
+    return (null, 'Dashboard');
   }
 
   @override
@@ -389,9 +415,7 @@ class _SideMenuWidgetViewState extends State<SideMenuWidgetView> {
     return Obx(() {
       // Loading State
       if (rolesController.isRolesLoading.value) {
-        return const Scaffold(
-          body: Center(child: CircularProgressIndicator()),
-        );
+        return const _ShellSplash();
       }
 
       // No roles access
@@ -408,36 +432,23 @@ class _SideMenuWidgetViewState extends State<SideMenuWidgetView> {
             if (Get.currentRoute.split('?').first == Routes.LOGIN) return;
             Get.offAllNamed(Routes.LOGIN);
           });
-          return const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
-          );
+          return const _ShellSplash();
         }
         // Authenticated but the role has no modules assigned.
         return Scaffold(
-          body: Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text(
-                  "No Access Assigned",
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  "Your account has no modules assigned. Contact your administrator.",
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 16),
-                TextButton.icon(
-                  icon: const Icon(Icons.logout),
-                  label: const Text("Back to Login"),
-                  onPressed: () {
-                    rolesController.clearAuth();
-                    Get.offAllNamed(Routes.LOGIN);
-                  },
-                ),
-              ],
-            ),
+          backgroundColor: AppColor.cAppBackgroundColor,
+          body: AppEmptyState(
+            icon: LucideIcons.lock,
+            tone: AppTone.warning,
+            title: 'No access assigned',
+            message:
+                'Your account has no modules assigned yet. Contact your administrator to get access.',
+            actionLabel: 'Back to login',
+            actionIcon: LucideIcons.logOut,
+            onAction: () {
+              rolesController.clearAuth();
+              Get.offAllNamed(Routes.LOGIN);
+            },
           ),
         );
       }
@@ -460,7 +471,15 @@ class _SideMenuWidgetViewState extends State<SideMenuWidgetView> {
         });
       }
 
+      // Open the group that holds the current page.
+      for (final item in menuItems) {
+        if (item.children.any((c) => c.pageIndex == selectedIndex.value)) {
+          _expandedMenus.putIfAbsent(item.title, () => true.obs);
+        }
+      }
+
       return Scaffold(
+        backgroundColor: AppColor.cAppBackgroundColor,
         body: Stack(
           children: [
             Row(
@@ -468,32 +487,12 @@ class _SideMenuWidgetViewState extends State<SideMenuWidgetView> {
                 // Desktop/Tablet Sidebar
                 if (!isMobile)
                   Obx(
-                        () => AnimatedContainer(
-                      duration: const Duration(milliseconds: 250),
+                    () => AnimatedContainer(
+                      duration: const Duration(milliseconds: 220),
+                      curve: Curves.easeOutCubic,
                       width: _getSidebarWidth(context, deviceType),
-                      decoration: BoxDecoration(
-                        color: AppColor.whiteColor,
-                        border: Border(
-                          right: BorderSide(color: AppColor.divColor, width: 1),
-                        ),
-                      ),
-                      child: Column(
-                        children: [
-                          _buildSidebarHeader(deviceType),
-                          Expanded(
-                            child: ListView.builder(
-                              padding: EdgeInsets.symmetric(
-                                horizontal: deviceType == DeviceType.tablet ? 12 : 16,
-                                vertical: 8,
-                              ),
-                              itemCount: menuItems.length,
-                              itemBuilder: (context, index) {
-                                return _buildMenuItem(menuItems[index], deviceType);
-                              },
-                            ),
-                          ),
-                        ],
-                      ),
+                      color: AppColor.sidebarBg,
+                      child: _buildSidebar(menuItems, deviceType),
                     ),
                   ),
 
@@ -501,8 +500,7 @@ class _SideMenuWidgetViewState extends State<SideMenuWidgetView> {
                 Expanded(
                   child: Column(
                     children: [
-                      // Mobile App Bar
-                      if (isMobile) _buildMobileAppBar(),
+                      Obx(() => _buildTopBar(menuItems, deviceType)),
 
                       // Page Content
                       Expanded(
@@ -529,40 +527,19 @@ class _SideMenuWidgetViewState extends State<SideMenuWidgetView> {
                 return GestureDetector(
                   onTap: () => isMobileMenuOpen.value = false,
                   child: Container(
-                    color: Colors.black.withValues(alpha: 0.5),
+                    color: Colors.black.withValues(alpha: 0.45),
                     child: Align(
                       alignment: Alignment.centerLeft,
                       child: GestureDetector(
                         onTap: () {}, // Prevent closing when tapping drawer
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 250),
+                        child: Container(
                           width: _getSidebarWidth(context, deviceType),
                           decoration: BoxDecoration(
-                            color: AppColor.whiteColor,
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.1),
-                                blurRadius: 10,
-                                offset: const Offset(2, 0),
-                              ),
-                            ],
+                            color: AppColor.sidebarBg,
+                            boxShadow: AppShadows.overlay,
                           ),
-                          child: Column(
-                            children: [
-                              _buildSidebarHeader(deviceType),
-                              Expanded(
-                                child: ListView.builder(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 16,
-                                    vertical: 8,
-                                  ),
-                                  itemCount: menuItems.length,
-                                  itemBuilder: (context, index) {
-                                    return _buildMenuItem(menuItems[index], deviceType);
-                                  },
-                                ),
-                              ),
-                            ],
+                          child: SafeArea(
+                            child: _buildSidebar(menuItems, deviceType),
                           ),
                         ),
                       ),
@@ -576,90 +553,261 @@ class _SideMenuWidgetViewState extends State<SideMenuWidgetView> {
     });
   }
 
-  Widget _buildMobileAppBar() {
-    return Container(
-      height: 60,
-      decoration: BoxDecoration(
-        color: AppColor.whiteColor,
-        border: Border(
-          bottom: BorderSide(color: AppColor.divColor, width: 1),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
+  // ═══════════════════════════════════════════════════════════════
+  // SIDEBAR
+  // ═══════════════════════════════════════════════════════════════
+
+  /// Sidebar shows labels everywhere except the collapsed desktop/tablet rail.
+  bool _showLabels(DeviceType deviceType) =>
+      deviceType == DeviceType.mobile || isExpanded.value;
+
+  Widget _buildSidebar(List<MenuItemData> menuItems, DeviceType deviceType) {
+    final showLabels = _showLabels(deviceType);
+    final sections = <Widget>[];
+    for (final section in _kMenuSections) {
+      final items = menuItems.where((m) => m.section == section).toList();
+      if (items.isEmpty) continue;
+      sections.add(_buildSectionLabel(section, showLabels, first: sections.isEmpty));
+      for (final item in items) {
+        sections.add(_buildMenuItem(item, deviceType));
+      }
+    }
+    // Anything without a known section still shows, at the end.
+    for (final item in menuItems.where((m) => !_kMenuSections.contains(m.section))) {
+      sections.add(_buildMenuItem(item, deviceType));
+    }
+
+    return Column(
+      children: [
+        _buildSidebarHeader(deviceType),
+        Expanded(
+          child: ListView(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            children: sections,
           ),
-        ],
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        child: Row(
-          children: [
-            IconButton(
-              icon: const Icon(Icons.menu),
-              onPressed: () {
-                isMobileMenuOpen.value = true;
-                isExpanded.value = true;
-              },
-              color: AppColor.cPrimaryButtonColor,
-            ),
-            const SizedBox(width: 8),
-            Text(
-              'AdminPanel',
-              style: AppTextStyles.regularBlu20.copyWith(fontSize: 18),
-            ),
-          ],
+        ),
+        _buildSidebarFooter(deviceType),
+      ],
+    );
+  }
+
+  Widget _buildSectionLabel(String label, bool showLabels, {required bool first}) {
+    if (!showLabels) {
+      return Padding(
+        padding: EdgeInsets.only(top: first ? 4 : 10, bottom: 6),
+        child: first
+            ? const SizedBox.shrink()
+            : Divider(height: 1, indent: 12, endIndent: 12, color: AppColor.sidebarBorder),
+      );
+    }
+    return Padding(
+      padding: EdgeInsets.fromLTRB(12, first ? 8 : 20, 12, 8),
+      child: Text(
+        label.toUpperCase(),
+        style: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 0.8,
+          color: AppColor.sidebarFgSubtle,
         ),
       ),
     );
   }
 
+  Widget _brandMark(double size) {
+    return Container(
+      width: size,
+      height: size,
+      padding: EdgeInsets.all(size * 0.14),
+      decoration: BoxDecoration(
+        color: AppColor.pureWhite,
+        borderRadius: BorderRadius.circular(size * 0.28),
+      ),
+      child: Image.asset('assets/images/e_mark.png', fit: BoxFit.contain),
+    );
+  }
+
   Widget _buildSidebarHeader(DeviceType deviceType) {
     final isMobile = deviceType == DeviceType.mobile;
+    final showLabels = _showLabels(deviceType);
+    final orgCode = (_storage.read('org_code') ?? '').toString();
 
     return Container(
-      padding: EdgeInsets.all(isMobile ? 16 : 20),
+      height: 64,
+      padding: EdgeInsets.symmetric(horizontal: showLabels ? 16 : 0),
       decoration: BoxDecoration(
-        border: Border(
-          bottom: BorderSide(color: AppColor.divColor.withValues(alpha: 0.5), width: 1),
-        ),
+        border: Border(bottom: BorderSide(color: AppColor.sidebarBorder)),
       ),
-      child: Row(
-        children: [
-          if (isExpanded.value) ...[
-            Expanded(
-              child: Text(
-                'AdminPanel',
-                style: AppTextStyles.regularBlu20.copyWith(
-                  fontSize: deviceType == DeviceType.tablet ? 18 : 20,
+      child: showLabels
+          ? Row(
+              children: [
+                _brandMark(34),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Eldivex',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: -0.3,
+                          color: AppColor.sidebarFg,
+                        ),
+                      ),
+                      Text(
+                        orgCode.isEmpty ? 'Admin Console' : orgCode,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(fontSize: 12, color: AppColor.sidebarFgMuted),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ),
-            IconButton(
-              icon: Icon(isMobile ? Icons.close : Icons.chevron_left),
-              onPressed: () {
-                if (isMobile) {
-                  isMobileMenuOpen.value = false;
-                } else {
-                  isExpanded.value = !isExpanded.value;
-                }
-              },
-              color: AppColor.unSelectedMenu,
-            ),
-          ] else ...[
-            Center(
-              child: IconButton(
-                icon: const Icon(Icons.chevron_right),
-                onPressed: () {
-                  isExpanded.value = !isExpanded.value;
-                },
-                color: AppColor.unSelectedMenu,
-              ),
-            ),
-          ],
-        ],
+                if (isMobile)
+                  IconButton(
+                    tooltip: 'Close menu',
+                    icon: Icon(LucideIcons.x, size: 20, color: AppColor.sidebarFgMuted),
+                    onPressed: () => isMobileMenuOpen.value = false,
+                  ),
+              ],
+            )
+          : Center(child: _brandMark(36)),
+    );
+  }
+
+  Widget _buildSidebarFooter(DeviceType deviceType) {
+    final showLabels = _showLabels(deviceType);
+    final userName = (_storage.read('user_name') ?? 'Admin').toString();
+    final userImage = (_storage.read('user_image') ?? '').toString();
+    final roleName = rolesController.allAccessRoles.isNotEmpty
+        ? rolesController.allAccessRoles.first.roleName
+        : '';
+
+    final avatar = AppAvatar(
+      name: userName,
+      imageUrl: userImage,
+      size: 34,
+      backgroundColor: AppColor.sidebarActiveBg,
+      foregroundColor: AppColor.sidebarFg,
+    );
+
+    return Container(
+      padding: EdgeInsets.all(showLabels ? 12 : 10),
+      decoration: BoxDecoration(
+        border: Border(top: BorderSide(color: AppColor.sidebarBorder)),
       ),
+      child: _userMenu(
+        child: showLabels
+            ? Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppColor.sidebarHover,
+                  borderRadius: BorderRadius.circular(AppRadius.md),
+                ),
+                child: Row(
+                  children: [
+                    avatar,
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            userName,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 13.5,
+                              fontWeight: FontWeight.w600,
+                              color: AppColor.sidebarFg,
+                            ),
+                          ),
+                          if (roleName.isNotEmpty)
+                            Text(
+                              roleName,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(fontSize: 12, color: AppColor.sidebarFgMuted),
+                            ),
+                        ],
+                      ),
+                    ),
+                    Icon(LucideIcons.chevronsUpDown, size: 18, color: AppColor.sidebarFgMuted),
+                  ],
+                ),
+              )
+            : Center(child: avatar),
+      ),
+    );
+  }
+
+  /// Account menu shared by the sidebar footer and the top-bar avatar.
+  Widget _userMenu({required Widget child}) {
+    final themeController = Get.find<ThemeController>();
+    return PopupMenuButton<String>(
+      tooltip: 'Account',
+      offset: const Offset(0, -8),
+      position: PopupMenuPosition.over,
+      constraints: const BoxConstraints(minWidth: 220),
+      itemBuilder: (context) => [
+        PopupMenuItem<String>(
+          value: 'appearance',
+          child: _menuRow(LucideIcons.palette, 'Appearance'),
+        ),
+        PopupMenuItem<String>(
+          value: 'theme',
+          child: _menuRow(
+            themeController.isDark ? LucideIcons.sun : LucideIcons.moon,
+            themeController.isDark ? 'Light mode' : 'Dark mode',
+          ),
+        ),
+        const PopupMenuDivider(height: 8),
+        PopupMenuItem<String>(
+          value: 'logout',
+          child: _menuRow(LucideIcons.logOut, 'Log out', color: AppColor.danger),
+        ),
+      ],
+      onSelected: (value) {
+        switch (value) {
+          case 'appearance':
+            Get.toNamed(Routes.appearance);
+            break;
+          case 'theme':
+            themeController.setThemeMode(
+              themeController.isDark ? ThemeMode.light : ThemeMode.dark,
+            );
+            break;
+          case 'logout':
+            // Logout must not touch LoginController: creating it here ties it
+            // to this route, and its disposal during Get.offAllNamed leaves
+            // the login screen bound to a dead instance.
+            rolesController.clearAuth();
+            Get.offAllNamed(Routes.LOGIN);
+            HelperUi.showToast(message: "Logged out successfully");
+            break;
+        }
+      },
+      child: child,
+    );
+  }
+
+  Widget _menuRow(IconData icon, String label, {Color? color}) {
+    return Row(
+      children: [
+        Icon(icon, size: 18, color: color ?? AppColor.textSecondary),
+        const SizedBox(width: 12),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 14,
+            color: color ?? AppColor.textPrimary,
+            fontWeight: color != null ? FontWeight.w600 : FontWeight.w400,
+          ),
+        ),
+      ],
     );
   }
 
@@ -671,55 +819,89 @@ class _SideMenuWidgetViewState extends State<SideMenuWidgetView> {
     }
   }
 
-  Widget _buildSimpleMenuItem(MenuItemData item, DeviceType deviceType) {
-    final isTablet = deviceType == DeviceType.tablet;
-
-    return Obx(() {
-      final isSelected = selectedIndex.value == item.pageIndex;
-
-      return Padding(
-        padding: EdgeInsets.only(bottom: isTablet ? 2 : 4),
-        child: InkWell(
-          onTap: () {
-            if (item.pageIndex != null) {
-              _navigateToPage(item.pageIndex!);
-            }
-          },
-          borderRadius: BorderRadius.circular(8),
-          child: Container(
-            padding: EdgeInsets.symmetric(
-              horizontal: isTablet ? 12 : 16,
-              vertical: isTablet ? 12 : 14,
-            ),
-            decoration: BoxDecoration(
-              color: isSelected ? AppColor.cPrimaryButtonColor : Colors.transparent,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Row(
-              children: [
-                Icon(
-                  item.icon,
-                  size: isTablet ? 20 : 22,
-                  color: isSelected ? AppColor.buttonTextWhite : AppColor.unSelectedMenu,
-                ),
-                if (isExpanded.value) ...[
-                  SizedBox(width: isTablet ? 12 : 16),
-                  Expanded(
-                    child: Text(
-                      item.title,
-                      style: TextStyle(
-                        fontSize: isTablet ? 13 : 14,
-                        fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                        color: isSelected ? AppColor.buttonTextWhite : AppColor.unSelectedMenu,
-                      ),
-                      overflow: TextOverflow.ellipsis,
+  /// One nav row. Shared look for top-level items and group headers.
+  Widget _navRow({
+    required IconData? icon,
+    required String title,
+    required bool selected,
+    required bool showLabels,
+    bool groupActive = false,
+    Widget? trailing,
+    required VoidCallback onTap,
+  }) {
+    final bool strong = selected || groupActive;
+    final Color fg = strong ? AppColor.sidebarFg : AppColor.sidebarFgMuted;
+    final row = Material(
+      color: selected ? AppColor.sidebarActiveBg : Colors.transparent,
+      borderRadius: BorderRadius.circular(AppRadius.sm),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(AppRadius.sm),
+        hoverColor: AppColor.sidebarHover,
+        splashColor: AppColor.sidebarHover,
+        highlightColor: Colors.transparent,
+        child: Container(
+          height: 40,
+          padding: EdgeInsets.symmetric(horizontal: showLabels ? 10 : 0),
+          child: Row(
+            mainAxisAlignment:
+                showLabels ? MainAxisAlignment.start : MainAxisAlignment.center,
+            children: [
+              if (showLabels) ...[
+                _activeMarker(selected),
+                const SizedBox(width: 8),
+              ],
+              Icon(icon, size: 19, color: fg),
+              if (showLabels) ...[
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    title,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: strong ? FontWeight.w600 : FontWeight.w400,
+                      color: fg,
                     ),
                   ),
-                ],
+                ),
+                if (trailing != null) trailing,
               ],
-            ),
+            ],
           ),
         ),
+      ),
+    );
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 2),
+      child: showLabels ? row : Tooltip(message: title, preferBelow: false, child: row),
+    );
+  }
+
+  /// Accent bar marking the current page. Space is always reserved so labels
+  /// stay aligned whether or not the row is active.
+  Widget _activeMarker(bool active) {
+    return Container(
+      width: 3,
+      height: 16,
+      decoration: BoxDecoration(
+        color: active ? AppColor.sidebarAccent : Colors.transparent,
+        borderRadius: BorderRadius.circular(2),
+      ),
+    );
+  }
+
+  Widget _buildSimpleMenuItem(MenuItemData item, DeviceType deviceType) {
+    return Obx(() {
+      final showLabels = _showLabels(deviceType);
+      return _navRow(
+        icon: item.icon,
+        title: item.title,
+        selected: selectedIndex.value == item.pageIndex,
+        showLabels: showLabels,
+        onTap: () {
+          if (item.pageIndex != null) _navigateToPage(item.pageIndex!);
+        },
       );
     });
   }
@@ -727,114 +909,294 @@ class _SideMenuWidgetViewState extends State<SideMenuWidgetView> {
   Widget _buildExpandableMenuItem(MenuItemData item, DeviceType deviceType) {
     final RxBool isExpandedMenu =
         _expandedMenus.putIfAbsent(item.title, () => false.obs);
-    final isTablet = deviceType == DeviceType.tablet;
 
     return Obx(() {
-      return Column(
-        children: [
-          Padding(
-            padding: EdgeInsets.only(bottom: isTablet ? 2 : 4),
-            child: InkWell(
-              onTap: () {
-                isExpandedMenu.value = !isExpandedMenu.value;
-              },
-              borderRadius: BorderRadius.circular(8),
-              child: Container(
-                padding: EdgeInsets.symmetric(
-                  horizontal: isTablet ? 12 : 16,
-                  vertical: isTablet ? 12 : 14,
+      final showLabels = _showLabels(deviceType);
+      final groupActive =
+          item.children.any((c) => c.pageIndex == selectedIndex.value);
+
+      // Collapsed rail: the icon opens a flyout with the group's pages.
+      if (!showLabels) {
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 2),
+          child: PopupMenuButton<int>(
+            tooltip: item.title,
+            position: PopupMenuPosition.over,
+            offset: const Offset(56, 0),
+            constraints: const BoxConstraints(minWidth: 200),
+            onSelected: _navigateToPage,
+            itemBuilder: (context) => [
+              PopupMenuItem<int>(
+                enabled: false,
+                height: 32,
+                child: Text(
+                  item.title.toUpperCase(),
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.6,
+                    color: AppColor.lightGrey,
+                  ),
                 ),
-                child: Row(
-                  children: [
-                    Icon(
-                      item.icon,
-                      size: isTablet ? 20 : 22,
-                      color: AppColor.unSelectedMenu,
+              ),
+              for (final child in item.children)
+                PopupMenuItem<int>(
+                  value: child.pageIndex,
+                  height: 38,
+                  child: Text(
+                    child.title,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: child.pageIndex == selectedIndex.value
+                          ? FontWeight.w600
+                          : FontWeight.w400,
+                      color: child.pageIndex == selectedIndex.value
+                          ? AppColor.cAppPrimaryColor
+                          : AppColor.textPrimary,
                     ),
-                    if (isExpanded.value) ...[
-                      SizedBox(width: isTablet ? 12 : 16),
-                      Expanded(
-                        child: Text(
-                          item.title,
-                          style: TextStyle(
-                            fontSize: isTablet ? 13 : 15,
-                            fontWeight: FontWeight.w500,
-                            color: AppColor.unSelectedMenu,
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      Icon(
-                        isExpandedMenu.value
-                            ? Icons.keyboard_arrow_down
-                            : Icons.keyboard_arrow_right,
-                        size: isTablet ? 18 : 20,
-                        color: AppColor.unSelectedMenu,
-                      ),
-                    ],
-                  ],
+                  ),
+                ),
+            ],
+            child: Container(
+              height: 40,
+              decoration: BoxDecoration(
+                color: groupActive ? AppColor.sidebarActiveBg : Colors.transparent,
+                borderRadius: BorderRadius.circular(AppRadius.sm),
+              ),
+              child: Center(
+                child: Icon(
+                  item.icon,
+                  size: 19,
+                  color: groupActive ? AppColor.sidebarFg : AppColor.sidebarFgMuted,
                 ),
               ),
             ),
           ),
-          if (isExpandedMenu.value && isExpanded.value)
-            ...item.children.map((child) => _buildSubmenuItem(child, deviceType)),
+        );
+      }
+
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _navRow(
+            icon: item.icon,
+            title: item.title,
+            selected: false,
+            groupActive: groupActive,
+            showLabels: true,
+            onTap: () => isExpandedMenu.value = !isExpandedMenu.value,
+            trailing: AnimatedRotation(
+              turns: isExpandedMenu.value ? 0.25 : 0,
+              duration: const Duration(milliseconds: 180),
+              child: Icon(LucideIcons.chevronRight, size: 18, color: AppColor.sidebarFgSubtle),
+            ),
+          ),
+          AnimatedSize(
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeOutCubic,
+            alignment: Alignment.topCenter,
+            child: isExpandedMenu.value
+                ? Container(
+                    margin: const EdgeInsets.only(left: 30, top: 2, bottom: 6),
+                    padding: const EdgeInsets.only(left: 8),
+                    decoration: BoxDecoration(
+                      border: Border(left: BorderSide(color: AppColor.sidebarBorder)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: item.children
+                          .map((child) => _buildSubmenuItem(child))
+                          .toList(),
+                    ),
+                  )
+                : const SizedBox(width: double.infinity),
+          ),
         ],
       );
     });
   }
 
-  Widget _buildSubmenuItem(MenuItemData item, DeviceType deviceType) {
-    final isTablet = deviceType == DeviceType.tablet;
-
+  Widget _buildSubmenuItem(MenuItemData item) {
     return Obx(() {
       final isSelected = selectedIndex.value == item.pageIndex;
 
       return Padding(
-        padding: EdgeInsets.only(
-          left: isTablet ? 12 : 16,
-          bottom: isTablet ? 2 : 4,
-        ),
-        child: InkWell(
-          onTap: () {
-            if (item.pageIndex != null) {
-              _navigateToPage(item.pageIndex!);
-            }
-          },
-          borderRadius: BorderRadius.circular(8),
-          child: Container(
-            padding: EdgeInsets.symmetric(
-              horizontal: isTablet ? 12 : 16,
-              vertical: isTablet ? 10 : 12,
-            ),
-            decoration: BoxDecoration(
-              color: isSelected
-                  ? AppColor.cPrimaryButtonColor.withValues(alpha: 0.12)
-                  : Colors.transparent,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Row(
-              children: [
-                SizedBox(width: isTablet ? 20 : 22),
-                Expanded(
-                  child: Text(
-                    item.title,
-                    style: TextStyle(
-                      fontSize: isTablet ? 12 : 14,
-                      fontWeight: FontWeight.w500,
-                      color: isSelected
-                          ? AppColor.cPrimaryButtonColor
-                          : AppColor.unSelectedMenu,
+        padding: const EdgeInsets.only(bottom: 1),
+        child: Material(
+          color: isSelected ? AppColor.sidebarActiveBg : Colors.transparent,
+          borderRadius: BorderRadius.circular(AppRadius.sm),
+          child: InkWell(
+            onTap: () {
+              if (item.pageIndex != null) {
+                _navigateToPage(item.pageIndex!);
+              }
+            },
+            borderRadius: BorderRadius.circular(AppRadius.sm),
+            hoverColor: AppColor.sidebarHover,
+            splashColor: AppColor.sidebarHover,
+            highlightColor: Colors.transparent,
+            child: Container(
+              height: 36,
+              padding: const EdgeInsets.symmetric(horizontal: 10),
+              child: Row(
+                children: [
+                  _activeMarker(isSelected),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      item.title,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 13.5,
+                        fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                        color: isSelected ? AppColor.sidebarFg : AppColor.sidebarFgMuted,
+                      ),
                     ),
-                    overflow: TextOverflow.ellipsis,
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
       );
     });
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  // TOP BAR
+  // ═══════════════════════════════════════════════════════════════
+
+  Widget _buildTopBar(List<MenuItemData> menuItems, DeviceType deviceType) {
+    final isMobile = deviceType == DeviceType.mobile;
+    final (group, page) = _locate(menuItems, selectedIndex.value);
+    final themeController = Get.find<ThemeController>();
+
+    return Container(
+      height: 60,
+      padding: EdgeInsets.symmetric(horizontal: isMobile ? 8 : 16),
+      decoration: BoxDecoration(
+        color: AppColor.whiteColor,
+        border: Border(bottom: BorderSide(color: AppColor.divColor)),
+      ),
+      child: Row(
+        children: [
+          IconButton(
+            tooltip: isMobile
+                ? 'Open menu'
+                : (isExpanded.value ? 'Collapse sidebar' : 'Expand sidebar'),
+            icon: Icon(
+              isMobile
+                  ? LucideIcons.menu
+                  : (isExpanded.value ? LucideIcons.panelLeftClose : LucideIcons.menu),
+              size: 20,
+            ),
+            onPressed: () {
+              if (isMobile) {
+                isMobileMenuOpen.value = true;
+              } else {
+                isExpanded.value = !isExpanded.value;
+              }
+            },
+          ),
+          const SizedBox(width: 6),
+          if (!isMobile) ...[
+            Container(width: 1, height: 20, color: AppColor.divColor),
+            const SizedBox(width: 14),
+          ],
+          Expanded(
+            child: Row(
+              children: [
+                if (group != null && !isMobile) ...[
+                  Flexible(
+                    child: Text(
+                      group,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(fontSize: 14, color: AppColor.textTertiary),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 6),
+                    child: Icon(LucideIcons.chevronRight,
+                        size: 16, color: AppColor.lightGrey),
+                  ),
+                ],
+                Flexible(
+                  child: Text(
+                    page,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: isMobile ? 15 : 14,
+                      fontWeight: FontWeight.w600,
+                      color: AppColor.textPrimary,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const NotificationBell(),
+          Obx(() {
+            themeController.themeMode.value;
+            final isDark = themeController.isDark;
+            return IconButton(
+              tooltip: isDark ? 'Switch to light mode' : 'Switch to dark mode',
+              icon: Icon(
+                isDark ? LucideIcons.sun : LucideIcons.moon,
+                size: 20,
+              ),
+              onPressed: () => themeController.setThemeMode(
+                isDark ? ThemeMode.light : ThemeMode.dark,
+              ),
+            );
+          }),
+          if (!isMobile)
+            IconButton(
+              tooltip: 'Appearance',
+              icon: const Icon(LucideIcons.palette, size: 20),
+              onPressed: () => Get.toNamed(Routes.appearance),
+            ),
+          const SizedBox(width: 6),
+          _userMenu(
+            child: Padding(
+              padding: const EdgeInsets.all(4),
+              child: AppAvatar(
+                name: (_storage.read('user_name') ?? 'Admin').toString(),
+                imageUrl: (_storage.read('user_image') ?? '').toString(),
+                size: 32,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Neutral splash while role access loads.
+class _ShellSplash extends StatelessWidget {
+  const _ShellSplash();
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColor.cAppBackgroundColor,
+      body: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Image.asset('assets/images/e_mark.png', width: 44, height: 44),
+            const SizedBox(height: 20),
+            SizedBox(
+              width: 120,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(4),
+                child: const LinearProgressIndicator(minHeight: 3),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 
@@ -852,6 +1214,7 @@ class MenuItemData {
   final int? pageIndex;
   final bool hasSubmenu;
   final bool isSubmenuItem;
+  final String? section;
   final List<MenuItemData> children;
 
   MenuItemData({
@@ -860,6 +1223,7 @@ class MenuItemData {
     this.pageIndex,
     this.hasSubmenu = false,
     this.isSubmenuItem = false,
+    this.section,
     this.children = const [],
   });
 }

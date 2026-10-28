@@ -14,7 +14,7 @@ class CommonTextField extends StatelessWidget {
   final ValueChanged<String>? onChanged;
 
   const CommonTextField({
-    Key? key,
+    super.key,
     required this.label,
     required this.hint,
     this.prefixIcon,
@@ -25,75 +25,59 @@ class CommonTextField extends StatelessWidget {
     this.keyboardType,
     this.maxLines = 1,
     this.onChanged,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-                color: AppColor.cPrimarySubHeadingColorGrey,
-              ),
-            ),
-            if (isMandatory)
-              const Text(
-                ' *',
-                style: TextStyle(color: Colors.red, fontSize: 14),
-              ),
-          ],
+        // Label above the field; required marker in the danger token.
+        Text.rich(
+          TextSpan(
+            text: label,
+            children: [
+              if (isMandatory)
+                TextSpan(
+                  text: ' *',
+                  style: TextStyle(color: AppColor.danger),
+                ),
+            ],
+          ),
+          style: TextStyle(
+            fontSize: 13.5,
+            fontWeight: FontWeight.w600,
+            color: enabled ? AppColor.textSecondary : AppColor.textTertiary,
+          ),
         ),
         const SizedBox(height: 8),
-        Container(
-          decoration: BoxDecoration(
-            color: enabled ? AppColor.whiteColor : AppColor.fieldColorGrey,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: enabled
-                  ? AppColor.textFieldBorderColor
-                  : AppColor.divColor,
-            ),
+        // Fill, border, radius and focus ring come from the app theme.
+        TextField(
+          controller: controller,
+          keyboardType: keyboardType,
+          maxLines: maxLines,
+          enabled: enabled,
+          onChanged: onChanged,
+          style: TextStyle(
+            color: enabled ? AppColor.textPrimary : AppColor.textTertiary,
+            fontSize: 14,
           ),
-          child: TextField(
-            controller: controller,
-            keyboardType: keyboardType,
-            maxLines: maxLines,
-            enabled: enabled,
-            onChanged: onChanged,
-            style: TextStyle(
-              color: enabled ? AppColor.fontColorBlack : AppColor.lightGrey,
-              fontSize: 14,
-            ),
-            decoration: InputDecoration(
-              hintText: hint,
-              hintStyle: TextStyle(
-                color: enabled
-                    ? AppColor.fontColorGrey
-                    : AppColor.lightGrey,
-                fontSize: 14,
-              ),
-              prefixIcon: prefixIcon != null
-                  ? Icon(
-                prefixIcon,
-                color: enabled
-                    ? AppColor.prefixIconColor
-                    : AppColor.lightGrey,
-                size: 20,
-              )
-                  : null,
-              suffixIcon: suffixIcon,
-              border: InputBorder.none,
-              contentPadding: EdgeInsets.symmetric(
-                horizontal: prefixIcon != null ? 0 : 16,
-                vertical: 12,
-              ),
-            ),
+          decoration: InputDecoration(
+            hintText: hint,
+            fillColor: enabled ? null : AppColor.surfaceMuted,
+            prefixIcon: prefixIcon != null
+                ? Icon(
+                    prefixIcon,
+                    color: enabled
+                        ? AppColor.textTertiary
+                        : AppColor.lightGrey,
+                    size: 18,
+                  )
+                : null,
+            prefixIconConstraints: prefixIcon != null
+                ? const BoxConstraints(minWidth: 40, minHeight: 40)
+                : null,
+            suffixIcon: suffixIcon,
           ),
         ),
       ],

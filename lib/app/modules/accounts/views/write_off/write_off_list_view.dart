@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:eldivex_app/app/core/values/color_constants.dart';
-import 'package:eldivex_app/app/core/values/text_style_constants.dart';
+import 'package:eldivex_app/app/widgets/ui/ui.dart';
 import '../../../../routes/app_pages.dart';
 import '../../../../widgets/shimmer_loader.dart';
 import '../../controllers/write_off_controller.dart';
 import '../../models/write_off_model.dart';
 import '../accounts_format.dart';
+import 'package:eldivex_app/app/core/values/lucide_icons.dart';
 
 class WriteOffListView extends StatefulWidget {
   const WriteOffListView({super.key});
@@ -20,6 +21,8 @@ class _WriteOffListViewState extends State<WriteOffListView> {
   String _statusFilter = 'All';
   final TextEditingController _searchCtrl = TextEditingController();
   String _searchQuery = '';
+
+  static const _statusOptions = ['All', 'Pending', 'Approved', 'Rejected'];
 
   @override
   void initState() {
@@ -54,100 +57,131 @@ class _WriteOffListViewState extends State<WriteOffListView> {
 
   @override
   Widget build(BuildContext context) {
+    final pad = MediaQuery.sizeOf(context).width < 600 ? 16.0 : 24.0;
     return Scaffold(
       backgroundColor: AppColor.cAppBackgroundColor,
-      appBar: AppBar(
-        backgroundColor: AppColor.whiteColor,
-        elevation: 0,
-        title: Text(
-          'Write-offs',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w600,
-            color: AppColor.cPrimaryHeadingColor,
-          ),
-        ),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: ElevatedButton.icon(
-              onPressed: () => Get.toNamed(Routes.CREATE_WRITE_OFF),
-              icon: Icon(Icons.add, size: 18, color: AppColor.buttonTextWhite),
-              label: Text(
-                'New Write-off',
-                style: TextStyle(
-                  color: AppColor.buttonTextWhite,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
+      body: SingleChildScrollView(
+        padding: EdgeInsets.all(pad),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            AppPageHeader(
+              title: 'Write-offs',
+              subtitle: 'Request and approve bad-debt and adjustment write-offs',
+              actions: [
+                ElevatedButton.icon(
+                  onPressed: () => Get.toNamed(Routes.CREATE_WRITE_OFF),
+                  icon: const Icon(LucideIcons.plus, size: 18),
+                  label: const Text('New Write-off'),
                 ),
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.orange.shade700,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
+              ],
+            ),
+            const SizedBox(height: 24),
+            _buildKpis(),
+            const SizedBox(height: 20),
+            AppCard(
+              padding: EdgeInsets.zero,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _buildFilterRow(),
+                  Divider(height: 1, color: AppColor.borderSubtle),
+                  _buildBody(),
+                ],
               ),
             ),
-          ),
-        ],
-      ),
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildFilterRow(),
-          Expanded(child: _buildBody()),
-        ],
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildFilterRow() {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
-      color: AppColor.whiteColor,
-      child: Row(
+  // ── KPI row (derived from the loaded list) ──────────────────────────────────
+
+  Widget _buildKpis() {
+    return Obx(() {
+      final list = ctrl.writeOffs;
+      final pending = list.where((w) => w.status == 'Pending').length;
+      final approved = list
+          .where((w) => w.status == 'Approved')
+          .fold<double>(0, (s, w) => s + w.writeOffAmount);
+      final requested = list.fold<double>(0, (s, w) => s + w.writeOffAmount);
+      return AppResponsiveGrid(
+        minItemWidth: 200,
+        maxColumns: 4,
         children: [
-          // Status dropdown
-          Container(
-            height: 40,
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            decoration: BoxDecoration(
-              color: AppColor.whiteColor,
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: AppColor.textFieldBorderColor),
-            ),
-            child: DropdownButtonHideUnderline(
-              child: DropdownButton<String>(
-                value: _statusFilter,
-                items: const ['All', 'Pending', 'Approved', 'Rejected']
-                    .map((s) => DropdownMenuItem(value: s, child: Text(s, style: const TextStyle(fontSize: 14))))
-                    .toList(),
-                onChanged: (v) => setState(() => _statusFilter = v ?? 'All'),
-              ),
+          AppStatCard(
+            label: 'Write-offs',
+            value: '${list.length}',
+            icon: LucideIcons.banknoteX,
+          ),
+          AppStatCard(
+            label: 'Pending approval',
+            value: '$pending',
+            icon: LucideIcons.hourglass,
+            tone: AppTone.warning,
+          ),
+          AppStatCard(
+            label: 'Approved amount',
+            value: formatInr(approved),
+            icon: LucideIcons.circleCheckBig,
+            tone: AppTone.success,
+          ),
+          AppStatCard(
+            label: 'Total requested',
+            value: formatInr(requested),
+            icon: LucideIcons.wallet,
+            tone: AppTone.danger,
+          ),
+        ],
+      );
+    });
+  }
+
+  // ── Toolbar: search + status filter ─────────────────────────────────────────
+
+  Widget _buildFilterRow() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+      child: Wrap(
+        alignment: WrapAlignment.spaceBetween,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        spacing: 12,
+        runSpacing: 10,
+        children: [
+          // Search field
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 320),
+            child: AppSearchField(
+              controller: _searchCtrl,
+              hint: 'Search by client, booking ID...',
             ),
           ),
-          const SizedBox(width: 12),
-          // Search field
-          Expanded(
-            child: Container(
-              height: 40,
-              decoration: BoxDecoration(
-                color: AppColor.whiteColor,
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: AppColor.textFieldBorderColor),
-              ),
-              child: TextField(
-                controller: _searchCtrl,
-                style: const TextStyle(fontSize: 14),
-                decoration: InputDecoration(
-                  hintText: 'Search by client, booking ID...',
-                  hintStyle: TextStyle(color: AppColor.fontColorGrey, fontSize: 14),
-                  prefixIcon: Icon(Icons.search, color: AppColor.fontColorGrey, size: 20),
-                  border: InputBorder.none,
-                  contentPadding: const EdgeInsets.symmetric(vertical: 10),
+          // Status filter
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: _statusOptions.map((s) {
+              final isSelected = _statusFilter == s;
+              return FilterChip(
+                label: Text(s),
+                selected: isSelected,
+                showCheckmark: false,
+                onSelected: (_) => setState(() => _statusFilter = s),
+                labelStyle: TextStyle(
+                  fontSize: 13,
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                  color: isSelected
+                      ? AppColor.cAppPrimaryColor
+                      : AppColor.textSecondary,
                 ),
-              ),
-            ),
+                side: BorderSide(
+                  color: isSelected
+                      ? AppColor.cAppPrimaryColor.withValues(alpha: 0.45)
+                      : AppColor.divColor,
+                ),
+              );
+            }).toList(),
           ),
         ],
       ),
@@ -157,147 +191,89 @@ class _WriteOffListViewState extends State<WriteOffListView> {
   Widget _buildBody() {
     return Obx(() {
       if (ctrl.isLoading.value) {
-        return const ShimmerLoader.table();
+        return const SizedBox(height: 380, child: ShimmerLoader.table());
       }
 
       final rows = _filtered;
 
       if (rows.isEmpty) {
-        return Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.money_off_outlined, size: 64, color: AppColor.divColor),
-              const SizedBox(height: 12),
-              Text('No write-offs found', style: AppTextStyles.regular16Gre),
-            ],
-          ),
+        return AppEmptyState(
+          icon: LucideIcons.banknoteX,
+          title: 'No write-offs found',
+          message: _statusFilter != 'All' || _searchQuery.isNotEmpty
+              ? 'Try a different search or status filter.'
+              : null,
         );
       }
 
-      return SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Container(
-          width: double.infinity,
-          decoration: BoxDecoration(
-            color: AppColor.whiteColor,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColor.divColor),
-          ),
-          child: horizontalTable(DataTable(
-            headingRowColor: WidgetStateProperty.all(AppColor.fieldColorGrey),
-            headingTextStyle: TextStyle(
-              fontWeight: FontWeight.w600,
-              fontSize: 13,
-              color: AppColor.cPrimaryHeadingColor,
-            ),
-            dataTextStyle: const TextStyle(fontSize: 13),
-            columnSpacing: 16,
-            horizontalMargin: 12,
-            columns: const [
-              DataColumn(label: Text('ID')),
-              DataColumn(label: Text('Client')),
-              DataColumn(label: Text('Booking')),
-              DataColumn(label: Text('Amount')),
-              DataColumn(label: Text('Type')),
-              DataColumn(label: Text('Status')),
-              DataColumn(label: Text('Date')),
-              DataColumn(label: Text('Actions')),
-            ],
-            rows: rows.map((wo) {
-              final statusColor = accountsStatusColor(wo.status);
-              return DataRow(cells: [
-                DataCell(Text(
-                  '#${wo.id}',
-                  style: TextStyle(
-                    color: AppColor.cPrimaryButtonColor,
-                    fontWeight: FontWeight.w500,
-                    fontSize: 13,
-                  ),
-                )),
-                DataCell(Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      wo.clientName,
-                      style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
-                    ),
-                    Text(
-                      wo.patientName,
-                      style: TextStyle(fontSize: 11, color: AppColor.fontColorGrey),
-                    ),
-                  ],
-                )),
-                DataCell(Text('#${wo.bookingId}')),
-                DataCell(Text(
-                  formatInr(wo.writeOffAmount),
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w600,
-                    color: Colors.red,
-                  ),
-                )),
-                DataCell(_typeBadge(wo.writeOffType.isNotEmpty ? humanizeStatus(wo.writeOffType) : '—')),
-                DataCell(_statusBadge(wo.status, statusColor)),
-                DataCell(Text(formatAccDate(wo.writeOffDate ?? wo.createdOn, pattern: 'dd-MMM-yyyy'))),
-                DataCell(
-                  TextButton(
-                    onPressed: () => Get.toNamed(
-                      Routes.WRITE_OFF_DETAIL,
-                      arguments: {'write_off_id': wo.id, 'write_off': wo},
-                      parameters: {'id': '${wo.id}'},
-                    ),
-                    style: TextButton.styleFrom(
-                      foregroundColor: AppColor.cPrimaryButtonColor,
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    ),
-                    child: const Text(
-                      'View',
-                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
-                    ),
-                  ),
+      return horizontalTable(DataTable(
+        dataRowMinHeight: 52,
+        dataRowMaxHeight: 60,
+        columns: const [
+          DataColumn(label: Text('ID')),
+          DataColumn(label: Text('Client')),
+          DataColumn(label: Text('Booking')),
+          DataColumn(label: Text('Amount'), numeric: true),
+          DataColumn(label: Text('Type')),
+          DataColumn(label: Text('Status')),
+          DataColumn(label: Text('Date')),
+          DataColumn(label: Text('Actions')),
+        ],
+        rows: rows.map((wo) {
+          return DataRow(cells: [
+            DataCell(Text(
+              '#${wo.id}',
+              style: TextStyle(
+                color: AppColor.cAppPrimaryColor,
+                fontWeight: FontWeight.w600,
+              ),
+            )),
+            DataCell(Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  wo.clientName,
+                  style: const TextStyle(fontWeight: FontWeight.w600),
                 ),
-              ]);
-            }).toList(),
-          )),
-        ),
-      );
+                Text(
+                  wo.patientName,
+                  style: TextStyle(fontSize: 12.5, color: AppColor.textTertiary),
+                ),
+              ],
+            )),
+            DataCell(Text('#${wo.bookingId}')),
+            DataCell(Text(
+              formatInr(wo.writeOffAmount),
+              style: const TextStyle(
+                fontWeight: FontWeight.w600,
+                fontFeatures: [FontFeature.tabularFigures()],
+              ),
+            )),
+            DataCell(_typeBadge(wo.writeOffType.isNotEmpty ? humanizeStatus(wo.writeOffType) : '—')),
+            DataCell(AppStatusBadge.status(wo.status)),
+            DataCell(Text(
+              formatAccDate(wo.writeOffDate ?? wo.createdOn, pattern: 'dd-MMM-yyyy'),
+              style: TextStyle(color: AppColor.textSecondary),
+            )),
+            DataCell(
+              IconButton(
+                tooltip: 'View',
+                onPressed: () => Get.toNamed(
+                  Routes.WRITE_OFF_DETAIL,
+                  arguments: {'write_off_id': wo.id, 'write_off': wo},
+                  parameters: {'id': '${wo.id}'},
+                ),
+                icon: const Icon(LucideIcons.eye, size: 18),
+              ),
+            ),
+          ]);
+        }).toList(),
+      ));
     });
   }
 
-  Widget _statusBadge(String status, Color color) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Text(
-        status,
-        style: TextStyle(
-          color: color,
-          fontSize: 12,
-          fontWeight: FontWeight.w500,
-        ),
-      ),
-    );
-  }
-
   Widget _typeBadge(String type) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-        color: AppColor.fieldColorGrey,
-        borderRadius: BorderRadius.circular(6),
-      ),
-      child: Text(
-        type,
-        style: TextStyle(
-          fontSize: 11,
-          color: AppColor.cPrimarySubHeadingColorGrey,
-          fontWeight: FontWeight.w500,
-        ),
-      ),
-    );
+    return AppStatusBadge(label: type, showDot: false, dense: true);
   }
 }

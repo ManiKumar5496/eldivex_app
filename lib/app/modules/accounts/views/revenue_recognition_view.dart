@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:eldivex_app/app/core/values/color_constants.dart';
-import 'package:eldivex_app/app/core/values/text_style_constants.dart';
 import 'package:eldivex_app/app/core/values/size_configue.dart';
+import 'package:eldivex_app/app/widgets/ui/ui.dart';
 import '../controllers/accounts_controller.dart';
 import 'accounts_format.dart';
+import 'package:eldivex_app/app/core/values/lucide_icons.dart';
 
 class RevenueRecognitionView extends GetView<AccountsController> {
   const RevenueRecognitionView({super.key});
@@ -25,118 +26,111 @@ class RevenueRecognitionView extends GetView<AccountsController> {
       });
     }
 
+    final embedded = accountsIsEmbeddedInTabs(context);
+    final isMobile = SizeConfig.isMobile;
+    final sectionGap = isMobile ? 24.0 : 32.0;
+    final gridGap = isMobile ? 12.0 : 16.0;
+
     return Scaffold(
-      backgroundColor: AppColor.fieldColorGrey,
+      backgroundColor: AppColor.cAppBackgroundColor,
       body: SingleChildScrollView(
-        padding: SizeConfig.pagePadding,
+        padding: accountsPagePadding(context),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            _buildPageHeader(),
-            SizedBox(height: SizeConfig.spacingLG),
+            _buildPageHeader(embedded),
+            SizedBox(height: embedded ? 16 : (isMobile ? 20 : 24)),
             Obx(() {
               if (controller.isLoadingRevenue.value) {
                 return _buildLoadingSkeleton();
               }
               return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  _buildSectionTitle('Recurring Revenue'),
-                  SizedBox(height: SizeConfig.spacingSM),
-                  _buildResponsiveGrid([
-                    _bigKpiCard(
-                      label: 'Monthly Recurring Revenue',
-                      subtitle: 'From all active bookings × 30 days',
-                      value: _fmt(controller.mrr.value.toDouble()),
-                      color: AppColor.cPrimaryButtonColor,
-                      icon: Icons.trending_up,
-                    ),
-                    _bigKpiCard(
-                      label: 'Annual Recurring Revenue',
-                      subtitle: 'MRR × 12',
-                      value: _fmt(controller.arr.value.toDouble()),
-                      color: Colors.indigo,
-                      icon: Icons.bar_chart,
-                    ),
-                    _bigKpiCard(
-                      label: 'Active Bookings',
-                      subtitle: 'Generating revenue this month',
-                      value: '${controller.activeCount.value}',
-                      color: Colors.green,
-                      icon: Icons.people_alt_outlined,
-                      isCurrency: false,
-                    ),
-                  ]),
-                  SizedBox(height: SizeConfig.spacingLG),
+                  _buildSectionTitle('Recurring revenue',
+                      subtitle: 'Run-rate from all active bookings'),
+                  const SizedBox(height: 12),
+                  AppResponsiveGrid(
+                    minItemWidth: 220,
+                    maxColumns: 3,
+                    spacing: gridGap,
+                    children: [
+                      AppStatCard(
+                        label: 'Monthly Recurring Revenue',
+                        caption: 'From all active bookings × 30 days',
+                        value: _fmt(controller.mrr.value.toDouble()),
+                        tone: AppTone.primary,
+                        icon: LucideIcons.trendingUp,
+                      ),
+                      AppStatCard(
+                        label: 'Annual Recurring Revenue',
+                        caption: 'MRR × 12',
+                        value: _fmt(controller.arr.value.toDouble()),
+                        tone: AppTone.violet,
+                        icon: LucideIcons.chartColumn,
+                      ),
+                      AppStatCard(
+                        label: 'Active Bookings',
+                        caption: 'Generating revenue this month',
+                        value: '${controller.activeCount.value}',
+                        tone: AppTone.success,
+                        icon: LucideIcons.users,
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: sectionGap),
 
-                  _buildSectionTitle('This Month\'s Revenue Breakdown'),
-                  SizedBox(height: SizeConfig.spacingSM),
-                  _buildResponsiveGrid([
-                    _revenueBreakdownCard(
-                      label: 'Deferred Revenue',
-                      description: 'Invoiced but service not yet started',
-                      value: controller.deferred.value.toDouble(),
-                      color: Colors.orange,
-                      icon: Icons.hourglass_empty,
-                    ),
-                    _revenueBreakdownCard(
-                      label: 'Recognised Revenue',
-                      description: 'Service in progress — invoiced this month',
-                      value: controller.recognized.value.toDouble(),
-                      color: Colors.teal,
-                      icon: Icons.check_circle_outline,
-                    ),
-                    _revenueBreakdownCard(
-                      label: 'Collected Revenue',
-                      description: 'Cash actually received this month',
-                      value: controller.collected.value.toDouble(),
-                      color: Colors.green.shade700,
-                      icon: Icons.payments_outlined,
-                    ),
-                  ]),
-                  SizedBox(height: SizeConfig.spacingLG),
+                  // This month: breakdown list next to the waterfall chart.
+                  AppResponsiveGrid(
+                    minItemWidth: 420,
+                    maxColumns: 2,
+                    spacing: gridGap,
+                    children: [
+                      _buildBreakdownCard(),
+                      _buildWaterfall(),
+                    ],
+                  ),
+                  SizedBox(height: sectionGap),
 
-                  _buildSectionTitle('Efficiency Metrics'),
-                  SizedBox(height: SizeConfig.spacingSM),
-                  _buildResponsiveGrid([
-                    _metricCard(
-                      label: 'Churn (Cancellations)',
-                      value: '${controller.churnCount.value}',
-                      description: 'Bookings cancelled this month',
-                      color: Colors.red,
-                      icon: Icons.cancel_outlined,
-                      isCurrency: false,
-                    ),
-                    _metricCard(
-                      label: 'Collection Rate',
-                      value: '${controller.collectionRate.value}%',
-                      description: 'Collected ÷ Invoiced',
-                      color: Colors.blue,
-                      icon: Icons.percent,
-                      isCurrency: false,
-                    ),
-                    _metricCard(
-                      label: 'Days Sales Outstanding',
-                      value: '${controller.dso.value} days',
-                      description: 'Avg time to collect after invoicing',
-                      color: Colors.purple,
-                      icon: Icons.schedule,
-                      isCurrency: false,
-                    ),
-                    _metricCard(
-                      label: 'Overdue Amount',
-                      value: _fmt(controller.overdueAmount.value),
-                      description:
-                          '${controller.overdueCount.value} invoices past due date',
-                      color: Colors.red.shade700,
-                      icon: Icons.warning_amber_outlined,
-                    ),
-                  ]),
-                  SizedBox(height: SizeConfig.spacingLG),
-
-                  _buildSectionTitle('Revenue Waterfall'),
-                  SizedBox(height: SizeConfig.spacingSM),
-                  _buildWaterfall(),
+                  _buildSectionTitle('Efficiency metrics',
+                      subtitle: 'How quickly invoiced revenue turns into cash'),
+                  const SizedBox(height: 12),
+                  AppResponsiveGrid(
+                    minItemWidth: 200,
+                    maxColumns: 4,
+                    spacing: gridGap,
+                    children: [
+                      AppStatCard(
+                        label: 'Churn (Cancellations)',
+                        value: '${controller.churnCount.value}',
+                        caption: 'Bookings cancelled this month',
+                        tone: AppTone.danger,
+                        icon: LucideIcons.circleX,
+                      ),
+                      AppStatCard(
+                        label: 'Collection Rate',
+                        value: '${controller.collectionRate.value}%',
+                        caption: 'Collected ÷ Invoiced',
+                        tone: AppTone.info,
+                        icon: LucideIcons.percent,
+                      ),
+                      AppStatCard(
+                        label: 'Days Sales Outstanding',
+                        value: '${controller.dso.value} days',
+                        caption: 'Avg time to collect after invoicing',
+                        tone: AppTone.violet,
+                        icon: LucideIcons.clock,
+                      ),
+                      AppStatCard(
+                        label: 'Overdue Amount',
+                        value: _fmt(controller.overdueAmount.value),
+                        caption:
+                            '${controller.overdueCount.value} invoices past due date',
+                        tone: AppTone.warning,
+                        icon: LucideIcons.triangleAlert,
+                      ),
+                    ],
+                  ),
                 ],
               );
             }),
@@ -146,188 +140,64 @@ class RevenueRecognitionView extends GetView<AccountsController> {
     );
   }
 
-  Widget _buildResponsiveGrid(List<Widget> children) {
-    if (SizeConfig.isMobile) {
-      return Column(
-        children: children
-            .map((c) => Padding(
-                  padding: EdgeInsets.only(bottom: SizeConfig.spacingMD),
-                  child: c,
-                ))
-            .toList(),
-      );
+  Widget _buildPageHeader(bool embedded) {
+    final refresh = OutlinedButton.icon(
+      onPressed: controller.fetchRevenueRecognition,
+      icon: const Icon(LucideIcons.refreshCw, size: 18),
+      label: const Text('Refresh'),
+    );
+    if (embedded) {
+      return Align(alignment: Alignment.centerRight, child: refresh);
     }
-    if (SizeConfig.isTablet) {
-      return Wrap(
-        spacing: SizeConfig.gridSpacing,
-        runSpacing: SizeConfig.gridSpacing,
-        children: children
-            .map((c) => SizedBox(
-                  width: (SizeConfig.screenWidth -
-                          2 * SizeConfig.pagePadding.left -
-                          SizeConfig.gridSpacing) /
-                      2,
-                  child: c,
-                ))
-            .toList(),
-      );
-    }
-    // Desktop: Row with Expanded
-    final expanded = <Widget>[];
-    for (int i = 0; i < children.length; i++) {
-      expanded.add(Expanded(child: children[i]));
-      if (i < children.length - 1) {
-        expanded.add(SizedBox(width: SizeConfig.spacingMD));
-      }
-    }
-    return Row(children: expanded);
-  }
-
-  Widget _buildPageHeader() {
-    return SizeConfig.adaptiveLayout(
-      mobile: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text('Finance Dashboard',
-                  style: TextStyle(
-                      fontSize: SizeConfig.fontH2,
-                      fontWeight: FontWeight.w700,
-                      color: AppColor.cPrimaryHeadingColor)),
-              IconButton(
-                onPressed: controller.fetchRevenueRecognition,
-                icon: Icon(Icons.refresh,
-                    color: AppColor.cPrimaryButtonColor, size: SizeConfig.iconMD),
-                tooltip: 'Refresh',
-              ),
-            ],
-          ),
-          Text(
-            'Revenue recognition, MRR/ARR, and collection efficiency',
-            style: TextStyle(
-                fontSize: SizeConfig.fontCaption, color: AppColor.fontColorGrey),
-          ),
-        ],
-      ),
-      tablet: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Finance Dashboard', style: AppTextStyles.heading),
-              SizedBox(height: SizeConfig.spacingXS),
-              Text(
-                'Revenue recognition, MRR/ARR, and collection efficiency',
-                style: TextStyle(
-                    fontSize: SizeConfig.fontBodySmall,
-                    color: AppColor.fontColorGrey),
-              ),
-            ],
-          ),
-          const Spacer(),
-          OutlinedButton.icon(
-            onPressed: controller.fetchRevenueRecognition,
-            icon: Icon(Icons.refresh, size: SizeConfig.iconSM),
-            label: const Text('Refresh'),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: AppColor.cPrimaryButtonColor,
-              side: BorderSide(
-                  color: AppColor.cPrimaryButtonColor.withValues(alpha: 0.5)),
-              shape: RoundedRectangleBorder(
-                  borderRadius:
-                      BorderRadius.circular(SizeConfig.radiusSM)),
-            ),
-          ),
-        ],
-      ),
+    return AppPageHeader(
+      title: 'Finance dashboard',
+      subtitle: 'Revenue recognition, MRR/ARR, and collection efficiency',
+      actions: [refresh],
     );
   }
 
-  Widget _buildSectionTitle(String title) {
-    return Row(
-      children: [
-        Container(
-          width: 4,
-          height: 18,
-          decoration: BoxDecoration(
-            color: AppColor.cPrimaryButtonColor,
-            borderRadius: BorderRadius.circular(2),
-          ),
-        ),
-        SizedBox(width: SizeConfig.spacingXS),
-        Text(
-          title,
-          style: TextStyle(
-            fontSize: SizeConfig.fontBody,
-            fontWeight: FontWeight.w600,
-            color: AppColor.cPrimaryHeadingColor,
-          ),
-        ),
-      ],
-    );
+  Widget _buildSectionTitle(String title, {String? subtitle}) {
+    return AppSectionTitle(title: title, subtitle: subtitle);
   }
 
-  Widget _bigKpiCard({
-    required String label,
-    required String subtitle,
-    required String value,
-    required Color color,
-    required IconData icon,
-    bool isCurrency = true,
-  }) {
-    return Container(
-      padding: SizeConfig.cardPadding,
-      decoration: BoxDecoration(
-        color: AppColor.whiteColor,
-        borderRadius: BorderRadius.circular(SizeConfig.radiusMD),
-        border: Border.all(color: color.withValues(alpha: 0.2)),
-        boxShadow: [
-          BoxShadow(
-            color: color.withValues(alpha: 0.06),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
+  /// "This month's revenue breakdown" — one row per revenue state, amounts
+  /// right-aligned like a ledger.
+  Widget _buildBreakdownCard() {
+    final rows = [
+      _revenueBreakdownCard(
+        label: 'Deferred Revenue',
+        description: 'Invoiced but service not yet started',
+        value: controller.deferred.value.toDouble(),
+        tone: AppTone.warning,
+        icon: LucideIcons.hourglass,
       ),
+      _revenueBreakdownCard(
+        label: 'Recognised Revenue',
+        description: 'Service in progress — invoiced this month',
+        value: controller.recognized.value.toDouble(),
+        tone: AppTone.info,
+        icon: LucideIcons.circleCheck,
+      ),
+      _revenueBreakdownCard(
+        label: 'Collected Revenue',
+        description: 'Cash actually received this month',
+        value: controller.collected.value.toDouble(),
+        tone: AppTone.success,
+        icon: LucideIcons.banknote,
+      ),
+    ];
+    return AppCard(
+      title: 'This month\'s revenue breakdown',
+      subtitle: 'Where invoiced revenue sits right now',
+      padding: EdgeInsets.zero,
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Row(
-            children: [
-              Container(
-                padding: EdgeInsets.all(SizeConfig.spacingSM),
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(SizeConfig.radiusSM),
-                ),
-                child: Icon(icon, color: color, size: SizeConfig.iconMD),
-              ),
-              const Spacer(),
-            ],
-          ),
-          SizedBox(height: SizeConfig.spacingMD),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: SizeConfig.responsive(mobile: 22.0, tablet: 24.0, desktop: 26.0),
-              fontWeight: FontWeight.w800,
-              color: color,
-            ),
-          ),
-          SizedBox(height: SizeConfig.spacingXS),
-          Text(label,
-              style: TextStyle(
-                  fontSize: SizeConfig.fontBody,
-                  fontWeight: FontWeight.w600,
-                  color: AppColor.cPrimaryHeadingColor)),
-          SizedBox(height: SizeConfig.spacingXS),
-          Text(subtitle,
-              style: TextStyle(
-                  fontSize: SizeConfig.fontBodySmall,
-                  color: AppColor.fontColorGrey)),
+          for (int i = 0; i < rows.length; i++) ...[
+            rows[i],
+            if (i < rows.length - 1)
+              Divider(height: 1, color: AppColor.borderSubtle),
+          ],
         ],
       ),
     );
@@ -337,162 +207,108 @@ class RevenueRecognitionView extends GetView<AccountsController> {
     required String label,
     required String description,
     required double value,
-    required Color color,
+    required AppTone tone,
     required IconData icon,
   }) {
-    return Container(
-      padding: SizeConfig.cardPadding,
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.06),
-        borderRadius: BorderRadius.circular(SizeConfig.radiusMD),
-        border: Border.all(color: color.withValues(alpha: 0.18)),
-      ),
+    final narrow = SizeConfig.isMobile;
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: narrow ? 16 : 20, vertical: 16),
       child: Row(
         children: [
-          Container(
-            padding: EdgeInsets.all(SizeConfig.spacingSM),
-            decoration: BoxDecoration(
-              color: AppColor.whiteColor,
-              borderRadius: BorderRadius.circular(SizeConfig.radiusSM),
-              boxShadow: [
-                BoxShadow(
-                  color: color.withValues(alpha: 0.12),
-                  blurRadius: 8,
-                ),
-              ],
-            ),
-            child: Icon(icon, color: color, size: SizeConfig.iconMD),
-          ),
-          SizedBox(width: SizeConfig.spacingMD),
+          AppIconTile(icon: icon, tone: tone, size: 36),
+          const SizedBox(width: 14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(_fmt(value),
-                    style: TextStyle(
-                      fontSize: SizeConfig.fontH2,
-                      fontWeight: FontWeight.w700,
-                      color: color,
-                    )),
-                SizedBox(height: SizeConfig.spacingXS / 2),
                 Text(label,
                     style: TextStyle(
-                        fontSize: SizeConfig.fontBody,
-                        fontWeight: FontWeight.w600)),
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: AppColor.textPrimary)),
+                const SizedBox(height: 2),
                 Text(description,
                     style: TextStyle(
-                        fontSize: SizeConfig.fontBodySmall,
-                        color: AppColor.fontColorGrey)),
+                        fontSize: 12.5, color: AppColor.textTertiary)),
               ],
             ),
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget _metricCard({
-    required String label,
-    required String value,
-    required String description,
-    required Color color,
-    required IconData icon,
-    bool isCurrency = true,
-  }) {
-    return Container(
-      padding: SizeConfig.cardPadding,
-      decoration: BoxDecoration(
-        color: AppColor.whiteColor,
-        borderRadius: BorderRadius.circular(SizeConfig.radiusMD),
-        border: Border.all(color: AppColor.divColor),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, color: color, size: SizeConfig.iconSM),
-          SizedBox(height: SizeConfig.spacingSM),
-          Text(value,
-              style: TextStyle(
-                  fontSize: SizeConfig.fontH2,
-                  fontWeight: FontWeight.w700,
-                  color: color)),
-          SizedBox(height: SizeConfig.spacingXS / 2),
-          Text(label,
-              style: TextStyle(
-                  fontSize: SizeConfig.fontBody, fontWeight: FontWeight.w500)),
-          SizedBox(height: SizeConfig.spacingXS / 2),
-          Text(description,
-              style: TextStyle(
-                  fontSize: SizeConfig.fontBodySmall,
-                  color: AppColor.fontColorGrey)),
+          const SizedBox(width: 12),
+          Text(_fmt(value),
+              style: accountsAmountStyle(
+                  fontSize: narrow ? 15 : 17, fontWeight: FontWeight.w700)),
         ],
       ),
     );
   }
 
   Widget _buildWaterfall() {
-    return Obx(() {
-      final items = [
-        _WaterfallItem(
-          label: 'MRR',
-          value: controller.mrr.value.toDouble(),
-          color: AppColor.cPrimaryButtonColor,
-        ),
-        _WaterfallItem(
-          label: 'Deferred',
-          value: controller.deferred.value.toDouble(),
-          color: Colors.orange,
-        ),
-        _WaterfallItem(
-          label: 'Recognised',
-          value: controller.recognized.value.toDouble(),
-          color: Colors.teal,
-        ),
-        _WaterfallItem(
-          label: 'Collected',
-          value: controller.collected.value.toDouble(),
-          color: Colors.green.shade600,
-        ),
-      ];
+    final legend = [
+      _WaterfallItem(label: 'MRR', value: 0, color: AppColor.cAppPrimaryColor),
+      _WaterfallItem(label: 'Deferred', value: 0, color: AppColor.warning),
+      _WaterfallItem(label: 'Recognised', value: 0, color: AppColor.info),
+      _WaterfallItem(label: 'Collected', value: 0, color: AppColor.success),
+    ];
+    return AppCard(
+      title: 'Revenue Waterfall',
+      subtitle: 'MRR → deferred → recognised → collected',
+      child: Obx(() {
+        final items = [
+          _WaterfallItem(
+            label: 'MRR',
+            value: controller.mrr.value.toDouble(),
+            color: AppColor.cAppPrimaryColor,
+          ),
+          _WaterfallItem(
+            label: 'Deferred',
+            value: controller.deferred.value.toDouble(),
+            color: AppColor.warning,
+          ),
+          _WaterfallItem(
+            label: 'Recognised',
+            value: controller.recognized.value.toDouble(),
+            color: AppColor.info,
+          ),
+          _WaterfallItem(
+            label: 'Collected',
+            value: controller.collected.value.toDouble(),
+            color: AppColor.success,
+          ),
+        ];
 
-      final maxValue = items.map((i) => i.value).reduce((a, b) => a > b ? a : b);
-      final chartHeight = SizeConfig.responsive(
-          mobile: 140.0, tablet: 160.0, desktop: 180.0);
-      final barMaxHeight = SizeConfig.responsive(
-          mobile: 100.0, tablet: 120.0, desktop: 140.0);
+        final maxValue =
+            items.map((i) => i.value).reduce((a, b) => a > b ? a : b);
+        final chartHeight = SizeConfig.responsive(
+            mobile: 140.0, tablet: 160.0, desktop: 180.0);
+        final barMaxHeight = SizeConfig.responsive(
+            mobile: 100.0, tablet: 120.0, desktop: 140.0);
 
-      return Container(
-        padding: SizeConfig.cardPadding,
-        decoration: BoxDecoration(
-          color: AppColor.whiteColor,
-          borderRadius: BorderRadius.circular(SizeConfig.radiusMD),
-          border: Border.all(color: AppColor.divColor),
-        ),
-        child: Column(
+        return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Wrap(
-              spacing: SizeConfig.spacingMD,
-              runSpacing: SizeConfig.spacingXS,
-              children: items.map((item) {
+              spacing: 16,
+              runSpacing: 6,
+              children: legend.map((item) {
                 return Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Container(
-                        width: 10,
-                        height: 10,
+                        width: 8,
+                        height: 8,
                         decoration: BoxDecoration(
                           color: item.color,
-                          borderRadius: BorderRadius.circular(3),
+                          borderRadius: BorderRadius.circular(2),
                         )),
-                    SizedBox(width: SizeConfig.spacingXS),
+                    const SizedBox(width: 6),
                     Text(item.label,
-                        style: TextStyle(fontSize: SizeConfig.fontBodySmall)),
+                        style: TextStyle(
+                            fontSize: 12.5, color: AppColor.textSecondary)),
                   ],
                 );
               }).toList(),
             ),
-            SizedBox(height: SizeConfig.spacingLG),
+            const SizedBox(height: 20),
             SizedBox(
               height: chartHeight,
               child: Row(
@@ -501,20 +317,20 @@ class RevenueRecognitionView extends GetView<AccountsController> {
                   final ratio = maxValue > 0 ? item.value / maxValue : 0.0;
                   return Expanded(
                     child: Padding(
-                      padding: EdgeInsets.symmetric(
-                          horizontal: SizeConfig.spacingXS),
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.end,
                         children: [
                           Text(
                             _fmtShort(item.value),
                             style: TextStyle(
-                              fontSize: SizeConfig.fontCaption,
+                              fontSize: 12,
                               fontWeight: FontWeight.w600,
-                              color: item.color,
+                              color: AppColor.textSecondary,
+                              fontFeatures: accountsTabularFigures,
                             ),
                           ),
-                          SizedBox(height: SizeConfig.spacingXS),
+                          const SizedBox(height: 6),
                           AnimatedContainer(
                             duration: const Duration(milliseconds: 600),
                             curve: Curves.easeOutCubic,
@@ -522,7 +338,7 @@ class RevenueRecognitionView extends GetView<AccountsController> {
                             decoration: BoxDecoration(
                               color: item.color,
                               borderRadius: const BorderRadius.vertical(
-                                top: Radius.circular(6),
+                                top: Radius.circular(AppRadius.xs),
                               ),
                             ),
                           ),
@@ -533,7 +349,8 @@ class RevenueRecognitionView extends GetView<AccountsController> {
                 }).toList(),
               ),
             ),
-            SizedBox(height: SizeConfig.spacingXS),
+            Divider(height: 1, color: AppColor.borderSubtle),
+            const SizedBox(height: 8),
             Row(
               children: items.map((item) {
                 return Expanded(
@@ -541,43 +358,46 @@ class RevenueRecognitionView extends GetView<AccountsController> {
                     item.label,
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                        fontSize: SizeConfig.fontCaption,
-                        color: AppColor.fontColorGrey),
+                        fontSize: 12, color: AppColor.textTertiary),
                   ),
                 );
               }).toList(),
             ),
           ],
-        ),
-      );
-    });
+        );
+      }),
+    );
   }
 
   Widget _buildLoadingSkeleton() {
+    Widget box(double height) => Container(
+          height: height,
+          decoration: BoxDecoration(
+            color: AppColor.surfaceMuted,
+            borderRadius: BorderRadius.circular(AppRadius.lg),
+            border: Border.all(color: AppColor.borderSubtle),
+          ),
+        );
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _buildResponsiveGrid(List.generate(
-          3,
-          (_) => Container(
-            height: 130,
-            decoration: BoxDecoration(
-              color: AppColor.fieldColorGrey,
-              borderRadius: BorderRadius.circular(SizeConfig.radiusMD),
-            ),
-          ),
-        )),
-        SizedBox(height: SizeConfig.spacingLG),
-        _buildResponsiveGrid(List.generate(
-          3,
-          (_) => Container(
-            height: 90,
-            decoration: BoxDecoration(
-              color: AppColor.fieldColorGrey,
-              borderRadius: BorderRadius.circular(SizeConfig.radiusMD),
-            ),
-          ),
-        )),
+        AppResponsiveGrid(
+          minItemWidth: 220,
+          maxColumns: 3,
+          children: List.generate(3, (_) => box(118)),
+        ),
+        const SizedBox(height: 32),
+        AppResponsiveGrid(
+          minItemWidth: 420,
+          maxColumns: 2,
+          children: List.generate(2, (_) => box(260)),
+        ),
+        const SizedBox(height: 32),
+        AppResponsiveGrid(
+          minItemWidth: 200,
+          maxColumns: 4,
+          children: List.generate(4, (_) => box(118)),
+        ),
       ],
     );
   }

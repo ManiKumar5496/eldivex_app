@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:eldivex_app/app/core/values/color_constants.dart';
-import 'package:eldivex_app/app/core/values/text_style_constants.dart';
+import 'package:eldivex_app/app/widgets/ui/ui.dart';
 import '../../../core/values/size_configue.dart';
 import '../../../widgets/common_textfield.dart';
 import '../../../widgets/dropdown_common.dart';
@@ -9,6 +9,7 @@ import '../../../widgets/shimmer_loader.dart';
 import '../controllers/users_controller.dart';
 import '../models/get_users_model.dart';
 import '../../../routes/app_pages.dart';
+import 'package:eldivex_app/app/core/values/lucide_icons.dart';
 
 class UsersView extends GetView<UsersController> {
   const UsersView({super.key});
@@ -20,327 +21,227 @@ class UsersView extends GetView<UsersController> {
       ? Get.find<UsersController>()
       : Get.put(UsersController());
 
+  /// Below this width the table scrolls horizontally instead of squashing.
+  static const double _tableMinWidth = 880;
+
   @override
   Widget build(BuildContext context) {
     SizeConfig.init(context);
     return Scaffold(
       backgroundColor: AppColor.cAppBackgroundColor,
-      body: Column(
-        children: [
-          _buildHeader(),
-          Expanded(
-            child: Obx(() {
+      body: SingleChildScrollView(
+        padding: SizeConfig.pagePadding,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _buildHeader(),
+            SizedBox(height: SizeConfig.isMobile ? 16 : 24),
+            Obx(() {
               if (controller.getAllUsersLoading.value) {
-                return const ShimmerLoader.table();
+                return const AppCard(
+                  padding: EdgeInsets.zero,
+                  child: ShimmerLoader.table(),
+                );
               }
               if (controller.loadError.value.isNotEmpty &&
                   controller.allUsers.value.isEmpty) {
                 return _buildErrorState();
               }
-              return SingleChildScrollView(
-                child: Padding(
-                  padding: EdgeInsets.all(SizeConfig.isMobile ? 12 : SizeConfig.blockSizeHorizontal * 2),
-                  child: Column(
-                    children: [
-                      _buildSearchBar(),
-                      SizedBox(height: SizeConfig.isMobile ? 12 : SizeConfig.blockSizeVertical * 2),
-                      Obx(() => controller.isFilterVisible.value
-                          ? Column(
-                        children: [
-                          _buildFiltersCard(),
-                          SizedBox(height: SizeConfig.isMobile ? 12 : SizeConfig.blockSizeVertical * 2),
-                        ],
-                      )
-                          : const SizedBox.shrink()),
-                      _buildUsersTable(),
-                      SizedBox(height: SizeConfig.isMobile ? 12 : SizeConfig.blockSizeVertical * 2),
-                      _buildPagination(),
-                    ],
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _buildStats(),
+                  SizedBox(height: SizeConfig.isMobile ? 16 : 20),
+                  AppCard(
+                    padding: EdgeInsets.zero,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        _buildSearchBar(),
+                        Obx(() => controller.isFilterVisible.value
+                            ? _buildFiltersCard()
+                            : const SizedBox.shrink()),
+                        Divider(height: 1, color: AppColor.borderSubtle),
+                        _buildUsersTable(),
+                        Divider(height: 1, color: AppColor.borderSubtle),
+                        _buildTableFooter(),
+                      ],
+                    ),
                   ),
-                ),
+                ],
               );
             }),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildHeader() {
-    final isMobile = SizeConfig.isMobile;
-    return Container(
-      color: AppColor.whiteColor,
-      padding: EdgeInsets.symmetric(
-        horizontal: isMobile ? 12 : SizeConfig.blockSizeHorizontal * 2,
-        vertical: isMobile ? 12 : SizeConfig.blockSizeVertical * 2,
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Manage Users', style: AppTextStyles.heading),
-                SizedBox(height: isMobile ? 4 : SizeConfig.blockSizeVertical * 0.5),
-                Text('View and manage all user accounts', style: AppTextStyles.regular14Gre),
-              ],
-            ),
-          ),
-          ElevatedButton.icon(
-            onPressed: () {
-              controller.clearFilters();
-              Get.toNamed(Routes.AddUser);
-            },
-            icon: Icon(Icons.add, size: isMobile ? 16 : SizeConfig.blockSizeHorizontal * 1.2, color: AppColor.buttonTextWhite),
-            label: Text(
-              'Add User',
-              style: TextStyle(fontSize: isMobile ? 13 : SizeConfig.blockSizeHorizontal * 1, color: AppColor.buttonTextWhite),
-            ),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColor.cPrimaryButtonColor,
-              foregroundColor: AppColor.buttonTextWhite,
-              padding: EdgeInsets.symmetric(
-                horizontal: isMobile ? 12 : SizeConfig.blockSizeHorizontal * 2,
-                vertical: isMobile ? 10 : SizeConfig.blockSizeVertical * 1.5,
-              ),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-              elevation: 0,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSearchBar() {
-    final isMobile = SizeConfig.isMobile;
-    if (isMobile) {
-      return Column(
-        children: [
-          Container(
-            decoration: BoxDecoration(
-              color: AppColor.whiteColor,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: AppColor.divColor),
-            ),
-            child: TextField(
-              controller: controller.searchController,
-              onChanged: controller.searchUsers,
-              decoration: InputDecoration(
-                hintText: 'Search users by name, email...',
-                hintStyle: TextStyle(
-                  color: AppColor.lightGrey,
-                  fontSize: 13,
-                ),
-                prefixIcon: Icon(
-                  Icons.search,
-                  color: AppColor.lightGrey,
-                  size: 20,
-                ),
-                border: InputBorder.none,
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 10,
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Expanded(
-                child: Obx(() => OutlinedButton.icon(
-                  onPressed: () {
-                    controller.toggleFilters();
-                  },
-                  icon: Icon(
-                    controller.isFilterVisible.value ? Icons.expand_less : Icons.filter_list,
-                    size: 16,
-                  ),
-                  label: const Text(
-                    'Filters',
-                    style: TextStyle(fontSize: 13),
-                  ),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: controller.isFilterVisible.value ? Colors.blue.shade700 : AppColor.fontColorGrey,
-                    side: BorderSide(
-                      color: controller.isFilterVisible.value ? Colors.blue.shade300 : AppColor.divColor,
-                    ),
-                    backgroundColor: controller.isFilterVisible.value ? Colors.blue.shade50 : AppColor.whiteColor,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 10,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                )),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: controller.exportUsersCsv,
-                  icon: const Icon(Icons.download, size: 16),
-                  label: const Text(
-                    'Export',
-                    style: TextStyle(fontSize: 13),
-                  ),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColor.fontColorGrey,
-                    side: BorderSide(color: AppColor.divColor),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 10,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
-      );
-    }
-    return Row(
-      children: [
-        Expanded(
-          child: Container(
-            decoration: BoxDecoration(
-              color: AppColor.whiteColor,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: AppColor.divColor),
-            ),
-            child: TextField(
-              controller: controller.searchController,
-              onChanged: controller.searchUsers,
-              decoration: InputDecoration(
-                hintText: 'Search users by name, email...',
-                hintStyle: TextStyle(
-                  color: AppColor.lightGrey,
-                  fontSize: SizeConfig.blockSizeHorizontal * 1.2,
-                ),
-                prefixIcon: Icon(
-                  Icons.search,
-                  color: AppColor.lightGrey,
-                  size: SizeConfig.blockSizeHorizontal * 1.8,
-                ),
-                border: InputBorder.none,
-                contentPadding: EdgeInsets.symmetric(
-                  horizontal: SizeConfig.blockSizeHorizontal * 1.5,
-                  vertical: SizeConfig.blockSizeVertical * 1.2,
-                ),
-              ),
-            ),
-          ),
-        ),
-        SizedBox(width: SizeConfig.blockSizeHorizontal * 1),
-        Obx(() => OutlinedButton.icon(
+    return AppPageHeader(
+      title: 'Employees',
+      subtitle: 'View and manage all user accounts',
+      actions: [
+        ElevatedButton.icon(
           onPressed: () {
-            controller.toggleFilters();
+            controller.clearFilters();
+            Get.toNamed(Routes.AddUser);
           },
-          icon: Icon(
-            controller.isFilterVisible.value ? Icons.expand_less : Icons.filter_list,
-            size: SizeConfig.blockSizeHorizontal * 1.5,
-          ),
-          label: Text(
-            'Filters',
-            style: TextStyle(fontSize: SizeConfig.blockSizeHorizontal * 1.2),
-          ),
-          style: OutlinedButton.styleFrom(
-            foregroundColor: controller.isFilterVisible.value ? Colors.blue.shade700 : AppColor.fontColorGrey,
-            side: BorderSide(
-              color: controller.isFilterVisible.value ? Colors.blue.shade300 : AppColor.divColor,
-            ),
-            backgroundColor: controller.isFilterVisible.value ? Colors.blue.shade50 : AppColor.whiteColor,
-            padding: EdgeInsets.symmetric(
-              horizontal: SizeConfig.blockSizeHorizontal * 1.5,
-              vertical: SizeConfig.blockSizeVertical * 1.5,
-            ),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
-          ),
-        )),
-        SizedBox(width: SizeConfig.blockSizeHorizontal * 1),
-        OutlinedButton.icon(
-          onPressed: controller.exportUsersCsv,
-          icon: Icon(
-            Icons.download,
-            size: SizeConfig.blockSizeHorizontal * 1.5,
-          ),
-          label: Text(
-            'Export',
-            style: TextStyle(fontSize: SizeConfig.blockSizeHorizontal * 1.2),
-          ),
-          style: OutlinedButton.styleFrom(
-            foregroundColor: AppColor.fontColorGrey,
-            side: BorderSide(color: AppColor.divColor),
-            padding: EdgeInsets.symmetric(
-              horizontal: SizeConfig.blockSizeHorizontal * 1.5,
-              vertical: SizeConfig.blockSizeVertical * 1.5,
-            ),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
-          ),
+          icon: const Icon(LucideIcons.plus, size: 18),
+          label: const Text('Add User'),
         ),
       ],
     );
   }
 
-  Widget _buildFiltersCard() {
-    final isMobile = SizeConfig.isMobile;
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 300),
-      curve: Curves.easeInOut,
-      decoration: BoxDecoration(
-        color: AppColor.whiteColor,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColor.divColor),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
+  /// Head-count tiles. Called inside the page `Obx` (reads `allUsers`).
+  Widget _buildStats() {
+    final users = controller.allUsers.value;
+    final active = users.where((u) => u.isActive).length;
+    return AppResponsiveGrid(
+      minItemWidth: SizeConfig.isMobile ? 140 : 200,
+      maxColumns: 3,
+      spacing: SizeConfig.isMobile ? 12 : 16,
+      children: [
+        AppStatCard(
+          label: 'Total Employees',
+          value: '${users.length}',
+          icon: LucideIcons.idCard,
+          tone: AppTone.primary,
+        ),
+        AppStatCard(
+          label: 'Active',
+          value: '$active',
+          icon: LucideIcons.circleCheck,
+          tone: AppTone.success,
+        ),
+        AppStatCard(
+          label: 'Terminated',
+          value: '${users.length - active}',
+          icon: LucideIcons.ban,
+          tone: AppTone.danger,
+        ),
+      ],
+    );
+  }
+
+  Widget _filtersButton({bool expand = false}) {
+    return Obx(() {
+      final visible = controller.isFilterVisible.value;
+      final button = OutlinedButton.icon(
+        onPressed: () {
+          controller.toggleFilters();
+        },
+        icon: Icon(
+          visible ? LucideIcons.chevronUp : LucideIcons.listFilter,
+          size: 18,
+        ),
+        label: const Text('Filters'),
+        style: visible
+            ? OutlinedButton.styleFrom(
+                foregroundColor: AppColor.cAppPrimaryColor,
+                backgroundColor: AppColor.primarySoft,
+                side: BorderSide(
+                    color: AppColor.cAppPrimaryColor.withValues(alpha: 0.4)),
+              )
+            : null,
+      );
+      return expand ? SizedBox(width: double.infinity, child: button) : button;
+    });
+  }
+
+  Widget _exportButton({bool expand = false}) {
+    final button = OutlinedButton.icon(
+      onPressed: controller.exportUsersCsv,
+      icon: const Icon(LucideIcons.download, size: 18),
+      label: const Text('Export'),
+    );
+    return expand ? SizedBox(width: double.infinity, child: button) : button;
+  }
+
+  Widget _buildSearchBar() {
+    final search = AppSearchField(
+      controller: controller.searchController,
+      onChanged: controller.searchUsers,
+      hint: 'Search users by name, email...',
+    );
+    if (SizeConfig.isMobile) {
+      return Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          children: [
+            search,
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(child: _filtersButton(expand: true)),
+                const SizedBox(width: 8),
+                Expanded(child: _exportButton(expand: true)),
+              ],
+            ),
+          ],
+        ),
+      );
+    }
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      child: Row(
+        children: [
+          Expanded(
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 380),
+                child: search,
+              ),
+            ),
           ),
+          const SizedBox(width: 8),
+          _filtersButton(),
+          const SizedBox(width: 8),
+          _exportButton(),
         ],
       ),
-      padding: EdgeInsets.all(isMobile ? 12 : SizeConfig.blockSizeHorizontal * 1.5),
+    );
+  }
+
+  Widget _buildFiltersCard() {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColor.surfaceMuted,
+        border: Border(top: BorderSide(color: AppColor.borderSubtle)),
+      ),
+      padding: EdgeInsets.all(SizeConfig.isMobile ? 12 : 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                'Search User Filters',
-                style: TextStyle(
-                  fontSize: isMobile ? 15 : SizeConfig.blockSizeHorizontal * 1.4,
-                  fontWeight: FontWeight.w600,
-                  color: AppColor.fontColorBlack,
+              Expanded(
+                child: Text(
+                  'Search User Filters',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: AppColor.textPrimary,
+                  ),
                 ),
               ),
               IconButton(
+                tooltip: 'Hide filters',
                 onPressed: () {
                   controller.toggleFilters();
                 },
                 icon: Icon(
-                  Icons.close,
-                  size: isMobile ? 20 : SizeConfig.blockSizeHorizontal * 1.8,
-                  color: AppColor.fontColorGrey,
+                  LucideIcons.x,
+                  size: 18,
+                  color: AppColor.textTertiary,
                 ),
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(),
+                visualDensity: VisualDensity.compact,
               ),
             ],
           ),
-          SizedBox(height: isMobile ? 12 : SizeConfig.blockSizeVertical * 1.5),
+          const SizedBox(height: 12),
           _responsiveFilterRow([
             CommonTextField(
               label: 'Name',
@@ -392,7 +293,7 @@ class UsersView extends GetView<UsersController> {
               );
             }),
           ]),
-          SizedBox(height: isMobile ? 12 : SizeConfig.blockSizeVertical * 1.5),
+          const SizedBox(height: 16),
           Row(
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
@@ -400,43 +301,14 @@ class UsersView extends GetView<UsersController> {
                 onPressed: () {
                   controller.clearUserListFilters();
                 },
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: AppColor.fontColorGrey,
-                  side: BorderSide(color: AppColor.divColor),
-                  padding: EdgeInsets.symmetric(
-                    horizontal: isMobile ? 16 : SizeConfig.blockSizeHorizontal * 2,
-                    vertical: isMobile ? 10 : SizeConfig.blockSizeVertical * 1.2,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-                child: Text(
-                  'Clear',
-                  style: TextStyle(fontSize: isMobile ? 13 : SizeConfig.blockSizeHorizontal * 1.2),
-                ),
+                child: const Text('Clear'),
               ),
-              SizedBox(width: isMobile ? 8 : SizeConfig.blockSizeHorizontal * 1),
+              const SizedBox(width: 8),
               ElevatedButton(
                 onPressed: () {
                   controller.applyUserFilters();
                 },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColor.cPrimaryButtonColor,
-                  foregroundColor: AppColor.buttonTextWhite,
-                  padding: EdgeInsets.symmetric(
-                    horizontal: isMobile ? 20 : SizeConfig.blockSizeHorizontal * 2.5,
-                    vertical: isMobile ? 10 : SizeConfig.blockSizeVertical * 1.2,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  elevation: 0,
-                ),
-                child: Text(
-                  'Search',
-                  style: TextStyle(fontSize: isMobile ? 13 : SizeConfig.blockSizeHorizontal * 1.2),
-                ),
+                child: const Text('Search'),
               ),
             ],
           ),
@@ -445,86 +317,45 @@ class UsersView extends GetView<UsersController> {
     );
   }
 
+  /// 4 filters per row on wide screens, 2 on tablets, 1 on phones.
   Widget _responsiveFilterRow(List<Widget> children) {
-    final isMobile = SizeConfig.isMobile;
-    if (isMobile) {
-      return Column(
-        children: children.map((child) {
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 8),
-            child: child,
-          );
-        }).toList(),
+    return LayoutBuilder(builder: (context, constraints) {
+      const gap = 16.0;
+      final w = constraints.maxWidth;
+      final cols = w >= 960 ? 4 : (w >= 520 ? 2 : 1);
+      final itemWidth = ((w - gap * (cols - 1)) / cols).floorToDouble();
+      return Wrap(
+        spacing: gap,
+        runSpacing: 12,
+        children: [
+          for (final child in children) SizedBox(width: itemWidth, child: child),
+        ],
       );
-    }
-    return Row(
-      children: children.asMap().entries.map((entry) {
-        final index = entry.key;
-        final child = entry.value;
-        return Expanded(
-          child: Padding(
-            padding: EdgeInsets.only(
-              left: index == 0 ? 0 : SizeConfig.blockSizeHorizontal * 0.6,
-              right: index == children.length - 1 ? 0 : SizeConfig.blockSizeHorizontal * 0.6,
-            ),
-            child: child,
-          ),
-        );
-      }).toList(),
-    );
+    });
   }
 
   Widget _buildUsersTable() {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColor.whiteColor,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColor.divColor),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
+    return LayoutBuilder(builder: (context, constraints) {
+      final table = Column(
+        children: [
+          _buildTableHeader(),
+          Obx(() => _buildTableBody()),
         ],
-      ),
-      child: SizeConfig.isMobile
-          ? SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: SizedBox(
-                width: 700,
-                child: Column(
-                  children: [
-                    _buildTableHeader(),
-                    Obx(() => _buildTableBody()),
-                    _buildTableFooter(),
-                  ],
-                ),
-              ),
-            )
-          : Column(
-              children: [
-                _buildTableHeader(),
-                Obx(() => _buildTableBody()),
-                _buildTableFooter(),
-              ],
-            ),
-    );
+      );
+      if (constraints.maxWidth >= _tableMinWidth) return table;
+      return SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: SizedBox(width: _tableMinWidth, child: table),
+      );
+    });
   }
 
   Widget _buildTableHeader() {
-    final isMobile = SizeConfig.isMobile;
     return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: isMobile ? 12 : SizeConfig.blockSizeHorizontal * 1.5,
-        vertical: isMobile ? 10 : SizeConfig.blockSizeVertical * 1.5,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: AppColor.fieldColorGrey,
-        borderRadius: const BorderRadius.only(
-          topLeft: Radius.circular(12),
-          topRight: Radius.circular(12),
-        ),
+        color: AppColor.surfaceMuted,
+        border: Border(bottom: BorderSide(color: AppColor.borderSubtle)),
       ),
       child: Row(
         children: [
@@ -533,22 +364,22 @@ class UsersView extends GetView<UsersController> {
           _buildHeaderCell('Role', flex: 2),
           _buildHeaderCell('Status', flex: 2),
           _buildHeaderCell('Join Date', flex: 2),
-          _buildHeaderCell('Actions', flex: 1),
+          _buildHeaderCell('Actions', flex: 1, alignEnd: true),
         ],
       ),
     );
   }
 
-  Widget _buildHeaderCell(String title, {int flex = 1}) {
-    final isMobile = SizeConfig.isMobile;
+  Widget _buildHeaderCell(String title, {int flex = 1, bool alignEnd = false}) {
     return Expanded(
       flex: flex,
       child: Text(
         title,
+        textAlign: alignEnd ? TextAlign.end : TextAlign.start,
         style: TextStyle(
-          fontSize: isMobile ? 13 : SizeConfig.blockSizeHorizontal * 1.1,
+          fontSize: 12.5,
           fontWeight: FontWeight.w600,
-          color: AppColor.fontColorGrey,
+          color: AppColor.textTertiary,
         ),
       ),
     );
@@ -559,76 +390,48 @@ class UsersView extends GetView<UsersController> {
     controller.currentPage.value;
     final rows = controller.pagedUsers;
     if (rows.isEmpty) {
-      return Padding(
-        padding: const EdgeInsets.all(24),
-        child: Text(
-          controller.allUsers.value.isEmpty
-              ? 'No employees found'
-              : 'No employees match the current filters',
-          style: TextStyle(color: AppColor.fontColorGrey),
-        ),
+      final none = controller.allUsers.value.isEmpty;
+      return AppEmptyState(
+        compact: true,
+        icon: none ? LucideIcons.idCard : LucideIcons.searchX,
+        title: none
+            ? 'No employees found'
+            : 'No employees match the current filters',
       );
     }
     return Column(children: rows.map(_buildTableRow).toList());
   }
 
   Widget _buildErrorState() {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.error_outline, size: 40, color: AppColor.fontColorGrey),
-          const SizedBox(height: 12),
-          Text(
-            controller.loadError.value,
-            style: TextStyle(color: AppColor.fontColorGrey),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 12),
-          OutlinedButton.icon(
-            onPressed: controller.getAllEmployeesFromApi,
-            icon: const Icon(Icons.refresh, size: 16),
-            label: const Text('Retry'),
-          ),
-        ],
+    return AppCard(
+      child: AppEmptyState(
+        icon: LucideIcons.circleAlert,
+        tone: AppTone.danger,
+        title: 'Could not load employees',
+        message: controller.loadError.value,
+        actionLabel: 'Retry',
+        actionIcon: LucideIcons.refreshCw,
+        onAction: controller.getAllEmployeesFromApi,
       ),
     );
   }
 
   Widget _buildStatusBadge(bool active) {
-    final isMobile = SizeConfig.isMobile;
     return Align(
       alignment: Alignment.centerLeft,
-      child: Container(
-        padding: EdgeInsets.symmetric(
-          horizontal: isMobile ? 8 : SizeConfig.blockSizeHorizontal * 0.8,
-          vertical: isMobile ? 4 : SizeConfig.blockSizeVertical * 0.5,
-        ),
-        decoration: BoxDecoration(
-          color: (active ? Colors.green : Colors.red).withValues(alpha: 0.12),
-          borderRadius: BorderRadius.circular(6),
-        ),
-        child: Text(
-          active ? 'Active' : 'Terminated',
-          style: TextStyle(
-            fontSize: isMobile ? 12 : SizeConfig.blockSizeHorizontal * 1,
-            fontWeight: FontWeight.w500,
-            color: active ? Colors.green.shade700 : Colors.red.shade700,
-          ),
-        ),
+      child: AppStatusBadge(
+        label: active ? 'Active' : 'Terminated',
+        tone: active ? AppTone.success : AppTone.danger,
       ),
     );
   }
 
   Widget _buildTableRow(GetEmployeeDetails user) {
-    final isMobile = SizeConfig.isMobile;
+    final cellStyle = TextStyle(fontSize: 13.5, color: AppColor.textSecondary);
     return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: isMobile ? 12 : SizeConfig.blockSizeHorizontal * 1.5,
-        vertical: isMobile ? 10 : SizeConfig.blockSizeVertical * 1.5,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: AppColor.divColor)),
+        border: Border(bottom: BorderSide(color: AppColor.borderSubtle)),
       ),
       child: Row(
         children: [
@@ -636,31 +439,19 @@ class UsersView extends GetView<UsersController> {
             flex: 3,
             child: Row(
               children: [
-                CircleAvatar(
-                  radius: isMobile ? 14 : SizeConfig.blockSizeHorizontal * 1.4,
-                  backgroundColor: _getAvatarColor(user.userName),
-                  backgroundImage: user.userImage.isNotEmpty
-                      ? NetworkImage(user.userImage)
-                      : null,
-                  child: user.userImage.isEmpty
-                      ? Text(
-                          _getInitials(user.userName.isEmpty ? 'U' : user.userName),
-                          style: TextStyle(
-                            color: AppColor.buttonTextWhite,
-                            fontSize: isMobile ? 12 : SizeConfig.blockSizeHorizontal * 1.1,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        )
-                      : null,
+                AppAvatar(
+                  name: user.userName.isEmpty ? 'U' : user.userName,
+                  imageUrl: user.userImage,
+                  size: 34,
                 ),
-                SizedBox(width: isMobile ? 8 : SizeConfig.blockSizeHorizontal * 1),
+                const SizedBox(width: 10),
                 Expanded(
                   child: Text(
                     user.userName.isEmpty ? 'Unknown' : user.userName,
                     style: TextStyle(
-                      fontSize: isMobile ? 13 : SizeConfig.blockSizeHorizontal * 1.1,
-                      fontWeight: FontWeight.w500,
-                      color: AppColor.fontColorBlack,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: AppColor.textPrimary,
                     ),
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -672,16 +463,21 @@ class UsersView extends GetView<UsersController> {
             flex: 3,
             child: Text(
               user.userEmail,
-              style: TextStyle(
-                fontSize: isMobile ? 12 : SizeConfig.blockSizeHorizontal * 1.1,
-                color: AppColor.fontColorGrey,
-              ),
+              style: cellStyle,
               overflow: TextOverflow.ellipsis,
             ),
           ),
           Expanded(
             flex: 2,
-            child: _buildRoleBadge(user.roleName),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              // Long role names shrink instead of overflowing the column.
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: _buildRoleBadge(user.roleName),
+              ),
+            ),
           ),
           Expanded(
             flex: 2,
@@ -691,9 +487,8 @@ class UsersView extends GetView<UsersController> {
             flex: 2,
             child: Text(
               _formatDate(user.createdOn),
-              style: TextStyle(
-                fontSize: isMobile ? 12 : SizeConfig.blockSizeHorizontal * 1.1,
-                color: AppColor.fontColorGrey,
+              style: cellStyle.copyWith(
+                fontFeatures: const [FontFeature.tabularFigures()],
               ),
             ),
           ),
@@ -703,41 +498,47 @@ class UsersView extends GetView<UsersController> {
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 IconButton(
+                  tooltip: 'Edit user',
                   icon: Icon(
-                    Icons.edit_outlined,
-                    size: isMobile ? 18 : SizeConfig.blockSizeHorizontal * 1.4,
-                    color: AppColor.fontColorGrey,
+                    LucideIcons.pencil,
+                    size: 18,
+                    color: AppColor.textSecondary,
                   ),
                   onPressed: () {
                     controller.loadUserForEdit(user);
                     Get.toNamed(Routes.AddUser);
                   },
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
+                  visualDensity: VisualDensity.compact,
                 ),
-                SizedBox(width: isMobile ? 8 : SizeConfig.blockSizeHorizontal * 0.8),
                 IconButton(
+                  tooltip: user.isActive ? 'Terminate user' : 'Already terminated',
                   icon: Icon(
-                    Icons.block,
-                    size: isMobile ? 18 : SizeConfig.blockSizeHorizontal * 1.4,
-                    color: Colors.orange.shade600,
+                    LucideIcons.ban,
+                    size: 18,
+                    color: user.isActive
+                        ? AppColor.warning
+                        : AppColor.borderStrong,
                   ),
                   onPressed: !user.isActive
                       ? null
                       : () {
                     Get.dialog(
-                      AlertDialog(
-                        title: const Text('Terminate User'),
-                        content: Text(
-                          'Are you sure you want to terminate ${user.userName}? This will deactivate their account.',
-                        ),
+                      AppDialog(
+                        title: 'Terminate User',
+                        icon: LucideIcons.ban,
+                        tone: AppTone.danger,
+                        maxWidth: 440,
+                        // Same guard as Cancel: no closing mid-request.
+                        onClose: () {
+                          if (!controller.isTerminateLoading.value) Get.back();
+                        },
                         actions: [
-                          TextButton(
-                            onPressed: controller.isTerminateLoading.value
-                                ? null
-                                : () => Get.back(),
-                            child: const Text('Cancel'),
-                          ),
+                          Obx(() => OutlinedButton(
+                                onPressed: controller.isTerminateLoading.value
+                                    ? null
+                                    : () => Get.back(),
+                                child: const Text('Cancel'),
+                              )),
                           Obx(() => ElevatedButton(
                             onPressed: controller.isTerminateLoading.value
                                 ? null
@@ -745,28 +546,32 @@ class UsersView extends GetView<UsersController> {
                                     final ok = await controller.terminateUser(user.id);
                                     if (ok && (Get.isDialogOpen ?? false)) Get.back();
                                   },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.red,
-                              foregroundColor: AppColor.buttonTextWhite,
-                            ),
+                            style: AppButtonStyles.danger,
                             child: controller.isTerminateLoading.value
                                 ? SizedBox(
                                     height: 16,
                                     width: 16,
                                     child: CircularProgressIndicator(
                                       strokeWidth: 2,
-                                      valueColor: AlwaysStoppedAnimation<Color>(AppColor.buttonTextWhite),
+                                      valueColor: AlwaysStoppedAnimation<Color>(AppColor.textTertiary),
                                     ),
                                   )
                                 : const Text('Terminate'),
                           )),
                         ],
+                        child: Text(
+                          'Are you sure you want to terminate ${user.userName}? This will deactivate their account.',
+                          style: TextStyle(
+                            fontSize: 14,
+                            height: 1.5,
+                            color: AppColor.textSecondary,
+                          ),
+                        ),
                       ),
                       barrierDismissible: false,
                     );
                   },
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
+                  visualDensity: VisualDensity.compact,
                 ),
               ],
             ),
@@ -777,106 +582,76 @@ class UsersView extends GetView<UsersController> {
   }
 
   Widget _buildRoleBadge(String role) {
-    final isMobile = SizeConfig.isMobile;
-    Color bgColor;
-    Color textColor;
-
+    final AppTone tone;
     switch (role.toLowerCase()) {
       case 'admin':
-        bgColor = Colors.purple.shade50;
-        textColor = Colors.purple.shade700;
+        tone = AppTone.violet;
         break;
       case 'manager':
-        bgColor = Colors.blue.shade50;
-        textColor = Colors.blue.shade700;
+        tone = AppTone.info;
         break;
       default:
-        bgColor = AppColor.fieldColorGrey;
-        textColor = AppColor.fontColorGrey;
+        tone = AppTone.neutral;
     }
-
-    return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: isMobile ? 8 : SizeConfig.blockSizeHorizontal * 1,
-        vertical: isMobile ? 4 : SizeConfig.blockSizeVertical * 0.6,
-      ),
-      decoration: BoxDecoration(
-        color: bgColor,
-        borderRadius: BorderRadius.circular(6),
-      ),
-      child: Text(
-        role,
-        style: TextStyle(
-          fontSize: isMobile ? 12 : SizeConfig.blockSizeHorizontal * 1,
-          fontWeight: FontWeight.w500,
-          color: textColor,
-        ),
-        textAlign: TextAlign.center,
-      ),
+    return AppStatusBadge(
+      label: role.isEmpty ? '—' : role,
+      tone: tone,
+      showDot: false,
     );
   }
 
+  /// Result count on the left, pager on the right.
   Widget _buildTableFooter() {
-    final isMobile = SizeConfig.isMobile;
-    return Container(
+    final caption = TextStyle(fontSize: 13, color: AppColor.textTertiary);
+    return Padding(
       padding: EdgeInsets.symmetric(
-        horizontal: isMobile ? 12 : SizeConfig.blockSizeHorizontal * 1.5,
-        vertical: isMobile ? 10 : SizeConfig.blockSizeVertical * 1.2,
+        horizontal: SizeConfig.isMobile ? 12 : 16,
+        vertical: 10,
       ),
-      child: Obx(() => Text(
-        'Showing ${controller.filteredUsers.length} of ${controller.allUsers.value.length} users',
-        style: TextStyle(
-          fontSize: isMobile ? 12 : SizeConfig.blockSizeHorizontal * 1.1,
-          color: AppColor.fontColorGrey,
-        ),
-      )),
+      child: Wrap(
+        alignment: WrapAlignment.spaceBetween,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        spacing: 12,
+        runSpacing: 8,
+        children: [
+          Obx(() => Text(
+                'Showing ${controller.filteredUsers.length} of ${controller.allUsers.value.length} users',
+                style: caption,
+              )),
+          _buildPagination(),
+        ],
+      ),
     );
   }
 
   Widget _buildPagination() {
-    final isMobile = SizeConfig.isMobile;
-    final btnPadding = EdgeInsets.symmetric(
-      horizontal: isMobile ? 16 : SizeConfig.blockSizeHorizontal * 2,
-      vertical: isMobile ? 10 : SizeConfig.blockSizeVertical * 1.2,
-    );
-    final textStyle =
-        TextStyle(fontSize: isMobile ? 13 : SizeConfig.blockSizeHorizontal * 1.2);
     return Obx(() {
       final page = controller.currentPage.value;
       final total = controller.totalPages;
       return Row(
-        mainAxisAlignment: MainAxisAlignment.end,
+        mainAxisSize: MainAxisSize.min,
         children: [
           Text('Page $page of $total',
-              style: TextStyle(
-                  fontSize: isMobile ? 12 : SizeConfig.blockSizeHorizontal * 1.1,
-                  color: AppColor.fontColorGrey)),
-          SizedBox(width: isMobile ? 8 : SizeConfig.blockSizeHorizontal * 1),
-          OutlinedButton(
+              style: TextStyle(fontSize: 13, color: AppColor.textTertiary)),
+          const SizedBox(width: 12),
+          OutlinedButton.icon(
             onPressed: page > 1 ? controller.previousPage : null,
-            style: OutlinedButton.styleFrom(
-              foregroundColor: AppColor.fontColorGrey,
-              side: BorderSide(color: AppColor.divColor),
-              padding: btnPadding,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-            child: Text('Previous', style: textStyle),
+            style: AppButtonStyles.compact,
+            icon: const Icon(LucideIcons.chevronLeft, size: 18),
+            label: const Text('Previous'),
           ),
-          SizedBox(width: isMobile ? 8 : SizeConfig.blockSizeHorizontal * 1),
-          ElevatedButton(
+          const SizedBox(width: 8),
+          OutlinedButton(
             onPressed: page < total ? controller.nextPage : null,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColor.cPrimaryButtonColor,
-              foregroundColor: AppColor.buttonTextWhite,
-              padding: btnPadding,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-              elevation: 0,
+            style: AppButtonStyles.compact,
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text('Next'),
+                SizedBox(width: 4),
+                Icon(LucideIcons.chevronRight, size: 18),
+              ],
             ),
-            child: Text('Next', style: textStyle),
           ),
         ],
       );
@@ -891,27 +666,6 @@ class UsersView extends GetView<UsersController> {
     } catch (_) {
       return dateStr;
     }
-  }
-
-  String _getInitials(String name) {
-    List<String> names = name.split(' ');
-    if (names.length >= 2) {
-      return '${names[0][0]}${names[1][0]}'.toUpperCase();
-    }
-    return name.isNotEmpty ? name[0].toUpperCase() : 'U';
-  }
-
-  Color _getAvatarColor(String name) {
-    final colors = [
-      Colors.blue.shade400,
-      Colors.teal.shade400,
-      Colors.purple.shade400,
-      Colors.orange.shade400,
-      Colors.pink.shade400,
-      Colors.indigo.shade400,
-      Colors.cyan.shade400,
-    ];
-    return colors[name.length % colors.length];
   }
 
 }

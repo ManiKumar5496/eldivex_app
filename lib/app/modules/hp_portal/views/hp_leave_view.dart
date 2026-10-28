@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../../core/values/color_constants.dart';
+import '../../../widgets/ui/ui.dart';
 import '../controllers/hp_controller.dart';
 import 'hp_widgets.dart';
+import 'package:eldivex_app/app/core/values/lucide_icons.dart';
 
 class HpLeaveView extends StatefulWidget {
   const HpLeaveView({super.key});
@@ -28,16 +30,22 @@ class _HpLeaveViewState extends State<HpLeaveView> {
       appBar: AppBar(title: const Text('Leave requests')),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _requestSheet(context),
-        icon: const Icon(Icons.add),
+        icon: const Icon(LucideIcons.plus),
         label: const Text('Request leave'),
       ),
       body: Obx(() {
         if (c.loadingLeave.value) return const Center(child: CircularProgressIndicator());
-        if (c.leave.isEmpty) return HpUi.empty('No leave requests yet.', icon: Icons.beach_access);
+        if (c.leave.isEmpty) {
+          return const AppEmptyState(
+            icon: LucideIcons.umbrella,
+            title: 'No leave requests yet.',
+            message: 'Tap "Request leave" to apply for time off.',
+          );
+        }
         return RefreshIndicator(
           onRefresh: c.fetchLeave,
           child: ListView.separated(
-            padding: const EdgeInsets.all(16),
+            padding: HpUi.pagePadding(context, top: 20, bottom: 96),
             itemCount: c.leave.length,
             separatorBuilder: (_, __) => const SizedBox(height: 12),
             itemBuilder: (_, i) => _tile(c.leave[i]),
@@ -49,28 +57,45 @@ class _HpLeaveViewState extends State<HpLeaveView> {
 
   Widget _tile(Map<String, dynamic> l) {
     final status = '${l['status'] ?? 'Pending'}';
-    final color = status == 'Approved'
-        ? AppColor.lightGreen
+    final tone = status == 'Approved'
+        ? AppTone.success
         : status == 'Rejected'
-            ? AppColor.calenderRed
-            : Colors.orange;
+            ? AppTone.danger
+            : AppTone.warning;
     return HpUi.card(
-      child: Column(
+      child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text('${l['from_date'] ?? ''} → ${l['to_date'] ?? ''}',
-                    style: TextStyle(fontWeight: FontWeight.w700, color: AppColor.cPrimaryHeadingColor)),
-              ),
-              HpUi.statusChip(status.toUpperCase(), color),
-            ],
+          AppIconTile(icon: LucideIcons.calendar, tone: tone, size: 36),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Text('${l['from_date'] ?? ''} → ${l['to_date'] ?? ''}',
+                          style: TextStyle(
+                              fontSize: 14.5,
+                              fontWeight: FontWeight.w600,
+                              color: AppColor.textPrimary)),
+                    ),
+                    const SizedBox(width: 8),
+                    AppStatusBadge(
+                        label: humanizeLabel(status), tone: tone, dense: true),
+                  ],
+                ),
+                if ((l['reason'] ?? '').toString().isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  Text('${l['reason']}',
+                      style: TextStyle(
+                          fontSize: 13.5, color: AppColor.textSecondary)),
+                ],
+              ],
+            ),
           ),
-          if ((l['reason'] ?? '').toString().isNotEmpty) ...[
-            const SizedBox(height: 6),
-            Text('${l['reason']}', style: TextStyle(color: AppColor.fontColorGrey)),
-          ],
         ],
       ),
     );
@@ -95,57 +120,66 @@ class _HpLeaveViewState extends State<HpLeaveView> {
       if (picked != null) target.value = picked;
     }
 
+    Widget dateButton(String label, Rxn<DateTime> target) {
+      return HpUi.field(
+        label,
+        Obx(() => OutlinedButton.icon(
+              onPressed: () => pick(target),
+              icon: Icon(LucideIcons.calendar,
+                  size: 16, color: AppColor.textTertiary),
+              label: Text(fmt(target.value),
+                  style: TextStyle(
+                      color: target.value == null
+                          ? AppColor.textTertiary
+                          : AppColor.textPrimary)),
+              style: OutlinedButton.styleFrom(
+                minimumSize: const Size.fromHeight(48),
+                alignment: Alignment.centerLeft,
+              ),
+            )),
+      );
+    }
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      builder: (_) => Padding(
-        padding: EdgeInsets.only(
-            bottom: MediaQuery.of(context).viewInsets.bottom, left: 16, right: 16, top: 16),
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
+      builder: (_) => HpUi.sheet(
+        title: 'Request leave',
+        subtitle: 'Choose the dates you will be away',
+        icon: LucideIcons.umbrella,
+        bottomInset: MediaQuery.of(context).viewInsets.bottom,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Request leave',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppColor.cPrimaryHeadingColor)),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(child: Obx(() => OutlinedButton(onPressed: () => pick(from), child: Text('From: ${fmt(from.value)}')))),
-                  const SizedBox(width: 8),
-                  Expanded(child: Obx(() => OutlinedButton(onPressed: () => pick(to), child: Text('To: ${fmt(to.value)}')))),
-                ],
-              ),
-              const SizedBox(height: 10),
-              TextField(controller: reason, maxLines: 3,
-                  decoration: const InputDecoration(labelText: 'Reason', border: OutlineInputBorder())),
-              const SizedBox(height: 12),
-              Obx(() => SizedBox(
-                    width: double.infinity,
-                    height: 46,
-                    child: ElevatedButton(
-                      onPressed: c.busy.value
-                          ? null
-                          : () async {
-                              if (from.value == null || to.value == null) {
-                                Get.snackbar('Missing', 'Select both dates.');
-                                return;
-                              }
-                              final ok = await c.requestLeave(fmt(from.value), fmt(to.value), reason.text.trim());
-                              if (ok) Get.back();
-                            },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColor.cPrimaryButtonColor,
-                        foregroundColor: AppColor.buttonTextWhite,
-                      ),
-                      child: c.busy.value
-                          ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                          : const Text('Submit'),
-                    ),
-                  )),
-              const SizedBox(height: 16),
+              Expanded(child: dateButton('From', from)),
+              const SizedBox(width: 12),
+              Expanded(child: dateButton('To', to)),
             ],
           ),
-        ),
+          HpUi.field(
+            'Reason',
+            TextField(
+              controller: reason,
+              maxLines: 3,
+              decoration:
+                  const InputDecoration(hintText: 'Add a short note'),
+            ),
+          ),
+          const SizedBox(height: 6),
+          Obx(() => HpUi.primaryButton(
+                label: 'Submit',
+                loading: c.busy.value,
+                onTap: () async {
+                  if (from.value == null || to.value == null) {
+                    Get.snackbar('Missing', 'Select both dates.');
+                    return;
+                  }
+                  final ok = await c.requestLeave(fmt(from.value), fmt(to.value), reason.text.trim());
+                  if (ok) Get.back();
+                },
+              )),
+        ],
       ),
     );
   }

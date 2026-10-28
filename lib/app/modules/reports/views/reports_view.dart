@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:intl/intl.dart';
 import 'package:eldivex_app/app/core/values/color_constants.dart';
 import 'package:eldivex_app/app/core/values/size_configue.dart';
+import '../../../widgets/ui/ui.dart';
 import '../../dashboard/controllers/dashboard_controller.dart';
 import '../controllers/reports_controller.dart';
+import 'package:eldivex_app/app/core/values/lucide_icons.dart';
 
 class ReportsView extends GetView<ReportsController> {
   const ReportsView({super.key});
@@ -11,27 +14,22 @@ class ReportsView extends GetView<ReportsController> {
   @override
   Widget build(BuildContext context) {
     SizeConfig.init(context);
+    final pad = SizeConfig.isMobile ? 16.0 : 24.0;
 
     return Scaffold(
       backgroundColor: AppColor.cAppBackgroundColor,
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildHeader(),
-          Expanded(
-            child: SingleChildScrollView(
-              padding: SizeConfig.pagePadding,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildConfigCard(context),
-                  SizedBox(height: SizeConfig.spacingLG),
-                  _buildPreviewCard(),
-                ],
-              ),
-            ),
-          ),
-        ],
+      body: SingleChildScrollView(
+        padding: EdgeInsets.all(pad),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _buildHeader(),
+            const SizedBox(height: 24),
+            _buildConfigCard(context),
+            const SizedBox(height: 20),
+            _buildPreviewCard(),
+          ],
+        ),
       ),
     );
   }
@@ -39,143 +37,93 @@ class ReportsView extends GetView<ReportsController> {
   // ── Header ────────────────────────────────────────────────────────────────
 
   Widget _buildHeader() {
-    return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: SizeConfig.spacingMD,
-        vertical:   SizeConfig.spacingMD,
-      ),
-      decoration: BoxDecoration(
-        color: AppColor.whiteColor,
-        border: Border(
-          bottom: BorderSide(color: AppColor.divColor.withValues(alpha: 0.5)),
-        ),
-      ),
-      child: Row(
-        children: [
-          Icon(Icons.bar_chart, color: AppColor.cPrimaryButtonColor, size: SizeConfig.iconMD),
-          SizedBox(width: SizeConfig.spacingSM),
-          Text(
-            'Reports',
-            style: TextStyle(
-              fontSize: SizeConfig.fontH2,
-              fontWeight: FontWeight.w600,
-              color: AppColor.cPrimaryHeadingColor,
-            ),
+    return AppPageHeader(
+      title: 'Reports',
+      subtitle: 'Preview operational reports and export them as CSV.',
+      actions: [
+        // ── Schedule weekly toggle ─────────────────────────────────────────
+        Obx(() => Container(
+          height: 40,
+          padding: const EdgeInsets.only(left: 12, right: 4),
+          decoration: BoxDecoration(
+            color: AppColor.whiteColor,
+            borderRadius: BorderRadius.circular(AppRadius.md),
+            border: Border.all(color: AppColor.borderStrong),
           ),
-          const Spacer(),
-          // ── Schedule weekly toggle ─────────────────────────────────────────
-          Obx(() => Row(
+          child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.schedule, size: 16, color: AppColor.fontColorGrey),
-              SizedBox(width: 4),
+              Icon(LucideIcons.clock, size: 16, color: AppColor.textTertiary),
+              const SizedBox(width: 6),
               Text(
                 'Weekly email',
-                style: TextStyle(fontSize: SizeConfig.fontCaption, color: AppColor.fontColorGrey),
+                style: TextStyle(
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w600,
+                  color: AppColor.textSecondary,
+                ),
               ),
-              SizedBox(width: 6),
+              const SizedBox(width: 6),
               controller.scheduleLoading.value
-                  ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2))
-                  : Switch(
-                      value: controller.scheduleEnabled.value,
-                      onChanged: controller.toggleSchedule,
-                      activeThumbColor: AppColor.buttonTextWhite,
-                      activeTrackColor: AppColor.cPrimaryButtonColor,
+                  ? const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 14),
+                      child: SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2)),
+                    )
+                  : Transform.scale(
+                      scale: 0.85,
+                      child: Switch(
+                        value: controller.scheduleEnabled.value,
+                        onChanged: controller.toggleSchedule,
+                      ),
                     ),
             ],
-          )),
-        ],
-      ),
+          ),
+        )),
+      ],
     );
   }
 
   // ── Config card ───────────────────────────────────────────────────────────
 
   Widget _buildConfigCard(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.all(SizeConfig.spacingLG),
-      decoration: BoxDecoration(
-        color: AppColor.whiteColor,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
+    return AppCard(
+      icon: LucideIcons.slidersHorizontal,
+      title: 'Configure Report',
+      subtitle: 'Pick a report, branch and date range, then generate a preview.',
+      footer: Wrap(
+        alignment: WrapAlignment.end,
+        spacing: 8,
+        runSpacing: 8,
+        children: [
+          // Download CSV
+          Obx(() => OutlinedButton.icon(
+            onPressed: controller.reportData.isEmpty || controller.downloading.value
+                ? null
+                : controller.downloadCsv,
+            icon: controller.downloading.value
+                ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                : const Icon(LucideIcons.download, size: 18),
+            label: const Text('Download CSV'),
+          )),
+
+          // Generate (preview)
+          Obx(() => ElevatedButton.icon(
+            onPressed: controller.loading.value ? null : controller.fetchReport,
+            icon: controller.loading.value
+                ? SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: AppColor.buttonTextWhite))
+                : const Icon(LucideIcons.play, size: 18),
+            label: const Text('Generate Preview'),
+          )),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Configure Report',
-            style: TextStyle(
-              fontSize: SizeConfig.fontBodyLarge,
-              fontWeight: FontWeight.w600,
-              color: AppColor.cPrimaryHeadingColor,
-            ),
-          ),
-          SizedBox(height: SizeConfig.spacingMD),
-
-          // ── Filters row (responsive) ─────────────────────────────────────
-          SizeConfig.isMobile
-              ? Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: _buildFilterWidgets(context),
-                )
-              : Wrap(
-                  spacing: SizeConfig.spacingMD,
-                  runSpacing: SizeConfig.spacingMD,
-                  children: _buildFilterWidgets(context),
-                ),
-
-          SizedBox(height: SizeConfig.spacingLG),
-
-          // ── Action buttons ───────────────────────────────────────────────
-          Wrap(
-            spacing: SizeConfig.spacingMD,
-            runSpacing: SizeConfig.spacingSM,
-            children: [
-              // Generate (preview)
-              Obx(() => SizedBox(
-                height: 40,
-                child: ElevatedButton.icon(
-                  onPressed: controller.loading.value ? null : controller.fetchReport,
-                  icon: controller.loading.value
-                      ? SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: AppColor.buttonTextWhite))
-                      : const Icon(Icons.search, size: 18),
-                  label: const Text('Generate Preview'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColor.cPrimaryButtonColor,
-                    foregroundColor: AppColor.buttonTextWhite,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                    elevation: 0,
-                  ),
-                ),
-              )),
-
-              // Download CSV
-              Obx(() => SizedBox(
-                height: 40,
-                child: OutlinedButton.icon(
-                  onPressed: controller.reportData.isEmpty || controller.downloading.value
-                      ? null
-                      : controller.downloadCsv,
-                  icon: controller.downloading.value
-                      ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
-                      : const Icon(Icons.download, size: 18),
-                  label: const Text('Download CSV'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColor.cPrimaryButtonColor,
-                    side: BorderSide(color: AppColor.cPrimaryButtonColor),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                  ),
-                ),
-              )),
-            ],
-          ),
-        ],
+      // ── Filters (responsive grid) ──────────────────────────────────────
+      child: AppResponsiveGrid(
+        minItemWidth: 200,
+        maxColumns: 4,
+        children: _buildFilterWidgets(context),
       ),
     );
   }
@@ -195,7 +143,6 @@ class ReportsView extends GetView<ReportsController> {
         onChanged: (v) {
           if (v != null) controller.reportType.value = v;
         },
-        width: 180,
       )),
 
       // Branch dropdown
@@ -212,7 +159,6 @@ class ReportsView extends GetView<ReportsController> {
                 )),
           ],
           onChanged: (v) => controller.reportBranchId.value = v,
-          width: 200,
         );
       }),
 
@@ -234,40 +180,47 @@ class ReportsView extends GetView<ReportsController> {
     ];
   }
 
+  Widget _fieldLabel(String label) => Padding(
+    padding: const EdgeInsets.only(bottom: 6),
+    child: Text(
+      label,
+      style: TextStyle(
+        fontSize: 13,
+        fontWeight: FontWeight.w600,
+        color: AppColor.textSecondary,
+      ),
+    ),
+  );
+
   Widget _buildDropdownField<T>({
     required String label,
     required T value,
     required List<DropdownMenuItem<T>> items,
     required ValueChanged<T?> onChanged,
-    double width = 160,
   }) {
-    return SizedBox(
-      width: width,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(label,
-              style: TextStyle(
-                  fontSize: SizeConfig.fontCaption, color: AppColor.fontColorGrey)),
-          SizedBox(height: 4),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10),
-            decoration: BoxDecoration(
-              border: Border.all(color: AppColor.divColor),
-              borderRadius: BorderRadius.circular(8),
-              color: AppColor.cAppBackgroundColor,
-            ),
-            child: DropdownButton<T>(
-              value: value,
-              underline: const SizedBox.shrink(),
-              isDense: true,
-              isExpanded: true,
-              items: items,
-              onChanged: onChanged,
-            ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _fieldLabel(label),
+        InputDecorator(
+          decoration: const InputDecoration(
+            contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 11),
           ),
-        ],
-      ),
+          child: DropdownButton<T>(
+            value: value,
+            underline: const SizedBox.shrink(),
+            isDense: true,
+            isExpanded: true,
+            borderRadius: BorderRadius.circular(AppRadius.md),
+            icon: Icon(LucideIcons.chevronDown,
+                size: 18, color: AppColor.textTertiary),
+            style: TextStyle(fontSize: 14, color: AppColor.textPrimary),
+            items: items,
+            onChanged: onChanged,
+          ),
+        ),
+      ],
     );
   }
 
@@ -305,41 +258,45 @@ class ReportsView extends GetView<ReportsController> {
               '${picked.day.toString().padLeft(2, '0')}');
         }
       },
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(label,
-              style: TextStyle(
-                  fontSize: SizeConfig.fontCaption, color: AppColor.fontColorGrey)),
-          SizedBox(height: 4),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
-            decoration: BoxDecoration(
-              border: Border.all(color: AppColor.divColor),
-              borderRadius: BorderRadius.circular(8),
-              color: AppColor.cAppBackgroundColor,
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  value.isNotEmpty ? value : 'Select date',
-                  style: TextStyle(
-                    fontSize: SizeConfig.fontCaption,
-                    color: value.isNotEmpty ? AppColor.fontColorBlack : AppColor.lightGrey,
-                  ),
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _fieldLabel(label),
+            InputDecorator(
+              decoration: InputDecoration(
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+                suffixIcon: Icon(LucideIcons.calendar,
+                    size: 16, color: AppColor.textTertiary),
+                suffixIconConstraints:
+                    const BoxConstraints(minWidth: 40, minHeight: 20),
+              ),
+              child: Text(
+                value.isNotEmpty ? value : 'Select date',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: value.isNotEmpty ? AppColor.textPrimary : AppColor.textTertiary,
+                  fontFeatures: const [FontFeature.tabularFigures()],
                 ),
-                const SizedBox(width: 6),
-                Icon(Icons.calendar_today_outlined, size: 14, color: AppColor.fontColorGrey),
-              ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
   // ── Preview table ─────────────────────────────────────────────────────────
+
+  /// Stat-tile values: 1,284 below ten thousand, compact (12.9K) above.
+  static String _fmtCount(int n) => n >= 10000
+      ? NumberFormat.compact().format(n)
+      : NumberFormat('#,##0').format(n);
 
   Widget _buildPreviewCard() {
     return Obx(() {
@@ -347,100 +304,120 @@ class ReportsView extends GetView<ReportsController> {
         return _buildMessageCard();
       }
 
-      return Container(
-        decoration: BoxDecoration(
-          color: AppColor.whiteColor,
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Card header
-            Padding(
-              padding: EdgeInsets.all(SizeConfig.spacingMD),
-              child: Row(
-                children: [
-                  Text(
-                    'Preview (first ${controller.reportData.length < 50 ? controller.reportData.length : 50} rows)',
-                    style: TextStyle(
-                      fontSize: SizeConfig.fontBodyLarge,
-                      fontWeight: FontWeight.w600,
-                      color: AppColor.cPrimaryHeadingColor,
-                    ),
-                  ),
-                  const Spacer(),
-                  if (controller.totalRows.value > 0)
-                    Text(
-                      '${controller.totalRows.value} total',
-                      style: TextStyle(
-                          fontSize: SizeConfig.fontCaption, color: AppColor.fontColorGrey),
-                    ),
-                ],
-              ),
-            ),
-            const Divider(height: 1),
+      final previewCount =
+          controller.reportData.length < 50 ? controller.reportData.length : 50;
+      final total = controller.totalRows.value;
+      final headers = controller.columnHeaders;
 
-            if (controller.loading.value)
-              const Padding(
-                padding: EdgeInsets.all(32),
-                child: Center(child: CircularProgressIndicator()),
-              )
-            else
-              ClipRRect(
-                borderRadius: const BorderRadius.only(
-                  bottomLeft:  Radius.circular(12),
-                  bottomRight: Radius.circular(12),
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // ── Summary KPIs ────────────────────────────────────────────────
+          if (controller.reportData.isNotEmpty) ...[
+            AppResponsiveGrid(
+              minItemWidth: 200,
+              maxColumns: 3,
+              children: [
+                AppStatCard(
+                  label: 'Total records',
+                  value: total > 0 ? _fmtCount(total) : '—',
+                  icon: LucideIcons.table2,
+                  caption: 'Matching the selected filters',
                 ),
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: _buildDataTable(),
+                AppStatCard(
+                  label: 'Rows in preview',
+                  value: _fmtCount(previewCount),
+                  icon: LucideIcons.table,
+                  caption: 'First $previewCount shown below',
                 ),
-              ),
+                AppStatCard(
+                  label: 'Columns',
+                  value: _fmtCount(headers.length),
+                  icon: LucideIcons.columns3,
+                  caption: 'Fields per record',
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
           ],
-        ),
+
+          AppCard(
+            padding: EdgeInsets.zero,
+            icon: LucideIcons.table,
+            title: 'Preview (first $previewCount rows)',
+            subtitle: total > 0 ? '$total total' : null,
+            child: controller.loading.value
+                ? const Padding(
+                    padding: EdgeInsets.all(32),
+                    child: Center(child: CircularProgressIndicator()),
+                  )
+                : LayoutBuilder(builder: (context, constraints) {
+                    return SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: ConstrainedBox(
+                        constraints:
+                            BoxConstraints(minWidth: constraints.maxWidth),
+                        child: _buildDataTable(),
+                      ),
+                    );
+                  }),
+          ),
+        ],
       );
     });
+  }
+
+  /// A column is numeric when every non-empty preview value parses as a
+  /// number; those cells are right-aligned with tabular figures.
+  bool _isNumericColumn(String h, List<Map<String, dynamic>> rows) {
+    var seen = false;
+    for (final row in rows) {
+      final v = row[h];
+      if (v == null) continue;
+      if (v is num) {
+        seen = true;
+        continue;
+      }
+      final s = v.toString().trim();
+      if (s.isEmpty) continue;
+      if (num.tryParse(s.replaceAll(',', '')) == null) return false;
+      seen = true;
+    }
+    return seen;
   }
 
   Widget _buildDataTable() {
     final headers = controller.columnHeaders;
     if (headers.isEmpty) return const SizedBox.shrink();
 
+    final rows = controller.reportData.take(50).toList();
+    final numeric = {for (final h in headers) h: _isNumericColumn(h, rows)};
+
     return DataTable(
-      headingRowColor: WidgetStateProperty.all(AppColor.cAppBackgroundColor),
-      dataRowMinHeight: 40,
+      dataRowMinHeight: 44,
       dataRowMaxHeight: 52,
-      headingTextStyle: TextStyle(
-        fontWeight: FontWeight.w600,
-        fontSize: SizeConfig.fontCaption,
-        color: AppColor.cPrimaryHeadingColor,
-      ),
+      horizontalMargin: 20,
+      columnSpacing: 32,
       columns: headers
           .map((h) => DataColumn(
-                label: Text(h.replaceAll('_', ' ').toUpperCase()),
+                label: Text(humanizeLabel(h)),
+                numeric: numeric[h] ?? false,
               ))
           .toList(),
-      rows: controller.reportData.take(50).toList().asMap().entries.map((e) {
+      rows: rows.asMap().entries.map((e) {
         final row     = e.value;
-        final isEven  = e.key.isEven;
         return DataRow(
-          color: WidgetStateProperty.all(
-            isEven ? AppColor.whiteColor : AppColor.cAppBackgroundColor.withValues(alpha: 0.5),
-          ),
           cells: headers
               .map((h) => DataCell(
                     Text(
                       '${row[h] ?? '—'}',
                       style: TextStyle(
-                          fontSize: SizeConfig.fontCaption,
-                          color: AppColor.fontColorBlack),
+                        fontSize: 13.5,
+                        color: AppColor.textPrimary,
+                        fontFeatures: (numeric[h] ?? false)
+                            ? const [FontFeature.tabularFigures()]
+                            : null,
+                      ),
                       overflow: TextOverflow.ellipsis,
                     ),
                   ))
@@ -453,31 +430,44 @@ class ReportsView extends GetView<ReportsController> {
   /// Empty / error / plan-upgrade state shown instead of the preview table.
   Widget _buildMessageCard() {
     final err = controller.reportError.value;
-    if (err.isEmpty) return const SizedBox.shrink();
+    if (err.isEmpty) {
+      return const AppCard(
+        child: AppEmptyState(
+          icon: LucideIcons.chartLine,
+          title: 'No preview yet',
+          message:
+              'Choose a report and date range above, then select Generate Preview.',
+          compact: true,
+        ),
+      );
+    }
     final upgrade = controller.planBlocked.value;
+    final tone = upgrade ? AppTone.warning : AppTone.neutral;
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.all(SizeConfig.spacingLG),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColor.whiteColor,
-        borderRadius: BorderRadius.circular(12),
+        color: upgrade ? tone.soft : AppColor.whiteColor,
+        borderRadius: BorderRadius.circular(AppRadius.lg),
         border: Border.all(
-          color: upgrade ? Colors.orange.withValues(alpha: 0.5) : AppColor.divColor,
+          color: upgrade ? tone.color.withValues(alpha: 0.4) : AppColor.divColor,
         ),
       ),
       child: Row(
         children: [
-          Icon(
-            upgrade ? Icons.workspace_premium_outlined : Icons.info_outline,
-            color: upgrade ? Colors.orange : AppColor.fontColorGrey,
+          AppIconTile(
+            icon: upgrade ? LucideIcons.award : LucideIcons.info,
+            tone: tone,
+            size: 36,
           ),
-          SizedBox(width: SizeConfig.spacingSM),
+          const SizedBox(width: 12),
           Expanded(
             child: Text(
               err,
               style: TextStyle(
-                fontSize: SizeConfig.fontBody,
-                color: AppColor.fontColorBlack,
+                fontSize: 14,
+                height: 1.45,
+                color: AppColor.textPrimary,
               ),
             ),
           ),

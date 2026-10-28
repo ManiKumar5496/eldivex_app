@@ -3,12 +3,13 @@ import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/values/color_constants.dart';
-import '../../../core/values/text_style_constants.dart';
 import '../../../core/values/size_configue.dart';
 import '../../../widgets/common_textfield.dart';
 import '../../../widgets/dropdown_common.dart';
+import '../../../widgets/ui/ui.dart';
 import '../controllers/support_controller.dart';
 import '../models/get_support_categories.dart';
+import 'package:eldivex_app/app/core/values/lucide_icons.dart';
 
 class CreateSupportTicket extends GetView<SupportController> {
   const CreateSupportTicket({super.key});
@@ -49,142 +50,154 @@ class CreateSupportTicket extends GetView<SupportController> {
 
     return Scaffold(
       backgroundColor: AppColor.cAppBackgroundColor,
-      appBar: pushed ? _buildAppBar(context) : null,
       body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Container(
-            padding: const EdgeInsets.all(24),
-            decoration: _cardDecoration(),
+        padding: SizeConfig.pagePadding,
+        child: Align(
+          alignment: Alignment.topCenter,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 960),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text('Create Support Ticket', style: AppTextStyles.heading),
-                const SizedBox(height: 6),
-                Text(
-                  'Fill the details below to raise a support request',
-                  style: AppTextStyles.regular14Gre,
+                AppPageHeader(
+                  title: 'Create Support Ticket',
+                  subtitle: 'Fill the details below to raise a support request',
+                  breadcrumbs:
+                      pushed ? const ['Support', 'Create Ticket'] : const [],
+                  onBack: pushed ? () => _leave(context) : null,
                 ),
-                const SizedBox(height: 32),
-
-                /// BASIC DETAILS
-                _twoFieldRow(
-                  CommonTextField(
-                    label: 'User Id',
-                    hint: 'Client User Id',
-                    isMandatory: true,
-                    keyboardType: TextInputType.number,
-                    controller: controller.clientUserIdTextController,
-                    onChanged: (v) => controller.clientUserId.value = v,
-                  ),
-                  CommonTextField(
-                    label: 'Booking ID',
-                    hint: 'Enter booking ID',
-                    isMandatory: true,
-                    controller: controller.bookingIdTextController,
-                    onChanged: (v) => controller.bookingId.value = v,
-                  ),
-                ),
-
-                const SizedBox(height: 20),
-
-                /// TICKET TYPE & PRIORITY DROPDOWNS
-                _twoFieldRow(
-                  _buildTicketTypeDropdown(),
-                  Obx(
-                        () => CommonDropdown(
-                      label: 'Priority',
-                      hint: 'Select priority',
-                      isMandatory: true,
-                      value: controller.priority.value.isEmpty
-                          ? null
-                          : controller.priority.value,
-                      items: const ['Low', 'Medium', 'High', 'Urgent'],
-                      onChanged: (v) => controller.priority.value = v ?? '',
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 20),
-
-                /// DYNAMIC FIELDS BASED ON TICKET TYPE
-                Obx(() => _buildDynamicFields()),
-
-                const SizedBox(height: 20),
-
-                /// SUBJECT
-                CommonTextField(
-                  label: 'Subject',
-                  hint: 'Enter ticket subject',
-                  isMandatory: true,
-                  controller: controller.subjectTextController,
-                  onChanged: (v) => controller.subject.value = v,
-                ),
-                const SizedBox(height: 20),
-
-                /// DESCRIPTION
-                CommonTextField(
-                  label: 'Description',
-                  hint: 'Describe your issue in detail',
-                  isMandatory: true,
-                  maxLines: 4,
-                  controller: controller.descriptionTextController,
-                  onChanged: (v) => controller.description.value = v,
-                ),
-
-                const SizedBox(height: 40),
-
-                /// ACTION BUTTONS
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    OutlinedButton(
-                      onPressed: () => _leave(context),
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 28,
-                          vertical: 14,
+                SizedBox(height: SizeConfig.isMobile ? 16 : 24),
+                AppCard(
+                  title: 'Ticket Details',
+                  subtitle: 'Who it is for, what kind of request, and the issue',
+                  icon: LucideIcons.headset,
+                  footer: _buildActions(context, pushed),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      /// BASIC DETAILS
+                      _twoFieldRow(
+                        CommonTextField(
+                          label: 'User Id',
+                          hint: 'Client User Id',
+                          isMandatory: true,
+                          keyboardType: TextInputType.number,
+                          controller: controller.clientUserIdTextController,
+                          onChanged: (v) => controller.clientUserId.value = v,
+                        ),
+                        CommonTextField(
+                          label: 'Booking ID',
+                          hint: 'Enter booking ID',
+                          isMandatory: true,
+                          controller: controller.bookingIdTextController,
+                          onChanged: (v) => controller.bookingId.value = v,
                         ),
                       ),
-                      child: Text(pushed ? 'Cancel' : 'Clear'),
-                    ),
-                    const SizedBox(width: 12),
-                    Obx(
-                          () => controller.isCreateSupportLoading.value
-                          ? const SizedBox(
-                        height: 40,
-                        width: 40,
-                        child: CircularProgressIndicator(),
-                      )
-                          : ElevatedButton(
-                        onPressed: () async {
-                          final ok = await controller.createSupportTicket();
-                          // Pushed from bookings → return there; in the shell
-                          // the form was reset and the list refreshed.
-                          if (ok && pushed && context.mounted) {
-                            Navigator.of(context).maybePop();
-                          }
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColor.cPrimaryButtonColor,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 28,
-                            vertical: 14,
+
+                      const SizedBox(height: 16),
+
+                      /// TICKET TYPE & PRIORITY DROPDOWNS
+                      _twoFieldRow(
+                        _buildTicketTypeDropdown(),
+                        Obx(
+                          () => CommonDropdown(
+                            label: 'Priority',
+                            hint: 'Select priority',
+                            isMandatory: true,
+                            value: controller.priority.value.isEmpty
+                                ? null
+                                : controller.priority.value,
+                            items: const ['Low', 'Medium', 'High', 'Urgent'],
+                            onChanged: (v) => controller.priority.value = v ?? '',
                           ),
                         ),
-                        child: Text(
-                          'Submit Ticket',
-                          style: TextStyle(color: AppColor.buttonTextWhite),
-                        ),
                       ),
-                    ),
-                  ],
+
+                      const SizedBox(height: 16),
+
+                      /// DYNAMIC FIELDS BASED ON TICKET TYPE
+                      Obx(() => _buildDynamicFields()),
+
+                      Divider(height: 24, color: AppColor.borderSubtle),
+                      const SizedBox(height: 8),
+
+                      /// SUBJECT
+                      CommonTextField(
+                        label: 'Subject',
+                        hint: 'Enter ticket subject',
+                        isMandatory: true,
+                        controller: controller.subjectTextController,
+                        onChanged: (v) => controller.subject.value = v,
+                      ),
+                      const SizedBox(height: 16),
+
+                      /// DESCRIPTION
+                      CommonTextField(
+                        label: 'Description',
+                        hint: 'Describe your issue in detail',
+                        isMandatory: true,
+                        maxLines: 4,
+                        controller: controller.descriptionTextController,
+                        onChanged: (v) => controller.description.value = v,
+                      ),
+                    ],
+                  ),
                 ),
+                const SizedBox(height: 8),
               ],
             ),
           ),
         ),
       ),
+    );
+  }
+
+  /// ACTION BUTTONS (card footer, bottom-right)
+  Widget _buildActions(BuildContext context, bool pushed) {
+    return Wrap(
+      alignment: WrapAlignment.end,
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        OutlinedButton(
+          onPressed: () => _leave(context),
+          child: Text(pushed ? 'Cancel' : 'Clear'),
+        ),
+        Obx(
+          () => controller.isCreateSupportLoading.value
+              ? ElevatedButton.icon(
+                  onPressed: null,
+                  icon: SizedBox(
+                    height: 16,
+                    width: 16,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: AppColor.textTertiary,
+                    ),
+                  ),
+                  label: const Text('Submit Ticket'),
+                )
+              : ElevatedButton.icon(
+                  onPressed: () async {
+                    final ok = await controller.createSupportTicket();
+                    // Pushed from bookings → return there; in the shell
+                    // the form was reset and the list refreshed.
+                    if (ok && pushed && context.mounted) {
+                      Navigator.of(context).maybePop();
+                    }
+                  },
+                  icon: const Icon(LucideIcons.send, size: 18),
+                  label: const Text('Submit Ticket'),
+                ),
+        ),
+      ],
+    );
+  }
+
+  Widget _fieldLabel(String text) {
+    return Text(
+      text,
+      style: TextStyle(fontSize: 14, color: AppColor.textSecondary),
     );
   }
 
@@ -194,17 +207,15 @@ class CreateSupportTicket extends GetView<SupportController> {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Ticket Type',
-              style: AppTextStyles.regular14black,
-            ),
+            _fieldLabel('Ticket Type'),
             const SizedBox(height: 8),
             Container(
               height: 48,
               padding: const EdgeInsets.symmetric(horizontal: 12),
               decoration: BoxDecoration(
-                border: Border.all(color: AppColor.divColor),
-                borderRadius: BorderRadius.circular(8),
+                color: AppColor.whiteColor,
+                border: Border.all(color: AppColor.borderStrong),
+                borderRadius: BorderRadius.circular(AppRadius.md),
               ),
               child: const Center(
                 child: SizedBox(
@@ -221,10 +232,7 @@ class CreateSupportTicket extends GetView<SupportController> {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Ticket Type',
-            style: AppTextStyles.regular14black,
-          ),
+          _fieldLabel('Ticket Type'),
           const SizedBox(height: 8),
           AppDropdown<SupportCategory>(
             hint: 'Select ticket type',
@@ -234,10 +242,7 @@ class CreateSupportTicket extends GetView<SupportController> {
                 .map((SupportCategory category) {
               return DropdownMenuItem<SupportCategory>(
                 value: category,
-                child: Text(
-                  category.name ?? 'Unknown',
-                  style: AppTextStyles.regular14black,
-                ),
+                child: Text(category.name ?? 'Unknown'),
               );
             }).toList(),
             onChanged: (SupportCategory? newValue) {
@@ -275,7 +280,7 @@ class CreateSupportTicket extends GetView<SupportController> {
               onDateSelected: (date) => controller.holdEndDate.value = date,
             ),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 16),
         ],
       );
     }
@@ -290,7 +295,7 @@ class CreateSupportTicket extends GetView<SupportController> {
             selectedDate: controller.replacementPlannedDate.value,
             onDateSelected: (date) => controller.replacementPlannedDate.value = date,
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 16),
           CommonTextField(
             label: 'Replacement Reason',
             hint: 'Enter reason for replacement',
@@ -298,7 +303,7 @@ class CreateSupportTicket extends GetView<SupportController> {
             controller: controller.reasonTextController,
             onChanged: (v) => controller.replacementReason.value = v,
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 16),
         ],
       );
     }
@@ -313,7 +318,7 @@ class CreateSupportTicket extends GetView<SupportController> {
             selectedDate: controller.lastServiceDate.value,
             onDateSelected: (date) => controller.lastServiceDate.value = date,
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 16),
           CommonTextField(
             label: 'Cancellation Reason',
             hint: 'Enter reason for cancellation',
@@ -321,7 +326,7 @@ class CreateSupportTicket extends GetView<SupportController> {
             controller: controller.reasonTextController,
             onChanged: (v) => controller.cancellationReason.value = v,
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 16),
         ],
       );
     }
@@ -338,12 +343,10 @@ class CreateSupportTicket extends GetView<SupportController> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: AppTextStyles.regular14black,
-        ),
+        _fieldLabel(label),
         const SizedBox(height: 8),
         InkWell(
+          borderRadius: BorderRadius.circular(AppRadius.md),
           onTap: () async {
             final DateTime? picked = await showDatePicker(
               context: Get.context!,
@@ -367,10 +370,10 @@ class CreateSupportTicket extends GetView<SupportController> {
           },
           child: Container(
             height: 48,
-            padding: const EdgeInsets.symmetric(horizontal: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 14),
             decoration: BoxDecoration(
-              border: Border.all(color: AppColor.divColor),
-              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: AppColor.borderStrong),
+              borderRadius: BorderRadius.circular(AppRadius.md),
               color: AppColor.whiteColor,
             ),
             child: Row(
@@ -380,15 +383,18 @@ class CreateSupportTicket extends GetView<SupportController> {
                     selectedDate != null
                         ? DateFormat('dd-MM-yyyy').format(selectedDate)
                         : hint,
-                    style: selectedDate != null
-                        ? AppTextStyles.regular14Gre
-                        : AppTextStyles.regular14Gre,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: selectedDate != null
+                          ? AppColor.textPrimary
+                          : AppColor.lightGrey,
+                    ),
                   ),
                 ),
                 Icon(
-                  Icons.calendar_today,
-                  size: 20,
-                  color: AppColor.divColor,
+                  LucideIcons.calendar,
+                  size: 18,
+                  color: AppColor.textTertiary,
                 ),
               ],
             ),
@@ -398,38 +404,23 @@ class CreateSupportTicket extends GetView<SupportController> {
     );
   }
 
-  PreferredSizeWidget _buildAppBar(BuildContext context) {
-    return AppBar(
-      backgroundColor: AppColor.whiteColor,
-      elevation: 0,
-      leading: IconButton(
-        icon: Icon(Icons.arrow_back, color: AppColor.fontColorBlack),
-        onPressed: () => _leave(context),
-      ),
-      title: Text(
-        'Support',
-        style: AppTextStyles.semiBold18.copyWith(
-          color: AppColor.fontColorBlack,
-        ),
-      ),
-    );
-  }
-
-  BoxDecoration _cardDecoration() {
-    return BoxDecoration(
-      color: AppColor.whiteColor,
-      borderRadius: BorderRadius.circular(16),
-      border: Border.all(color: AppColor.divColor),
-    );
-  }
-
+  /// Side by side on wide cards, stacked on phones.
   Widget _twoFieldRow(Widget left, Widget right) {
-    return Row(
-      children: [
-        Expanded(child: left),
-        const SizedBox(width: 16),
-        Expanded(child: right),
-      ],
-    );
+    return LayoutBuilder(builder: (context, constraints) {
+      if (constraints.maxWidth < 600) {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [left, const SizedBox(height: 16), right],
+        );
+      }
+      return Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(child: left),
+          const SizedBox(width: 16),
+          Expanded(child: right),
+        ],
+      );
+    });
   }
 }

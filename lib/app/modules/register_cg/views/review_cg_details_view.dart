@@ -4,15 +4,16 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import 'package:flutter/services.dart';
+import 'package:eldivex_app/app/widgets/ui/ui.dart';
 
 import '../../../core/values/color_constants.dart';
 import '../../../core/values/enums.dart';
-import '../../../core/values/text_style_constants.dart';
 import '../../../core/values/size_configue.dart';
 import '../../../widgets/helper_ui.dart';
 import '../controllers/register_cg_controller.dart';
 import '../models/get_cg_details_model.dart';
 import '../../hp_portal/views/hp_portal_link_card.dart';
+import 'package:eldivex_app/app/core/values/lucide_icons.dart';
 
 class CgReviewDetailScreen extends StatefulWidget {
   final GetCgDetails cgDetails;
@@ -35,34 +36,51 @@ class _CgReviewDetailScreenState extends State<CgReviewDetailScreen> {
     return DeviceType.desktop;
   }
 
+  String get _fullName =>
+      '${cgDetails.hpRegFirstName} ${cgDetails.hpRegLastName}';
+
+  String get _regId => 'CAG-${cgDetails.hpRegId.toString().padLeft(3, '0')}';
+
+  bool get _hasPhoto =>
+      cgDetails.hpRegPhoto.isNotEmpty && !cgDetails.hpRegPhoto.contains('/NA');
+
+  double _gap(DeviceType deviceType) =>
+      deviceType == DeviceType.mobile ? 16 : 20;
+
   @override
   Widget build(BuildContext context) {
     SizeConfig.init(context);
     final deviceType = _getDeviceType(context);
     final isMobile = deviceType == DeviceType.mobile;
-    final isTablet = deviceType == DeviceType.tablet;
+    final gap = _gap(deviceType);
 
     return Scaffold(
       backgroundColor: AppColor.cAppBackgroundColor,
       body: Column(
         children: [
-          _buildAppBar(deviceType),
           Expanded(
             child: SingleChildScrollView(
-              padding: EdgeInsets.all(isMobile ? 12 : (isTablet ? 16 : SizeConfig.blockSizeHorizontal * 2.5)),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildHeaderCard(deviceType),
-                  SizedBox(height: isMobile ? 16 : (isTablet ? 20 : SizeConfig.blockSizeVertical * 2.5)),
-                  // Caregiver portal login link — only for login-eligible HPs
-                  // (2=Approved, 5=ActiveBooking, 6=OTPBooking).
-                  if ([2, 5, 6].contains(cgDetails.hpRegStatus)) ...[
-                    const HpPortalLinkCard(),
-                    SizedBox(height: isMobile ? 16 : (isTablet ? 20 : SizeConfig.blockSizeVertical * 2.5)),
-                  ],
-                  _buildMainContent(deviceType),
-                ],
+              padding: EdgeInsets.all(isMobile ? 16 : 24),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 1200),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _buildAppBar(deviceType),
+                      SizedBox(height: gap),
+                      _buildHeaderCard(deviceType),
+                      SizedBox(height: gap),
+                      // Caregiver portal login link — only for login-eligible HPs
+                      // (2=Approved, 5=ActiveBooking, 6=OTPBooking).
+                      if ([2, 5, 6].contains(cgDetails.hpRegStatus)) ...[
+                        const HpPortalLinkCard(),
+                        SizedBox(height: gap),
+                      ],
+                      _buildMainContent(deviceType),
+                    ],
+                  ),
+                ),
               ),
             ),
           ),
@@ -76,27 +94,28 @@ class _CgReviewDetailScreenState extends State<CgReviewDetailScreen> {
 
   Widget _buildMainContent(DeviceType deviceType) {
     final isMobile = deviceType == DeviceType.mobile;
-    final isTablet = deviceType == DeviceType.tablet;
+    final gap = _gap(deviceType);
 
     if (isMobile) {
       return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _buildStatusCard(deviceType),
-          const SizedBox(height: 16),
+          SizedBox(height: gap),
           _buildPersonalInfoSection(deviceType),
-          const SizedBox(height: 16),
+          SizedBox(height: gap),
           _buildContactInfoSection(deviceType),
-          const SizedBox(height: 16),
+          SizedBox(height: gap),
           _buildProfessionalInfoSection(deviceType),
-          const SizedBox(height: 16),
+          SizedBox(height: gap),
           _buildPayInfoSection(deviceType),
-          const SizedBox(height: 16),
+          SizedBox(height: gap),
           _buildLanguagesSection(deviceType),
-          const SizedBox(height: 16),
+          SizedBox(height: gap),
           _buildDocumentsSection(deviceType),
-          const SizedBox(height: 16),
+          SizedBox(height: gap),
           _buildTimelineCard(deviceType),
-          const SizedBox(height: 80),
+          const SizedBox(height: 8),
         ],
       );
     }
@@ -107,31 +126,31 @@ class _CgReviewDetailScreenState extends State<CgReviewDetailScreen> {
         Expanded(
           flex: 2,
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               _buildPersonalInfoSection(deviceType),
-              SizedBox(height: isTablet ? 16 : SizeConfig.blockSizeVertical * 2.5),
+              SizedBox(height: gap),
               _buildContactInfoSection(deviceType),
-              SizedBox(height: isTablet ? 16 : SizeConfig.blockSizeVertical * 2.5),
+              SizedBox(height: gap),
               _buildProfessionalInfoSection(deviceType),
-              SizedBox(height: isTablet ? 16 : SizeConfig.blockSizeVertical * 2.5),
+              SizedBox(height: gap),
               _buildPayInfoSection(deviceType),
-              SizedBox(height: isTablet ? 16 : SizeConfig.blockSizeVertical * 2.5),
+              SizedBox(height: gap),
               _buildLanguagesSection(deviceType),
-              SizedBox(height: isTablet ? 16 : SizeConfig.blockSizeVertical * 2.5),
+              SizedBox(height: gap),
               _buildDocumentsSection(deviceType),
             ],
           ),
         ),
-        SizedBox(width: isTablet ? 16 : SizeConfig.blockSizeHorizontal * 2.5),
+        SizedBox(width: gap),
         Expanded(
           flex: 1,
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               _buildStatusCard(deviceType),
-              SizedBox(height: isTablet ? 16 : SizeConfig.blockSizeVertical * 2.5),
+              SizedBox(height: gap),
               _buildTimelineCard(deviceType),
-              SizedBox(height: isTablet ? 16 : SizeConfig.blockSizeVertical * 2.5),
-              _buildActionButtons(deviceType),
             ],
           ),
         ),
@@ -144,72 +163,50 @@ class _CgReviewDetailScreenState extends State<CgReviewDetailScreen> {
   Widget _buildAppBar(DeviceType deviceType) {
     final isMobile = deviceType == DeviceType.mobile;
     final isTablet = deviceType == DeviceType.tablet;
+    const breadcrumbs = ['Health Professionals', 'Manage HP', 'Review'];
+    const spinner = SizedBox(
+      width: 24,
+      height: 24,
+      child: CircularProgressIndicator(strokeWidth: 2),
+    );
 
     if (isMobile) {
-      return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-        decoration: BoxDecoration(
-          color: AppColor.whiteColor,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha:0.05),
-              blurRadius: 10,
-              offset: const Offset(0, 2),
+      return Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: AppPageHeader(
+              title: 'HP Review',
+              subtitle: _regId,
+              breadcrumbs: breadcrumbs,
+              onBack: () => Get.back(),
             ),
-          ],
-        ),
-        child: Row(
-          children: [
-            IconButton(
-              onPressed: () => Get.back(),
-              icon: const Icon(Icons.arrow_back),
-              tooltip: 'Back',
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    'HP Review',
-                    style: AppTextStyles.heading.copyWith(fontSize: 16),
-                  ),
-                  Text(
-                    'CAG-${cgDetails.hpRegId.toString().padLeft(3, '0')}',
-                    style: AppTextStyles.regular14Gre.copyWith(fontSize: 12),
-                  ),
-                ],
-              ),
-            ),
-            if (_isPdfLoading)
-              const SizedBox(
-                width: 24,
-                height: 24,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              )
-            else
-              PopupMenuButton<String>(
-              icon: const Icon(Icons.more_vert),
+          ),
+          const SizedBox(width: 8),
+          if (_isPdfLoading)
+            spinner
+          else
+            PopupMenuButton<String>(
+              tooltip: 'Share or download',
+              icon: Icon(LucideIcons.ellipsisVertical,
+                  size: 20, color: AppColor.textSecondary),
               offset: const Offset(0, 45),
-              itemBuilder: (context) => [
-                const PopupMenuItem(
+              itemBuilder: (context) => const [
+                PopupMenuItem(
                   value: 'share',
                   child: Row(
                     children: [
-                      Icon(Icons.share, size: 20),
+                      Icon(LucideIcons.share2, size: 18),
                       SizedBox(width: 12),
                       Text('Share'),
                     ],
                   ),
                 ),
-                const PopupMenuItem(
+                PopupMenuItem(
                   value: 'download',
                   child: Row(
                     children: [
-                      Icon(Icons.download, size: 20),
+                      Icon(LucideIcons.download, size: 18),
                       SizedBox(width: 12),
                       Text('Download PDF'),
                     ],
@@ -224,86 +221,29 @@ class _CgReviewDetailScreenState extends State<CgReviewDetailScreen> {
                 }
               },
             ),
-          ],
-        ),
+        ],
       );
     }
 
-    return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: isTablet ? 16 : SizeConfig.blockSizeHorizontal * 2.5,
-        vertical: isTablet ? 16 : SizeConfig.blockSizeVertical * 2,
-      ),
-      decoration: BoxDecoration(
-        color: AppColor.whiteColor,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha:0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          IconButton(
-            onPressed: () => Get.back(),
-            icon: const Icon(Icons.arrow_back),
-            tooltip: 'Back to List',
-          ),
-          SizedBox(width: isTablet ? 8 : SizeConfig.blockSizeHorizontal * 1),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  'Health Professional Registration Review',
-                  style: AppTextStyles.heading.copyWith(fontSize: isTablet ? 18 : 20),
-                ),
-                SizedBox(height: isTablet ? 2 : SizeConfig.blockSizeVertical * 0.3),
-                Text(
-                  'CAG-${cgDetails.hpRegId.toString().padLeft(3, '0')}',
-                  style: AppTextStyles.regular14Gre,
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 16),
-          if (_isPdfLoading)
-            const SizedBox(
-              width: 24,
-              height: 24,
-              child: CircularProgressIndicator(strokeWidth: 2),
-            )
-          else ...[
-            OutlinedButton.icon(
-              onPressed: _shareAsPdf,
-              icon: const Icon(Icons.share, size: 18),
-              label: const Text('Share'),
-              style: OutlinedButton.styleFrom(
-                padding: EdgeInsets.symmetric(
-                  horizontal: isTablet ? 12 : SizeConfig.blockSizeHorizontal * 1.5,
-                  vertical: isTablet ? 12 : SizeConfig.blockSizeVertical * 1.2,
-                ),
+    return AppPageHeader(
+      title: 'Health Professional Registration Review',
+      subtitle: _regId,
+      breadcrumbs: breadcrumbs,
+      onBack: () => Get.back(),
+      actions: _isPdfLoading
+          ? const [spinner]
+          : [
+              OutlinedButton.icon(
+                onPressed: _shareAsPdf,
+                icon: const Icon(LucideIcons.share2, size: 18),
+                label: const Text('Share'),
               ),
-            ),
-            SizedBox(width: isTablet ? 8 : SizeConfig.blockSizeHorizontal * 1),
-            ElevatedButton.icon(
-              onPressed: _downloadAsPdf,
-              icon: Icon(Icons.download, color: AppColor.buttonTextWhite, size: 18),
-              label: Text(isTablet ? 'PDF' : 'Download PDF'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColor.cPrimaryButtonColor,
-                padding: EdgeInsets.symmetric(
-                  horizontal: isTablet ? 12 : SizeConfig.blockSizeHorizontal * 1.5,
-                  vertical: isTablet ? 12 : SizeConfig.blockSizeVertical * 1.2,
-                ),
+              ElevatedButton.icon(
+                onPressed: _downloadAsPdf,
+                icon: const Icon(LucideIcons.download, size: 18),
+                label: Text(isTablet ? 'PDF' : 'Download PDF'),
               ),
-            ),
-          ],
-        ],
-      ),
+            ],
     );
   }
 
@@ -311,129 +251,114 @@ class _CgReviewDetailScreenState extends State<CgReviewDetailScreen> {
 
   Widget _buildHeaderCard(DeviceType deviceType) {
     final isMobile = deviceType == DeviceType.mobile;
-    final isTablet = deviceType == DeviceType.tablet;
+    final isDesktop = deviceType == DeviceType.desktop;
 
-    return Container(
-      padding: EdgeInsets.all(isMobile ? 16 : (isTablet ? 16 : SizeConfig.blockSizeHorizontal * 2.5)),
-      decoration: BoxDecoration(
-        color: AppColor.whiteColor,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColor.divColor),
-      ),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              // Profile Photo from network
-              _buildProfileAvatar(isMobile, isTablet),
-              SizedBox(width: isMobile ? 12 : (isTablet ? 16 : SizeConfig.blockSizeHorizontal * 2)),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+    final info = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Wrap(
+          spacing: 10,
+          runSpacing: 6,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            Text(
+              _fullName,
+              style: TextStyle(
+                fontSize: isMobile ? 18 : 22,
+                fontWeight: FontWeight.w600,
+                letterSpacing: -0.3,
+                color: AppColor.textPrimary,
+              ),
+            ),
+            _buildStatusBadge(cgDetails.hpRegStatus, deviceType),
+          ],
+        ),
+        const SizedBox(height: 10),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            _factChip(LucideIcons.graduationCap, cgDetails.hpRegEducation),
+            _factChip(LucideIcons.idCard, 'ID: $_regId'),
+          ],
+        ),
+      ],
+    );
+
+    final identity = Row(
+      children: [
+        _buildProfileAvatar(isMobile, deviceType == DeviceType.tablet),
+        SizedBox(width: isMobile ? 14 : 20),
+        Expanded(child: info),
+      ],
+    );
+
+    return AppCard(
+      padding: EdgeInsets.all(isMobile ? 16 : 24),
+      child: isMobile
+          // Phones approve/reject from the bottom bar.
+          ? identity
+          : isDesktop
+              ? Row(
                   children: [
-                    Text(
-                      '${cgDetails.hpRegFirstName} ${cgDetails.hpRegLastName}',
-                      style: AppTextStyles.bold20.copyWith(
-                        fontSize: isMobile ? 18 : (isTablet ? 20 : 24),
-                      ),
+                    Expanded(child: identity),
+                    const SizedBox(width: 16),
+                    _buildActionButtons(deviceType),
+                  ],
+                )
+              : Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    identity,
+                    const SizedBox(height: 16),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: _buildActionButtons(deviceType),
                     ),
-                    SizedBox(height: isMobile ? 4 : (isTablet ? 6 : SizeConfig.blockSizeVertical * 0.5)),
-                    if (!isMobile)
-                      Row(
-                        children: [
-                          Container(
-                            padding: EdgeInsets.symmetric(
-                              horizontal: isTablet ? 10 : SizeConfig.blockSizeHorizontal * 1.2,
-                              vertical: isTablet ? 4 : SizeConfig.blockSizeVertical * 0.5,
-                            ),
-                            decoration: BoxDecoration(
-                              color: AppColor.cPrimaryButtonColor.withValues(alpha:0.1),
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Row(
-                              children: [
-                                Icon(Icons.school, size: 16, color: AppColor.cPrimaryButtonColor),
-                                SizedBox(width: isTablet ? 4 : SizeConfig.blockSizeHorizontal * 0.5),
-                                Text(
-                                  cgDetails.hpRegEducation,
-                                  style: AppTextStyles.regular14black.copyWith(
-                                    color: AppColor.cPrimaryButtonColor,
-                                    fontSize: isTablet ? 12 : 14,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          SizedBox(width: isTablet ? 8 : SizeConfig.blockSizeHorizontal * 1),
-                          Text(
-                            'ID: CAG-${cgDetails.hpRegId.toString().padLeft(3, '0')}',
-                            style: AppTextStyles.regular14Gre.copyWith(fontSize: isTablet ? 12 : 14),
-                          ),
-                        ],
-                      ),
                   ],
                 ),
-              ),
-              if (!isMobile) _buildStatusBadge(cgDetails.hpRegStatus, deviceType),
-            ],
-          ),
-          if (isMobile) ...[
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: AppColor.cPrimaryButtonColor.withValues(alpha:0.1),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.school, size: 14, color: AppColor.cPrimaryButtonColor),
-                        const SizedBox(width: 6),
-                        Expanded(
-                          child: Text(
-                            cgDetails.hpRegEducation,
-                            style: TextStyle(color: AppColor.cPrimaryButtonColor, fontSize: 12),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                _buildStatusBadge(cgDetails.hpRegStatus, deviceType),
-              ],
+    );
+  }
+
+  Widget _factChip(IconData icon, String text) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: AppColor.surfaceMuted,
+        borderRadius: BorderRadius.circular(AppRadius.xs),
+        border: Border.all(color: AppColor.borderSubtle),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: AppColor.textTertiary),
+          const SizedBox(width: 6),
+          Flexible(
+            child: Text(
+              text,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(fontSize: 13, color: AppColor.textSecondary),
             ),
-          ],
+          ),
         ],
       ),
     );
   }
 
   Widget _buildProfileAvatar(bool isMobile, bool isTablet) {
-    final radius = isMobile ? 30.0 : (isTablet ? 35.0 : SizeConfig.blockSizeHorizontal * 4);
-    final hasPhoto = cgDetails.hpRegPhoto.isNotEmpty && !cgDetails.hpRegPhoto.contains('/NA');
+    final size = isMobile ? 56.0 : (isTablet ? 64.0 : 72.0);
+    final hasPhoto = _hasPhoto;
 
-    return GestureDetector(
-      onTap: hasPhoto ? () => _showImageDialog(cgDetails.hpRegPhoto, 'Profile Photo') : null,
-      child: CircleAvatar(
-        radius: radius,
-        backgroundColor: AppColor.cPrimaryButtonColor.withValues(alpha:0.1),
-        backgroundImage: hasPhoto ? NetworkImage(cgDetails.hpRegPhoto) : null,
-        child: hasPhoto
-            ? null
-            : Text(
-                '${cgDetails.hpRegFirstName.isNotEmpty ? cgDetails.hpRegFirstName[0] : ''}${cgDetails.hpRegLastName.isNotEmpty ? cgDetails.hpRegLastName[0] : ''}',
-                style: TextStyle(
-                  fontSize: isMobile ? 24 : (isTablet ? 28 : 32),
-                  fontWeight: FontWeight.bold,
-                  color: AppColor.cPrimaryButtonColor,
-                ),
-              ),
+    return MouseRegion(
+      cursor: hasPhoto ? SystemMouseCursors.click : MouseCursor.defer,
+      child: GestureDetector(
+        onTap: hasPhoto ? () => _showImageDialog(cgDetails.hpRegPhoto, 'Profile Photo') : null,
+        child: AppAvatar(
+          name: _fullName,
+          imageUrl: hasPhoto ? cgDetails.hpRegPhoto : null,
+          size: size,
+        ),
       ),
     );
   }
@@ -443,31 +368,25 @@ class _CgReviewDetailScreenState extends State<CgReviewDetailScreen> {
   Widget _buildPersonalInfoSection(DeviceType deviceType) {
     return _buildSectionCard(
       title: 'Personal Information',
-      icon: Icons.person_outline,
+      icon: LucideIcons.user,
       deviceType: deviceType,
-      child: Column(
-        children: [
-          _buildInfoRow('First Name', cgDetails.hpRegFirstName, deviceType),
-          _buildDivider(),
-          _buildInfoRow('Last Name', cgDetails.hpRegLastName, deviceType),
-          _buildDivider(),
-          _buildInfoRow(
-            'Date of Birth',
-            cgDetails.hpRegDob != null
-                ? cgDetails.hpRegDob!.toIso8601String().split('T').first
-                : 'Not provided',
-            deviceType,
-          ),
-          _buildDivider(),
-          _buildInfoRow('Gender', cgDetails.hpRegGender.isNotEmpty ? cgDetails.hpRegGender : 'Not specified', deviceType),
-          _buildDivider(),
-          _buildInfoRow(
-            'Marital Status',
-            cgDetails.hpRegMaritalStatus.isNotEmpty ? cgDetails.hpRegMaritalStatus : 'Not specified',
-            deviceType,
-          ),
-        ],
-      ),
+      child: _infoGrid([
+        _buildInfoRow('First Name', cgDetails.hpRegFirstName, deviceType),
+        _buildInfoRow('Last Name', cgDetails.hpRegLastName, deviceType),
+        _buildInfoRow(
+          'Date of Birth',
+          cgDetails.hpRegDob != null
+              ? cgDetails.hpRegDob!.toIso8601String().split('T').first
+              : 'Not provided',
+          deviceType,
+        ),
+        _buildInfoRow('Gender', cgDetails.hpRegGender.isNotEmpty ? cgDetails.hpRegGender : 'Not specified', deviceType),
+        _buildInfoRow(
+          'Marital Status',
+          cgDetails.hpRegMaritalStatus.isNotEmpty ? cgDetails.hpRegMaritalStatus : 'Not specified',
+          deviceType,
+        ),
+      ]),
     );
   }
 
@@ -476,23 +395,16 @@ class _CgReviewDetailScreenState extends State<CgReviewDetailScreen> {
   Widget _buildContactInfoSection(DeviceType deviceType) {
     return _buildSectionCard(
       title: 'Contact Information',
-      icon: Icons.contact_phone_outlined,
+      icon: LucideIcons.contact,
       deviceType: deviceType,
-      child: Column(
-        children: [
-          _buildInfoRow('Email', cgDetails.hpRegEmail, deviceType, isEmail: true),
-          _buildDivider(),
-          _buildInfoRow('Phone', cgDetails.hpRegPhoneNumber, deviceType, isPhone: true),
-          _buildDivider(),
-          _buildInfoRow('Address', cgDetails.hpRegAddress.isNotEmpty ? cgDetails.hpRegAddress : 'Not provided', deviceType),
-          _buildDivider(),
-          _buildInfoRow('City', cgDetails.hpRegCity.isNotEmpty ? cgDetails.hpRegCity : 'Not provided', deviceType),
-          _buildDivider(),
-          _buildInfoRow('State', cgDetails.hpRegState.isNotEmpty ? cgDetails.hpRegState : 'Not provided', deviceType),
-          _buildDivider(),
-          _buildInfoRow('Pincode', cgDetails.hpRegPinCode.isNotEmpty ? cgDetails.hpRegPinCode : 'N/A', deviceType),
-        ],
-      ),
+      child: _infoGrid([
+        _buildInfoRow('Email', cgDetails.hpRegEmail, deviceType, isEmail: true),
+        _buildInfoRow('Phone', cgDetails.hpRegPhoneNumber, deviceType, isPhone: true),
+        _buildInfoRow('Address', cgDetails.hpRegAddress.isNotEmpty ? cgDetails.hpRegAddress : 'Not provided', deviceType),
+        _buildInfoRow('City', cgDetails.hpRegCity.isNotEmpty ? cgDetails.hpRegCity : 'Not provided', deviceType),
+        _buildInfoRow('State', cgDetails.hpRegState.isNotEmpty ? cgDetails.hpRegState : 'Not provided', deviceType),
+        _buildInfoRow('Pincode', cgDetails.hpRegPinCode.isNotEmpty ? cgDetails.hpRegPinCode : 'N/A', deviceType),
+      ]),
     );
   }
 
@@ -501,93 +413,81 @@ class _CgReviewDetailScreenState extends State<CgReviewDetailScreen> {
   Widget _buildProfessionalInfoSection(DeviceType deviceType) {
     return _buildSectionCard(
       title: 'Professional Information',
-      icon: Icons.work_outline,
+      icon: LucideIcons.briefcase,
       deviceType: deviceType,
-      child: Column(
-        children: [
-          _buildInfoRow('Education', cgDetails.hpRegEducation, deviceType),
-          _buildDivider(),
-          _buildInfoRow('Experience', '${cgDetails.hpRegExperience} months', deviceType),
-          _buildDivider(),
-          _buildInfoRow('Identity Proof Type', cgDetails.hpRegIdentityProofType, deviceType),
-          _buildDivider(),
-          _buildInfoRow('Identity Proof Number', cgDetails.hpRegIdentityProofNumber, deviceType),
-          _buildDivider(),
-          _buildInfoRow('Registration ID', 'CAG-${cgDetails.hpRegId.toString().padLeft(3, '0')}', deviceType),
-        ],
-      ),
+      child: _infoGrid([
+        _buildInfoRow('Education', cgDetails.hpRegEducation, deviceType),
+        _buildInfoRow('Experience', '${cgDetails.hpRegExperience} months', deviceType),
+        _buildInfoRow('Identity Proof Type', cgDetails.hpRegIdentityProofType, deviceType),
+        _buildInfoRow('Identity Proof Number', cgDetails.hpRegIdentityProofNumber, deviceType),
+        _buildInfoRow('Registration ID', _regId, deviceType),
+      ]),
     );
   }
 
   // ================= PAY INFO SECTION =================
 
   Widget _buildPayInfoSection(DeviceType deviceType) {
-    final isMobile = deviceType == DeviceType.mobile;
-
     return _buildSectionCard(
       title: 'Pay Information',
-      icon: Icons.currency_rupee,
+      icon: LucideIcons.indianRupee,
       deviceType: deviceType,
-      child: Column(
+      child: AppResponsiveGrid(
+        minItemWidth: 150,
+        maxColumns: 4,
+        spacing: 12,
         children: [
-          if (isMobile) ...[
-            _buildPayCard('Live-in Pay', cgDetails.liveinPay ?? 'N/A', '/day', Colors.blue),
-            const SizedBox(height: 8),
-            _buildPayCard('Live-out Pay', cgDetails.liveoutPay ?? 'N/A', '/day', Colors.green),
-            const SizedBox(height: 8),
-            _buildPayCard('Monthly Live-in', cgDetails.monthlyLiveinPay ?? 'N/A', '/month', Colors.orange),
-            const SizedBox(height: 8),
-            _buildPayCard('Monthly Live-out', cgDetails.monthlyLiveoutPay ?? 'N/A', '/month', Colors.purple),
-          ] else ...[
-            Row(
-              children: [
-                Expanded(child: _buildPayCard('Live-in Pay', cgDetails.liveinPay ?? 'N/A', '/day', Colors.blue)),
-                const SizedBox(width: 12),
-                Expanded(child: _buildPayCard('Live-out Pay', cgDetails.liveoutPay ?? 'N/A', '/day', Colors.green)),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(child: _buildPayCard('Monthly Live-in', cgDetails.monthlyLiveinPay ?? 'N/A', '/month', Colors.orange)),
-                const SizedBox(width: 12),
-                Expanded(child: _buildPayCard('Monthly Live-out', cgDetails.monthlyLiveoutPay ?? 'N/A', '/month', Colors.purple)),
-              ],
-            ),
-          ],
+          _buildPayCard('Live-in Pay', cgDetails.liveinPay ?? 'N/A', '/day'),
+          _buildPayCard('Live-out Pay', cgDetails.liveoutPay ?? 'N/A', '/day'),
+          _buildPayCard('Monthly Live-in', cgDetails.monthlyLiveinPay ?? 'N/A', '/month'),
+          _buildPayCard('Monthly Live-out', cgDetails.monthlyLiveoutPay ?? 'N/A', '/month'),
         ],
       ),
     );
   }
 
-  Widget _buildPayCard(String label, String amount, String period, Color color) {
+  Widget _buildPayCard(String label, String amount, String period) {
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: color.withValues(alpha:0.05),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withValues(alpha:0.2)),
+        color: AppColor.surfaceMuted,
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        border: Border.all(color: AppColor.borderSubtle),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             label,
-            style: AppTextStyles.regular14Gre.copyWith(fontSize: 12),
+            style: TextStyle(
+              fontSize: 12.5,
+              fontWeight: FontWeight.w600,
+              color: AppColor.textTertiary,
+            ),
           ),
-          const SizedBox(height: 4),
-          Row(
-            children: [
-              Icon(Icons.currency_rupee, size: 16, color: color),
-              Text(
-                amount,
-                style: AppTextStyles.bold20.copyWith(fontSize: 18, color: color),
-              ),
-              Text(
-                period,
-                style: AppTextStyles.regular14Gre.copyWith(fontSize: 11),
-              ),
-            ],
+          const SizedBox(height: 6),
+          Text.rich(
+            TextSpan(
+              children: [
+                TextSpan(
+                  text: '₹',
+                  style: TextStyle(fontSize: 15, color: AppColor.textSecondary),
+                ),
+                TextSpan(
+                  text: amount,
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    color: AppColor.textPrimary,
+                    fontFeatures: const [FontFeature.tabularFigures()],
+                  ),
+                ),
+                TextSpan(
+                  text: ' $period',
+                  style: TextStyle(fontSize: 12, color: AppColor.textTertiary),
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -610,37 +510,40 @@ class _CgReviewDetailScreenState extends State<CgReviewDetailScreen> {
 
     return _buildSectionCard(
       title: 'Languages Known',
-      icon: Icons.language,
+      icon: LucideIcons.globe,
       deviceType: deviceType,
-      child: Wrap(
-        spacing: 8,
-        runSpacing: 8,
-        children: languages.map((lang) {
-          return Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-            decoration: BoxDecoration(
-              color: AppColor.cPrimaryButtonColor.withValues(alpha:0.08),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: AppColor.cPrimaryButtonColor.withValues(alpha:0.2)),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.translate, size: 14, color: AppColor.cPrimaryButtonColor),
-                const SizedBox(width: 6),
-                Text(
-                  lang,
-                  style: TextStyle(
-                    color: AppColor.cPrimaryButtonColor,
-                    fontWeight: FontWeight.w500,
-                    fontSize: 13,
+      child: languages.isEmpty
+          ? Text('Not provided',
+              style: TextStyle(fontSize: 14, color: AppColor.textTertiary))
+          : Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: languages.map((lang) {
+                return Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: AppColor.surfaceMuted,
+                    borderRadius: BorderRadius.circular(AppRadius.xs),
+                    border: Border.all(color: AppColor.borderSubtle),
                   ),
-                ),
-              ],
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(LucideIcons.languages,
+                          size: 14, color: AppColor.textTertiary),
+                      const SizedBox(width: 6),
+                      Text(
+                        lang,
+                        style: TextStyle(
+                          color: AppColor.textPrimary,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }).toList(),
             ),
-          );
-        }).toList(),
-      ),
     );
   }
 
@@ -649,35 +552,35 @@ class _CgReviewDetailScreenState extends State<CgReviewDetailScreen> {
   Widget _buildDocumentsSection(DeviceType deviceType) {
     return _buildSectionCard(
       title: 'Documents & Images',
-      icon: Icons.folder_outlined,
+      icon: LucideIcons.folder,
       deviceType: deviceType,
       child: Column(
         children: [
           _buildDocumentItem(
             'Profile Photo',
             cgDetails.hpRegPhoto,
-            Icons.person,
+            LucideIcons.user,
             deviceType,
           ),
           _buildDivider(),
           _buildDocumentItem(
             'ID Proof Front (${cgDetails.hpRegIdentityProofType})',
             cgDetails.hpRegIdentityProofFrontImage,
-            Icons.credit_card,
+            LucideIcons.creditCard,
             deviceType,
           ),
           _buildDivider(),
           _buildDocumentItem(
             'ID Proof Back (${cgDetails.hpRegIdentityProofType})',
             cgDetails.hpRegIdentityProofBackImage,
-            Icons.credit_card,
+            LucideIcons.creditCard,
             deviceType,
           ),
           _buildDivider(),
           _buildDocumentItem(
             'Education Certificate',
             cgDetails.hpRegEducationCertificate,
-            Icons.school,
+            LucideIcons.graduationCap,
             deviceType,
           ),
         ],
@@ -688,39 +591,19 @@ class _CgReviewDetailScreenState extends State<CgReviewDetailScreen> {
   // ================= STATUS CARD =================
 
   Widget _buildStatusCard(DeviceType deviceType) {
-    final isMobile = deviceType == DeviceType.mobile;
-    final isTablet = deviceType == DeviceType.tablet;
-
-    return Container(
-      padding: EdgeInsets.all(isMobile ? 16 : (isTablet ? 16 : SizeConfig.blockSizeHorizontal * 2)),
-      decoration: BoxDecoration(
-        color: AppColor.whiteColor,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColor.divColor),
-      ),
+    return _buildSectionCard(
+      title: 'Application Status',
+      icon: LucideIcons.info,
+      deviceType: deviceType,
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Row(
-            children: [
-              Icon(Icons.info_outline, size: isMobile ? 18 : 20, color: AppColor.cPrimaryButtonColor),
-              SizedBox(width: isMobile ? 8 : (isTablet ? 8 : SizeConfig.blockSizeHorizontal * 1)),
-              Text(
-                'Application Status',
-                style: AppTextStyles.regular16blue.copyWith(
-                  fontWeight: FontWeight.bold,
-                  fontSize: isMobile ? 14 : 16,
-                ),
-              ),
-            ],
-          ),
-          SizedBox(height: isMobile ? 16 : (isTablet ? 16 : SizeConfig.blockSizeVertical * 2)),
-          Center(child: _buildLargeStatusBadge(cgDetails.hpRegStatus, deviceType)),
-          SizedBox(height: isMobile ? 16 : (isTablet ? 16 : SizeConfig.blockSizeVertical * 2)),
+          _buildLargeStatusBadge(cgDetails.hpRegStatus, deviceType),
+          const SizedBox(height: 16),
           _buildStatusInfo('Effective Date', _formatDate(cgDetails.hpEffectDate), deviceType),
-          SizedBox(height: isMobile ? 8 : (isTablet ? 8 : SizeConfig.blockSizeVertical * 1)),
-          _buildStatusInfo('Application ID', 'CAG-${cgDetails.hpRegId.toString().padLeft(3, '0')}', deviceType),
-          SizedBox(height: isMobile ? 8 : (isTablet ? 8 : SizeConfig.blockSizeVertical * 1)),
+          const SizedBox(height: 10),
+          _buildStatusInfo('Application ID', _regId, deviceType),
+          const SizedBox(height: 10),
           _buildStatusInfo('Priority', 'Normal', deviceType),
         ],
       ),
@@ -730,36 +613,16 @@ class _CgReviewDetailScreenState extends State<CgReviewDetailScreen> {
   // ================= TIMELINE CARD =================
 
   Widget _buildTimelineCard(DeviceType deviceType) {
-    final isMobile = deviceType == DeviceType.mobile;
-    final isTablet = deviceType == DeviceType.tablet;
-
-    return Container(
-      padding: EdgeInsets.all(isMobile ? 16 : (isTablet ? 16 : SizeConfig.blockSizeHorizontal * 2)),
-      decoration: BoxDecoration(
-        color: AppColor.whiteColor,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColor.divColor),
-      ),
+    return _buildSectionCard(
+      title: 'Activity Timeline',
+      icon: LucideIcons.activity,
+      deviceType: deviceType,
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Row(
-            children: [
-              Icon(Icons.timeline, size: isMobile ? 18 : 20, color: AppColor.cPrimaryButtonColor),
-              SizedBox(width: isMobile ? 8 : (isTablet ? 8 : SizeConfig.blockSizeHorizontal * 1)),
-              Text(
-                'Activity Timeline',
-                style: AppTextStyles.regular16blue.copyWith(
-                  fontWeight: FontWeight.bold,
-                  fontSize: isMobile ? 14 : 16,
-                ),
-              ),
-            ],
-          ),
-          SizedBox(height: isMobile ? 16 : (isTablet ? 16 : SizeConfig.blockSizeVertical * 2)),
-          _buildTimelineItem('Application Submitted', _formatDate(cgDetails.hpEffectDate), Icons.file_upload, true, deviceType),
-          _buildTimelineItem('Under Review', 'In Progress', Icons.rate_review, cgDetails.hpRegStatus == 1, deviceType),
-          _buildTimelineItem('Decision Made', cgDetails.hpRegStatus > 1 ? _getHPStatusText(cgDetails.hpRegStatus) : 'Pending', Icons.check_circle, cgDetails.hpRegStatus > 1, deviceType),
+          _buildTimelineItem('Application Submitted', _formatDate(cgDetails.hpEffectDate), LucideIcons.fileUp, true, deviceType),
+          _buildTimelineItem('Under Review', 'In Progress', LucideIcons.messageSquareText, cgDetails.hpRegStatus == 1, deviceType),
+          _buildTimelineItem('Decision Made', cgDetails.hpRegStatus > 1 ? _getHPStatusText(cgDetails.hpRegStatus) : 'Pending', LucideIcons.circleCheck, cgDetails.hpRegStatus > 1, deviceType, isLast: true),
         ],
       ),
     );
@@ -767,58 +630,33 @@ class _CgReviewDetailScreenState extends State<CgReviewDetailScreen> {
 
   // ================= ACTION BUTTONS =================
 
+  /// Approve / reject, shown in the header card on tablet and desktop.
   Widget _buildActionButtons(DeviceType deviceType) {
-    final isTablet = deviceType == DeviceType.tablet;
     final controller = Get.find<RegisterCgController>();
 
-    return Container(
-      padding: EdgeInsets.all(isTablet ? 16 : SizeConfig.blockSizeHorizontal * 2),
-      decoration: BoxDecoration(
-        color: AppColor.whiteColor,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColor.divColor),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(
-            'Actions',
-            style: AppTextStyles.regular16blue.copyWith(
-              fontWeight: FontWeight.bold,
-              fontSize: isTablet ? 14 : 16,
-            ),
-          ),
-          SizedBox(height: isTablet ? 16 : SizeConfig.blockSizeVertical * 2),
-          Obx(() => controller.manageCgStatusLoading.value
-              ? const Center(child: CircularProgressIndicator())
-              : Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    ElevatedButton.icon(
-                      onPressed: () => _showApprovalDialog(controller),
-                      icon: Icon(Icons.check_circle, color: AppColor.buttonTextWhite, size: 18),
-                      label: const Text('Approve Application'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColor.lightGreen,
-                        padding: EdgeInsets.symmetric(vertical: isTablet ? 12 : SizeConfig.blockSizeVertical * 1.5),
-                      ),
-                    ),
-                    SizedBox(height: isTablet ? 8 : SizeConfig.blockSizeVertical * 1),
-                    OutlinedButton.icon(
-                      onPressed: () => _showRejectionDialog(controller),
-                      icon: const Icon(Icons.cancel, color: Colors.red, size: 18),
-                      label: const Text('Reject Application'),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: Colors.red,
-                        side: const BorderSide(color: Colors.red),
-                        padding: EdgeInsets.symmetric(vertical: isTablet ? 12 : SizeConfig.blockSizeVertical * 1.5),
-                      ),
-                    ),
-                  ],
-                )),
-        ],
-      ),
-    );
+    return Obx(() => controller.manageCgStatusLoading.value
+        ? const SizedBox(
+            width: 24,
+            height: 24,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          )
+        : Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              OutlinedButton.icon(
+                onPressed: () => _showRejectionDialog(controller),
+                style: AppButtonStyles.dangerOutlined,
+                icon: const Icon(LucideIcons.circleX, size: 18),
+                label: const Text('Reject Application'),
+              ),
+              ElevatedButton.icon(
+                onPressed: () => _showApprovalDialog(controller),
+                icon: const Icon(LucideIcons.circleCheck, size: 18),
+                label: const Text('Approve Application'),
+              ),
+            ],
+          ));
   }
 
   // ================= MOBILE BOTTOM BAR =================
@@ -827,30 +665,27 @@ class _CgReviewDetailScreenState extends State<CgReviewDetailScreen> {
     final controller = Get.find<RegisterCgController>();
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
       decoration: BoxDecoration(
         color: AppColor.whiteColor,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha:0.1),
-            blurRadius: 10,
-            offset: const Offset(0, -2),
-          ),
-        ],
+        border: Border(top: BorderSide(color: AppColor.divColor)),
       ),
       child: SafeArea(
+        top: false,
         child: Obx(() => controller.manageCgStatusLoading.value
-            ? const Center(child: CircularProgressIndicator())
+            ? const Center(
+                child: SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+              )
             : Row(
                 children: [
                   Expanded(
                     child: OutlinedButton(
                       onPressed: () => _showRejectionDialog(controller),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: Colors.red,
-                        side: const BorderSide(color: Colors.red),
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                      ),
+                      style: AppButtonStyles.dangerOutlined,
                       child: const Text('Reject'),
                     ),
                   ),
@@ -859,10 +694,6 @@ class _CgReviewDetailScreenState extends State<CgReviewDetailScreen> {
                     flex: 2,
                     child: ElevatedButton(
                       onPressed: () => _showApprovalDialog(controller),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColor.lightGreen,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                      ),
                       child: const Text('Approve Application'),
                     ),
                   ),
@@ -880,37 +711,28 @@ class _CgReviewDetailScreenState extends State<CgReviewDetailScreen> {
     required Widget child,
     required DeviceType deviceType,
   }) {
-    final isMobile = deviceType == DeviceType.mobile;
-    final isTablet = deviceType == DeviceType.tablet;
-
-    return Container(
-      padding: EdgeInsets.all(isMobile ? 16 : (isTablet ? 16 : SizeConfig.blockSizeHorizontal * 2)),
-      decoration: BoxDecoration(
-        color: AppColor.whiteColor,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColor.divColor),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(icon, size: isMobile ? 18 : 20, color: AppColor.cPrimaryButtonColor),
-              SizedBox(width: isMobile ? 8 : (isTablet ? 8 : SizeConfig.blockSizeHorizontal * 1)),
-              Text(
-                title,
-                style: AppTextStyles.regular16blue.copyWith(
-                  fontWeight: FontWeight.bold,
-                  fontSize: isMobile ? 14 : 16,
-                ),
-              ),
-            ],
-          ),
-          SizedBox(height: isMobile ? 12 : (isTablet ? 12 : SizeConfig.blockSizeVertical * 1.5)),
-          child,
-        ],
-      ),
+    return AppCard(
+      title: title,
+      icon: icon,
+      padding: EdgeInsets.all(deviceType == DeviceType.mobile ? 16 : 20),
+      child: child,
     );
+  }
+
+  /// Label/value pairs in two columns when the card is wide enough.
+  Widget _infoGrid(List<Widget> rows) {
+    return LayoutBuilder(builder: (context, constraints) {
+      final maxW = constraints.maxWidth;
+      final twoColumns = maxW >= 480;
+      final itemW = twoColumns ? ((maxW - 24) / 2).floorToDouble() : maxW;
+      return Wrap(
+        spacing: 24,
+        runSpacing: 18,
+        children: [
+          for (final r in rows) SizedBox(width: itemW, child: r),
+        ],
+      );
+    });
   }
 
   Widget _buildInfoRow(
@@ -920,111 +742,63 @@ class _CgReviewDetailScreenState extends State<CgReviewDetailScreen> {
     bool isEmail = false,
     bool isPhone = false,
   }) {
-    final isMobile = deviceType == DeviceType.mobile;
-    final isTablet = deviceType == DeviceType.tablet;
-
-    if (isMobile) {
-      return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(label, style: AppTextStyles.regular14Gre.copyWith(fontSize: 12)),
-            const SizedBox(height: 4),
-            Row(
-              children: [
-                if (isEmail) Icon(Icons.email, size: 14, color: AppColor.cPrimaryButtonColor),
-                if (isPhone) Icon(Icons.phone, size: 14, color: AppColor.cPrimaryButtonColor),
-                if (isEmail || isPhone) const SizedBox(width: 6),
-                Expanded(
-                  child: Text(
-                    value,
-                    style: AppTextStyles.regular14black.copyWith(fontWeight: FontWeight.w500, fontSize: 13),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      );
-    }
-
-    return Padding(
-      padding: EdgeInsets.symmetric(vertical: isTablet ? 8 : SizeConfig.blockSizeVertical * 1),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            flex: 2,
-            child: Text(label, style: AppTextStyles.regular14Gre.copyWith(fontSize: isTablet ? 12 : 14)),
-          ),
-          Expanded(
-            flex: 3,
-            child: Row(
-              children: [
-                if (isEmail) Icon(Icons.email, size: 16, color: AppColor.cPrimaryButtonColor),
-                if (isPhone) Icon(Icons.phone, size: 16, color: AppColor.cPrimaryButtonColor),
-                if (isEmail || isPhone) SizedBox(width: isTablet ? 4 : SizeConfig.blockSizeHorizontal * 0.5),
-                Expanded(
-                  child: Text(
-                    value,
-                    style: AppTextStyles.regular14black.copyWith(fontWeight: FontWeight.w500, fontSize: isTablet ? 12 : 14),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
+    return AppInfoRow(
+      label: label,
+      value: value,
+      icon: isEmail
+          ? LucideIcons.mail
+          : isPhone
+              ? LucideIcons.phone
+              : null,
     );
   }
 
   Widget _buildDivider() {
-    return Divider(color: AppColor.divColor, height: 1);
+    return Divider(color: AppColor.borderSubtle, height: 1);
   }
 
   Widget _buildDocumentItem(String title, String imageUrl, IconData icon, DeviceType deviceType) {
     final isMobile = deviceType == DeviceType.mobile;
-    final isTablet = deviceType == DeviceType.tablet;
     final hasValidImage = imageUrl.isNotEmpty && !imageUrl.endsWith('/NA') && !imageUrl.contains('/NA');
+    final thumb = isMobile ? 44.0 : 48.0;
 
     return Padding(
-      padding: EdgeInsets.symmetric(vertical: isMobile ? 8 : (isTablet ? 8 : SizeConfig.blockSizeVertical * 1)),
+      padding: const EdgeInsets.symmetric(vertical: 10),
       child: Row(
         children: [
-          Container(
-            width: isMobile ? 48 : 56,
-            height: isMobile ? 48 : 56,
-            decoration: BoxDecoration(
-              color: hasValidImage ? null : AppColor.cPrimaryButtonColor.withValues(alpha:0.1),
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: AppColor.divColor),
-              image: hasValidImage
-                  ? DecorationImage(
+          hasValidImage
+              ? Container(
+                  width: thumb,
+                  height: thumb,
+                  decoration: BoxDecoration(
+                    color: AppColor.surfaceMuted,
+                    borderRadius: BorderRadius.circular(AppRadius.sm),
+                    border: Border.all(color: AppColor.borderSubtle),
+                    image: DecorationImage(
                       image: NetworkImage(imageUrl),
                       fit: BoxFit.cover,
-                    )
-                  : null,
-            ),
-            child: hasValidImage
-                ? null
-                : Icon(icon, color: AppColor.cPrimaryButtonColor, size: isMobile ? 20 : 24),
-          ),
-          SizedBox(width: isMobile ? 10 : (isTablet ? 12 : SizeConfig.blockSizeHorizontal * 1.5)),
+                    ),
+                  ),
+                )
+              : AppIconTile(icon: icon, tone: AppTone.neutral, size: thumb),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   title,
-                  style: AppTextStyles.regular14black.copyWith(fontSize: isMobile ? 13 : 14),
-                ),
-                Text(
-                  hasValidImage ? 'Available' : 'Not uploaded',
                   style: TextStyle(
-                    fontSize: 11,
-                    color: hasValidImage ? AppColor.lightGreen : AppColor.calenderRed,
+                    fontSize: isMobile ? 13.5 : 14,
+                    fontWeight: FontWeight.w600,
+                    color: AppColor.textPrimary,
                   ),
+                ),
+                const SizedBox(height: 4),
+                AppStatusBadge(
+                  label: hasValidImage ? 'Available' : 'Not uploaded',
+                  tone: hasValidImage ? AppTone.success : AppTone.danger,
+                  dense: true,
                 ),
               ],
             ),
@@ -1032,10 +806,9 @@ class _CgReviewDetailScreenState extends State<CgReviewDetailScreen> {
           if (hasValidImage) ...[
             IconButton(
               onPressed: () => _showImageDialog(imageUrl, title),
-              icon: Icon(Icons.visibility, size: isMobile ? 18 : 20, color: AppColor.cPrimaryButtonColor),
+              icon: Icon(LucideIcons.eye, size: 18, color: AppColor.textSecondary),
               tooltip: 'View',
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(),
+              visualDensity: VisualDensity.compact,
             ),
           ],
         ],
@@ -1045,105 +818,72 @@ class _CgReviewDetailScreenState extends State<CgReviewDetailScreen> {
 
   Widget _buildStatusBadge(int status, DeviceType deviceType) {
     final isMobile = deviceType == DeviceType.mobile;
-    final isTablet = deviceType == DeviceType.tablet;
 
-    late Color bg, fg;
     late String text;
     late IconData icon;
 
     switch (status) {
       case 2:
-        bg = AppColor.lightGreen.withValues(alpha:0.15);
-        fg = AppColor.lightGreen;
         text = 'Approved';
-        icon = Icons.check_circle;
+        icon = LucideIcons.circleCheck;
         break;
       case 3:
-        bg = Colors.red.withValues(alpha:0.15);
-        fg = Colors.red;
         text = 'Rejected';
-        icon = Icons.cancel;
+        icon = LucideIcons.circleX;
         break;
       case 4:
-        bg = Colors.grey.withValues(alpha:0.15);
-        fg = AppColor.fontColorGrey;
         text = 'Terminated';
-        icon = Icons.block;
+        icon = LucideIcons.ban;
         break;
       default:
-        bg = AppColor.calenderRed.withValues(alpha:0.15);
-        fg = AppColor.calenderRed;
         text = isMobile ? 'Pending' : 'Pending Review';
-        icon = Icons.access_time;
+        icon = LucideIcons.clock;
     }
 
-    return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: isMobile ? 8 : (isTablet ? 10 : SizeConfig.blockSizeHorizontal * 1.5),
-        vertical: isMobile ? 4 : (isTablet ? 6 : SizeConfig.blockSizeVertical * 0.8),
-      ),
-      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(20)),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: isMobile ? 12 : (isTablet ? 14 : 16), color: fg),
-          SizedBox(width: isMobile ? 4 : (isTablet ? 4 : SizeConfig.blockSizeHorizontal * 0.6)),
-          Text(
-            text,
-            style: TextStyle(color: fg, fontWeight: FontWeight.w600, fontSize: isMobile ? 11 : (isTablet ? 12 : 14)),
-          ),
-        ],
-      ),
-    );
+    return AppStatusBadge(label: text, tone: toneForStatus(text), icon: icon);
   }
 
   Widget _buildLargeStatusBadge(int status, DeviceType deviceType) {
-    final isMobile = deviceType == DeviceType.mobile;
-    final isTablet = deviceType == DeviceType.tablet;
-
-    late Color bg, fg;
     late String text;
     late IconData icon;
 
     switch (status) {
       case 2:
-        bg = AppColor.lightGreen.withValues(alpha:0.15);
-        fg = AppColor.lightGreen;
         text = 'Approved';
-        icon = Icons.check_circle;
+        icon = LucideIcons.circleCheck;
         break;
       case 3:
-        bg = Colors.red.withValues(alpha:0.15);
-        fg = Colors.red;
         text = 'Rejected';
-        icon = Icons.cancel;
+        icon = LucideIcons.circleX;
         break;
       case 4:
-        bg = Colors.grey.withValues(alpha:0.15);
-        fg = AppColor.fontColorGrey;
         text = 'Terminated';
-        icon = Icons.block;
+        icon = LucideIcons.ban;
         break;
       default:
-        bg = AppColor.calenderRed.withValues(alpha:0.15);
-        fg = AppColor.calenderRed;
         text = 'Pending Review';
-        icon = Icons.access_time;
+        icon = LucideIcons.clock;
     }
 
+    final tone = toneForStatus(text);
+
     return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: isMobile ? 16 : (isTablet ? 16 : SizeConfig.blockSizeHorizontal * 2),
-        vertical: isMobile ? 12 : (isTablet ? 12 : SizeConfig.blockSizeVertical * 1.5),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+      decoration: BoxDecoration(
+        color: tone.soft,
+        borderRadius: BorderRadius.circular(AppRadius.lg),
       ),
-      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(30)),
       child: Column(
         children: [
-          Icon(icon, size: isMobile ? 32 : (isTablet ? 36 : 40), color: fg),
-          SizedBox(height: isMobile ? 4 : (isTablet ? 6 : SizeConfig.blockSizeVertical * 0.5)),
+          Icon(icon, size: 28, color: tone.color),
+          const SizedBox(height: 6),
           Text(
             text,
-            style: TextStyle(color: fg, fontWeight: FontWeight.bold, fontSize: isMobile ? 14 : (isTablet ? 15 : 16)),
+            style: TextStyle(
+              color: tone.color,
+              fontWeight: FontWeight.w600,
+              fontSize: 15,
+            ),
           ),
         ],
       ),
@@ -1151,50 +891,51 @@ class _CgReviewDetailScreenState extends State<CgReviewDetailScreen> {
   }
 
   Widget _buildStatusInfo(String label, String value, DeviceType deviceType) {
-    final isMobile = deviceType == DeviceType.mobile;
-    final isTablet = deviceType == DeviceType.tablet;
-
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(label, style: AppTextStyles.regular14Gre.copyWith(fontSize: isMobile ? 12 : (isTablet ? 12 : 14))),
-        Text(
-          value,
-          style: AppTextStyles.regular14black.copyWith(fontWeight: FontWeight.w600, fontSize: isMobile ? 12 : (isTablet ? 12 : 14)),
+        Text(label, style: TextStyle(fontSize: 13, color: AppColor.textTertiary)),
+        const SizedBox(width: 12),
+        Flexible(
+          child: Text(
+            value,
+            textAlign: TextAlign.right,
+            style: TextStyle(
+              fontSize: 13.5,
+              fontWeight: FontWeight.w600,
+              color: AppColor.textPrimary,
+            ),
+          ),
         ),
       ],
     );
   }
 
-  Widget _buildTimelineItem(String title, String time, IconData icon, bool isActive, DeviceType deviceType) {
-    final isMobile = deviceType == DeviceType.mobile;
-    final isTablet = deviceType == DeviceType.tablet;
-
+  Widget _buildTimelineItem(String title, String time, IconData icon, bool isActive, DeviceType deviceType, {bool isLast = false}) {
     return Padding(
-      padding: EdgeInsets.only(bottom: isMobile ? 12 : (isTablet ? 12 : SizeConfig.blockSizeVertical * 1.5)),
+      padding: EdgeInsets.only(bottom: isLast ? 0 : 14),
       child: Row(
         children: [
-          Container(
-            padding: EdgeInsets.all(isMobile ? 6 : (isTablet ? 8 : SizeConfig.blockSizeHorizontal * 0.8)),
-            decoration: BoxDecoration(
-              color: isActive ? AppColor.cPrimaryButtonColor.withValues(alpha:0.1) : Colors.grey.withValues(alpha:0.1),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(icon, size: isMobile ? 18 : 20, color: isActive ? AppColor.cPrimaryButtonColor : AppColor.fontColorGrey),
+          AppIconTile(
+            icon: icon,
+            tone: isActive ? AppTone.primary : AppTone.neutral,
+            size: 34,
           ),
-          SizedBox(width: isMobile ? 10 : (isTablet ? 12 : SizeConfig.blockSizeHorizontal * 1.5)),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   title,
-                  style: AppTextStyles.regular14black.copyWith(
-                    fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
-                    fontSize: isMobile ? 13 : 14,
+                  style: TextStyle(
+                    fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
+                    fontSize: 14,
+                    color: isActive ? AppColor.textPrimary : AppColor.textSecondary,
                   ),
                 ),
-                Text(time, style: AppTextStyles.regular14Gre.copyWith(fontSize: isMobile ? 11 : 14)),
+                const SizedBox(height: 2),
+                Text(time, style: TextStyle(fontSize: 12.5, color: AppColor.textTertiary)),
               ],
             ),
           ),
@@ -1230,72 +971,44 @@ class _CgReviewDetailScreenState extends State<CgReviewDetailScreen> {
 
   void _showImageDialog(String imageUrl, String title) {
     Get.dialog(
-      Dialog(
-        backgroundColor: Colors.transparent,
-        insetPadding: const EdgeInsets.all(16),
-        child: Container(
-          constraints: const BoxConstraints(maxWidth: 600, maxHeight: 600),
-          decoration: BoxDecoration(
-            color: AppColor.whiteColor,
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        title,
-                        style: AppTextStyles.bold20.copyWith(fontSize: 16),
-                      ),
-                    ),
-                    IconButton(
-                      onPressed: () => Get.back(),
-                      icon: const Icon(Icons.close),
-                    ),
-                  ],
-                ),
-              ),
-              const Divider(height: 1),
-              Flexible(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: InteractiveViewer(
-                    minScale: 0.5,
-                    maxScale: 4.0,
-                    child: Image.network(
-                      imageUrl,
-                      fit: BoxFit.contain,
-                      loadingBuilder: (context, child, loadingProgress) {
-                        if (loadingProgress == null) return child;
-                        return Center(
-                          child: CircularProgressIndicator(
-                            value: loadingProgress.expectedTotalBytes != null
-                                ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
-                                : null,
-                          ),
-                        );
-                      },
-                      errorBuilder: (context, error, stackTrace) {
-                        return Center(
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(Icons.broken_image, size: 64, color: AppColor.fontColorGrey),
-                              SizedBox(height: 8),
-                              Text('Failed to load image', style: TextStyle(color: AppColor.fontColorGrey)),
-                            ],
-                          ),
-                        );
-                      },
-                    ),
+      AppDialog(
+        title: title,
+        icon: LucideIcons.image,
+        maxWidth: 640,
+        onClose: () => Get.back(),
+        bodyPadding: const EdgeInsets.all(16),
+        child: SizedBox(
+          width: double.infinity,
+          height: 460,
+          child: InteractiveViewer(
+            minScale: 0.5,
+            maxScale: 4.0,
+            child: Image.network(
+              imageUrl,
+              fit: BoxFit.contain,
+              loadingBuilder: (context, child, loadingProgress) {
+                if (loadingProgress == null) return child;
+                return Center(
+                  child: CircularProgressIndicator(
+                    value: loadingProgress.expectedTotalBytes != null
+                        ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
+                        : null,
                   ),
-                ),
-              ),
-            ],
+                );
+              },
+              errorBuilder: (context, error, stackTrace) {
+                return Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(LucideIcons.imageOff, size: 56, color: AppColor.textTertiary),
+                      const SizedBox(height: 8),
+                      Text('Failed to load image', style: TextStyle(color: AppColor.textTertiary)),
+                    ],
+                  ),
+                );
+              },
+            ),
           ),
         ),
       ),
@@ -1306,20 +1019,14 @@ class _CgReviewDetailScreenState extends State<CgReviewDetailScreen> {
 
   void _showApprovalDialog(RegisterCgController controller) {
     Get.dialog(
-      AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Row(
-          children: [
-            Icon(Icons.check_circle, color: AppColor.lightGreen),
-            const SizedBox(width: 8),
-            const Text('Approve Application'),
-          ],
-        ),
-        content: Text(
-          'Are you sure you want to approve ${cgDetails.hpRegFirstName} ${cgDetails.hpRegLastName}\'s application?',
-        ),
+      AppDialog(
+        title: 'Approve Application',
+        icon: LucideIcons.circleCheck,
+        tone: AppTone.success,
+        maxWidth: 460,
+        onClose: () => Get.back(),
         actions: [
-          TextButton(
+          OutlinedButton(
             onPressed: () => Get.back(),
             child: const Text('Cancel'),
           ),
@@ -1328,41 +1035,27 @@ class _CgReviewDetailScreenState extends State<CgReviewDetailScreen> {
               Get.back();
               controller.updateCgStatus(cgDetails.hpRegId, 2, navigateToManageHp: true);
             },
-            style: ElevatedButton.styleFrom(backgroundColor: AppColor.lightGreen),
             child: const Text('Approve'),
           ),
         ],
+        child: Text(
+          'Are you sure you want to approve ${cgDetails.hpRegFirstName} ${cgDetails.hpRegLastName}\'s application?',
+          style: TextStyle(fontSize: 14, height: 1.5, color: AppColor.textSecondary),
+        ),
       ),
     );
   }
 
   void _showRejectionDialog(RegisterCgController controller) {
     Get.dialog(
-      AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Row(
-          children: [
-            Icon(Icons.cancel, color: Colors.red),
-            SizedBox(width: 8),
-            Text('Reject Application'),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text('Are you sure you want to reject ${cgDetails.hpRegFirstName} ${cgDetails.hpRegLastName}\'s application?'),
-            const SizedBox(height: 12),
-            TextField(
-              maxLines: 3,
-              decoration: InputDecoration(
-                hintText: 'Enter reason for rejection...',
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-              ),
-            ),
-          ],
-        ),
+      AppDialog(
+        title: 'Reject Application',
+        icon: LucideIcons.circleX,
+        tone: AppTone.danger,
+        maxWidth: 460,
+        onClose: () => Get.back(),
         actions: [
-          TextButton(
+          OutlinedButton(
             onPressed: () => Get.back(),
             child: const Text('Cancel'),
           ),
@@ -1371,10 +1064,27 @@ class _CgReviewDetailScreenState extends State<CgReviewDetailScreen> {
               Get.back();
               controller.updateCgStatus(cgDetails.hpRegId, 3, navigateToManageHp: true);
             },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: Text('Reject', style: TextStyle(color: AppColor.buttonTextWhite)),
+            style: AppButtonStyles.danger,
+            child: const Text('Reject'),
           ),
         ],
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              'Are you sure you want to reject ${cgDetails.hpRegFirstName} ${cgDetails.hpRegLastName}\'s application?',
+              style: TextStyle(fontSize: 14, height: 1.5, color: AppColor.textSecondary),
+            ),
+            const SizedBox(height: 12),
+            const TextField(
+              maxLines: 3,
+              decoration: InputDecoration(
+                hintText: 'Enter reason for rejection...',
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

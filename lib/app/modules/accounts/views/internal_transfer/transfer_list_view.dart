@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:eldivex_app/app/core/values/color_constants.dart';
-import 'package:eldivex_app/app/core/values/text_style_constants.dart';
+import 'package:eldivex_app/app/widgets/ui/ui.dart';
 import '../../../../widgets/shimmer_loader.dart';
 import '../../controllers/internal_transfer_controller.dart';
 import '../../models/internal_transfer_model.dart';
 import '../../models/active_booking_client_model.dart';
 import '../../../../routes/app_pages.dart';
 import '../accounts_format.dart';
+import 'package:eldivex_app/app/core/values/lucide_icons.dart';
 
 class TransferListView extends StatefulWidget {
   const TransferListView({super.key});
@@ -45,23 +46,19 @@ class _TransferListViewState extends State<TransferListView> {
   // Helpers
   // ─────────────────────────────────────────────
 
-  Color _typeColor(String type) {
+  AppTone _typeTone(String type) {
     switch (type.toUpperCase()) {
       case 'OVERPAYMENT_TRANSFER':
-        return Colors.teal;
+        return AppTone.success;
       case 'RECEIPT_REALLOCATION':
-        return Colors.blue;
+        return AppTone.info;
       case 'CREDIT_BALANCE_TRANSFER':
-        return Colors.indigo;
+        return AppTone.primary;
       case 'SERVICE_SWITCH':
-        return Colors.deepPurple;
+        return AppTone.violet;
       default:
-        return AppColor.fontColorGrey;
+        return AppTone.neutral;
     }
-  }
-
-  String _formatType(String type) {
-    return type.replaceAll('_', ' ');
   }
 
   void _applyFilters() {
@@ -77,13 +74,90 @@ class _TransferListViewState extends State<TransferListView> {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _buildFilterBar(),
-        Expanded(child: _buildBody()),
-      ],
+    final pad = MediaQuery.sizeOf(context).width < 600 ? 16.0 : 24.0;
+    return Scaffold(
+      backgroundColor: AppColor.cAppBackgroundColor,
+      body: SingleChildScrollView(
+        padding: EdgeInsets.all(pad),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            AppPageHeader(
+              title: 'Internal Transfers',
+              subtitle:
+                  'Move credit balances between bookings of the same client',
+              actions: [
+                // New Transfer button
+                ElevatedButton.icon(
+                  onPressed: () => Get.toNamed(Routes.CREATE_TRANSFER),
+                  icon: const Icon(LucideIcons.plus, size: 18),
+                  label: const Text('New Transfer'),
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
+            _buildKpis(),
+            const SizedBox(height: 20),
+            AppCard(
+              padding: EdgeInsets.zero,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _buildFilterBar(),
+                  Divider(height: 1, color: AppColor.borderSubtle),
+                  _buildBody(),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
     );
+  }
+
+  // ─────────────────────────────────────────────
+  // KPI row (derived from the loaded list)
+  // ─────────────────────────────────────────────
+
+  Widget _buildKpis() {
+    return Obx(() {
+      final list = ctrl.transfers;
+      String st(InternalTransferModel t) => t.status.toUpperCase();
+      final pending = list.where((t) => st(t) == 'PENDING_APPROVAL').length;
+      final completed =
+          list.where((t) => st(t) == 'COMPLETED' || st(t) == 'APPROVED');
+      final moved = completed.fold<double>(0, (s, t) => s + t.transferAmount);
+      return AppResponsiveGrid(
+        minItemWidth: 200,
+        maxColumns: 4,
+        children: [
+          AppStatCard(
+            label: 'Transfers',
+            value: '${list.length}',
+            icon: LucideIcons.arrowLeftRight,
+            caption: 'Matching the current filters',
+          ),
+          AppStatCard(
+            label: 'Pending approval',
+            value: '$pending',
+            icon: LucideIcons.hourglass,
+            tone: AppTone.warning,
+          ),
+          AppStatCard(
+            label: 'Completed',
+            value: '${completed.length}',
+            icon: LucideIcons.circleCheckBig,
+            tone: AppTone.success,
+          ),
+          AppStatCard(
+            label: 'Amount transferred',
+            value: formatInr(moved),
+            icon: LucideIcons.wallet,
+            tone: AppTone.info,
+          ),
+        ],
+      );
+    });
   }
 
   // ─────────────────────────────────────────────
@@ -92,7 +166,7 @@ class _TransferListViewState extends State<TransferListView> {
 
   Widget _buildFilterBar() {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+      padding: const EdgeInsets.fromLTRB(16, 14, 12, 14),
       child: Wrap(
         spacing: 12,
         runSpacing: 10,
@@ -104,116 +178,88 @@ class _TransferListViewState extends State<TransferListView> {
             final selected = clients.any((c) => c.userId == _selectedClientId)
                 ? _selectedClientId
                 : null;
-            return Container(
-              height: 44,
-              width: 240,
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              decoration: BoxDecoration(
-                color: AppColor.whiteColor,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColor.textFieldBorderColor),
-              ),
-              child: DropdownButtonHideUnderline(
-                child: DropdownButton<int?>(
-                  isExpanded: true,
-                  value: selected,
-                  hint: Text(
-                    'All Clients',
-                    style: TextStyle(color: AppColor.fontColorGrey, fontSize: 14),
-                  ),
-                  items: [
-                    DropdownMenuItem<int?>(
-                      value: null,
-                      child: Text('All Clients',
-                          style: TextStyle(fontSize: 14, color: AppColor.fontColorGrey)),
+            return ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 260),
+              child: InputDecorator(
+                decoration: const InputDecoration(
+                  isDense: true,
+                  contentPadding:
+                      EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                ),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<int?>(
+                    isExpanded: true,
+                    isDense: true,
+                    value: selected,
+                    icon: Icon(LucideIcons.chevronDown,
+                        size: 18, color: AppColor.textTertiary),
+                    borderRadius: BorderRadius.circular(AppRadius.md),
+                    hint: Text(
+                      'All Clients',
+                      style:
+                          TextStyle(color: AppColor.textTertiary, fontSize: 14),
                     ),
-                    ...clients.map((c) {
-                      return DropdownMenuItem<int?>(
-                        value: c.userId,
-                        child: Text(c.label,
-                            style: const TextStyle(fontSize: 14),
-                            overflow: TextOverflow.ellipsis),
-                      );
-                    }),
-                  ],
-                  onChanged: (v) {
-                    setState(() => _selectedClientId = v);
-                    _applyFilters();
-                  },
+                    items: [
+                      DropdownMenuItem<int?>(
+                        value: null,
+                        child: Text('All Clients',
+                            style: TextStyle(
+                                fontSize: 14, color: AppColor.textSecondary)),
+                      ),
+                      ...clients.map((c) {
+                        return DropdownMenuItem<int?>(
+                          value: c.userId,
+                          child: Text(c.label,
+                              style: TextStyle(
+                                  fontSize: 14, color: AppColor.textPrimary),
+                              overflow: TextOverflow.ellipsis),
+                        );
+                      }),
+                    ],
+                    onChanged: (v) {
+                      setState(() => _selectedClientId = v);
+                      _applyFilters();
+                    },
+                  ),
                 ),
               ),
             );
           }),
           // Status filter chips
-          SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: _statusOptions.map((s) {
-                  final isSelected = _selectedStatus == s;
-                  return Padding(
-                    padding: const EdgeInsets.only(right: 8),
-                    child: FilterChip(
-                      label: Text(s == 'All' ? 'All' : _formatType(s)),
-                      selected: isSelected,
-                      onSelected: (_) {
-                        setState(() => _selectedStatus = s);
-                        _applyFilters();
-                      },
-                      backgroundColor: AppColor.whiteColor,
-                      selectedColor: AppColor.cPrimaryButtonColor.withValues(alpha: 0.1),
-                      labelStyle: TextStyle(
-                        fontSize: 12,
-                        color: isSelected
-                            ? AppColor.cPrimaryButtonColor
-                            : AppColor.fontColorGrey,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20),
-                        side: BorderSide(
-                          color: isSelected
-                              ? AppColor.cPrimaryButtonColor
-                              : AppColor.textFieldBorderColor,
-                        ),
-                      ),
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    ),
-                  );
-                }).toList(),
-              ),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: _statusOptions.map((s) {
+              final isSelected = _selectedStatus == s;
+              return FilterChip(
+                label: Text(s == 'All' ? 'All' : humanizeLabel(s)),
+                selected: isSelected,
+                showCheckmark: false,
+                onSelected: (_) {
+                  setState(() => _selectedStatus = s);
+                  _applyFilters();
+                },
+                labelStyle: TextStyle(
+                  fontSize: 13,
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                  color: isSelected
+                      ? AppColor.cAppPrimaryColor
+                      : AppColor.textSecondary,
+                ),
+                side: BorderSide(
+                  color: isSelected
+                      ? AppColor.cAppPrimaryColor.withValues(alpha: 0.45)
+                      : AppColor.divColor,
+                ),
+              );
+            }).toList(),
           ),
 
           // Refresh
-          Tooltip(
-            message: 'Refresh',
-            child: InkWell(
-              onTap: _applyFilters,
-              borderRadius: BorderRadius.circular(10),
-              child: Container(
-                height: 44,
-                width: 44,
-                decoration: BoxDecoration(
-                  color: AppColor.whiteColor,
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: AppColor.textFieldBorderColor),
-                ),
-                child: Icon(Icons.refresh, color: AppColor.cPrimaryButtonColor, size: 20),
-              ),
-            ),
-          ),
-          // New Transfer button
-          ElevatedButton.icon(
-            onPressed: () => Get.toNamed(Routes.CREATE_TRANSFER),
-            icon: Icon(Icons.add, color: AppColor.buttonTextWhite, size: 18),
-            label: Text(
-              'New Transfer',
-              style: TextStyle(color: AppColor.buttonTextWhite, fontWeight: FontWeight.w600),
-            ),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColor.cPrimaryButtonColor,
-              minimumSize: const Size(0, 44),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-            ),
+          IconButton(
+            tooltip: 'Refresh',
+            onPressed: _applyFilters,
+            icon: const Icon(LucideIcons.refreshCw, size: 18),
           ),
         ],
       ),
@@ -227,159 +273,85 @@ class _TransferListViewState extends State<TransferListView> {
   Widget _buildBody() {
     return Obx(() {
       if (ctrl.isLoading.value) {
-        return const ShimmerLoader.table();
+        return const SizedBox(height: 380, child: ShimmerLoader.table());
       }
       if (ctrl.transfers.isEmpty) {
-        return Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.swap_horiz_outlined, size: 64, color: AppColor.divColor),
-              const SizedBox(height: 12),
-              Text('No internal transfers found', style: AppTextStyles.regular16Gre),
-              const SizedBox(height: 8),
-              Text(
-                'Internal transfers move credit balances between bookings\nof the same client.',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 13, color: AppColor.fontColorGrey),
-              ),
-            ],
-          ),
+        return const AppEmptyState(
+          icon: LucideIcons.arrowLeftRight,
+          title: 'No internal transfers found',
+          message:
+              'Internal transfers move credit balances between bookings of the same client.',
         );
       }
-      return SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-        child: Container(
-          width: double.infinity,
-          decoration: BoxDecoration(
-            color: AppColor.whiteColor,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColor.divColor),
-          ),
-          child: horizontalTable(DataTable(
-            headingRowColor: WidgetStateProperty.all(AppColor.fieldColorGrey),
-            headingTextStyle: TextStyle(
-              fontWeight: FontWeight.w600,
-              fontSize: 13,
-              color: AppColor.cPrimaryHeadingColor,
-            ),
-            dataTextStyle: const TextStyle(fontSize: 13),
-            columnSpacing: 16,
-            horizontalMargin: 16,
-            columns: const [
-              DataColumn(label: Text('ID')),
-              DataColumn(label: Text('Client')),
-              DataColumn(label: Text('From Booking')),
-              DataColumn(label: Text('To Booking')),
-              DataColumn(label: Text('Amount')),
-              DataColumn(label: Text('Type')),
-              DataColumn(label: Text('Status')),
-              DataColumn(label: Text('Date')),
-              DataColumn(label: Text('Actions')),
-            ],
-            rows: ctrl.transfers.map((t) => _buildRow(t)).toList(),
-          )),
-        ),
-      );
+      return horizontalTable(DataTable(
+        columns: const [
+          DataColumn(label: Text('ID')),
+          DataColumn(label: Text('Client')),
+          DataColumn(label: Text('From Booking')),
+          DataColumn(label: Text('To Booking')),
+          DataColumn(label: Text('Amount'), numeric: true),
+          DataColumn(label: Text('Type')),
+          DataColumn(label: Text('Status')),
+          DataColumn(label: Text('Date')),
+          DataColumn(label: Text('Actions')),
+        ],
+        rows: ctrl.transfers.map((t) => _buildRow(t)).toList(),
+      ));
     });
   }
 
   DataRow _buildRow(InternalTransferModel t) {
-    final statusColor = accountsStatusColor(t.status);
-    final typeColor = _typeColor(t.transferType);
-
     return DataRow(cells: [
       // ID
       DataCell(Text(
         'IT-${t.id}',
-        style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
+        style: TextStyle(
+            fontWeight: FontWeight.w600, color: AppColor.cAppPrimaryColor),
       )),
 
       // Client
-      DataCell(Text(
-        t.clientName ?? 'Client ${t.clientId}',
-        style: const TextStyle(fontSize: 13),
-      )),
+      DataCell(Text(t.clientName ?? 'Client ${t.clientId}')),
 
       // From Booking
-      DataCell(Text(
-        t.sourceBookingRef ?? '#${t.sourceBookingId}',
-        style: AppTextStyles.regular14black,
-      )),
+      DataCell(Text(t.sourceBookingRef ?? '#${t.sourceBookingId}')),
 
       // To Booking
-      DataCell(Text(
-        t.targetBookingRef ?? '#${t.targetBookingId}',
-        style: AppTextStyles.regular14black,
-      )),
+      DataCell(Text(t.targetBookingRef ?? '#${t.targetBookingId}')),
 
       // Amount
       DataCell(Text(
         formatInr(t.transferAmount),
         style: const TextStyle(
-            fontWeight: FontWeight.w600, color: Colors.teal, fontSize: 13),
+            fontWeight: FontWeight.w600,
+            fontFeatures: [FontFeature.tabularFigures()]),
       )),
 
       // Type chip
-      DataCell(Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-        decoration: BoxDecoration(
-          color: typeColor.withValues(alpha: 0.08),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: typeColor.withValues(alpha: 0.25)),
-        ),
-        child: Text(
-          _formatType(t.transferType),
-          style: TextStyle(
-              color: typeColor, fontSize: 11, fontWeight: FontWeight.w500),
-        ),
+      DataCell(AppStatusBadge(
+        label: humanizeLabel(t.transferType),
+        tone: _typeTone(t.transferType),
+        showDot: false,
+        dense: true,
       )),
 
       // Status badge
-      DataCell(Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-        decoration: BoxDecoration(
-          color: statusColor.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Text(
-          _formatType(t.status),
-          style: TextStyle(
-              color: statusColor, fontSize: 12, fontWeight: FontWeight.w500),
-        ),
-      )),
+      DataCell(AppStatusBadge.status(t.status)),
 
       // Date
       DataCell(Text(
         formatAccDate(t.createdOn, pattern: 'dd-MMM-yyyy', empty: '-'),
-        style: const TextStyle(fontSize: 12),
+        style: TextStyle(color: AppColor.textSecondary),
       )),
 
       // Actions
-      DataCell(Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Tooltip(
-            message: 'View Details',
-            child: InkWell(
-              onTap: () => Get.toNamed(
-                Routes.TRANSFER_DETAIL,
-                arguments: t.id,
-                parameters: {'id': '${t.id}'},
-              ),
-              borderRadius: BorderRadius.circular(6),
-              child: Container(
-                padding: const EdgeInsets.all(6),
-                decoration: BoxDecoration(
-                  color: AppColor.cPrimaryButtonColor.withValues(alpha: 0.08),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Icon(Icons.visibility_outlined,
-                    size: 16, color: AppColor.cPrimaryButtonColor),
-              ),
-            ),
-          ),
-        ],
+      DataCell(IconButton(
+        tooltip: 'View Details',
+        onPressed: () => Get.toNamed(
+          Routes.TRANSFER_DETAIL,
+          arguments: t.id,
+          parameters: {'id': '${t.id}'},
+        ),
+        icon: const Icon(LucideIcons.eye, size: 18),
       )),
     ]);
   }

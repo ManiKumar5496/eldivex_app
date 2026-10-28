@@ -1,16 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
+import 'package:eldivex_app/app/widgets/ui/ui.dart';
 import '../../../core/values/color_constants.dart';
-import '../../../core/values/text_style_constants.dart';
 import '../../../core/values/size_configue.dart';
 import '../controllers/register_cg_controller.dart';
 import '../../../widgets/shimmer_loader.dart';
 import '../../../widgets/dropdown_common.dart';
 import '../models/get_cg_details_model.dart';
+import 'package:eldivex_app/app/core/values/lucide_icons.dart';
 
 class MarkAttendanceView extends GetView<RegisterCgController> {
   const MarkAttendanceView({super.key});
+
+  /// Below this width the desktop table scrolls horizontally instead of
+  /// squeezing the time pickers and dropdowns.
+  static const double _tableMinWidth = 1080;
 
   @override
   Widget build(BuildContext context) {
@@ -20,7 +25,8 @@ class MarkAttendanceView extends GetView<RegisterCgController> {
     return Scaffold(
       backgroundColor: AppColor.cAppBackgroundColor,
       body: Padding(
-        padding: EdgeInsets.all(isMobile ? 12 : 24),
+        // Horizontal page padding comes from the Attendance shell page.
+        padding: EdgeInsets.only(top: 20, bottom: isMobile ? 12 : 24),
         child: isMobile ? _mobileBody() : _desktopBody(),
       ),
     );
@@ -30,40 +36,81 @@ class MarkAttendanceView extends GetView<RegisterCgController> {
 
   Widget _desktopBody() {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _header(),
-        const SizedBox(height: 24),
-        _dateAndSearchSection(),
-        const SizedBox(height: 24),
+        const SizedBox(height: 20),
         _summaryCards(),
-        const SizedBox(height: 24),
-        _tableHeader(),
-        Expanded(child: _cgAttendanceTable()),
-        _footer(),
+        const SizedBox(height: 20),
+        Expanded(
+          child: AppCard(
+            padding: EdgeInsets.zero,
+            expandChild: true,
+            footer: _footer(),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: _dateAndSearchSection(),
+                ),
+                Divider(height: 1, color: AppColor.borderSubtle),
+                Expanded(child: _desktopTable()),
+              ],
+            ),
+          ),
+        ),
       ],
     );
+  }
+
+  Widget _desktopTable() {
+    return LayoutBuilder(builder: (context, constraints) {
+      final width = constraints.maxWidth < _tableMinWidth
+          ? _tableMinWidth
+          : constraints.maxWidth;
+      return SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: SizedBox(
+          width: width,
+          height: constraints.maxHeight,
+          child: Column(
+            children: [
+              _tableHeader(),
+              Expanded(child: _cgAttendanceTable()),
+            ],
+          ),
+        ),
+      );
+    });
   }
 
   // ================= MOBILE BODY =================
 
   Widget _mobileBody() {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _headerMobile(),
         const SizedBox(height: 16),
         _dateAndSearchSectionMobile(),
-        const SizedBox(height: 16),
+        const SizedBox(height: 12),
         _summaryCardsMobile(),
         const SizedBox(height: 16),
         Row(
           children: [
-            Text('Attendance List', style: AppTextStyles.semiBold16),
+            Text(
+              'Attendance List',
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+                color: AppColor.textPrimary,
+              ),
+            ),
             const Spacer(),
             Obx(() => Text(
                   '${controller.activeCgList.length} HPs',
-                  style: AppTextStyles.regular14Gre,
+                  style: TextStyle(fontSize: 13, color: AppColor.textTertiary),
                 )),
           ],
         ),
@@ -76,70 +123,35 @@ class MarkAttendanceView extends GetView<RegisterCgController> {
   // ================= HEADER =================
 
   Widget _header() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Mark Attendance', style: AppTextStyles.heading),
-              const SizedBox(height: 4),
-              Text(
-                'Mark daily attendance for health professionals',
-                style: AppTextStyles.regular14Gre,
-              ),
-            ],
+    return AppSectionTitle(
+      title: 'Mark Attendance',
+      subtitle: 'Mark daily attendance for health professionals',
+      trailing: Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        children: [
+          OutlinedButton.icon(
+            onPressed: () {},
+            icon: const Icon(LucideIcons.download, size: 18),
+            label: const Text('Export'),
           ),
-        ),
-        Row(
-          children: [
-            OutlinedButton.icon(
-              onPressed: () {},
-              icon: const Icon(Icons.download, size: 18),
-              label: const Text('Export'),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: AppColor.fontColorBlack,
-                side: BorderSide(color: AppColor.divColor),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-            ),
-            const SizedBox(width: 12),
-            ElevatedButton.icon(
-              onPressed: () => _submitAttendance(),
-              icon: Icon(Icons.check, color: AppColor.buttonTextWhite, size: 18),
-              label: Text('Submit Attendance',
-                  style: TextStyle(color: AppColor.buttonTextWhite)),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColor.cPrimaryButtonColor,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                elevation: 0,
-              ),
-            ),
-          ],
-        )
-      ],
+          ElevatedButton.icon(
+            onPressed: () => _submitAttendance(),
+            icon: const Icon(LucideIcons.check, size: 18),
+            label: const Text('Submit Attendance'),
+          ),
+        ],
+      ),
     );
   }
 
   Widget _headerMobile() {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text('Mark Attendance',
-            style: AppTextStyles.heading.copyWith(fontSize: 20)),
-        const SizedBox(height: 4),
-        Text(
-          'Mark daily attendance for health professionals',
-          style: AppTextStyles.regular14Gre,
+        const AppSectionTitle(
+          title: 'Mark Attendance',
+          subtitle: 'Mark daily attendance for health professionals',
         ),
         const SizedBox(height: 12),
         Row(
@@ -147,35 +159,16 @@ class MarkAttendanceView extends GetView<RegisterCgController> {
             Expanded(
               child: OutlinedButton.icon(
                 onPressed: () {},
-                icon: const Icon(Icons.download, size: 16),
-                label: const Text('Export', style: TextStyle(fontSize: 13)),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: AppColor.fontColorBlack,
-                  side: BorderSide(color: AppColor.divColor),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
+                icon: const Icon(LucideIcons.download, size: 18),
+                label: const Text('Export'),
               ),
             ),
             const SizedBox(width: 8),
             Expanded(
               child: ElevatedButton.icon(
                 onPressed: () => _submitAttendance(),
-                icon: Icon(Icons.check, color: AppColor.buttonTextWhite, size: 16),
-                label: Text('Submit',
-                    style: TextStyle(color: AppColor.buttonTextWhite, fontSize: 13)),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColor.cPrimaryButtonColor,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  elevation: 0,
-                ),
+                icon: const Icon(LucideIcons.check, size: 18),
+                label: const Text('Submit'),
               ),
             ),
           ],
@@ -187,17 +180,13 @@ class MarkAttendanceView extends GetView<RegisterCgController> {
   // ================= DATE & SEARCH =================
 
   Widget _dateAndSearchSection() {
-    return Row(
+    return Wrap(
+      spacing: 12,
+      runSpacing: 12,
+      crossAxisAlignment: WrapCrossAlignment.center,
       children: [
-        Expanded(
-          flex: 2,
-          child: _searchField(),
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: _datePickerField(),
-        ),
-        const SizedBox(width: 16),
+        SizedBox(width: 320, child: _searchField()),
+        SizedBox(width: 200, child: _datePickerField()),
         _filterChip('All HP'),
       ],
     );
@@ -220,34 +209,17 @@ class MarkAttendanceView extends GetView<RegisterCgController> {
   }
 
   Widget _searchField() {
-    return TextField(
+    return AppSearchField(
+      hint: 'Search by name, ID...',
       onChanged: (v) => controller.markAttendanceSearch.value = v,
-      decoration: InputDecoration(
-        hintText: 'Search by name, ID...',
-        hintStyle: AppTextStyles.regular14Gre,
-        prefixIcon: Icon(Icons.search, color: AppColor.fontColorGrey, size: 20),
-        filled: true,
-        fillColor: AppColor.whiteColor,
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: BorderSide(color: AppColor.divColor),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: BorderSide(color: AppColor.divColor),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: BorderSide(color: AppColor.cPrimaryButtonColor),
-        ),
-      ),
     );
   }
 
   Widget _datePickerField() {
-    return Obx(() => InkWell(
+    return Obx(() => _PickerBox(
+          icon: LucideIcons.calendar,
+          text: DateFormat('dd/MM/yyyy')
+              .format(controller.markAttendanceSelectedDate.value),
           onTap: () async {
             final picked = await showDatePicker(
               context: Get.context!,
@@ -269,43 +241,29 @@ class MarkAttendanceView extends GetView<RegisterCgController> {
               controller.markAttendanceSelectedDate.value = picked;
             }
           },
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: BoxDecoration(
-              color: AppColor.whiteColor,
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: AppColor.divColor),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  DateFormat('dd/MM/yyyy').format(
-                      controller.markAttendanceSelectedDate.value),
-                  style: AppTextStyles.regular14black,
-                ),
-                Icon(Icons.calendar_today,
-                    size: 16, color: AppColor.fontColorGrey),
-              ],
-            ),
-          ),
         ));
   }
 
   Widget _filterChip(String label) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      height: 40,
+      padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(
         color: AppColor.whiteColor,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppColor.divColor),
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        border: Border.all(color: AppColor.borderStrong),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(label, style: AppTextStyles.regular14black),
+          Icon(LucideIcons.listFilter,
+              size: 18, color: AppColor.textTertiary),
           const SizedBox(width: 8),
-          Icon(Icons.arrow_drop_down, size: 20, color: AppColor.fontColorGrey),
+          Text(label,
+              style: TextStyle(fontSize: 14, color: AppColor.textPrimary)),
+          const SizedBox(width: 4),
+          Icon(LucideIcons.chevronDown,
+              size: 18, color: AppColor.textTertiary),
         ],
       ),
     );
@@ -316,16 +274,34 @@ class MarkAttendanceView extends GetView<RegisterCgController> {
   Widget _summaryCards() {
     return Obx(() {
       final attendanceData = _getAttendanceSummary();
-      return Row(
+      return AppResponsiveGrid(
+        minItemWidth: 200,
+        maxColumns: 4,
         children: [
-          _summaryCard('Total HP', controller.activeCgList.length,
-              Icons.people, AppColor.cPrimaryButtonColor),
-          _summaryCard('Present', attendanceData['present']!,
-              Icons.check_circle, AppColor.lightGreen),
-          _summaryCard('Absent', attendanceData['absent']!, Icons.cancel,
-              AppColor.calenderRed),
-          _summaryCard('Not Marked', attendanceData['notMarked']!,
-              Icons.remove_circle, AppColor.fontColorGrey),
+          AppStatCard(
+            label: 'Total HP',
+            value: '${controller.activeCgList.length}',
+            icon: LucideIcons.users,
+            tone: AppTone.primary,
+          ),
+          AppStatCard(
+            label: 'Present',
+            value: '${attendanceData['present']!}',
+            icon: LucideIcons.circleCheck,
+            tone: AppTone.success,
+          ),
+          AppStatCard(
+            label: 'Absent',
+            value: '${attendanceData['absent']!}',
+            icon: LucideIcons.circleX,
+            tone: AppTone.danger,
+          ),
+          AppStatCard(
+            label: 'Not Marked',
+            value: '${attendanceData['notMarked']!}',
+            icon: LucideIcons.circleMinus,
+            tone: AppTone.neutral,
+          ),
         ],
       );
     });
@@ -334,115 +310,38 @@ class MarkAttendanceView extends GetView<RegisterCgController> {
   Widget _summaryCardsMobile() {
     return Obx(() {
       final attendanceData = _getAttendanceSummary();
-      return Column(
+      return AppResponsiveGrid(
+        minItemWidth: 140,
+        maxColumns: 4,
+        spacing: 8,
         children: [
-          Row(
-            children: [
-              Expanded(
-                child: _summaryCardMobile('Total HP',
-                    controller.activeCgList.length, Icons.people,
-                    AppColor.cPrimaryButtonColor),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _summaryCardMobile('Present',
-                    attendanceData['present']!, Icons.check_circle,
-                    AppColor.lightGreen),
-              ),
-            ],
+          _CompactStat(
+            label: 'Total HP',
+            count: controller.activeCgList.length,
+            icon: LucideIcons.users,
+            tone: AppTone.primary,
           ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Expanded(
-                child: _summaryCardMobile('Absent',
-                    attendanceData['absent']!, Icons.cancel,
-                    AppColor.calenderRed),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _summaryCardMobile('Not Marked',
-                    attendanceData['notMarked']!, Icons.remove_circle,
-                    AppColor.fontColorGrey),
-              ),
-            ],
+          _CompactStat(
+            label: 'Present',
+            count: attendanceData['present']!,
+            icon: LucideIcons.circleCheck,
+            tone: AppTone.success,
+          ),
+          _CompactStat(
+            label: 'Absent',
+            count: attendanceData['absent']!,
+            icon: LucideIcons.circleX,
+            tone: AppTone.danger,
+          ),
+          _CompactStat(
+            label: 'Not Marked',
+            count: attendanceData['notMarked']!,
+            icon: LucideIcons.circleMinus,
+            tone: AppTone.neutral,
           ),
         ],
       );
     });
-  }
-
-  Widget _summaryCard(String title, int count, IconData icon, Color color) {
-    return Expanded(
-      child: Container(
-        margin: const EdgeInsets.only(right: 16),
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: AppColor.whiteColor,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppColor.divColor),
-        ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Icon(icon, color: color, size: 22),
-            ),
-            const SizedBox(width: 12),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title, style: AppTextStyles.regular14Gre),
-                const SizedBox(height: 4),
-                Text('$count', style: AppTextStyles.bold20),
-              ],
-            )
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _summaryCardMobile(
-      String title, int count, IconData icon, Color color) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: AppColor.whiteColor,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColor.divColor),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(icon, color: color, size: 18),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title,
-                    style: AppTextStyles.regular12Gre,
-                    overflow: TextOverflow.ellipsis),
-                const SizedBox(height: 2),
-                Text('$count',
-                    style: AppTextStyles.semiBold16),
-              ],
-            ),
-          )
-        ],
-      ),
-    );
   }
 
   // ================= TABLE (DESKTOP) =================
@@ -451,9 +350,8 @@ class MarkAttendanceView extends GetView<RegisterCgController> {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
       decoration: BoxDecoration(
-        color: AppColor.fieldColorGrey,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-        border: Border.all(color: AppColor.divColor),
+        color: AppColor.surfaceMuted,
+        border: Border(bottom: BorderSide(color: AppColor.borderSubtle)),
       ),
       child: const Row(
         children: [
@@ -489,20 +387,12 @@ class MarkAttendanceView extends GetView<RegisterCgController> {
         return _emptyState();
       }
 
-      return Container(
-        decoration: BoxDecoration(
-          color: AppColor.whiteColor,
-          borderRadius:
-              const BorderRadius.vertical(bottom: Radius.circular(12)),
-          border: Border.all(color: AppColor.divColor),
-        ),
-        child: ListView.builder(
-          itemCount: cgList.length,
-          itemBuilder: (context, index) {
-            final cg = cgList[index];
-            return _attendanceRow(cg, index);
-          },
-        ),
+      return ListView.builder(
+        itemCount: cgList.length,
+        itemBuilder: (context, index) {
+          final cg = cgList[index];
+          return _attendanceRow(cg, index);
+        },
       );
     });
   }
@@ -528,10 +418,12 @@ class MarkAttendanceView extends GetView<RegisterCgController> {
       };
     }
 
+    final fullName = '${cg.hpRegFirstName} ${cg.hpRegLastName}';
+
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
       decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: AppColor.divColor)),
+        border: Border(bottom: BorderSide(color: AppColor.borderSubtle)),
       ),
       child: Row(
         children: [
@@ -541,21 +433,41 @@ class MarkAttendanceView extends GetView<RegisterCgController> {
             color: AppColor.cPrimaryButtonColor,
             isBold: true,
           ),
-          _DataCell('${cg.hpRegFirstName} ${cg.hpRegLastName}', flex: 2),
-          Expanded(
+          _cell(
+            flex: 2,
+            child: Row(
+              children: [
+                AppAvatar(name: fullName, size: 28),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    fullName,
+                    style: TextStyle(
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w600,
+                      color: AppColor.textPrimary,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          _cell(
             flex: 2,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(cg.hpRegEmail,
-                    style: AppTextStyles.regular14black,
+                    style: TextStyle(fontSize: 13.5, color: AppColor.textPrimary),
                     overflow: TextOverflow.ellipsis),
                 const SizedBox(height: 2),
-                Text(cg.hpRegPhoneNumber, style: AppTextStyles.regular12Gre),
+                Text(cg.hpRegPhoneNumber,
+                    style: TextStyle(fontSize: 12.5, color: AppColor.textTertiary)),
               ],
             ),
           ),
-          Expanded(
+          _cell(
             flex: 2,
             child: Obx(() => _timePickerButton(
                   checkInTime.value,
@@ -563,7 +475,7 @@ class MarkAttendanceView extends GetView<RegisterCgController> {
                   (time) { checkInTime.value = time; syncDraft(); },
                 )),
           ),
-          Expanded(
+          _cell(
             flex: 2,
             child: Obx(() => _timePickerButton(
                   checkOutTime.value,
@@ -571,11 +483,11 @@ class MarkAttendanceView extends GetView<RegisterCgController> {
                   (time) { checkOutTime.value = time; syncDraft(); },
                 )),
           ),
-          Expanded(
+          _cell(
             flex: 2,
             child: Obx(() => _shiftTypeDropdown(shiftType, onChanged: syncDraft)),
           ),
-          Expanded(
+          _cell(
             flex: 2,
             child: Obx(() => _statusDropdown(attendanceStatus, onChanged: syncDraft)),
           ),
@@ -584,6 +496,17 @@ class MarkAttendanceView extends GetView<RegisterCgController> {
             child: _actionButtons(cg, attendanceStatus, shiftType, checkInTime, checkOutTime),
           ),
         ],
+      ),
+    );
+  }
+
+  /// Table cell with the same flex and right gutter as [_HeaderCell].
+  Widget _cell({required int flex, required Widget child}) {
+    return Expanded(
+      flex: flex,
+      child: Padding(
+        padding: const EdgeInsets.only(right: 12),
+        child: child,
       ),
     );
   }
@@ -643,51 +566,53 @@ class MarkAttendanceView extends GetView<RegisterCgController> {
       };
     }
 
-    return Container(
+    final fullName = '${cg.hpRegFirstName} ${cg.hpRegLastName}';
+
+    return AppCard(
       padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppColor.whiteColor,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColor.divColor),
-      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: AppColor.cPrimaryButtonColor.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Text(
-                  'HP-${cg.hpRegId.toString().padLeft(3, '0')}',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: AppColor.cPrimaryButtonColor,
-                  ),
-                ),
-              ),
+              AppAvatar(name: fullName, size: 36),
               const SizedBox(width: 10),
               Expanded(
-                child: Text(
-                  '${cg.hpRegFirstName} ${cg.hpRegLastName}',
-                  style: AppTextStyles.semiBold16.copyWith(fontSize: 14),
-                  overflow: TextOverflow.ellipsis,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      fullName,
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: AppColor.textPrimary,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'HP-${cg.hpRegId.toString().padLeft(3, '0')}',
+                      style: TextStyle(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w600,
+                        color: AppColor.cPrimaryButtonColor,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
           Row(
             children: [
-              Icon(Icons.email_outlined, size: 14, color: AppColor.fontColorGrey),
+              Icon(LucideIcons.mail, size: 14, color: AppColor.textTertiary),
               const SizedBox(width: 6),
               Expanded(
                 child: Text(cg.hpRegEmail,
-                    style: AppTextStyles.regular12Gre,
+                    style: TextStyle(fontSize: 12.5, color: AppColor.textSecondary),
                     overflow: TextOverflow.ellipsis),
               ),
             ],
@@ -695,24 +620,25 @@ class MarkAttendanceView extends GetView<RegisterCgController> {
           const SizedBox(height: 4),
           Row(
             children: [
-              Icon(Icons.phone_outlined, size: 14, color: AppColor.fontColorGrey),
+              Icon(LucideIcons.phone, size: 14, color: AppColor.textTertiary),
               const SizedBox(width: 6),
-              Text(cg.hpRegPhoneNumber, style: AppTextStyles.regular12Gre),
+              Text(cg.hpRegPhoneNumber,
+                  style: TextStyle(fontSize: 12.5, color: AppColor.textSecondary)),
             ],
           ),
-          const Divider(height: 20),
+          Divider(height: 24, color: AppColor.borderSubtle),
           Row(
             children: [
               Expanded(
                 child: Obx(() => _timePickerButtonMobile(
                       checkInTime.value, 'Check In',
-                      (t) { checkInTime.value = t; syncDraft(); }, Icons.login)),
+                      (t) { checkInTime.value = t; syncDraft(); }, LucideIcons.logIn)),
               ),
               const SizedBox(width: 8),
               Expanded(
                 child: Obx(() => _timePickerButtonMobile(
                       checkOutTime.value, 'Check Out',
-                      (t) { checkOutTime.value = t; syncDraft(); }, Icons.logout)),
+                      (t) { checkOutTime.value = t; syncDraft(); }, LucideIcons.logOut)),
               ),
             ],
           ),
@@ -720,7 +646,7 @@ class MarkAttendanceView extends GetView<RegisterCgController> {
           Obx(() => _shiftTypeDropdown(shiftType, onChanged: syncDraft)),
           const SizedBox(height: 10),
           Obx(() => _statusDropdownMobile(attendanceStatus, onChanged: syncDraft)),
-          const SizedBox(height: 10),
+          const SizedBox(height: 12),
           SizedBox(
             width: double.infinity,
             child: Obx(() {
@@ -738,22 +664,14 @@ class MarkAttendanceView extends GetView<RegisterCgController> {
                               checkInTime.value, checkOutTime.value);
                         }
                       },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColor.lightGreen,
-                  foregroundColor: AppColor.buttonTextWhite,
-                  padding: const EdgeInsets.symmetric(vertical: 10),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                  elevation: 0,
-                ),
                 child: marking
-                    ? const SizedBox(
+                    ? SizedBox(
                         height: 16,
                         width: 16,
                         child: CircularProgressIndicator(
-                            strokeWidth: 2, color: Colors.white),
+                            strokeWidth: 2, color: AppColor.cAppPrimaryColor),
                       )
-                    : const Text('Mark Attendance',
-                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                    : const Text('Mark Attendance'),
               );
             }),
           ),
@@ -767,6 +685,7 @@ class MarkAttendanceView extends GetView<RegisterCgController> {
   Widget _timePickerButton(
       TimeOfDay? time, String label, Function(TimeOfDay) onTimePicked) {
     return InkWell(
+      borderRadius: BorderRadius.circular(AppRadius.md),
       onTap: () async {
         final picked = await showTimePicker(
           context: Get.context!,
@@ -787,21 +706,30 @@ class MarkAttendanceView extends GetView<RegisterCgController> {
         }
       },
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        height: 36,
+        padding: const EdgeInsets.symmetric(horizontal: 10),
         decoration: BoxDecoration(
-          color: AppColor.fieldColorGrey,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: AppColor.divColor),
+          color: AppColor.whiteColor,
+          borderRadius: BorderRadius.circular(AppRadius.md),
+          border: Border.all(color: AppColor.borderStrong),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.access_time,
-                size: 16, color: AppColor.cPrimaryButtonColor),
-            const SizedBox(width: 8),
-            Text(
-              time != null ? time.format(Get.context!) : label,
-              style: AppTextStyles.regular14black,
+            Icon(LucideIcons.clock,
+                size: 16, color: AppColor.textTertiary),
+            const SizedBox(width: 6),
+            Flexible(
+              child: Text(
+                time != null ? time.format(Get.context!) : label,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 13.5,
+                  color: time != null
+                      ? AppColor.textPrimary
+                      : AppColor.textTertiary,
+                ),
+              ),
             ),
           ],
         ),
@@ -812,6 +740,7 @@ class MarkAttendanceView extends GetView<RegisterCgController> {
   Widget _timePickerButtonMobile(TimeOfDay? time, String label,
       Function(TimeOfDay) onTimePicked, IconData icon) {
     return InkWell(
+      borderRadius: BorderRadius.circular(AppRadius.md),
       onTap: () async {
         final picked = await showTimePicker(
           context: Get.context!,
@@ -832,23 +761,27 @@ class MarkAttendanceView extends GetView<RegisterCgController> {
         }
       },
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+        height: 40,
+        padding: const EdgeInsets.symmetric(horizontal: 10),
         decoration: BoxDecoration(
-          color: AppColor.fieldColorGrey,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: AppColor.divColor),
+          color: AppColor.whiteColor,
+          borderRadius: BorderRadius.circular(AppRadius.md),
+          border: Border.all(color: AppColor.borderStrong),
         ),
         child: Row(
           children: [
-            Icon(icon, size: 16, color: AppColor.cPrimaryButtonColor),
+            Icon(icon, size: 16, color: AppColor.textTertiary),
             const SizedBox(width: 8),
-            Text(
-              time != null ? time.format(Get.context!) : label,
-              style: TextStyle(
-                fontSize: 13,
-                color: time != null
-                    ? AppColor.fontColorBlack
-                    : AppColor.fontColorGrey,
+            Flexible(
+              child: Text(
+                time != null ? time.format(Get.context!) : label,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 13,
+                  color: time != null
+                      ? AppColor.textPrimary
+                      : AppColor.textTertiary,
+                ),
               ),
             ),
           ],
@@ -922,7 +855,7 @@ class MarkAttendanceView extends GetView<RegisterCgController> {
         Expanded(
           child: Obx(() {
             final marking = controller.markingHpIds.contains(cg.hpRegId);
-            return ElevatedButton(
+            return TextButton(
               onPressed: marking
                   ? null
                   : () {
@@ -938,24 +871,15 @@ class MarkAttendanceView extends GetView<RegisterCgController> {
                             checkIn.value, checkOut.value);
                       }
                     },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColor.lightGreen,
-                foregroundColor: AppColor.buttonTextWhite,
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                elevation: 0,
-              ),
+              style: AppButtonStyles.compact.merge(AppButtonStyles.soft),
               child: marking
-                  ? const SizedBox(
+                  ? SizedBox(
                       height: 14,
                       width: 14,
                       child: CircularProgressIndicator(
-                          strokeWidth: 2, color: Colors.white),
+                          strokeWidth: 2, color: AppColor.cAppPrimaryColor),
                     )
-                  : const Text('Mark',
-                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                  : const Text('Mark'),
             );
           }),
         ),
@@ -966,16 +890,10 @@ class MarkAttendanceView extends GetView<RegisterCgController> {
   // ================= EMPTY STATE =================
 
   Widget _emptyState() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.people_outline,
-              size: SizeConfig.isMobile ? 48 : 64, color: AppColor.divColor),
-          const SizedBox(height: 16),
-          Text('No Health Professionals found', style: AppTextStyles.regular14Gre),
-        ],
-      ),
+    return AppEmptyState(
+      icon: LucideIcons.users,
+      title: 'No Health Professionals found',
+      compact: SizeConfig.isMobile,
     );
   }
 
@@ -1027,93 +945,51 @@ class MarkAttendanceView extends GetView<RegisterCgController> {
       return;
     }
 
-    final isMobile = SizeConfig.isMobile;
     Get.dialog(
-      Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        child: Container(
-          width: isMobile ? double.infinity : 420,
-          padding: EdgeInsets.all(isMobile ? 20 : 24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: AppColor.cPrimaryButtonColor.withValues(alpha: 0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(Icons.check_circle_outline,
-                    size: 32, color: AppColor.cPrimaryButtonColor),
-              ),
-              const SizedBox(height: 16),
-              Text('Confirm Submission', style: AppTextStyles.semiBold18),
-              const SizedBox(height: 8),
-              Text(
-                'Submit attendance for ${pending.length} HP(s)?',
-                style: AppTextStyles.regular14Gre,
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 24),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: () => Get.back(),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: AppColor.fontColorBlack,
-                        side: BorderSide(color: AppColor.divColor),
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8)),
-                      ),
-                      child: const Text('Cancel'),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: () {
-                        Get.back();
-                        // Build all records and submit them in ONE request
-                        // (server upserts), instead of N separate calls.
-                        final records = <Map<String, dynamic>>[];
-                        for (final entry in pending) {
-                          final hpId    = entry.key;
-                          final d       = entry.value;
-                          final cgMatch = controller.activeCgList
-                              .firstWhereOrNull((c) => c.hpRegId == hpId);
-                          if (cgMatch == null) continue;
-                          final bookingId = controller.activeHpBookingIdMap[hpId] ?? 0;
-                          if (bookingId <= 0) continue; // no active booking → skip
-                          records.add(controller.buildAttendanceRecord(
-                            bookingId:      bookingId,
-                            attendanceDate: controller.markAttendanceSelectedDate.value,
-                            cgId:           hpId.toString(),
-                            invoiceId:      0,
-                            status:         d['status'] as String? ?? 'present',
-                            shiftType:      d['shift_type'] as String? ?? 'live_out',
-                            checkIn:        _parseTime(d['check_in'] as String?),
-                            checkOut:       _parseTime(d['check_out'] as String?),
-                          ));
-                        }
-                        controller.submitAttendanceBatch(records);
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColor.cPrimaryButtonColor,
-                        foregroundColor: AppColor.buttonTextWhite,
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8)),
-                        elevation: 0,
-                      ),
-                      child: const Text('Submit'),
-                    ),
-                  ),
-                ],
-              ),
-            ],
+      AppDialog(
+        title: 'Confirm Submission',
+        icon: LucideIcons.circleCheck,
+        maxWidth: 440,
+        onClose: () => Get.back(),
+        actions: [
+          OutlinedButton(
+            onPressed: () => Get.back(),
+            child: const Text('Cancel'),
           ),
+          ElevatedButton(
+            onPressed: () {
+              Get.back();
+              // Build all records and submit them in ONE request
+              // (server upserts), instead of N separate calls.
+              final records = <Map<String, dynamic>>[];
+              for (final entry in pending) {
+                final hpId    = entry.key;
+                final d       = entry.value;
+                final cgMatch = controller.activeCgList
+                    .firstWhereOrNull((c) => c.hpRegId == hpId);
+                if (cgMatch == null) continue;
+                final bookingId = controller.activeHpBookingIdMap[hpId] ?? 0;
+                if (bookingId <= 0) continue; // no active booking → skip
+                records.add(controller.buildAttendanceRecord(
+                  bookingId:      bookingId,
+                  attendanceDate: controller.markAttendanceSelectedDate.value,
+                  cgId:           hpId.toString(),
+                  invoiceId:      0,
+                  status:         d['status'] as String? ?? 'present',
+                  shiftType:      d['shift_type'] as String? ?? 'live_out',
+                  checkIn:        _parseTime(d['check_in'] as String?),
+                  checkOut:       _parseTime(d['check_out'] as String?),
+                ));
+              }
+              controller.submitAttendanceBatch(records);
+            },
+            child: const Text('Submit'),
+          ),
+        ],
+        child: Text(
+          'Submit attendance for ${pending.length} HP(s)?',
+          style: TextStyle(
+              fontSize: 14, height: 1.5, color: AppColor.textSecondary),
         ),
       ),
       barrierDismissible: false,
@@ -1146,14 +1022,11 @@ class MarkAttendanceView extends GetView<RegisterCgController> {
                 return name.contains(q) || id.contains(q) || cg.hpRegPhoneNumber.contains(q);
               })
               .length;
-      return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        child: Text(
-          q.isEmpty
-              ? 'Showing $total health professionals'
-              : 'Showing $showing of $total health professionals',
-          style: AppTextStyles.regular14Gre,
-        ),
+      return Text(
+        q.isEmpty
+            ? 'Showing $total health professionals'
+            : 'Showing $showing of $total health professionals',
+        style: TextStyle(fontSize: 13, color: AppColor.textTertiary),
       );
     });
   }
@@ -1169,12 +1042,17 @@ class _HeaderCell extends StatelessWidget {
   Widget build(BuildContext context) {
     return Expanded(
       flex: flex,
-      child: Text(
-        text,
-        style: TextStyle(
-          fontSize: 13,
-          fontWeight: FontWeight.w600,
-          color: AppColor.fontColorGrey,
+      child: Padding(
+        padding: const EdgeInsets.only(right: 12),
+        child: Text(
+          text,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            fontSize: 12.5,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 0.2,
+            color: AppColor.textSecondary,
+          ),
         ),
       ),
     );
@@ -1198,13 +1076,116 @@ class _DataCell extends StatelessWidget {
   Widget build(BuildContext context) {
     return Expanded(
       flex: flex,
-      child: Text(
-        text,
-        style: AppTextStyles.regular14black.copyWith(
-          color: color,
-          fontWeight: isBold ? FontWeight.w600 : FontWeight.normal,
+      child: Padding(
+        padding: const EdgeInsets.only(right: 12),
+        child: Text(
+          text,
+          style: TextStyle(
+            fontSize: 13.5,
+            color: color ?? AppColor.textPrimary,
+            fontWeight: isBold ? FontWeight.w600 : FontWeight.w400,
+          ),
+          overflow: TextOverflow.ellipsis,
         ),
-        overflow: TextOverflow.ellipsis,
+      ),
+    );
+  }
+}
+
+/// 40px read-only field that opens a picker (date/month) on tap.
+/// Must sit in a width-bounded parent.
+class _PickerBox extends StatelessWidget {
+  const _PickerBox({
+    required this.text,
+    required this.icon,
+    required this.onTap,
+  });
+
+  final String text;
+  final IconData icon;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: AppColor.whiteColor,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        side: BorderSide(color: AppColor.borderStrong),
+      ),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        child: Container(
+          height: 40,
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  text,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontSize: 14, color: AppColor.textPrimary),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Icon(icon, size: 16, color: AppColor.textTertiary),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Small KPI tile for phones, where full [AppStatCard]s would leave no room
+/// for the list below.
+class _CompactStat extends StatelessWidget {
+  const _CompactStat({
+    required this.label,
+    required this.count,
+    required this.icon,
+    required this.tone,
+  });
+
+  final String label;
+  final int count;
+  final IconData icon;
+  final AppTone tone;
+
+  @override
+  Widget build(BuildContext context) {
+    return AppCard(
+      padding: const EdgeInsets.all(12),
+      child: Row(
+        children: [
+          AppIconTile(icon: icon, tone: tone, size: 32),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontSize: 12.5, color: AppColor.textTertiary),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  '$count',
+                  style: TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w700,
+                    color: AppColor.textPrimary,
+                    fontFeatures: const [FontFeature.tabularFigures()],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

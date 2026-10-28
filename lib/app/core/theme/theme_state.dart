@@ -29,6 +29,16 @@ class ThemeState {
   /// Picks the right value for the current brightness.
   static Color mode(Color light, Color dark) => isDark ? dark : light;
 
+  /// Sidebar background: the palette primary pushed deep (navy for Blue,
+  /// deep teal for Teal, …), a touch darker still in dark mode.
+  static Color get sidebar {
+    final hsl = HSLColor.fromColor(palette.primary);
+    return hsl
+        .withLightness(isDark ? 0.10 : 0.17)
+        .withSaturation(hsl.saturation.clamp(0.0, 0.70))
+        .toColor();
+  }
+
   static Color _liftForDark(Color c) {
     final hsl = HSLColor.fromColor(c);
     return hsl

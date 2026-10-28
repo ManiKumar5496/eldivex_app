@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:eldivex_app/app/core/values/color_constants.dart';
-import 'package:eldivex_app/app/core/values/text_style_constants.dart';
+import 'package:eldivex_app/app/widgets/ui/ui.dart';
 import '../../../../routes/app_pages.dart';
 import '../../../../widgets/helper_ui.dart';
 import '../../../../widgets/shimmer_loader.dart';
-import '../../../../widgets/common_textfield.dart';
 import '../../controllers/refund_controller.dart';
 import '../../models/parse_utils.dart';
 import '../../models/refund_model.dart';
 import '../accounts_format.dart';
+import 'package:eldivex_app/app/core/values/lucide_icons.dart';
 
 class RefundDetailView extends GetView<RefundController> {
   const RefundDetailView({super.key});
@@ -19,25 +19,6 @@ class RefundDetailView extends GetView<RefundController> {
   int get _refundId {
     // Arguments are lost on a browser refresh; the ?id= query survives.
     return toIntOrNull(Get.arguments) ?? toInt(Get.parameters['id']);
-  }
-
-  // ── Status helpers ──────────────────────────────────────────────────────────
-
-  Widget _statusBadge(String status) {
-    final color = accountsStatusColor(status);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: color.withValues(alpha: 0.4)),
-      ),
-      child: Text(
-        status.replaceAll('_', ' '),
-        style: TextStyle(
-            color: color, fontSize: 13, fontWeight: FontWeight.w700),
-      ),
-    );
   }
 
   // ── Build ───────────────────────────────────────────────────────────────────
@@ -54,90 +35,64 @@ class RefundDetailView extends GetView<RefundController> {
 
     return Scaffold(
       backgroundColor: AppColor.cAppBackgroundColor,
-      appBar: AppBar(
-        backgroundColor: AppColor.whiteColor,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 18),
-          onPressed: () => HelperUi.safeBack(Routes.MAIN),
-          color: AppColor.cPrimaryHeadingColor,
-        ),
-        title: Text(
-          'Refund Detail',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w600,
-            color: AppColor.cPrimaryHeadingColor,
-          ),
-        ),
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(1),
-          child: Divider(height: 1, color: AppColor.divColor),
-        ),
-      ),
       body: Obx(() {
+        // Read an observable on every path so Obx always subscribes.
+        final loading = controller.isLoading.value;
         if (refundId <= 0) {
-          return recordNotFound(
-              title: 'Refund', onBack: () => HelperUi.safeBack(Routes.MAIN));
+          return _page(context,
+              child: recordNotFound(
+                  title: 'Refund',
+                  onBack: () => HelperUi.safeBack(Routes.MAIN)));
         }
-        if (controller.isLoading.value) {
-          return const ShimmerLoader.table();
+        if (loading) {
+          return _page(context,
+              child: const SizedBox(height: 380, child: ShimmerLoader.table()));
         }
 
         final loaded = controller.selectedRefund.value;
         final refund = loaded?.id == refundId ? loaded : null;
         if (refund == null) {
-          return Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.receipt_long_outlined,
-                    size: 64, color: AppColor.divColor),
-                const SizedBox(height: 12),
-                Text('Refund not found', style: AppTextStyles.regular16Gre),
-                const SizedBox(height: 16),
-                TextButton.icon(
-                  onPressed: () => controller.loadRefundById(_refundId),
-                  icon: const Icon(Icons.refresh_rounded),
-                  label: const Text('Retry'),
-                ),
-              ],
+          return _page(
+            context,
+            child: AppCard(
+              child: AppEmptyState(
+                icon: LucideIcons.receiptText,
+                title: 'Refund not found',
+                actionLabel: 'Retry',
+                actionIcon: LucideIcons.refreshCw,
+                onAction: () => controller.loadRefundById(_refundId),
+              ),
             ),
           );
         }
 
-        return SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(20, 20, 20, 40),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+        final actions = _buildActionButtons(context, refund);
+        return _page(
+          context,
+          refund: refund,
+          child: _responsiveColumns(
+            main: [
               // ── Header card ──────────────────────────────────────────────
               _buildHeaderCard(refund),
-              const SizedBox(height: 16),
 
               // ── Channel details ──────────────────────────────────────────
               if (refund.channelDetails != null &&
-                  refund.channelDetails!.isNotEmpty) ...[
+                  refund.channelDetails!.isNotEmpty)
                 _buildChannelCard(refund),
-                const SizedBox(height: 16),
-              ],
 
               // ── Booking & Client ─────────────────────────────────────────
               _buildBookingClientCard(refund),
-              const SizedBox(height: 16),
 
               // ── Notes ────────────────────────────────────────────────────
-              if (refund.notes != null && refund.notes!.isNotEmpty) ...[
+              if (refund.notes != null && refund.notes!.isNotEmpty)
                 _buildNotesCard(refund.notes!),
-                const SizedBox(height: 16),
-              ],
+            ],
+            side: [
+              // ── Action buttons ───────────────────────────────────────────
+              if (actions != null) actions,
 
               // ── Timeline / Approval history ──────────────────────────────
               _buildTimelineCard(refund),
-              const SizedBox(height: 24),
-
-              // ── Action buttons ───────────────────────────────────────────
-              _buildActionButtons(context, refund),
             ],
           ),
         );
@@ -145,103 +100,157 @@ class RefundDetailView extends GetView<RefundController> {
     );
   }
 
+  // ── Page frame ──────────────────────────────────────────────────────────────
+
+  Widget _page(BuildContext context, {RefundModel? refund, required Widget child}) {
+    final pad = MediaQuery.sizeOf(context).width < 600 ? 16.0 : 24.0;
+    return SingleChildScrollView(
+      padding: EdgeInsets.all(pad),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 1200),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              AppPageHeader(
+                title: refund != null ? 'Refund REF-${refund.id}' : 'Refund Detail',
+                subtitle: refund == null
+                    ? null
+                    : '${refund.clientName ?? 'ID ${refund.clientId}'} · ${refund.bookingRef ?? 'BK-${refund.bookingId}'}',
+                breadcrumbs: const ['Accounts', 'Refunds'],
+                onBack: () => HelperUi.safeBack(Routes.MAIN),
+                titleTrailing:
+                    refund == null ? null : AppStatusBadge.status(refund.status),
+              ),
+              const SizedBox(height: 24),
+              child,
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Main + side columns on desktop, a single column below 900px.
+  Widget _responsiveColumns({
+    required List<Widget> main,
+    required List<Widget> side,
+  }) {
+    List<Widget> gap(List<Widget> items) => [
+          for (var i = 0; i < items.length; i++) ...[
+            if (i > 0) const SizedBox(height: 20),
+            items[i],
+          ],
+        ];
+    return LayoutBuilder(builder: (context, c) {
+      if (c.maxWidth < 900) {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: gap([main.first, ...side, ...main.skip(1)]),
+        );
+      }
+      return Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: gap(main),
+            ),
+          ),
+          const SizedBox(width: 20),
+          SizedBox(
+            width: 360,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: gap(side),
+            ),
+          ),
+        ],
+      );
+    });
+  }
+
+  Widget _infoGrid(List<Widget> items) {
+    return LayoutBuilder(builder: (context, c) {
+      final cols = c.maxWidth >= 520 ? 2 : 1;
+      final w = (c.maxWidth - 24 * (cols - 1)) / cols;
+      return Wrap(
+        spacing: 24,
+        runSpacing: 18,
+        children: [for (final i in items) SizedBox(width: w, child: i)],
+      );
+    });
+  }
+
   // ── Cards ───────────────────────────────────────────────────────────────────
 
   Widget _buildHeaderCard(RefundModel r) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: AppColor.whiteColor,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColor.divColor),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
+    return AppCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Refund ID + reason
+              // Amount + reason
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'REF-${r.id}',
+                      'Refund amount',
                       style: TextStyle(
-                        fontSize: 20,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: AppColor.textSecondary,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    // Prominent amount
+                    Text(
+                      formatInr(r.refundAmount),
+                      style: TextStyle(
+                        fontSize: 30,
                         fontWeight: FontWeight.w700,
-                        color: AppColor.cPrimaryHeadingColor,
+                        letterSpacing: -0.6,
+                        color: AppColor.textPrimary,
+                        fontFeatures: const [FontFeature.tabularFigures()],
                       ),
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      r.refundReason.replaceAll('_', ' '),
+                      humanizeLabel(r.refundReason),
                       style: TextStyle(
-                          fontSize: 13, color: AppColor.fontColorGrey),
+                          fontSize: 13, color: AppColor.textTertiary),
                     ),
                   ],
                 ),
               ),
-              _statusBadge(r.status),
+              const SizedBox(width: 12),
+              const AppIconTile(
+                  icon: LucideIcons.arrowLeftRight,
+                  tone: AppTone.danger,
+                  size: 44),
             ],
           ),
           const SizedBox(height: 16),
-          // Prominent amount
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-            decoration: BoxDecoration(
-              color: Colors.red.shade50,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.red.shade100),
-            ),
-            child: Row(
-              children: [
-                Icon(Icons.currency_rupee_rounded,
-                    color: Colors.red.shade700, size: 24),
-                const SizedBox(width: 6),
-                Text(
-                  r.refundAmount.toStringAsFixed(2),
-                  style: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.w800,
-                    color: Colors.red.shade700,
-                  ),
-                ),
-                const Spacer(),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text('via ${r.refundChannel.replaceAll('_', ' ')}',
-                        style: TextStyle(
-                            fontSize: 12, color: Colors.red.shade600)),
-                    if (r.approvalLevel != null)
-                      Text('Level: ${r.approvalLevel}',
-                          style: TextStyle(
-                              fontSize: 11, color: Colors.red.shade400)),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 12),
+          Divider(height: 1, color: AppColor.borderSubtle),
+          const SizedBox(height: 14),
           // Meta row
-          Row(
+          Wrap(
+            spacing: 16,
+            runSpacing: 8,
             children: [
-              _metaChip(Icons.calendar_today_outlined,
+              _metaChip(LucideIcons.landmark,
+                  'via ${r.refundChannel.replaceAll('_', ' ')}'),
+              if (r.approvalLevel != null)
+                _metaChip(LucideIcons.shield, 'Level: ${r.approvalLevel}'),
+              _metaChip(LucideIcons.calendar,
                   r.createdOn != null ? _formatDate(r.createdOn!) : '—'),
-              const SizedBox(width: 10),
               if (r.requestedByName != null)
                 _metaChip(
-                    Icons.person_outline_rounded, 'By ${r.requestedByName}'),
+                    LucideIcons.user, 'By ${r.requestedByName}'),
             ],
           ),
         ],
@@ -251,110 +260,55 @@ class RefundDetailView extends GetView<RefundController> {
 
   Widget _buildChannelCard(RefundModel r) {
     final details = r.channelDetails!;
-    return _infoCard(
+    return AppCard(
       title: 'Channel Details',
-      icon: Icons.account_balance_rounded,
-      iconColor: Colors.teal,
-      rows: details.entries
-          .map((e) => _InfoRow(
-              label: e.key.replaceAll('_', ' ').toUpperCase(),
+      icon: LucideIcons.landmark,
+      iconTone: AppTone.info,
+      child: _infoGrid(details.entries
+          .map((e) => AppInfoRow(
+              label: humanizeLabel(e.key),
               value: e.value?.toString() ?? '—'))
-          .toList(),
+          .toList()),
     );
   }
 
   Widget _buildBookingClientCard(RefundModel r) {
-    return _infoCard(
+    return AppCard(
       title: 'Booking & Client',
-      icon: Icons.person_pin_circle_outlined,
-      iconColor: Colors.blue,
-      rows: [
-        _InfoRow(label: 'CLIENT', value: r.clientName ?? 'ID ${r.clientId}'),
-        _InfoRow(
-            label: 'BOOKING',
-            value: r.bookingRef ?? 'BK-${r.bookingId}'),
+      icon: LucideIcons.mapPinned,
+      child: _infoGrid([
+        AppInfoRow(label: 'Client', value: r.clientName ?? 'ID ${r.clientId}'),
+        AppInfoRow(label: 'Booking', value: r.bookingRef ?? 'BK-${r.bookingId}'),
         if (r.invoiceId != null)
-          _InfoRow(label: 'INVOICE', value: 'INV-${r.invoiceId}'),
+          AppInfoRow(label: 'Invoice', value: 'INV-${r.invoiceId}'),
         if (r.receiptIds != null && r.receiptIds!.isNotEmpty)
-          _InfoRow(
-              label: 'RECEIPTS',
+          AppInfoRow(
+              label: 'Receipts',
               value: r.receiptIds!.map((id) => 'RC-$id').join(', ')),
-      ],
+      ]),
     );
   }
 
   Widget _buildNotesCard(String notes) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.amber.shade50,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.amber.shade200),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(Icons.notes_rounded, color: Colors.amber.shade700, size: 18),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Notes',
-                    style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.amber.shade800)),
-                const SizedBox(height: 4),
-                Text(notes,
-                    style: TextStyle(
-                        fontSize: 13, color: Colors.amber.shade900)),
-              ],
-            ),
-          ),
-        ],
-      ),
+    return AppCard(
+      title: 'Notes',
+      icon: LucideIcons.notepadText,
+      iconTone: AppTone.warning,
+      child: Text(notes,
+          style: TextStyle(
+              fontSize: 14, height: 1.5, color: AppColor.textSecondary)),
     );
   }
 
   Widget _buildTimelineCard(RefundModel r) {
     final steps = _buildTimelineSteps(r);
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: AppColor.whiteColor,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColor.divColor),
-      ),
+    return AppCard(
+      title: 'Approval History',
+      icon: LucideIcons.activity,
+      iconTone: AppTone.violet,
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(6),
-                decoration: BoxDecoration(
-                  color: Colors.purple.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Icon(Icons.timeline_rounded,
-                    size: 16, color: Colors.purple),
-              ),
-              const SizedBox(width: 10),
-              Text('Approval History',
-                  style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: AppColor.cPrimaryHeadingColor)),
-            ],
-          ),
-          const SizedBox(height: 16),
-          const Divider(height: 1),
-          const SizedBox(height: 16),
-          ...steps,
-        ],
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: steps,
       ),
     );
   }
@@ -367,14 +321,14 @@ class RefundDetailView extends GetView<RefundController> {
       label: 'Created',
       detail: r.requestedByName != null ? 'By ${r.requestedByName}' : null,
       timestamp: r.createdOn,
-      color: Colors.blue,
+      tone: AppTone.info,
       isDone: true,
     ));
 
     // Pending Approval
     steps.add(_TimelineStep(
       label: 'Pending Approval',
-      color: Colors.orange,
+      tone: AppTone.warning,
       isDone: r.status != 'DRAFT' && r.status != 'PENDING_APPROVAL',
       isActive: r.status == 'PENDING_APPROVAL',
     ));
@@ -385,7 +339,7 @@ class RefundDetailView extends GetView<RefundController> {
         label: 'Rejected',
         detail: r.approvedByName != null ? 'By ${r.approvedByName}' : null,
         timestamp: r.approvedAt,
-        color: Colors.red,
+        tone: AppTone.danger,
         isDone: true,
       ));
     } else {
@@ -393,7 +347,7 @@ class RefundDetailView extends GetView<RefundController> {
         label: 'Approved',
         detail: r.approvedByName != null ? 'By ${r.approvedByName}' : null,
         timestamp: r.approvedAt,
-        color: Colors.blue,
+        tone: AppTone.info,
         isDone: r.approvedAt != null,
         isActive: r.status == 'APPROVED',
       ));
@@ -404,7 +358,7 @@ class RefundDetailView extends GetView<RefundController> {
       steps.add(_TimelineStep(
         label: 'Processing',
         timestamp: r.processedAt,
-        color: Colors.purple,
+        tone: AppTone.violet,
         isDone: r.processedAt != null,
         isActive: r.status == 'PROCESSING',
       ));
@@ -421,7 +375,7 @@ class RefundDetailView extends GetView<RefundController> {
           if (date != null) return 'Dispatch: $date';
           return null;
         }(),
-        color: Colors.green,
+        tone: AppTone.success,
         isDone: r.status == 'COMPLETED',
         isActive: r.status == 'COMPLETED',
       ));
@@ -436,6 +390,8 @@ class RefundDetailView extends GetView<RefundController> {
   }
 
   Widget _buildTimelineItem(_TimelineStep step, {bool isLast = false}) {
+    final c = step.tone.color;
+    final reached = step.isDone || step.isActive;
     return IntrinsicHeight(
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -444,29 +400,38 @@ class RefundDetailView extends GetView<RefundController> {
           Column(
             children: [
               Container(
-                width: 20,
-                height: 20,
+                width: 22,
+                height: 22,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: step.isDone
-                      ? step.color
-                      : step.isActive
-                          ? step.color.withValues(alpha: 0.3)
-                          : AppColor.divColor,
-                  border: step.isActive
-                      ? Border.all(color: step.color, width: 2)
-                      : null,
+                  color: step.isDone ? step.tone.soft : AppColor.whiteColor,
+                  border: step.isDone
+                      ? null
+                      : Border.all(
+                          color: step.isActive ? c : AppColor.borderStrong,
+                          width: step.isActive ? 2 : 1.5),
                 ),
                 child: step.isDone
-                    ? Icon(Icons.check_rounded,
-                        size: 12, color: AppColor.buttonTextWhite)
-                    : null,
+                    ? Icon(LucideIcons.check, size: 14, color: c)
+                    : step.isActive
+                        ? Center(
+                            child: Container(
+                              width: 8,
+                              height: 8,
+                              decoration: BoxDecoration(
+                                  color: c, shape: BoxShape.circle),
+                            ),
+                          )
+                        : null,
               ),
               if (!isLast)
                 Expanded(
                   child: Container(
                     width: 2,
-                    color: AppColor.divColor,
+                    margin: const EdgeInsets.symmetric(vertical: 4),
+                    color: step.isDone
+                        ? c.withValues(alpha: 0.35)
+                        : AppColor.borderSubtle,
                   ),
                 ),
             ],
@@ -475,34 +440,32 @@ class RefundDetailView extends GetView<RefundController> {
           // Content
           Expanded(
             child: Padding(
-              padding: EdgeInsets.only(bottom: isLast ? 0 : 20),
+              padding: EdgeInsets.only(top: 1, bottom: isLast ? 0 : 20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     step.label,
                     style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: step.isDone || step.isActive
-                          ? FontWeight.w600
-                          : FontWeight.w400,
-                      color: step.isDone || step.isActive
-                          ? AppColor.cPrimaryHeadingColor
-                          : AppColor.fontColorGrey,
+                      fontSize: 14,
+                      fontWeight: reached ? FontWeight.w600 : FontWeight.w400,
+                      color: reached
+                          ? AppColor.textPrimary
+                          : AppColor.textTertiary,
                     ),
                   ),
                   if (step.detail != null) ...[
                     const SizedBox(height: 2),
                     Text(step.detail!,
                         style: TextStyle(
-                            fontSize: 12, color: AppColor.fontColorGrey)),
+                            fontSize: 13, color: AppColor.textSecondary)),
                   ],
                   if (step.timestamp != null) ...[
                     const SizedBox(height: 2),
                     Text(
                       _formatDate(step.timestamp!),
                       style: TextStyle(
-                          fontSize: 11, color: AppColor.lightGrey),
+                          fontSize: 12.5, color: AppColor.textTertiary),
                     ),
                   ],
                 ],
@@ -516,91 +479,99 @@ class RefundDetailView extends GetView<RefundController> {
 
   // ── Action buttons ──────────────────────────────────────────────────────────
 
-  Widget _buildActionButtons(BuildContext context, RefundModel r) {
+  Widget? _buildActionButtons(BuildContext context, RefundModel r) {
     switch (r.status) {
       case 'PENDING_APPROVAL':
-        return Row(
-          children: [
-            Expanded(
-              child: _actionButton(
+        return AppCard(
+          title: 'Approval',
+          subtitle: 'This refund is awaiting a decision.',
+          icon: LucideIcons.clipboardClock,
+          iconTone: AppTone.warning,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _actionButton(
                 label: 'Approve',
-                icon: Icons.check_circle_outline_rounded,
-                color: Colors.green,
+                icon: LucideIcons.circleCheck,
                 onTap: () =>
                     _showActionDialog(context, r, action: 'Approved'),
               ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _actionButton(
+              const SizedBox(height: 8),
+              _actionButton(
                 label: 'Reject',
-                icon: Icons.cancel_outlined,
-                color: Colors.red,
+                icon: LucideIcons.circleX,
+                destructive: true,
                 onTap: () =>
                     _showActionDialog(context, r, action: 'Rejected'),
               ),
-            ),
-          ],
+            ],
+          ),
         );
 
       case 'APPROVED':
-        return _actionButton(
-          label: 'Mark as Processing',
-          icon: Icons.sync_rounded,
-          color: Colors.purple,
-          onTap: () async {
-            final ok = await controller.updateRefundStatus(r.id, 'Processing');
-            if (ok) controller.loadRefundById(r.id);
-          },
+        return AppCard(
+          title: 'Next step',
+          subtitle: 'Approved. Start the payout when ready.',
+          icon: LucideIcons.refreshCw,
+          iconTone: AppTone.violet,
+          child: _actionButton(
+            label: 'Mark as Processing',
+            icon: LucideIcons.refreshCw,
+            onTap: () async {
+              final ok = await controller.updateRefundStatus(r.id, 'Processing');
+              if (ok) controller.loadRefundById(r.id);
+            },
+          ),
         );
 
       case 'PROCESSING':
-        return _actionButton(
-          label: 'Mark as Completed',
-          icon: Icons.task_alt_rounded,
-          color: Colors.green,
-          onTap: () => _showCompleteDialog(context, r),
+        return AppCard(
+          title: 'Next step',
+          subtitle: 'Record the UTR or dispatch date to close this refund.',
+          icon: LucideIcons.circleCheckBig,
+          iconTone: AppTone.success,
+          child: _actionButton(
+            label: 'Mark as Completed',
+            icon: LucideIcons.circleCheckBig,
+            onTap: () => _showCompleteDialog(context, r),
+          ),
         );
 
       default:
-        return const SizedBox.shrink();
+        return null;
     }
   }
 
   Widget _actionButton({
     required String label,
     required IconData icon,
-    required Color color,
+    bool destructive = false,
     required VoidCallback onTap,
   }) {
-    return Obx(() => SizedBox(
-          height: 52,
-          width: double.infinity,
-          child: ElevatedButton.icon(
-            onPressed: controller.isSubmitting.value ? null : onTap,
-            icon: controller.isSubmitting.value
-                ? SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(
-                        strokeWidth: 2, color: AppColor.buttonTextWhite),
-                  )
-                : Icon(icon, size: 18, color: AppColor.buttonTextWhite),
-            label: Text(
-              label,
-              style: TextStyle(
-                  color: AppColor.buttonTextWhite,
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600),
-            ),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: color,
-              disabledBackgroundColor: color.withValues(alpha: 0.4),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12)),
-            ),
-          ),
-        ));
+    return Obx(() {
+      final busy = controller.isSubmitting.value;
+      final iconWidget = busy
+          ? SizedBox(
+              width: 16,
+              height: 16,
+              child: CircularProgressIndicator(
+                  strokeWidth: 2, color: AppColor.cAppPrimaryColor),
+            )
+          : Icon(icon, size: 18);
+      if (destructive) {
+        return OutlinedButton.icon(
+          onPressed: busy ? null : onTap,
+          icon: iconWidget,
+          label: Text(label),
+          style: AppButtonStyles.dangerOutlined,
+        );
+      }
+      return ElevatedButton.icon(
+        onPressed: busy ? null : onTap,
+        icon: iconWidget,
+        label: Text(label),
+      );
+    });
   }
 
   // ── Action dialog (Approve / Reject) ────────────────────────────────────────
@@ -615,53 +586,17 @@ class RefundDetailView extends GetView<RefundController> {
 
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Row(
-          children: [
-            Icon(
-              isReject ? Icons.cancel_outlined : Icons.check_circle_outline,
-              color: isReject ? Colors.red : Colors.green,
-            ),
-            const SizedBox(width: 8),
-            Text(
-              isReject ? 'Reject Refund' : 'Approve Refund',
-              style: TextStyle(
-                  fontSize: 17,
-                  fontWeight: FontWeight.w600,
-                  color: AppColor.cPrimaryHeadingColor),
-            ),
-          ],
-        ),
-        content: SizedBox(
-          width: 400,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                isReject
-                    ? 'Please provide a reason for rejection.'
-                    : 'Add optional notes before approving.',
-                style: TextStyle(
-                    fontSize: 13, color: AppColor.fontColorGrey),
-              ),
-              const SizedBox(height: 16),
-              CommonTextField(
-                label: 'Notes',
-                hint: isReject
-                    ? 'Reason for rejection (required)'
-                    : 'Optional approval notes',
-                controller: controller.actionNotesCtrl,
-                maxLines: 3,
-                isMandatory: isReject,
-              ),
-            ],
-          ),
-        ),
+      builder: (ctx) => AppDialog(
+        title: isReject ? 'Reject Refund' : 'Approve Refund',
+        subtitle: isReject
+            ? 'Please provide a reason for rejection.'
+            : 'Add optional notes before approving.',
+        icon: isReject ? LucideIcons.circleX : LucideIcons.circleCheck,
+        tone: isReject ? AppTone.danger : AppTone.success,
+        maxWidth: 460,
+        onClose: () => Navigator.of(ctx).pop(),
         actions: [
-          TextButton(
+          OutlinedButton(
             onPressed: () => Navigator.of(ctx).pop(),
             child: const Text('Cancel'),
           ),
@@ -679,17 +614,19 @@ class RefundDetailView extends GetView<RefundController> {
               );
               if (ok) controller.loadRefundById(r.id);
             },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: isReject ? Colors.red : Colors.green,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10)),
-            ),
-            child: Text(
-              isReject ? 'Reject' : 'Approve',
-              style: TextStyle(color: AppColor.buttonTextWhite),
-            ),
+            style: isReject ? AppButtonStyles.danger : null,
+            child: Text(isReject ? 'Reject' : 'Approve'),
           ),
         ],
+        child: _labeledField(
+          label: 'Notes',
+          hint: isReject
+              ? 'Reason for rejection (required)'
+              : 'Optional approval notes',
+          controller: controller.actionNotesCtrl,
+          maxLines: 3,
+          isMandatory: isReject,
+        ),
       ),
     );
   }
@@ -702,50 +639,16 @@ class RefundDetailView extends GetView<RefundController> {
 
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Row(
-          children: [
-            Icon(Icons.task_alt_rounded, color: Colors.green.shade600),
-            const SizedBox(width: 8),
-            Text(
-              'Mark as Completed',
-              style: TextStyle(
-                  fontSize: 17,
-                  fontWeight: FontWeight.w600,
-                  color: AppColor.cPrimaryHeadingColor),
-            ),
-          ],
-        ),
-        content: SizedBox(
-          width: 400,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Provide the UTR number or dispatch date to complete this refund.',
-                style:
-                    TextStyle(fontSize: 13, color: AppColor.fontColorGrey),
-              ),
-              const SizedBox(height: 16),
-              CommonTextField(
-                label: 'UTR Number / Reference',
-                hint: 'e.g. UTR123456789012',
-                controller: controller.dispatchUtrCtrl,
-              ),
-              const SizedBox(height: 12),
-              CommonTextField(
-                label: 'Dispatch / Settlement Date',
-                hint: 'DD-MMM-YYYY',
-                controller: controller.dispatchDateCtrl,
-              ),
-            ],
-          ),
-        ),
+      builder: (ctx) => AppDialog(
+        title: 'Mark as Completed',
+        subtitle:
+            'Provide the UTR number or dispatch date to complete this refund.',
+        icon: LucideIcons.circleCheckBig,
+        tone: AppTone.success,
+        maxWidth: 460,
+        onClose: () => Navigator.of(ctx).pop(),
         actions: [
-          TextButton(
+          OutlinedButton(
             onPressed: () => Navigator.of(ctx).pop(),
             child: const Text('Cancel'),
           ),
@@ -766,92 +669,62 @@ class RefundDetailView extends GetView<RefundController> {
               );
               if (ok) controller.loadRefundById(r.id);
             },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.green.shade600,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10)),
-            ),
-            child: Text('Complete Refund',
-                style: TextStyle(color: AppColor.buttonTextWhite)),
+            child: const Text('Complete Refund'),
           ),
         ],
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _labeledField(
+              label: 'UTR Number / Reference',
+              hint: 'e.g. UTR123456789012',
+              controller: controller.dispatchUtrCtrl,
+            ),
+            const SizedBox(height: 16),
+            _labeledField(
+              label: 'Dispatch / Settlement Date',
+              hint: 'DD-MMM-YYYY',
+              controller: controller.dispatchDateCtrl,
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  // ── Reusable card builder ───────────────────────────────────────────────────
+  // ── Small pieces ────────────────────────────────────────────────────────────
 
-  Widget _infoCard({
-    required String title,
-    required IconData icon,
-    required Color iconColor,
-    required List<_InfoRow> rows,
+  /// Label above a theme-styled text field.
+  Widget _labeledField({
+    required String label,
+    required String hint,
+    required TextEditingController controller,
+    int maxLines = 1,
+    bool isMandatory = false,
   }) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: AppColor.whiteColor,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColor.divColor),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(6),
-                decoration: BoxDecoration(
-                  color: iconColor.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(icon, size: 16, color: iconColor),
-              ),
-              const SizedBox(width: 10),
-              Text(
-                title,
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: AppColor.cPrimaryHeadingColor,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          const Divider(height: 1),
-          const SizedBox(height: 14),
-          ...rows.map((row) => Padding(
-                padding: const EdgeInsets.only(bottom: 10),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    SizedBox(
-                      width: 140,
-                      child: Text(
-                        row.label,
-                        style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: AppColor.fontColorGrey,
-                            letterSpacing: 0.4),
-                      ),
-                    ),
-                    Expanded(
-                      child: Text(
-                        row.value,
-                        style: TextStyle(
-                            fontSize: 13,
-                            color: AppColor.cPrimaryHeadingColor,
-                            fontWeight: FontWeight.w500),
-                      ),
-                    ),
-                  ],
-                ),
-              )),
-        ],
-      ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text.rich(
+          TextSpan(text: label, children: [
+            if (isMandatory)
+              TextSpan(text: ' *', style: TextStyle(color: AppColor.danger)),
+          ]),
+          style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: AppColor.textSecondary),
+        ),
+        const SizedBox(height: 8),
+        TextField(
+          controller: controller,
+          maxLines: maxLines,
+          style: TextStyle(fontSize: 14, color: AppColor.textPrimary),
+          decoration: InputDecoration(hintText: hint),
+        ),
+      ],
     );
   }
 
@@ -859,10 +732,10 @@ class RefundDetailView extends GetView<RefundController> {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 13, color: AppColor.fontColorGrey),
-        const SizedBox(width: 4),
+        Icon(icon, size: 15, color: AppColor.textTertiary),
+        const SizedBox(width: 6),
         Text(label,
-            style: TextStyle(fontSize: 12, color: AppColor.fontColorGrey)),
+            style: TextStyle(fontSize: 13, color: AppColor.textSecondary)),
       ],
     );
   }
@@ -875,17 +748,11 @@ class RefundDetailView extends GetView<RefundController> {
 
 // ── Private data classes ──────────────────────────────────────────────────────
 
-class _InfoRow {
-  final String label;
-  final String value;
-  const _InfoRow({required this.label, required this.value});
-}
-
 class _TimelineStep {
   final String label;
   final String? detail;
   final String? timestamp;
-  final Color color;
+  final AppTone tone;
   final bool isDone;
   final bool isActive;
 
@@ -893,7 +760,7 @@ class _TimelineStep {
     required this.label,
     this.detail,
     this.timestamp,
-    required this.color,
+    required this.tone,
     this.isDone = false,
     this.isActive = false,
   });

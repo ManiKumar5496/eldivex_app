@@ -9,24 +9,17 @@ import '../controllers/client_users_controller.dart';
 import 'manage_client_users.dart';
 
 /// Stand-alone route (/client-users, e.g. from the dashboard "Clients" card).
-/// Shows the same Manage Client Users page as the shell, with a back button.
+/// Shows the same Manage Client Users page as the shell, with a back button
+/// in its page header.
 class ClientUsersView extends GetView<ClientUsersController> {
   const ClientUsersView({super.key});
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColor.cAppBackgroundColor,
-      appBar: AppBar(
-        backgroundColor: AppColor.whiteColor,
-        elevation: 0,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: AppColor.fontColorBlack),
-          onPressed: () => HelperUi.safeBack(Routes.MAIN),
-        ),
-        title: Text('Client Users',
-            style: TextStyle(color: AppColor.fontColorBlack)),
+      body: ManageClientUsers(
+        onBack: () => HelperUi.safeBack(Routes.MAIN),
       ),
-      body: const ManageClientUsers(),
     );
   }
 }

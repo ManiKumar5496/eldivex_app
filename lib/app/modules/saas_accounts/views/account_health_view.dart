@@ -5,6 +5,7 @@ import '../../../core/values/text_style_constants.dart';
 import '../controllers/saas_accounts_controller.dart';
 import 'widgets/plan_chip.dart';
 import 'widgets/usage_progress_bar.dart';
+import 'package:eldivex_app/app/core/values/lucide_icons.dart';
 
 class AccountHealthView extends GetView<SaasAccountsController> {
   const AccountHealthView({super.key});
@@ -20,7 +21,7 @@ class AccountHealthView extends GetView<SaasAccountsController> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.health_and_safety_outlined,
+              Icon(LucideIcons.heartPulse,
                   size: 48, color: AppColor.divColor),
               const SizedBox(height: 12),
               Text('No health data yet.', style: AppTextStyles.regular14Gre),
@@ -57,7 +58,7 @@ class AccountHealthView extends GetView<SaasAccountsController> {
                 const Spacer(),
                 TextButton.icon(
                   onPressed: controller.fetchHealthSummary,
-                  icon: const Icon(Icons.refresh, size: 16),
+                  icon: const Icon(LucideIcons.refreshCw, size: 16),
                   label: const Text('Refresh'),
                 ),
               ],
@@ -71,21 +72,21 @@ class AccountHealthView extends GetView<SaasAccountsController> {
                   label: 'Total Accounts',
                   value: '${controller.healthSummary.length}',
                   color: AppColor.cPrimaryButtonColor,
-                  icon: Icons.business,
+                  icon: LucideIcons.building2,
                 ),
                 const SizedBox(width: 12),
                 _KpiTile(
                   label: 'Needs Attention',
                   value: '${alerts.length}',
                   color: alerts.isEmpty ? Colors.green : Colors.orange,
-                  icon: Icons.warning_amber_outlined,
+                  icon: LucideIcons.triangleAlert,
                 ),
                 const SizedBox(width: 12),
                 _KpiTile(
                   label: 'Healthy',
                   value: '${healthy.length}',
                   color: Colors.green,
-                  icon: Icons.check_circle_outline,
+                  icon: LucideIcons.circleCheck,
                 ),
               ],
             ),

@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../../core/values/color_constants.dart';
+import '../../../widgets/ui/ui.dart';
 import '../controllers/hp_controller.dart';
 import 'hp_widgets.dart';
+import 'package:eldivex_app/app/core/values/lucide_icons.dart';
 
 class HpPayslipsView extends StatefulWidget {
   const HpPayslipsView({super.key});
@@ -28,11 +30,17 @@ class _HpPayslipsViewState extends State<HpPayslipsView> {
       appBar: AppBar(title: const Text('Payslips & Payouts')),
       body: Obx(() {
         if (c.loadingPayouts.value) return const Center(child: CircularProgressIndicator());
-        if (c.payouts.isEmpty) return HpUi.empty('No payouts yet.', icon: Icons.receipt_long);
+        if (c.payouts.isEmpty) {
+          return const AppEmptyState(
+            icon: LucideIcons.receiptText,
+            title: 'No payouts yet.',
+            message: 'Your payslips will appear here once a payout is made.',
+          );
+        }
         return RefreshIndicator(
           onRefresh: c.fetchPayouts,
           child: ListView.separated(
-            padding: const EdgeInsets.all(16),
+            padding: HpUi.pagePadding(context, top: 20),
             itemCount: c.payouts.length,
             separatorBuilder: (_, __) => const SizedBox(height: 12),
             itemBuilder: (_, i) => _tile(c.payouts[i]),
@@ -44,29 +52,41 @@ class _HpPayslipsViewState extends State<HpPayslipsView> {
 
   Widget _tile(Map<String, dynamic> p) {
     final paid = (p['status'] ?? '').toString() == 'Paid';
-    return InkWell(
+    return HpUi.card(
       onTap: () => _showPayslip(p['id']),
-      borderRadius: BorderRadius.circular(14),
-      child: HpUi.card(
-        child: Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(HpUi.money(p['pay_amount']),
-                      style: TextStyle(
-                          fontSize: 18, fontWeight: FontWeight.w800, color: AppColor.fontColorBlack)),
-                  const SizedBox(height: 4),
-                  Text('${p['period_from'] ?? '—'} → ${p['period_to'] ?? '—'}',
-                      style: TextStyle(color: AppColor.fontColorGrey, fontSize: 12)),
-                ],
-              ),
+      child: Row(
+        children: [
+          AppIconTile(
+            icon: LucideIcons.receiptText,
+            tone: paid ? AppTone.success : AppTone.warning,
+            size: 40,
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(HpUi.money(p['pay_amount']),
+                    style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: -0.3,
+                        color: AppColor.textPrimary,
+                        fontFeatures: const [FontFeature.tabularFigures()])),
+                const SizedBox(height: 2),
+                Text('${p['period_from'] ?? '—'} → ${p['period_to'] ?? '—'}',
+                    style: TextStyle(color: AppColor.textTertiary, fontSize: 12.5)),
+              ],
             ),
-            HpUi.statusChip(paid ? 'PAID' : 'PENDING',
-                paid ? AppColor.lightGreen : Colors.orange),
-          ],
-        ),
+          ),
+          AppStatusBadge(
+            label: paid ? 'Paid' : 'Pending',
+            tone: paid ? AppTone.success : AppTone.warning,
+          ),
+          const SizedBox(width: 4),
+          Icon(LucideIcons.chevronRight,
+              size: 20, color: AppColor.textTertiary),
+        ],
       ),
     );
   }
@@ -77,51 +97,64 @@ class _HpPayslipsViewState extends State<HpPayslipsView> {
     final breakdown = (data['breakdown'] as List?) ?? [];
     Get.bottomSheet(
       Container(
-        padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: AppColor.cAppBackgroundColor,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
+          color: AppColor.whiteColor,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
         ),
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Text('Payslip',
-                    style: TextStyle(
-                        fontSize: 18, fontWeight: FontWeight.w700, color: AppColor.cPrimaryHeadingColor)),
-              ),
-              const SizedBox(height: 12),
-              HpUi.kv('Amount', HpUi.money(data['pay_amount'])),
-              HpUi.kv('Period', '${data['period_from'] ?? '—'} → ${data['period_to'] ?? '—'}'),
-              HpUi.kv('Status', '${data['status'] ?? '—'}'),
-              HpUi.kv('Mode', '${data['payment_mode'] ?? '—'}'),
-              HpUi.kv('Paid on', '${data['payment_date'] ?? '—'}'),
-              const Divider(height: 24),
-              HpUi.sectionTitle('Attendance in period'),
-              if (breakdown.isEmpty)
-                Text('No attendance records in this period.',
-                    style: TextStyle(color: AppColor.fontColorGrey))
-              else
-                ...breakdown.map((d) {
-                  final m = Map<String, dynamic>.from(d);
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 4),
-                    child: Row(
-                      children: [
-                        Expanded(child: Text('${m['date'] ?? ''}')),
-                        Text('${m['status'] ?? ''}',
-                            style: TextStyle(color: AppColor.fontColorGrey, fontSize: 12)),
-                        const SizedBox(width: 12),
-                        Text(HpUi.money(m['amount']),
-                            style: const TextStyle(fontWeight: FontWeight.w600)),
-                      ],
-                    ),
-                  );
-                }),
-              const SizedBox(height: 16),
-            ],
+        child: Align(
+          alignment: Alignment.topCenter,
+          heightFactor: 1,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: HpUi.maxContentWidth),
+            child: HpUi.sheet(
+              title: 'Payslip',
+              subtitle: '${data['period_from'] ?? '—'} → ${data['period_to'] ?? '—'}',
+              icon: LucideIcons.receiptText,
+              bottomInset: 0,
+              children: [
+                HpUi.kv('Amount', HpUi.money(data['pay_amount'])),
+                HpUi.kv('Period', '${data['period_from'] ?? '—'} → ${data['period_to'] ?? '—'}'),
+                HpUi.kv('Status', '${data['status'] ?? '—'}'),
+                HpUi.kv('Mode', '${data['payment_mode'] ?? '—'}'),
+                HpUi.kv('Paid on', '${data['payment_date'] ?? '—'}'),
+                Divider(height: 32, color: AppColor.borderSubtle),
+                HpUi.sectionTitle('Attendance in period'),
+                if (breakdown.isEmpty)
+                  Text('No attendance records in this period.',
+                      style: TextStyle(fontSize: 13.5, color: AppColor.textTertiary))
+                else
+                  ...breakdown.map((d) {
+                    final m = Map<String, dynamic>.from(d);
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 6),
+                      child: Row(
+                        children: [
+                          Expanded(
+                              child: Text('${m['date'] ?? ''}',
+                                  style: TextStyle(
+                                      fontSize: 14,
+                                      color: AppColor.textPrimary))),
+                          HpUi.attendanceBadge(m['status']?.toString(),
+                              dense: true),
+                          const SizedBox(width: 12),
+                          ConstrainedBox(
+                            constraints: const BoxConstraints(minWidth: 64),
+                            child: Text(HpUi.money(m['amount']),
+                                textAlign: TextAlign.right,
+                                style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColor.textPrimary,
+                                    fontFeatures: const [
+                                      FontFeature.tabularFigures()
+                                    ])),
+                          ),
+                        ],
+                      ),
+                    );
+                  }),
+              ],
+            ),
           ),
         ),
       ),

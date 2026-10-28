@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import '../../../core/values/color_constants.dart';
 import '../../../core/values/text_style_constants.dart';
 import '../controllers/saas_accounts_controller.dart';
+import 'package:eldivex_app/app/core/values/lucide_icons.dart';
 
 class CreateAccountWizard extends StatelessWidget {
   const CreateAccountWizard({super.key});
@@ -195,8 +196,8 @@ class _Step1 extends StatelessWidget {
                     : ctrl.slugCtrl.text.isNotEmpty
                         ? Icon(
                             ctrl.slugAvailable.value
-                                ? Icons.check_circle
-                                : Icons.cancel,
+                                ? LucideIcons.circleCheck
+                                : LucideIcons.circleX,
                             color: ctrl.slugAvailable.value
                                 ? Colors.green
                                 : AppColor.calenderRed,
@@ -289,7 +290,7 @@ class _Step2 extends StatelessWidget {
                           width: 2),
                     ),
                     child: isSelected
-                        ? Icon(Icons.check, color: AppColor.buttonTextWhite, size: 12)
+                        ? Icon(LucideIcons.check, color: AppColor.buttonTextWhite, size: 12)
                         : null,
                   ),
                   const SizedBox(width: 14),
@@ -356,6 +357,7 @@ class _Step3 extends StatelessWidget {
                   const Text('Trial duration (days): '),
                   const SizedBox(width: 12),
                   DropdownButton<int>(
+icon: const Icon(LucideIcons.chevronDown, size: 18),
                     value: ctrl.trialDays.value,
                     items: [7, 14, 21, 30, 60, 90]
                         .map((d) => DropdownMenuItem(
@@ -441,8 +443,8 @@ class _Step4 extends StatelessWidget {
                     : ctrl.adminEmailCtrl.text.isNotEmpty
                         ? Icon(
                             ctrl.adminEmailAvailable.value
-                                ? Icons.check_circle
-                                : Icons.cancel,
+                                ? LucideIcons.circleCheck
+                                : LucideIcons.circleX,
                             color: ctrl.adminEmailAvailable.value
                                 ? Colors.green
                                 : AppColor.calenderRed,
@@ -464,8 +466,8 @@ class _Step4 extends StatelessWidget {
                 border: const OutlineInputBorder(),
                 suffixIcon: IconButton(
                   icon: Icon(ctrl.passwordObscure.value
-                      ? Icons.visibility_off
-                      : Icons.visibility),
+                      ? LucideIcons.eyeOff
+                      : LucideIcons.eye),
                   onPressed: () =>
                       ctrl.passwordObscure.value = !ctrl.passwordObscure.value,
                 ),
@@ -484,8 +486,8 @@ class _Step4 extends StatelessWidget {
                 border: const OutlineInputBorder(),
                 suffixIcon: IconButton(
                   icon: Icon(ctrl.confirmObscure.value
-                      ? Icons.visibility_off
-                      : Icons.visibility),
+                      ? LucideIcons.eyeOff
+                      : LucideIcons.eye),
                   onPressed: () =>
                       ctrl.confirmObscure.value = !ctrl.confirmObscure.value,
                 ),

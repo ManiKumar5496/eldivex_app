@@ -5,6 +5,7 @@ import 'package:eldivex_app/app/modules/banners/views/create_banners.dart';
 import 'package:eldivex_app/app/modules/banners/views/view_banners.dart';
 import '../../../core/values/color_constants.dart';
 import '../../../core/values/size_configue.dart';
+import '../../../widgets/ui/ui.dart';
 
 class ManageBannersView extends GetView<BannersController> {
   const ManageBannersView({super.key});
@@ -22,6 +23,7 @@ class ManageBannersView extends GetView<BannersController> {
     final args = ModalRoute.of(context)?.settings.arguments;
     final initialTab = (args is int && args >= 0 && args < 2) ? args : 0;
     SizeConfig.init(context); // Initialize screen size config
+    final hPad = SizeConfig.isMobile ? 16.0 : 24.0;
 
     return DefaultTabController(
       initialIndex: initialTab,
@@ -29,22 +31,33 @@ class ManageBannersView extends GetView<BannersController> {
       child: Scaffold(
         backgroundColor: AppColor.cAppBackgroundColor,
         body: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Container(
-              color: AppColor.whiteColor, // TabBar background color
-              child: TabBar(
-                labelStyle: const TextStyle(
-                  fontSize: 16,
-                  fontFamily: "poppins_regular",
+            Padding(
+              padding: EdgeInsets.fromLTRB(hPad, hPad, hPad, 0),
+              child: const AppPageHeader(
+                title: 'Banners',
+                subtitle: 'Create and manage promotional banners.',
+              ),
+            ),
+            const SizedBox(height: 16),
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: hPad),
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  border: Border(
+                    bottom: BorderSide(color: AppColor.borderSubtle),
+                  ),
                 ),
-                labelColor: AppColor.fontColorBlack,
-                unselectedLabelColor: AppColor.fontColorGrey,
-                indicatorColor: AppColor.cPrimaryButtonColor,
-                tabs: const [
-                  Tab(text: "Create Banner"),
-                  Tab(text: "Banner List"),
-                ],
+                child: const TabBar(
+                  isScrollable: true,
+                  tabAlignment: TabAlignment.start,
+                  dividerColor: Colors.transparent,
+                  tabs: [
+                    Tab(text: "Create Banner", height: 44),
+                    Tab(text: "Banner List", height: 44),
+                  ],
+                ),
               ),
             ),
             const Expanded(

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:eldivex_app/app/core/values/color_constants.dart';
+import 'package:eldivex_app/app/core/values/lucide_icons.dart';
 
 class AccountStatusBadge extends StatelessWidget {
   const AccountStatusBadge(this.status, {super.key});
@@ -22,11 +23,11 @@ class AccountStatusBadge extends StatelessWidget {
   }
 
   (Color, IconData) _map(String s) => switch (s) {
-        'active'    => (Colors.green,  Icons.check_circle_outline),
-        'trial'     => (Colors.orange, Icons.hourglass_top_outlined),
-        'suspended' => (Colors.red,    Icons.pause_circle_outline),
-        'expired'   => (AppColor.fontColorGrey,   Icons.timer_off_outlined),
-        'cancelled' => (Colors.red,    Icons.cancel_outlined),
-        _           => (AppColor.fontColorGrey,   Icons.help_outline),
+        'active'    => (Colors.green,  LucideIcons.circleCheck),
+        'trial'     => (Colors.orange, LucideIcons.hourglass),
+        'suspended' => (Colors.red,    LucideIcons.circlePause),
+        'expired'   => (AppColor.fontColorGrey,   LucideIcons.timerOff),
+        'cancelled' => (Colors.red,    LucideIcons.circleX),
+        _           => (AppColor.fontColorGrey,   LucideIcons.circleHelp),
       };
 }

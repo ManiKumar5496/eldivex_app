@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:eldivex_app/app/core/values/color_constants.dart';
-import 'package:eldivex_app/app/core/values/text_style_constants.dart';
 import 'package:eldivex_app/app/core/values/size_configue.dart';
+import 'package:eldivex_app/app/widgets/ui/ui.dart';
 import '../../../widgets/common_textfield.dart';
 import '../../../widgets/shimmer_loader.dart';
 import '../controllers/accounts_controller.dart';
+import 'accounts_format.dart';
+import 'package:eldivex_app/app/core/values/lucide_icons.dart';
 
 class WriteOffView extends GetView<AccountsController> {
   const WriteOffView({super.key});
@@ -14,39 +16,61 @@ class WriteOffView extends GetView<AccountsController> {
   Widget build(BuildContext context) {
     SizeConfig.init(context);
     if (!Get.isRegistered<AccountsController>()) Get.put(AccountsController());
-    return Column(
-      children: [
-        _buildWriteOffSearchBar(),
-        Expanded(
-          child: SizeConfig.adaptiveLayout(
-            mobile: _buildMobileLayout(context),
-            tablet: _buildDesktopLayout(),
-            desktop: _buildDesktopLayout(),
-          ),
+    final embedded = accountsIsEmbeddedInTabs(context);
+    final isMobile = SizeConfig.isMobile;
+    return Scaffold(
+      backgroundColor: AppColor.cAppBackgroundColor,
+      floatingActionButton: isMobile
+          ? FloatingActionButton.extended(
+              onPressed: () => _showWriteOffFormSheet(context),
+              icon: const Icon(LucideIcons.plus),
+              label: const Text('New write-off',
+                  style: TextStyle(fontWeight: FontWeight.w600)),
+            )
+          : null,
+      body: Padding(
+        padding: accountsPagePadding(context, bottom: !isMobile),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (!embedded) ...[
+              const AppPageHeader(
+                title: 'Write-offs',
+                subtitle: 'Write off unrecoverable balances with approval',
+              ),
+              SizedBox(height: isMobile ? 16 : 20),
+            ],
+            if (isMobile) ...[
+              _buildWriteOffSearchBar(),
+              const SizedBox(height: 12),
+              Expanded(child: _buildMobileLayout(context)),
+            ] else
+              Expanded(child: _buildDesktopLayout()),
+          ],
         ),
-      ],
+      ),
     );
   }
 
   Widget _buildMobileLayout(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _showWriteOffFormSheet(context),
-        backgroundColor: Colors.orange.shade700,
-        icon: Icon(Icons.add, color: AppColor.buttonTextWhite),
-        label: Text('New Write-Off',
-            style: TextStyle(color: AppColor.buttonTextWhite, fontWeight: FontWeight.w600)),
-      ),
-      body: _buildMobileWriteOffList(),
-    );
+    return _buildMobileWriteOffList();
   }
 
   Widget _buildDesktopLayout() {
     return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Expanded(flex: 3, child: _buildWriteOffList()),
+        Expanded(
+          flex: 3,
+          child: AppCard(
+            expandChild: true,
+            padding: EdgeInsets.zero,
+            title: 'Write-offs',
+            actions: [_buildWriteOffSearchBar(width: 280)],
+            child: _buildWriteOffList(),
+          ),
+        ),
+        const SizedBox(width: 16),
         Expanded(flex: 2, child: _buildWriteOffForm()),
       ],
     );
@@ -56,8 +80,10 @@ class WriteOffView extends GetView<AccountsController> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      backgroundColor: AppColor.whiteColor,
       shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+          borderRadius:
+              BorderRadius.vertical(top: Radius.circular(AppRadius.xl))),
       builder: (ctx) => DraggableScrollableSheet(
         initialChildSize: 0.9,
         maxChildSize: 0.95,
@@ -75,36 +101,46 @@ class WriteOffView extends GetView<AccountsController> {
               ),
             ),
             Padding(
-              padding: EdgeInsets.fromLTRB(SizeConfig.pagePadding.left,
-                  SizeConfig.spacingMD, SizeConfig.spacingXS, 0),
+              padding: const EdgeInsets.fromLTRB(16, 12, 8, 12),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Row(children: [
-                    Icon(Icons.money_off,
-                        color: Colors.orange.shade700, size: SizeConfig.iconMD),
-                    SizedBox(width: SizeConfig.spacingXS),
-                    Text('Create Write-Off',
-                        style: TextStyle(
-                            fontSize: SizeConfig.fontH2,
-                            fontWeight: FontWeight.w600,
-                            color: AppColor.cPrimaryHeadingColor)),
-                  ]),
+                  const AppIconTile(
+                      icon: LucideIcons.banknoteX,
+                      tone: AppTone.warning,
+                      size: 38),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text('Create write-off',
+                            style: TextStyle(
+                                fontSize: 17,
+                                fontWeight: FontWeight.w600,
+                                letterSpacing: -0.2,
+                                color: AppColor.textPrimary)),
+                        const SizedBox(height: 2),
+                        Text(
+                            'Select a client from Active Clients tab or choose below',
+                            style: TextStyle(
+                                fontSize: 13, color: AppColor.textTertiary)),
+                      ],
+                    ),
+                  ),
                   IconButton(
-                      icon: const Icon(Icons.close),
+                      tooltip: 'Close',
+                      icon: Icon(LucideIcons.x,
+                          size: 20, color: AppColor.textTertiary),
                       onPressed: () => Navigator.pop(ctx)),
                 ],
               ),
             ),
-            const Divider(),
+            Divider(height: 1, color: AppColor.borderSubtle),
             Expanded(
               child: SingleChildScrollView(
                 controller: scrollCtrl,
-                padding: EdgeInsets.fromLTRB(
-                    SizeConfig.pagePadding.left,
-                    SizeConfig.spacingSM,
-                    SizeConfig.pagePadding.right,
-                    SizeConfig.spacingLG),
+                padding: const EdgeInsets.fromLTRB(16, 20, 16, 32),
                 child: _buildWriteOffFormContent(),
               ),
             ),
@@ -114,31 +150,12 @@ class WriteOffView extends GetView<AccountsController> {
     );
   }
 
-  Widget _buildWriteOffSearchBar() {
-    return Padding(
-      padding: SizeConfig.pagePadding,
-      child: Container(
-        height: 44,
-        decoration: BoxDecoration(
-          color: AppColor.whiteColor,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppColor.textFieldBorderColor),
-        ),
-        child: TextField(
-          controller: controller.searchWriteOffController,
-          onChanged: controller.searchWriteOffs,
-          style: TextStyle(fontSize: SizeConfig.fontBody),
-          decoration: InputDecoration(
-            hintText: 'Search by client name, mobile, booking ID...',
-            hintStyle: TextStyle(
-                color: AppColor.fontColorGrey, fontSize: SizeConfig.fontBody),
-            prefixIcon: Icon(Icons.search,
-                color: AppColor.fontColorGrey, size: SizeConfig.iconMD),
-            border: InputBorder.none,
-            contentPadding: const EdgeInsets.symmetric(vertical: 12),
-          ),
-        ),
-      ),
+  Widget _buildWriteOffSearchBar({double? width}) {
+    return AppSearchField(
+      controller: controller.searchWriteOffController,
+      onChanged: controller.searchWriteOffs,
+      hint: 'Search by client name, mobile, booking ID…',
+      width: width,
     );
   }
 
@@ -148,24 +165,14 @@ class WriteOffView extends GetView<AccountsController> {
         return const ShimmerLoader.table();
       }
       if (controller.filteredWriteOffs.isEmpty) {
-        return Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.money_off_outlined,
-                  size: 64, color: AppColor.divColor),
-              SizedBox(height: SizeConfig.spacingSM),
-              Text('No write-offs found', style: AppTextStyles.regular16Gre),
-            ],
-          ),
+        return const AppEmptyState(
+          icon: LucideIcons.banknoteX,
+          title: 'No write-offs found',
+          message: 'Write-offs you create will appear here.',
         );
       }
       return ListView.builder(
-        padding: EdgeInsets.fromLTRB(
-            SizeConfig.pagePadding.left,
-            SizeConfig.spacingXS,
-            SizeConfig.pagePadding.right,
-            80), // 80 for FAB clearance
+        padding: const EdgeInsets.only(bottom: 88), // FAB clearance
         itemCount: controller.filteredWriteOffs.length,
         itemBuilder: (_, i) =>
             _buildMobileWriteOffCard(controller.filteredWriteOffs[i]),
@@ -174,165 +181,108 @@ class WriteOffView extends GetView<AccountsController> {
   }
 
   Widget _buildMobileWriteOffCard(dynamic wo) {
-    final statusColor = controller.getStatusColor(wo.status);
     final isPending = wo.status == 'Pending';
-    return Container(
-      margin: EdgeInsets.only(bottom: SizeConfig.spacingSM),
-      padding: SizeConfig.cardPadding,
-      decoration: BoxDecoration(
-        color: AppColor.whiteColor,
-        borderRadius: BorderRadius.circular(SizeConfig.radiusMD),
-        border: Border.all(color: AppColor.divColor),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 6,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Row 1: Booking # + Status chip
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                '#${wo.bookingId}',
-                style: TextStyle(
-                  fontWeight: FontWeight.w600,
-                  fontSize: SizeConfig.fontBody,
-                  color: AppColor.cPrimaryButtonColor,
-                ),
-              ),
-              Container(
-                padding: EdgeInsets.symmetric(
-                    horizontal: SizeConfig.spacingSM,
-                    vertical: SizeConfig.spacingXS),
-                decoration: BoxDecoration(
-                  color: statusColor.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(wo.status,
-                    style: TextStyle(
-                        color: statusColor,
-                        fontSize: SizeConfig.fontCaption,
-                        fontWeight: FontWeight.w500)),
-              ),
-            ],
-          ),
-          Divider(height: SizeConfig.spacingLG, color: AppColor.fieldColorGrey),
-
-          // Row 2: Client / Service
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(wo.clientName,
-                        style: TextStyle(
-                            fontWeight: FontWeight.w600,
-                            fontSize: SizeConfig.fontBody),
-                        overflow: TextOverflow.ellipsis),
-                    Text(wo.patientName,
-                        style: TextStyle(
-                            fontSize: SizeConfig.fontCaption,
-                            color: AppColor.fontColorGrey)),
-                  ],
-                ),
-              ),
-              SizedBox(width: SizeConfig.spacingSM),
-              Text(wo.serviceName,
-                  style: TextStyle(
-                      fontSize: SizeConfig.fontBodySmall,
-                      color: AppColor.fontColorGrey),
-                  overflow: TextOverflow.ellipsis),
-            ],
-          ),
-          SizedBox(height: SizeConfig.spacingSM),
-
-          // Row 3: Amount + Date
-          Row(
-            children: [
-              Text(
-                controller.formatCurrency(wo.writeOffAmount),
-                style: TextStyle(
-                  fontSize: SizeConfig.fontH3,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.red,
-                ),
-              ),
-              const Spacer(),
-              Text(
-                controller.formatDate(wo.writeOffDate),
-                style: TextStyle(
-                    fontSize: SizeConfig.fontCaption,
-                    color: AppColor.fontColorGrey),
-              ),
-            ],
-          ),
-          SizedBox(height: SizeConfig.spacingXS),
-
-          // Row 4: Reason
-          Text(
-            wo.reason,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-                fontSize: SizeConfig.fontBodySmall,
-                color: AppColor.fontColorGrey),
-          ),
-
-          // Bottom: Action buttons for Pending
-          if (isPending) ...[
-            Divider(height: SizeConfig.spacingLG, color: AppColor.fieldColorGrey),
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: AppCard(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Row 1: Booking # + Status chip
             Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  '#${wo.bookingId}',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                    color: AppColor.cPrimaryButtonColor,
+                  ),
+                ),
+                accountsStatusChip(wo.status),
+              ],
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              child: Divider(height: 1, color: AppColor.borderSubtle),
+            ),
+
+            // Row 2: Client / Service
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Expanded(
-                  child: SizedBox(
-                    height: 44,
-                    child: OutlinedButton.icon(
-                      onPressed: () => controller.rejectWriteOff(wo.id),
-                      icon: Icon(Icons.close,
-                          size: SizeConfig.iconSM, color: Colors.red),
-                      label: Text('Reject',
-                          style: TextStyle(
-                              color: Colors.red, fontSize: SizeConfig.fontBody)),
-                      style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: Colors.red),
-                        shape: RoundedRectangleBorder(
-                            borderRadius:
-                                BorderRadius.circular(SizeConfig.radiusSM)),
-                      ),
-                    ),
-                  ),
+                  child: accountsCellStack(wo.clientName,
+                      subtitle: wo.patientName),
                 ),
-                SizedBox(width: SizeConfig.spacingSM),
-                Expanded(
-                  child: SizedBox(
-                    height: 44,
-                    child: ElevatedButton.icon(
-                      onPressed: () => controller.approveWriteOff(wo.id),
-                      icon: Icon(Icons.check,
-                          size: SizeConfig.iconSM, color: AppColor.buttonTextWhite),
-                      label: Text('Approve',
-                          style: TextStyle(
-                              color: AppColor.buttonTextWhite, fontSize: SizeConfig.fontBody)),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.green,
-                        shape: RoundedRectangleBorder(
-                            borderRadius:
-                                BorderRadius.circular(SizeConfig.radiusSM)),
-                      ),
-                    ),
-                  ),
+                const SizedBox(width: 12),
+                Flexible(
+                  child: Text(wo.serviceName,
+                      textAlign: TextAlign.right,
+                      style: TextStyle(
+                          fontSize: 13, color: AppColor.textTertiary),
+                      overflow: TextOverflow.ellipsis),
                 ),
               ],
             ),
+            const SizedBox(height: 12),
+
+            // Row 3: Amount + Date
+            Row(
+              children: [
+                Text(
+                  controller.formatCurrency(wo.writeOffAmount),
+                  style: accountsAmountStyle(
+                      color: AppColor.danger,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700),
+                ),
+                const Spacer(),
+                Text(
+                  controller.formatDate(wo.writeOffDate),
+                  style:
+                      TextStyle(fontSize: 12.5, color: AppColor.textTertiary),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+
+            // Row 4: Reason
+            Text(
+              wo.reason,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(fontSize: 13, color: AppColor.textTertiary),
+            ),
+
+            // Bottom: Action buttons for Pending
+            if (isPending) ...[
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () => controller.rejectWriteOff(wo.id),
+                      style: AppButtonStyles.dangerOutlined,
+                      icon: const Icon(LucideIcons.x, size: 18),
+                      label: const Text('Reject'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: () => controller.approveWriteOff(wo.id),
+                      icon: const Icon(LucideIcons.check, size: 18),
+                      label: const Text('Approve'),
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ],
-        ],
+        ),
       ),
     );
   }
@@ -343,159 +293,80 @@ class WriteOffView extends GetView<AccountsController> {
         return const ShimmerLoader.table();
       }
       if (controller.filteredWriteOffs.isEmpty) {
-        return Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.money_off_outlined,
-                  size: 64, color: AppColor.divColor),
-              SizedBox(height: SizeConfig.spacingSM),
-              Text('No write-offs found', style: AppTextStyles.regular16Gre),
-            ],
-          ),
+        return const AppEmptyState(
+          icon: LucideIcons.banknoteX,
+          title: 'No write-offs found',
+          message: 'Use the form on the right to write off a balance.',
         );
       }
       return SingleChildScrollView(
-        padding: EdgeInsets.only(
-            left: SizeConfig.pagePadding.left,
-            bottom: SizeConfig.spacingLG),
-        child: Container(
-          width: double.infinity,
-          decoration: BoxDecoration(
-            color: AppColor.whiteColor,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColor.divColor),
-          ),
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: DataTable(
-              headingRowColor: WidgetStateProperty.all(AppColor.fieldColorGrey),
-              headingTextStyle: TextStyle(
-                fontWeight: FontWeight.w600,
-                fontSize: SizeConfig.fontBodySmall,
-                color: AppColor.cPrimaryHeadingColor,
-              ),
-              dataTextStyle: TextStyle(fontSize: SizeConfig.fontBodySmall),
-              columnSpacing: SizeConfig.spacingMD,
-              horizontalMargin: SizeConfig.spacingSM,
-              columns: const [
-                DataColumn(label: Text('Booking ID')),
-                DataColumn(label: Text('Client')),
-                DataColumn(label: Text('Service')),
-                DataColumn(label: Text('Amount')),
-                DataColumn(label: Text('Reason')),
-                DataColumn(label: Text('Approver')),
-                DataColumn(label: Text('Date')),
-                DataColumn(label: Text('Status')),
-                DataColumn(label: Text('Actions')),
-              ],
-              rows: controller.filteredWriteOffs.map((wo) {
-                final statusColor = controller.getStatusColor(wo.status);
-                final isPending = wo.status == 'Pending';
-                return DataRow(cells: [
-                  DataCell(Text('#${wo.bookingId}',
-                      style: AppTextStyles.regular14black)),
-                  DataCell(Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(wo.clientName,
-                          style: TextStyle(
-                              fontWeight: FontWeight.w500,
-                              fontSize: SizeConfig.fontBodySmall)),
-                      Text(wo.patientName,
-                          style: TextStyle(
-                              fontSize: SizeConfig.fontCaption,
-                              color: AppColor.fontColorGrey)),
-                    ],
-                  )),
-                  DataCell(Text(wo.serviceName,
-                      style:
-                          TextStyle(fontSize: SizeConfig.fontBodySmall))),
-                  DataCell(Text(
-                    controller.formatCurrency(wo.writeOffAmount),
-                    style: const TextStyle(
-                        fontWeight: FontWeight.w600, color: Colors.red),
-                  )),
-                  DataCell(SizedBox(
-                    width: 150,
-                    child: Tooltip(
-                      message: wo.reason,
-                      child: Text(wo.reason,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(fontSize: SizeConfig.fontBodySmall)),
-                    ),
-                  )),
-                  DataCell(Text(wo.approvedBy,
-                      style:
-                          TextStyle(fontSize: SizeConfig.fontBodySmall))),
-                  DataCell(Text(controller.formatDate(wo.writeOffDate),
-                      style:
-                          TextStyle(fontSize: SizeConfig.fontBodySmall))),
-                  DataCell(Container(
-                    padding: EdgeInsets.symmetric(
-                        horizontal: SizeConfig.spacingSM, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: statusColor.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(wo.status,
+        child: horizontalTable(
+          DataTable(
+            columns: const [
+              DataColumn(label: Text('Booking ID')),
+              DataColumn(label: Text('Client')),
+              DataColumn(label: Text('Service')),
+              DataColumn(label: Text('Amount'), numeric: true),
+              DataColumn(label: Text('Reason')),
+              DataColumn(label: Text('Approver')),
+              DataColumn(label: Text('Date')),
+              DataColumn(label: Text('Status')),
+              DataColumn(label: Text('Actions')),
+            ],
+            rows: controller.filteredWriteOffs.map((wo) {
+              final isPending = wo.status == 'Pending';
+              return DataRow(cells: [
+                DataCell(Text('#${wo.bookingId}',
+                    style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        color: AppColor.cPrimaryButtonColor))),
+                DataCell(accountsCellStack(wo.clientName,
+                    subtitle: wo.patientName)),
+                DataCell(Text(wo.serviceName)),
+                DataCell(Text(
+                  controller.formatCurrency(wo.writeOffAmount),
+                  style: accountsAmountStyle(color: AppColor.danger),
+                )),
+                DataCell(SizedBox(
+                  width: 160,
+                  child: Tooltip(
+                    message: wo.reason,
+                    child: Text(wo.reason,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                         style: TextStyle(
-                            color: statusColor,
-                            fontSize: SizeConfig.fontCaption,
-                            fontWeight: FontWeight.w500)),
-                  )),
-                  DataCell(isPending
-                      ? Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Tooltip(
-                              message: 'Approve Write-Off',
-                              child: InkWell(
-                                onTap: () =>
-                                    controller.approveWriteOff(wo.id),
-                                borderRadius: BorderRadius.circular(6),
-                                child: Container(
-                                  padding:
-                                      EdgeInsets.all(SizeConfig.spacingSM),
-                                  decoration: BoxDecoration(
-                                    color: Colors.green.withValues(alpha: 0.1),
-                                    borderRadius: BorderRadius.circular(6),
-                                  ),
-                                  child: Icon(Icons.check,
-                                      size: SizeConfig.iconSM,
-                                      color: Colors.green),
-                                ),
-                              ),
-                            ),
-                            SizedBox(width: SizeConfig.spacingXS),
-                            Tooltip(
-                              message: 'Reject Write-Off',
-                              child: InkWell(
-                                onTap: () =>
-                                    controller.rejectWriteOff(wo.id),
-                                borderRadius: BorderRadius.circular(6),
-                                child: Container(
-                                  padding:
-                                      EdgeInsets.all(SizeConfig.spacingSM),
-                                  decoration: BoxDecoration(
-                                    color: Colors.red.withValues(alpha: 0.1),
-                                    borderRadius: BorderRadius.circular(6),
-                                  ),
-                                  child: Icon(Icons.close,
-                                      size: SizeConfig.iconSM,
-                                      color: Colors.red),
-                                ),
-                              ),
-                            ),
-                          ],
-                        )
-                      : Icon(Icons.check_circle_outline,
-                          size: SizeConfig.iconSM, color: AppColor.lightGrey)),
-                ]);
-              }).toList(),
-            ),
+                            fontSize: 13, color: AppColor.textSecondary)),
+                  ),
+                )),
+                DataCell(Text(wo.approvedBy)),
+                DataCell(Text(controller.formatDate(wo.writeOffDate),
+                    style: TextStyle(color: AppColor.textSecondary))),
+                DataCell(accountsStatusChip(wo.status)),
+                DataCell(isPending
+                    ? Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          accountsIconAction(
+                            icon: LucideIcons.check,
+                            tooltip: 'Approve Write-Off',
+                            tone: AppTone.success,
+                            onPressed: () =>
+                                controller.approveWriteOff(wo.id),
+                          ),
+                          const SizedBox(width: 8),
+                          accountsIconAction(
+                            icon: LucideIcons.x,
+                            tooltip: 'Reject Write-Off',
+                            tone: AppTone.danger,
+                            onPressed: () =>
+                                controller.rejectWriteOff(wo.id),
+                          ),
+                        ],
+                      )
+                    : Icon(LucideIcons.circleCheck,
+                        size: 18, color: AppColor.lightGrey)),
+              ]);
+            }).toList(),
           ),
         ),
       );
@@ -504,15 +375,11 @@ class WriteOffView extends GetView<AccountsController> {
 
   Widget _buildWriteOffForm() {
     return SingleChildScrollView(
-      padding: EdgeInsets.fromLTRB(SizeConfig.spacingSM, 0,
-          SizeConfig.pagePadding.right, SizeConfig.spacingLG),
-      child: Container(
-        padding: SizeConfig.cardPadding,
-        decoration: BoxDecoration(
-          color: AppColor.whiteColor,
-          borderRadius: BorderRadius.circular(SizeConfig.radiusMD),
-          border: Border.all(color: AppColor.divColor),
-        ),
+      child: AppCard(
+        title: 'Create write-off',
+        subtitle: 'Select a client from Active Clients tab or choose below',
+        icon: LucideIcons.banknoteX,
+        iconTone: AppTone.warning,
         child: _buildWriteOffFormContent(),
       ),
     );
@@ -522,39 +389,22 @@ class WriteOffView extends GetView<AccountsController> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            Icon(Icons.money_off,
-                color: Colors.orange.shade700, size: SizeConfig.iconMD),
-            SizedBox(width: SizeConfig.spacingXS),
-            Text('Create Write-Off',
-                style: TextStyle(
-                    fontSize: SizeConfig.fontH3,
-                    fontWeight: FontWeight.w600,
-                    color: AppColor.cPrimaryHeadingColor)),
-          ],
-        ),
-        SizedBox(height: SizeConfig.spacingXS),
-        Text('Select a client from Active Clients tab or choose below',
-            style: TextStyle(
-                fontSize: SizeConfig.fontBodySmall,
-                color: AppColor.fontColorGrey)),
-        Divider(height: SizeConfig.spacingLG),
-
         // Selected Client Info / Dropdown
         Obx(() {
           final client = controller.selectedClientForWriteOff.value;
           if (client != null) {
             return Container(
-              padding: SizeConfig.cardPadding,
-              margin: EdgeInsets.only(bottom: SizeConfig.spacingMD),
+              padding: const EdgeInsets.fromLTRB(14, 12, 4, 12),
+              margin: const EdgeInsets.only(bottom: 16),
               decoration: BoxDecoration(
-                color: Colors.orange.shade50,
-                borderRadius: BorderRadius.circular(SizeConfig.radiusSM),
-                border: Border.all(color: Colors.orange.shade100),
+                color: AppColor.surfaceMuted,
+                borderRadius: BorderRadius.circular(AppRadius.md),
+                border: Border.all(color: AppColor.borderSubtle),
               ),
               child: Row(
                 children: [
+                  AppAvatar(name: client.clientName, size: 36),
+                  const SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -562,24 +412,29 @@ class WriteOffView extends GetView<AccountsController> {
                         Text(client.clientName,
                             style: TextStyle(
                                 fontWeight: FontWeight.w600,
-                                fontSize: SizeConfig.fontBody)),
-                        SizedBox(height: SizeConfig.spacingXS),
+                                fontSize: 14,
+                                color: AppColor.textPrimary)),
+                        const SizedBox(height: 2),
                         Text(
                             'Booking #${client.bookingId} | ${client.patientName} | ${client.serviceName}',
                             style: TextStyle(
-                                fontSize: SizeConfig.fontBodySmall,
-                                color: AppColor.fontColorGrey)),
+                                fontSize: 12.5,
+                                color: AppColor.textTertiary)),
+                        const SizedBox(height: 2),
                         Text(
                             'Outstanding: ${controller.formatCurrency(client.outstandingAmount)}',
                             style: TextStyle(
-                                fontSize: SizeConfig.fontBodySmall,
-                                color: Colors.red,
-                                fontWeight: FontWeight.w500)),
+                                fontSize: 12.5,
+                                color: AppColor.danger,
+                                fontWeight: FontWeight.w600,
+                                fontFeatures: accountsTabularFigures)),
                       ],
                     ),
                   ),
                   IconButton(
-                    icon: Icon(Icons.close, size: SizeConfig.iconSM),
+                    tooltip: 'Clear selection',
+                    icon: Icon(LucideIcons.x,
+                        size: 18, color: AppColor.textTertiary),
                     onPressed: () =>
                         controller.selectedClientForWriteOff.value = null,
                   ),
@@ -590,47 +445,32 @@ class WriteOffView extends GetView<AccountsController> {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Select Client',
-                  style: TextStyle(
-                      fontSize: SizeConfig.fontBody,
-                      fontWeight: FontWeight.w500,
-                      color: AppColor.cPrimarySubHeadingColorGrey)),
-              SizedBox(height: SizeConfig.spacingXS),
-              Container(
-                height: 44,
-                padding:
-                    EdgeInsets.symmetric(horizontal: SizeConfig.spacingSM),
-                decoration: BoxDecoration(
-                  color: AppColor.whiteColor,
-                  borderRadius: BorderRadius.circular(SizeConfig.radiusMD),
-                  border: Border.all(color: AppColor.textFieldBorderColor),
-                ),
-                child: DropdownButtonHideUnderline(
-                  child: DropdownButton<int>(
-                    isExpanded: true,
-                    hint: Text('Choose active client',
-                        style: TextStyle(
-                            color: AppColor.fontColorGrey,
-                            fontSize: SizeConfig.fontBody)),
-                    items: controller.activeClients.map((c) {
-                      return DropdownMenuItem(
-                        value: c.id,
-                        child: Text('${c.clientName} - #${c.bookingId}',
-                            style:
-                                TextStyle(fontSize: SizeConfig.fontBody)),
-                      );
-                    }).toList(),
-                    onChanged: (id) {
-                      final client = controller.activeClients
-                          .firstWhereOrNull((c) => c.id == id);
-                      if (client != null) {
-                        controller.selectClientForWriteOff(client);
-                      }
-                    },
-                  ),
+              accountsFieldLabel('Select Client'),
+              accountsDropdownShell(
+                child: DropdownButton<int>(
+                  icon: const Icon(LucideIcons.chevronDown, size: 18),
+                  isExpanded: true,
+                  hint: Text('Choose active client',
+                      style: TextStyle(
+                          color: AppColor.textTertiary, fontSize: 14)),
+                  items: controller.activeClients.map((c) {
+                    return DropdownMenuItem(
+                      value: c.id,
+                      child: Text('${c.clientName} - #${c.bookingId}',
+                          style: TextStyle(
+                              fontSize: 14, color: AppColor.textPrimary)),
+                    );
+                  }).toList(),
+                  onChanged: (id) {
+                    final client = controller.activeClients
+                        .firstWhereOrNull((c) => c.id == id);
+                    if (client != null) {
+                      controller.selectClientForWriteOff(client);
+                    }
+                  },
                 ),
               ),
-              SizedBox(height: SizeConfig.spacingMD),
+              const SizedBox(height: 16),
             ],
           );
         }),
@@ -642,7 +482,7 @@ class WriteOffView extends GetView<AccountsController> {
           keyboardType: TextInputType.number,
           isMandatory: true,
         ),
-        SizedBox(height: SizeConfig.spacingMD),
+        const SizedBox(height: 16),
 
         CommonTextField(
           label: 'Reason',
@@ -651,59 +491,37 @@ class WriteOffView extends GetView<AccountsController> {
           maxLines: 2,
           isMandatory: true,
         ),
-        SizedBox(height: SizeConfig.spacingMD),
+        const SizedBox(height: 16),
 
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                Text('Approved By',
-                    style: TextStyle(
-                        fontSize: SizeConfig.fontBody,
-                        fontWeight: FontWeight.w500,
-                        color: AppColor.cPrimarySubHeadingColorGrey)),
-                Text(' *',
-                    style: TextStyle(
-                        color: Colors.red, fontSize: SizeConfig.fontBody)),
-              ],
-            ),
-            SizedBox(height: SizeConfig.spacingXS),
-            Obx(() => Container(
-                  height: 44,
-                  padding: EdgeInsets.symmetric(
-                      horizontal: SizeConfig.spacingSM),
-                  decoration: BoxDecoration(
-                    color: AppColor.whiteColor,
-                    borderRadius:
-                        BorderRadius.circular(SizeConfig.radiusMD),
-                    border: Border.all(color: AppColor.textFieldBorderColor),
-                  ),
-                  child: DropdownButtonHideUnderline(
-                    child: DropdownButton<String>(
-                      isExpanded: true,
-                      value: controller.writeOffApprover.value.isEmpty
-                          ? null
-                          : controller.writeOffApprover.value,
-                      hint: Text('Select approver',
-                          style: TextStyle(
-                              color: AppColor.fontColorGrey,
-                              fontSize: SizeConfig.fontBody)),
-                      items: controller.approverList
-                          .map((a) => DropdownMenuItem(
-                              value: a,
-                              child: Text(a,
-                                  style: TextStyle(
-                                      fontSize: SizeConfig.fontBody))))
-                          .toList(),
-                      onChanged: (v) =>
-                          controller.writeOffApprover.value = v ?? '',
-                    ),
+            accountsFieldLabel('Approved By', required: true),
+            Obx(() => accountsDropdownShell(
+                  child: DropdownButton<String>(
+                    icon: const Icon(LucideIcons.chevronDown, size: 18),
+                    isExpanded: true,
+                    value: controller.writeOffApprover.value.isEmpty
+                        ? null
+                        : controller.writeOffApprover.value,
+                    hint: Text('Select approver',
+                        style: TextStyle(
+                            color: AppColor.textTertiary, fontSize: 14)),
+                    items: controller.approverList
+                        .map((a) => DropdownMenuItem(
+                            value: a,
+                            child: Text(a,
+                                style: TextStyle(
+                                    fontSize: 14,
+                                    color: AppColor.textPrimary))))
+                        .toList(),
+                    onChanged: (v) =>
+                        controller.writeOffApprover.value = v ?? '',
                   ),
                 )),
           ],
         ),
-        SizedBox(height: SizeConfig.spacingMD),
+        const SizedBox(height: 16),
 
         CommonTextField(
           label: 'Remarks',
@@ -711,24 +529,14 @@ class WriteOffView extends GetView<AccountsController> {
           controller: controller.writeOffRemarksController,
           maxLines: 3,
         ),
-        SizedBox(height: SizeConfig.spacingLG),
+        const SizedBox(height: 24),
 
         SizedBox(
           width: double.infinity,
-          height: 48,
+          height: 44,
           child: ElevatedButton(
             onPressed: controller.createWriteOff,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.orange.shade700,
-              shape: RoundedRectangleBorder(
-                  borderRadius:
-                      BorderRadius.circular(SizeConfig.radiusSM)),
-            ),
-            child: Text('Submit Write-Off',
-                style: TextStyle(
-                    color: AppColor.buttonTextWhite,
-                    fontSize: SizeConfig.fontBody,
-                    fontWeight: FontWeight.w600)),
+            child: const Text('Submit write-off'),
           ),
         ),
       ],

@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:eldivex_app/app/core/values/color_constants.dart';
-import 'package:eldivex_app/app/core/values/text_style_constants.dart';
 import 'package:eldivex_app/app/core/values/size_configue.dart';
+import 'package:eldivex_app/app/widgets/ui/ui.dart';
 import '../../../widgets/shimmer_loader.dart';
 import '../controllers/accounts_controller.dart';
 import '../models/client_statement_model.dart';
+import 'accounts_format.dart';
+import 'package:eldivex_app/app/core/values/lucide_icons.dart';
 
 class ClientStatementView extends GetView<AccountsController> {
   const ClientStatementView({super.key});
@@ -14,82 +16,68 @@ class ClientStatementView extends GetView<AccountsController> {
   Widget build(BuildContext context) {
     SizeConfig.init(context);
     if (!Get.isRegistered<AccountsController>()) Get.put(AccountsController());
-    return Column(
-      children: [
-        _buildStatementSearchBar(context),
-        Expanded(
-          child: Obx(() {
-            final selected = controller.selectedStatement.value;
-            if (selected != null) {
-              return _buildStatementDetail(selected);
-            }
-            return _buildStatementsList();
-          }),
+    final embedded = accountsIsEmbeddedInTabs(context);
+    return Scaffold(
+      backgroundColor: AppColor.cAppBackgroundColor,
+      body: Padding(
+        padding: accountsPagePadding(context, bottom: false),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (!embedded) ...[
+              const AppPageHeader(
+                title: 'Client statements',
+                subtitle: 'Billed, received and balance for every client',
+              ),
+              SizedBox(height: SizeConfig.isMobile ? 16 : 20),
+            ],
+            _buildStatementSearchBar(context),
+            const SizedBox(height: 16),
+            Expanded(
+              child: Obx(() {
+                final selected = controller.selectedStatement.value;
+                if (selected != null) {
+                  return _buildStatementDetail(selected);
+                }
+                return _buildStatementsList();
+              }),
+            ),
+          ],
         ),
-      ],
+      ),
     );
   }
 
   Widget _buildStatementSearchBar(BuildContext context) {
-    return Padding(
-      padding: SizeConfig.pagePadding,
-      child: Row(
-        children: [
-          Expanded(
-            child: Container(
-              height: 44,
-              decoration: BoxDecoration(
-                color: AppColor.whiteColor,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColor.textFieldBorderColor),
-              ),
-              child: TextField(
-                controller: controller.searchStatementController,
-                onChanged: controller.searchStatements,
-                style: TextStyle(fontSize: SizeConfig.fontBody),
-                decoration: InputDecoration(
-                  hintText: 'Search by client name, mobile, booking ID...',
-                  hintStyle: TextStyle(
-                      color: AppColor.fontColorGrey, fontSize: SizeConfig.fontBody),
-                  prefixIcon: Icon(Icons.search,
-                      color: AppColor.fontColorGrey, size: SizeConfig.iconMD),
-                  border: InputBorder.none,
-                  contentPadding: const EdgeInsets.symmetric(vertical: 12),
-                ),
-              ),
-            ),
+    return Row(
+      children: [
+        Expanded(
+          child: AppSearchField(
+            controller: controller.searchStatementController,
+            onChanged: controller.searchStatements,
+            hint: 'Search by client name, mobile, booking ID…',
           ),
-          Obx(() {
-            if (controller.selectedStatement.value != null) {
-              return Padding(
-                padding: EdgeInsets.only(left: SizeConfig.spacingSM),
-                child: SizeConfig.isMobile
-                    ? IconButton(
-                        onPressed: controller.closeStatementDetail,
-                        icon: Icon(Icons.arrow_back,
-                            size: SizeConfig.iconMD,
-                            color: AppColor.cPrimaryButtonColor),
-                        tooltip: 'Back to List',
-                      )
-                    : OutlinedButton.icon(
-                        onPressed: controller.closeStatementDetail,
-                        icon: Icon(Icons.arrow_back, size: SizeConfig.iconSM),
-                        label: const Text('Back to List'),
-                        style: OutlinedButton.styleFrom(
-                          padding: EdgeInsets.symmetric(
-                              horizontal: SizeConfig.spacingLG,
-                              vertical: SizeConfig.spacingSM),
-                          shape: RoundedRectangleBorder(
-                              borderRadius:
-                                  BorderRadius.circular(SizeConfig.radiusSM)),
-                        ),
-                      ),
-              );
-            }
-            return const SizedBox.shrink();
-          }),
-        ],
-      ),
+        ),
+        Obx(() {
+          if (controller.selectedStatement.value != null) {
+            return Padding(
+              padding: const EdgeInsets.only(left: 8),
+              child: SizeConfig.isMobile
+                  ? accountsToolbarIconButton(
+                      onPressed: controller.closeStatementDetail,
+                      icon: LucideIcons.arrowLeft,
+                      tooltip: 'Back to List',
+                    )
+                  : OutlinedButton.icon(
+                      onPressed: controller.closeStatementDetail,
+                      icon: const Icon(LucideIcons.arrowLeft, size: 18),
+                      label: const Text('Back to list'),
+                    ),
+            );
+          }
+          return const SizedBox.shrink();
+        }),
+      ],
     );
   }
 
@@ -100,23 +88,19 @@ class ClientStatementView extends GetView<AccountsController> {
       }
       final groups = controller.groupedFilteredStatements;
       if (groups.isEmpty) {
-        return Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.account_balance_wallet_outlined,
-                  size: 64, color: AppColor.divColor),
-              SizedBox(height: SizeConfig.spacingSM),
-              Text('No statements found', style: AppTextStyles.regular16Gre),
-            ],
-          ),
+        return const AppEmptyState(
+          icon: LucideIcons.wallet,
+          title: 'No statements found',
+          message: 'Try a different client name, mobile number or booking ID.',
         );
       }
       return ListView.builder(
-        padding: EdgeInsets.symmetric(horizontal: SizeConfig.pagePadding.left),
+        padding: const EdgeInsets.only(bottom: 24),
         itemCount: groups.length,
-        itemBuilder: (context, index) =>
-            _buildGroupedStatementCard(groups[index]),
+        itemBuilder: (context, index) => Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: _buildGroupedStatementCard(groups[index]),
+        ),
       );
     });
   }
@@ -124,72 +108,46 @@ class ClientStatementView extends GetView<AccountsController> {
   Widget _buildGroupedStatementCard(GroupedClient group) {
     final hasMultiple = group.bookings.length > 1;
 
-    Widget avatar = Container(
-      width: 48,
-      height: 48,
-      decoration: BoxDecoration(
-        color: AppColor.cPrimaryButtonColor.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(24),
-      ),
-      child: Center(
-        child: Text(
-          group.clientName.isNotEmpty ? group.clientName[0].toUpperCase() : '?',
-          style: TextStyle(
-              color: AppColor.cPrimaryButtonColor,
-              fontSize: SizeConfig.fontH3,
-              fontWeight: FontWeight.w600),
-        ),
-      ),
-    );
+    Widget avatar = AppAvatar(name: group.clientName, size: 40);
 
     Widget clientInfo = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
+        Wrap(
+          spacing: 8,
+          runSpacing: 4,
+          crossAxisAlignment: WrapCrossAlignment.center,
           children: [
-            Flexible(
-              child: Text(group.clientName,
-                  style: TextStyle(
-                      fontWeight: FontWeight.w600, fontSize: SizeConfig.fontBody),
-                  overflow: TextOverflow.ellipsis),
-            ),
-            if (hasMultiple) ...[
-              SizedBox(width: SizeConfig.spacingXS),
-              Container(
-                padding: EdgeInsets.symmetric(
-                    horizontal: SizeConfig.spacingSM, vertical: 2),
-                decoration: BoxDecoration(
-                  color: AppColor.cPrimaryButtonColor.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Text(
-                  '${group.bookings.length} bookings',
-                  style: TextStyle(
-                      fontSize: SizeConfig.fontCaption,
-                      color: AppColor.cPrimaryButtonColor,
-                      fontWeight: FontWeight.w500),
-                ),
+            Text(group.clientName,
+                style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14.5,
+                    color: AppColor.textPrimary),
+                overflow: TextOverflow.ellipsis),
+            if (hasMultiple)
+              AppStatusBadge(
+                label: '${group.bookings.length} bookings',
+                tone: AppTone.primary,
+                showDot: false,
+                dense: true,
               ),
-            ],
           ],
         ),
-        SizedBox(height: SizeConfig.spacingXS),
+        const SizedBox(height: 4),
         if (hasMultiple)
           ...group.bookings.map((b) => Padding(
-                padding: EdgeInsets.only(top: SizeConfig.spacingXS / 2),
+                padding: const EdgeInsets.only(top: 2),
                 child: Text(
                   'Bkg #${b.bookingId} · ${b.patientName} · ${b.serviceName}',
-                  style: TextStyle(
-                      fontSize: SizeConfig.fontBodySmall,
-                      color: AppColor.fontColorGrey),
+                  style:
+                      TextStyle(fontSize: 13, color: AppColor.textTertiary),
                   overflow: TextOverflow.ellipsis,
                 ),
               ))
         else
           Text(
             'Booking #${group.bookings.first.bookingId} | ${group.bookings.first.patientName}',
-            style: TextStyle(
-                fontSize: SizeConfig.fontBodySmall, color: AppColor.fontColorGrey),
+            style: TextStyle(fontSize: 13, color: AppColor.textTertiary),
             overflow: TextOverflow.ellipsis,
           ),
       ],
@@ -201,228 +159,195 @@ class ClientStatementView extends GetView<AccountsController> {
           child: _buildStatSummaryItem(
               'Billed',
               controller.formatCurrency(group.totalBilled),
-              AppColor.cPrimaryHeadingColor),
+              AppColor.textPrimary,
+              alignEnd: false),
         ),
         Expanded(
           child: _buildStatSummaryItem(
               'Received',
               controller.formatCurrency(group.totalReceived),
-              Colors.green),
+              AppColor.success,
+              alignEnd: false),
         ),
         Expanded(
           child: _buildStatSummaryItem(
               'Balance',
               controller.formatCurrency(group.closingBalance),
-              group.closingBalance > 0 ? Colors.red : Colors.green),
+              group.closingBalance > 0 ? AppColor.danger : AppColor.success,
+              alignEnd: false),
         ),
       ],
     );
 
-    return InkWell(
+    return AppCard(
       onTap: () => controller.viewStatementForUser(group),
-      borderRadius: BorderRadius.circular(SizeConfig.radiusMD),
-      child: Container(
-        margin: EdgeInsets.only(bottom: SizeConfig.spacingSM),
-        padding: SizeConfig.cardPadding,
-        decoration: BoxDecoration(
-          color: AppColor.whiteColor,
-          borderRadius: BorderRadius.circular(SizeConfig.radiusMD),
-          border: Border.all(color: AppColor.divColor),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.03),
-              blurRadius: 4,
-              offset: const Offset(0, 1),
+      padding: EdgeInsets.all(SizeConfig.isMobile ? 16 : 18),
+      // Stack the amounts under the client on narrow cards (phones, and
+      // tablets where the sidebar leaves little room).
+      child: LayoutBuilder(
+        builder: (context, constraints) => constraints.maxWidth < 640
+            ? Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                avatar,
+                const SizedBox(width: 12),
+                Expanded(child: clientInfo),
+                Icon(LucideIcons.chevronRight,
+                    size: 20, color: AppColor.textTertiary),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppColor.surfaceMuted,
+                borderRadius: BorderRadius.circular(AppRadius.md),
+              ),
+              child: summaryRow,
             ),
           ],
-        ),
-        child: SizeConfig.adaptiveLayout(
-          mobile: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  avatar,
-                  SizedBox(width: SizeConfig.spacingSM),
-                  Expanded(child: clientInfo),
-                  Icon(Icons.chevron_right, color: AppColor.fontColorGrey),
-                ],
-              ),
-              SizedBox(height: SizeConfig.spacingSM),
-              Container(
-                padding: EdgeInsets.all(SizeConfig.spacingSM),
-                decoration: BoxDecoration(
-                  color: AppColor.fieldColorGrey,
-                  borderRadius:
-                      BorderRadius.circular(SizeConfig.radiusSM),
-                ),
-                child: summaryRow,
-              ),
-            ],
-          ),
-          tablet: Row(
-            children: [
-              avatar,
-              SizedBox(width: SizeConfig.spacingMD),
-              Expanded(flex: 3, child: clientInfo),
-              SizedBox(width: SizeConfig.spacingMD),
-              _buildStatSummaryItem(
+        )
+            : Row(
+          children: [
+            avatar,
+            const SizedBox(width: 14),
+            Expanded(flex: 3, child: clientInfo),
+            const SizedBox(width: 16),
+            SizedBox(
+              width: 128,
+              child: _buildStatSummaryItem(
                   'Billed',
                   controller.formatCurrency(group.totalBilled),
-                  AppColor.cPrimaryHeadingColor),
-              SizedBox(width: SizeConfig.spacingLG),
-              _buildStatSummaryItem(
+                  AppColor.textPrimary),
+            ),
+            const SizedBox(width: 16),
+            SizedBox(
+              width: 128,
+              child: _buildStatSummaryItem(
                   'Received',
                   controller.formatCurrency(group.totalReceived),
-                  Colors.green),
-              SizedBox(width: SizeConfig.spacingLG),
-              _buildStatSummaryItem(
+                  AppColor.success),
+            ),
+            const SizedBox(width: 16),
+            SizedBox(
+              width: 128,
+              child: _buildStatSummaryItem(
                   'Balance',
                   controller.formatCurrency(group.closingBalance),
-                  group.closingBalance > 0 ? Colors.red : Colors.green),
-              SizedBox(width: SizeConfig.spacingMD),
-              Icon(Icons.chevron_right, color: AppColor.fontColorGrey),
-            ],
-          ),
+                  group.closingBalance > 0
+                      ? AppColor.danger
+                      : AppColor.success),
+            ),
+            const SizedBox(width: 12),
+            Icon(LucideIcons.chevronRight,
+                size: 20, color: AppColor.textTertiary),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildStatSummaryItem(String label, String value, Color color) {
+  Widget _buildStatSummaryItem(String label, String value, Color color,
+      {bool alignEnd = true}) {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.center,
+      crossAxisAlignment:
+          alignEnd ? CrossAxisAlignment.end : CrossAxisAlignment.start,
       children: [
         Text(label,
-            style: TextStyle(
-                fontSize: SizeConfig.fontCaption, color: AppColor.fontColorGrey)),
-        SizedBox(height: SizeConfig.spacingXS),
-        Text(value,
-            style: TextStyle(
-                fontSize: SizeConfig.fontBody,
-                fontWeight: FontWeight.w600,
-                color: color)),
+            style: TextStyle(fontSize: 12, color: AppColor.textTertiary)),
+        const SizedBox(height: 4),
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment:
+              alignEnd ? Alignment.centerRight : Alignment.centerLeft,
+          child: Text(value,
+              maxLines: 1, style: accountsAmountStyle(color: color, fontSize: 14)),
+        ),
       ],
     );
   }
 
   Widget _buildStatementDetail(ClientStatement statement) {
     final summaryBoxes = [
-      _buildSummaryBox('Total Billed', statement.totalBilled, Colors.blue),
-      _buildSummaryBox('Total Received', statement.totalReceived, Colors.green),
-      _buildSummaryBox('Write-Off', statement.totalWriteOff, Colors.orange),
-      _buildSummaryBox('Closing Balance', statement.closingBalance, Colors.red),
+      _buildSummaryBox('Total billed', statement.totalBilled, AppTone.info,
+          LucideIcons.receiptText),
+      _buildSummaryBox('Total received', statement.totalReceived,
+          AppTone.success, LucideIcons.banknote),
+      _buildSummaryBox('Write-off', statement.totalWriteOff, AppTone.warning,
+          LucideIcons.banknoteX),
+      _buildSummaryBox('Closing balance', statement.closingBalance,
+          AppTone.danger, LucideIcons.wallet),
     ];
 
     return SingleChildScrollView(
-      padding: EdgeInsets.symmetric(horizontal: SizeConfig.pagePadding.left),
+      padding: const EdgeInsets.only(bottom: 24),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Container(
-            padding: SizeConfig.cardPadding,
-            decoration: BoxDecoration(
-              color: AppColor.whiteColor,
-              borderRadius: BorderRadius.circular(SizeConfig.radiusMD),
-              border: Border.all(color: AppColor.divColor),
-            ),
-            child: SizeConfig.adaptiveLayout(
-              mobile: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Statement of Account',
-                      style: TextStyle(
-                          fontSize: SizeConfig.fontH2,
-                          fontWeight: FontWeight.w700,
-                          color: AppColor.cPrimaryHeadingColor)),
-                  SizedBox(height: SizeConfig.spacingSM),
-                  Text(statement.clientName,
-                      style: TextStyle(
-                          fontSize: SizeConfig.fontBody,
-                          fontWeight: FontWeight.w500)),
-                  SizedBox(height: SizeConfig.spacingXS),
-                  Text(
-                      statement.bookingId == 0
-                          ? '${statement.clientMobile} | All Bookings'
-                          : '${statement.clientMobile} | Booking #${statement.bookingId}',
-                      style: TextStyle(
-                          fontSize: SizeConfig.fontBodySmall,
-                          color: AppColor.fontColorGrey)),
-                  SizedBox(height: SizeConfig.spacingMD),
-                  GridView.count(
-                    crossAxisCount: 2,
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    mainAxisSpacing: SizeConfig.spacingSM,
-                    crossAxisSpacing: SizeConfig.spacingSM,
-                    childAspectRatio: 2.2,
-                    children: summaryBoxes,
-                  ),
+          AppCard(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (!SizeConfig.isMobile) ...[
+                  AppAvatar(name: statement.clientName, size: 44),
+                  const SizedBox(width: 14),
                 ],
-              ),
-              tablet: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Statement of Account',
-                            style: TextStyle(
-                                fontSize: SizeConfig.fontH2,
-                                fontWeight: FontWeight.w700,
-                                color: AppColor.cPrimaryHeadingColor)),
-                        SizedBox(height: SizeConfig.spacingXS),
-                        Text(statement.clientName,
-                            style: TextStyle(
-                                fontSize: SizeConfig.fontBodyLarge,
-                                fontWeight: FontWeight.w500)),
-                        SizedBox(height: SizeConfig.spacingXS),
-                        Text(
-                            statement.bookingId == 0
-                                ? '${statement.clientMobile} | All Bookings (${statement.serviceName})'
-                                : '${statement.clientMobile} | Booking #${statement.bookingId}',
-                            style: TextStyle(
-                                fontSize: SizeConfig.fontBodySmall,
-                                color: AppColor.fontColorGrey)),
-                        if (statement.bookingId != 0)
-                          Text(
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Statement of account',
+                          style: TextStyle(
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w600,
+                              color: AppColor.textTertiary)),
+                      const SizedBox(height: 4),
+                      Text(statement.clientName,
+                          style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: -0.2,
+                              color: AppColor.textPrimary)),
+                      const SizedBox(height: 4),
+                      Text(
+                          statement.bookingId == 0
+                              ? '${statement.clientMobile} | All Bookings (${statement.serviceName})'
+                              : '${statement.clientMobile} | Booking #${statement.bookingId}',
+                          style: TextStyle(
+                              fontSize: 13, color: AppColor.textTertiary)),
+                      if (statement.bookingId != 0)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 2),
+                          child: Text(
                               'Patient: ${statement.patientName} | Service: ${statement.serviceName}',
                               style: TextStyle(
-                                  fontSize: SizeConfig.fontBodySmall,
-                                  color: AppColor.fontColorGrey)),
-                      ],
-                    ),
+                                  fontSize: 13,
+                                  color: AppColor.textTertiary)),
+                        ),
+                    ],
                   ),
-                  ...summaryBoxes.map((box) => Padding(
-                        padding: EdgeInsets.only(left: SizeConfig.spacingSM),
-                        child: box,
-                      )),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
-          SizedBox(height: SizeConfig.spacingMD),
+          const SizedBox(height: 16),
+          AppResponsiveGrid(
+            minItemWidth: SizeConfig.isMobile ? 150 : 190,
+            maxColumns: 4,
+            spacing: SizeConfig.isMobile ? 12 : 16,
+            children: summaryBoxes,
+          ),
+          const SizedBox(height: 16),
 
           // Transactions Table
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Container(
-              decoration: BoxDecoration(
-                color: AppColor.whiteColor,
-                borderRadius: BorderRadius.circular(SizeConfig.radiusMD),
-                border: Border.all(color: AppColor.divColor),
-              ),
-              child: DataTable(
-                headingRowColor: WidgetStateProperty.all(AppColor.fieldColorGrey),
-                headingTextStyle: TextStyle(
-                  fontWeight: FontWeight.w600,
-                  fontSize: SizeConfig.fontBodySmall,
-                  color: AppColor.cPrimaryHeadingColor,
-                ),
-                dataTextStyle: TextStyle(fontSize: SizeConfig.fontBodySmall),
-                columnSpacing: SizeConfig.spacingLG,
-                horizontalMargin: SizeConfig.spacingMD,
+          AppCard(
+            padding: EdgeInsets.zero,
+            title: 'Transactions',
+            child: horizontalTable(
+              DataTable(
                 columns: [
                   if (statement.bookingId == 0)
                     const DataColumn(label: Text('Booking')),
@@ -441,51 +366,48 @@ class ClientStatementView extends GetView<AccountsController> {
                       DataCell(Text(
                         'Bkg #${txn.bookingId}',
                         style: TextStyle(
-                            fontSize: SizeConfig.fontBodySmall,
                             color: AppColor.cPrimaryButtonColor,
-                            fontWeight: FontWeight.w500),
+                            fontWeight: FontWeight.w600),
                       )),
                     DataCell(Text(controller.formatDate(txn.date),
-                        style: TextStyle(fontSize: SizeConfig.fontBodySmall))),
-                    DataCell(Text(txn.description,
-                        style: TextStyle(fontSize: SizeConfig.fontBodySmall))),
-                    DataCell(Text(txn.referenceNumber ?? '-',
                         style: TextStyle(
-                            fontSize: SizeConfig.fontBodySmall,
-                            color: AppColor.cPrimaryButtonColor))),
-                    DataCell(Container(
-                      padding: EdgeInsets.symmetric(
-                          horizontal: SizeConfig.spacingSM, vertical: 3),
-                      decoration: BoxDecoration(
-                        color: isPayment
-                            ? Colors.green.withValues(alpha: 0.1)
-                            : Colors.blue.withValues(alpha: 0.1),
-                        borderRadius:
-                            BorderRadius.circular(SizeConfig.radiusSM),
-                      ),
-                      child: Text(txn.type,
-                          style: TextStyle(
-                              fontSize: SizeConfig.fontCaption,
-                              fontWeight: FontWeight.w500,
-                              color: isPayment ? Colors.green : Colors.blue)),
+                            color: AppColor.textSecondary,
+                            fontFeatures: accountsTabularFigures))),
+                    DataCell(Text(txn.description)),
+                    DataCell(Text(txn.referenceNumber ?? '-',
+                        style:
+                            TextStyle(color: AppColor.cPrimaryButtonColor))),
+                    DataCell(AppStatusBadge(
+                      label: txn.type,
+                      tone: isPayment ? AppTone.success : AppTone.info,
+                      dense: true,
                     )),
                     DataCell(Text(
                       txn.debit > 0
                           ? controller.formatCurrency(txn.debit)
                           : '-',
-                      style: const TextStyle(color: Colors.red),
+                      style: accountsAmountStyle(
+                          color: txn.debit > 0
+                              ? AppColor.danger
+                              : AppColor.textTertiary,
+                          fontWeight: FontWeight.w400),
                     )),
                     DataCell(Text(
                       txn.credit > 0
                           ? controller.formatCurrency(txn.credit)
                           : '-',
-                      style: const TextStyle(color: Colors.green),
+                      style: accountsAmountStyle(
+                          color: txn.credit > 0
+                              ? AppColor.success
+                              : AppColor.textTertiary,
+                          fontWeight: FontWeight.w400),
                     )),
                     DataCell(Text(
                       controller.formatCurrency(txn.balance),
-                      style: TextStyle(
-                        fontWeight: FontWeight.w600,
-                        color: txn.balance > 0 ? Colors.red : Colors.green,
+                      style: accountsAmountStyle(
+                        color: txn.balance > 0
+                            ? AppColor.danger
+                            : AppColor.success,
                       ),
                     )),
                   ]);
@@ -493,36 +415,18 @@ class ClientStatementView extends GetView<AccountsController> {
               ),
             ),
           ),
-          SizedBox(height: SizeConfig.spacingLG),
         ],
       ),
     );
   }
 
-  Widget _buildSummaryBox(String label, double amount, Color color) {
-    return Container(
-      padding: SizeConfig.cardPadding,
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.06),
-        borderRadius: BorderRadius.circular(SizeConfig.radiusSM),
-        border: Border.all(color: color.withValues(alpha: 0.15)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(label,
-              style: TextStyle(
-                  fontSize: SizeConfig.fontCaption,
-                  color: AppColor.fontColorGrey)),
-          SizedBox(height: SizeConfig.spacingXS),
-          Text(controller.formatCurrency(amount),
-              style: TextStyle(
-                  fontSize: SizeConfig.fontH3,
-                  fontWeight: FontWeight.w700,
-                  color: color)),
-        ],
-      ),
+  Widget _buildSummaryBox(
+      String label, double amount, AppTone tone, IconData icon) {
+    return AppStatCard(
+      label: label,
+      value: controller.formatCurrency(amount),
+      icon: icon,
+      tone: tone,
     );
   }
 }

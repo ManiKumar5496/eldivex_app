@@ -2,112 +2,105 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../../core/values/color_constants.dart';
-import '../../../core/values/text_style_constants.dart';
 import '../../../data/api_constant_url.dart';
 import '../../../data/base_api_services.dart';
 import '../../../routes/app_pages.dart';
+import '../../../widgets/ui/ui.dart';
 import '../controllers/settings_controller.dart';
+import 'package:eldivex_app/app/core/values/lucide_icons.dart';
 
 class SettingsView extends GetView<SettingsController> {
   const SettingsView({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final narrow = MediaQuery.sizeOf(context).width < 600;
     return Scaffold(
       backgroundColor: AppColor.cAppBackgroundColor,
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Settings', style: AppTextStyles.heading),
-              const SizedBox(height: 4),
-              Text(
-                'Manage services, branches, coupons, and system configuration.',
-                style: AppTextStyles.regular14Gre,
-              ),
-              const SizedBox(height: 32),
+          padding: EdgeInsets.all(narrow ? 16 : 24),
+          child: Align(
+            alignment: Alignment.topLeft,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 1200),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const AppPageHeader(
+                    title: 'Settings',
+                    subtitle:
+                        'Manage services, branches, coupons, and system configuration.',
+                  ),
+                  const SizedBox(height: 24),
 
-              // ── Grid of setting tiles ──────────────────────────────────────
-              LayoutBuilder(
-                builder: (context, constraints) {
-                  final crossAxisCount = constraints.maxWidth > 900
-                      ? 3
-                      : constraints.maxWidth > 600
-                          ? 2
-                          : 1;
-                  return GridView.count(
-                    crossAxisCount: crossAxisCount,
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    crossAxisSpacing: 16,
-                    mainAxisSpacing: 16,
-                    childAspectRatio: 2.4,
+                  // ── Grid of setting tiles ────────────────────────────────
+                  AppResponsiveGrid(
+                    minItemWidth: 300,
+                    maxColumns: 3,
                     children: [
                       _SettingsTile(
-                        icon: Icons.medical_services_outlined,
-                        iconColor: AppColor.cAppPrimaryColor,
+                        icon: LucideIcons.stethoscope,
+                        tone: AppTone.primary,
                         title: 'Services',
                         subtitle: 'Add and manage care services offered',
-                        onTap: () =>
-                            Get.toNamed(Routes.servicesManagement),
+                        onTap: () => Get.toNamed(Routes.servicesManagement),
                       ),
                       _SettingsTile(
-                        icon: Icons.account_balance_outlined,
-                        iconColor: AppColor.cPrimaryButtonColor,
+                        icon: LucideIcons.landmark,
+                        tone: AppTone.info,
                         title: 'Branches',
                         subtitle: 'Manage city branch offices',
-                        onTap: () =>
-                            Get.toNamed(Routes.branchManagement),
+                        onTap: () => Get.toNamed(Routes.branchManagement),
                       ),
                       _SettingsTile(
-                        icon: Icons.payments_outlined,
-                        iconColor: AppColor.babyCColor,
+                        icon: LucideIcons.banknote,
+                        tone: AppTone.warning,
                         title: 'HP Payouts',
                         subtitle: 'Track and record caregiver payments',
                         onTap: () => Get.toNamed(Routes.hpPayouts),
                       ),
                       _SettingsTile(
-                        icon: Icons.local_offer_outlined,
-                        iconColor: AppColor.consultCColor,
+                        icon: LucideIcons.ticketPercent,
+                        tone: AppTone.violet,
                         title: 'Coupons & OTP',
-                        subtitle: 'Create discount coupons, retrieve booking OTPs',
+                        subtitle:
+                            'Create discount coupons, retrieve booking OTPs',
                         onTap: () => Get.toNamed(Routes.settingsOtpCoupon),
                       ),
                       _SettingsTile(
-                        icon: Icons.image_outlined,
-                        iconColor: AppColor.careCColor,
+                        icon: LucideIcons.image,
+                        tone: AppTone.success,
                         title: 'Banners',
                         subtitle: 'Manage promotional banners',
                         onTap: () => Get.toNamed(Routes.BANNERS),
                       ),
                       _SettingsTile(
-                        icon: Icons.admin_panel_settings_outlined,
-                        iconColor: AppColor.fontColorGrey,
+                        icon: LucideIcons.shieldUser,
+                        tone: AppTone.neutral,
                         title: 'Roles',
                         subtitle: 'Configure access roles and permissions',
                         onTap: () => Get.toNamed(Routes.ROLE),
                       ),
                       _SettingsTile(
-                        icon: Icons.palette_outlined,
-                        iconColor: AppColor.cPrimaryButtonColor,
+                        icon: LucideIcons.palette,
+                        tone: AppTone.primary,
                         title: 'Appearance',
                         subtitle: 'Theme mode and brand color',
                         onTap: () => Get.toNamed(Routes.appearance),
                       ),
                       _SettingsTile(
-                        icon: Icons.workspace_premium_outlined,
-                        iconColor: Colors.deepPurple,
+                        icon: LucideIcons.award,
+                        tone: AppTone.violet,
                         title: 'Subscription',
                         subtitle: 'View your current plan and features',
                         onTap: () => _showSubscriptionDialog(context),
                       ),
                     ],
-                  );
-                },
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
       ),
@@ -118,72 +111,99 @@ class SettingsView extends GetView<SettingsController> {
     final api = ApiService();
     showDialog(
       context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('Subscription'),
-        content: SizedBox(
-          width: 380,
-          child: FutureBuilder(
-            future: api.getRaw(ApiConstants.getSubscriptionStatus),
-            builder: (_, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const SizedBox(
-                  height: 80,
-                  child: Center(child: CircularProgressIndicator()),
-                );
-              }
-              final data = snapshot.data?.data as Map<String, dynamic>?;
-              if (data == null) {
-                return const Text('Unable to fetch subscription details.');
-              }
-              final planName  = data['plan_name']?.toString()  ?? '—';
-              final status    = data['status']?.toString()      ?? '—';
-              final expiresOn = data['expires_on']?.toString();
-              final features  = data['features'] is Map
-                  ? data['features'] as Map
-                  : <String, dynamic>{};
-
-              return Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _subRow('Plan', planName,
-                      valueColor: Colors.deepPurple),
-                  _subRow('Status', status,
-                      valueColor: status == 'active' ? Colors.green : Colors.orange),
-                  if (expiresOn != null && expiresOn != 'null')
-                    _subRow('Expires', expiresOn),
-                  const SizedBox(height: 12),
-                  const Divider(),
-                  const SizedBox(height: 8),
-                  Text('Features', style: AppTextStyles.regular14Gre),
-                  const SizedBox(height: 8),
-                  ...features.entries.map((e) => _featureRow(
-                        e.key.toString().replaceAll('_', ' '),
-                        e.value == true,
-                      )),
-                ],
-              );
-            },
-          ),
-        ),
+      builder: (_) => AppDialog(
+        title: 'Subscription',
+        subtitle: 'Your current plan and enabled features',
+        icon: LucideIcons.award,
+        tone: AppTone.violet,
+        maxWidth: 440,
         actions: [
-          TextButton(onPressed: () => Get.back(), child: const Text('Close')),
+          OutlinedButton(onPressed: () => Get.back(), child: const Text('Close')),
         ],
+        child: FutureBuilder(
+          future: api.getRaw(ApiConstants.getSubscriptionStatus),
+          builder: (_, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const SizedBox(
+                height: 80,
+                child: Center(child: CircularProgressIndicator()),
+              );
+            }
+            final data = snapshot.data?.data as Map<String, dynamic>?;
+            if (data == null) {
+              return const AppEmptyState(
+                icon: LucideIcons.cloudOff,
+                title: 'Unable to fetch subscription details.',
+                compact: true,
+              );
+            }
+            final planName  = data['plan_name']?.toString()  ?? '—';
+            final status    = data['status']?.toString()      ?? '—';
+            final expiresOn = data['expires_on']?.toString();
+            final features  = data['features'] is Map
+                ? data['features'] as Map
+                : <String, dynamic>{};
+
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _subRow('Plan', Text(
+                  planName,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: AppColor.textPrimary,
+                  ),
+                )),
+                _subRow(
+                  'Status',
+                  AppStatusBadge(
+                    label: humanizeLabel(status),
+                    tone: status == 'active'
+                        ? AppTone.success
+                        : AppTone.warning,
+                  ),
+                ),
+                if (expiresOn != null && expiresOn != 'null')
+                  _subRow('Expires', Text(
+                    expiresOn,
+                    style: TextStyle(fontSize: 14, color: AppColor.textPrimary),
+                  )),
+                const SizedBox(height: 12),
+                Divider(height: 1, color: AppColor.borderSubtle),
+                const SizedBox(height: 16),
+                Text(
+                  'Features',
+                  style: TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w600,
+                    color: AppColor.textTertiary,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                ...features.entries.map((e) => _featureRow(
+                      e.key.toString().replaceAll('_', ' '),
+                      e.value == true,
+                    )),
+              ],
+            );
+          },
+        ),
       ),
     );
   }
 
-  Widget _subRow(String label, String value, {Color? valueColor}) {
+  Widget _subRow(String label, Widget value) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: AppTextStyles.regular14Gre),
-          Text(value,
-              style: TextStyle(
-                  fontWeight: FontWeight.w600,
-                  color: valueColor ?? AppColor.fontColorBlack)),
+          Text(label,
+              style: TextStyle(fontSize: 13.5, color: AppColor.textTertiary)),
+          const SizedBox(width: 12),
+          Flexible(child: value),
         ],
       ),
     );
@@ -191,20 +211,24 @@ class SettingsView extends GetView<SettingsController> {
 
   Widget _featureRow(String name, bool enabled) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 3),
+      padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         children: [
           Icon(
-            enabled ? Icons.check_circle_outline : Icons.cancel_outlined,
+            enabled ? LucideIcons.circleCheck : LucideIcons.circleX,
             size: 16,
-            color: enabled ? Colors.green : AppColor.fontColorGrey,
+            color: enabled ? AppColor.success : AppColor.lightGrey,
           ),
-          const SizedBox(width: 8),
-          Text(
-            name[0].toUpperCase() + name.substring(1),
-            style: TextStyle(
-                fontSize: 13,
-                color: enabled ? AppColor.fontColorBlack : AppColor.fontColorGrey),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              name[0].toUpperCase() + name.substring(1),
+              style: TextStyle(
+                  fontSize: 13.5,
+                  color: enabled
+                      ? AppColor.textPrimary
+                      : AppColor.textTertiary),
+            ),
           ),
         ],
       ),
@@ -217,68 +241,53 @@ class SettingsView extends GetView<SettingsController> {
 class _SettingsTile extends StatelessWidget {
   const _SettingsTile({
     required this.icon,
-    required this.iconColor,
+    required this.tone,
     required this.title,
     required this.subtitle,
     required this.onTap,
   });
 
   final IconData icon;
-  final Color iconColor;
+  final AppTone tone;
   final String title;
   final String subtitle;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: AppColor.whiteColor,
-      borderRadius: BorderRadius.circular(12),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        hoverColor: AppColor.cAppBackgroundColor,
-        child: Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColor.divColor),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: iconColor.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(10),
+    return AppCard(
+      onTap: onTap,
+      padding: const EdgeInsets.all(18),
+      child: Row(
+        children: [
+          AppIconTile(icon: icon, tone: tone, size: 40),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: AppColor.textPrimary,
+                  ),
                 ),
-                child: Icon(icon, color: iconColor, size: 22),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(title,
-                        style: AppTextStyles.regular16
-                            .copyWith(fontWeight: FontWeight.w600)),
-                    const SizedBox(height: 2),
-                    Text(
-                      subtitle,
-                      style: AppTextStyles.regular12Gre,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
+                const SizedBox(height: 2),
+                Text(
+                  subtitle,
+                  style: TextStyle(fontSize: 13, color: AppColor.textTertiary),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
-              ),
-              Icon(Icons.chevron_right_rounded,
-                  color: AppColor.lightGrey, size: 20),
-            ],
+              ],
+            ),
           ),
-        ),
+          const SizedBox(width: 8),
+          Icon(LucideIcons.chevronRight, color: AppColor.lightGrey, size: 20),
+        ],
       ),
     );
   }

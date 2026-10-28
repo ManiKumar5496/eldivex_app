@@ -2,6 +2,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:eldivex_app/app/core/values/color_constants.dart';
+import 'package:eldivex_app/app/widgets/ui/ui.dart';
 import '../../../../routes/app_pages.dart';
 import '../../../../widgets/helper_ui.dart';
 import '../../controllers/credit_note_controller.dart';
@@ -9,6 +10,7 @@ import '../../models/active_booking_client_model.dart';
 import '../../models/credit_note_model.dart';
 import '../../models/parse_utils.dart';
 import '../accounts_format.dart';
+import 'package:eldivex_app/app/core/values/lucide_icons.dart';
 
 /// Applies an Approved credit note to an open invoice
 /// (POST /applyCreditNote { credit_note_id, target_booking_id,
@@ -79,58 +81,173 @@ class _ApplyCreditNoteViewState extends State<ApplyCreditNoteView> {
     return bookingRowsForUser(rows, toIntOrNull(field(own, 'user_id')));
   }
 
+  double get _pad => MediaQuery.sizeOf(context).width < 600 ? 16.0 : 24.0;
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColor.cAppBackgroundColor,
-      appBar: AppBar(
-        backgroundColor: AppColor.whiteColor,
-        elevation: 0,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_new,
-              size: 18, color: AppColor.cPrimaryHeadingColor),
-          onPressed: _back,
-        ),
-        title: Text(
-          'Apply Credit Note',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w600,
-            color: AppColor.cPrimaryHeadingColor,
-          ),
-        ),
-      ),
+      bottomNavigationBar: _resolving
+          ? null
+          : Obx(() {
+              final note = _note;
+              if (note == null || !note.canApply) {
+                return const SizedBox.shrink();
+              }
+              return _actionBar();
+            }),
       body: _resolving
-          ? const Center(child: CircularProgressIndicator())
+          ? _page(
+              child: const Padding(
+                padding: EdgeInsets.symmetric(vertical: 64),
+                child: Center(child: CircularProgressIndicator()),
+              ),
+            )
           : Obx(() {
               final note = _note;
               if (note == null) {
-                return recordNotFound(title: 'Credit note', onBack: _back);
+                return _page(
+                    child: recordNotFound(title: 'Credit note', onBack: _back));
               }
               if (!note.canApply) {
-                return Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(32),
-                    child: Text(
-                      note.isApproved
+                return _page(
+                  child: AppCard(
+                    child: AppEmptyState(
+                      icon: LucideIcons.info,
+                      tone: AppTone.warning,
+                      title: 'This credit note cannot be applied',
+                      message: note.isApproved
                           ? 'CN-${note.id} has no remaining balance to apply.'
                           : 'CN-${note.id} is ${note.status}. Only Approved credit notes can be applied.',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 14, color: AppColor.fontColorGrey),
                     ),
                   ),
                 );
               }
-              return SingleChildScrollView(
-                padding: const EdgeInsets.all(20),
-                child: Center(
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 640),
-                    child: _form(note),
-                  ),
-                ),
+              return _page(
+                child: LayoutBuilder(builder: (context, c) {
+                  if (c.maxWidth < 900) {
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        _summaryCard(note),
+                        const SizedBox(height: 20),
+                        _form(note),
+                      ],
+                    );
+                  }
+                  return Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(child: _form(note)),
+                      const SizedBox(width: 20),
+                      SizedBox(width: 340, child: _summaryCard(note)),
+                    ],
+                  );
+                }),
               );
             }),
+    );
+  }
+
+  Widget _page({required Widget child}) {
+    return SingleChildScrollView(
+      padding: EdgeInsets.all(_pad),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 1100),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              AppPageHeader(
+                title: 'Apply Credit Note',
+                subtitle: 'Settle an open invoice using an approved credit note',
+                breadcrumbs: const ['Accounts', 'Credit Notes'],
+                onBack: _back,
+              ),
+              const SizedBox(height: 24),
+              child,
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _actionBar() {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColor.whiteColor,
+        border: Border(top: BorderSide(color: AppColor.divColor)),
+      ),
+      padding: EdgeInsets.symmetric(horizontal: _pad, vertical: 12),
+      child: SafeArea(
+        top: false,
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 1100),
+            child: Wrap(
+              alignment: WrapAlignment.end,
+              spacing: 12,
+              runSpacing: 8,
+              children: [
+                OutlinedButton(
+                  onPressed: _back,
+                  child: const Text('Cancel'),
+                ),
+                Obx(() => ElevatedButton(
+                      onPressed: ctrl.isSubmitting.value
+                          ? null
+                          : () async {
+                              final ok = await ctrl.applyCreditNote();
+                              if (ok) _back();
+                            },
+                      child: ctrl.isSubmitting.value
+                          ? SizedBox(
+                              height: 18,
+                              width: 18,
+                              child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: AppColor.cAppPrimaryColor),
+                            )
+                          : const Text('Apply Credit'),
+                    )),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _summaryCard(CreditNoteModel note) {
+    return AppCard(
+      title: 'CN-${note.id}',
+      icon: LucideIcons.notebookPen,
+      actions: [AppStatusBadge.status(note.displayStatus)],
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          AppInfoRow(
+            label: 'Available to apply',
+            valueWidget: Text(
+              formatInr(note.available),
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.w700,
+                letterSpacing: -0.4,
+                color: AppColor.textPrimary,
+                fontFeatures: const [FontFeature.tabularFigures()],
+              ),
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'of ${formatInr(note.amount)} issued'
+            '${note.clientName != null ? ' · ${note.clientName}' : ''}',
+            style: TextStyle(fontSize: 13, color: AppColor.textTertiary),
+          ),
+        ],
+      ),
     );
   }
 
@@ -139,8 +256,8 @@ class _ApplyCreditNoteViewState extends State<ApplyCreditNoteView> {
         child: Text(text,
             style: TextStyle(
                 fontSize: 13,
-                fontWeight: FontWeight.w500,
-                color: AppColor.cPrimarySubHeadingColorGrey)),
+                fontWeight: FontWeight.w600,
+                color: AppColor.textSecondary)),
       );
 
   Widget _dropdown<T>({
@@ -149,20 +266,21 @@ class _ApplyCreditNoteViewState extends State<ApplyCreditNoteView> {
     required List<DropdownMenuItem<T>> items,
     required ValueChanged<T?>? onChanged,
   }) {
-    return Container(
-      height: 48,
-      padding: const EdgeInsets.symmetric(horizontal: 14),
-      decoration: BoxDecoration(
-        color: AppColor.fieldColorGrey,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppColor.textFieldBorderColor),
+    return InputDecorator(
+      decoration: InputDecoration(
+        enabled: onChanged != null,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 14),
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<T>(
           isExpanded: true,
           value: value,
           hint: Text(hint,
-              style: TextStyle(fontSize: 14, color: AppColor.fontColorGrey)),
+              style: TextStyle(fontSize: 14, color: AppColor.textTertiary)),
+          icon: Icon(LucideIcons.chevronDown,
+              color: AppColor.textTertiary, size: 18),
+          style: TextStyle(fontSize: 14, color: AppColor.textPrimary),
+          borderRadius: BorderRadius.circular(AppRadius.md),
           items: items,
           onChanged: onChanged,
         ),
@@ -172,26 +290,26 @@ class _ApplyCreditNoteViewState extends State<ApplyCreditNoteView> {
 
   Widget _textField(TextEditingController c, String hint,
       {int maxLines = 1, TextInputType? keyboardType}) {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColor.fieldColorGrey,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppColor.textFieldBorderColor),
-      ),
-      child: TextField(
-        controller: c,
-        maxLines: maxLines,
-        keyboardType: keyboardType,
-        style: const TextStyle(fontSize: 14),
-        decoration: InputDecoration(
-          hintText: hint,
-          hintStyle: TextStyle(fontSize: 14, color: AppColor.fontColorGrey),
-          border: InputBorder.none,
-          contentPadding:
-              const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        ),
-      ),
+    return TextField(
+      controller: c,
+      maxLines: maxLines,
+      keyboardType: keyboardType,
+      style: TextStyle(fontSize: 14, color: AppColor.textPrimary),
+      decoration: InputDecoration(hintText: hint),
     );
+  }
+
+  /// Two columns when the card is wide enough, one on phones.
+  Widget _formGrid(List<Widget> fields) {
+    return LayoutBuilder(builder: (context, c) {
+      final cols = c.maxWidth >= 560 ? 2 : 1;
+      final w = (c.maxWidth - 20 * (cols - 1)) / cols;
+      return Wrap(
+        spacing: 20,
+        runSpacing: 16,
+        children: [for (final f in fields) SizedBox(width: w, child: f)],
+      );
+    });
   }
 
   Widget _form(CreditNoteModel note) {
@@ -201,134 +319,101 @@ class _ApplyCreditNoteViewState extends State<ApplyCreditNoteView> {
         .toSet();
     if (!bookingIds.contains(note.bookingId)) bookingIds.add(note.bookingId);
 
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: AppColor.whiteColor,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColor.divColor),
-      ),
+    return AppCard(
+      title: 'Apply to invoice',
+      subtitle: 'Pick the booking and open invoice to settle',
+      icon: LucideIcons.listChecks,
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Wrap(
-            spacing: 10,
-            runSpacing: 6,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            children: [
-              Text('CN-${note.id}',
-                  style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                      color: AppColor.cPrimaryButtonColor)),
-              accountsStatusChip(note.displayStatus),
-            ],
-          ),
-          const SizedBox(height: 6),
-          Text(
-            'Available: ${formatInr(note.available)} of ${formatInr(note.amount)}'
-            '${note.clientName != null ? ' · ${note.clientName}' : ''}',
-            style: TextStyle(fontSize: 13, color: AppColor.fontColorGrey),
-          ),
-          const Divider(height: 32),
-
-          _label('Target Booking *'),
-          Obx(() => _dropdown<int>(
-                hint: 'Select booking',
-                value: bookingIds.contains(ctrl.selectedTargetBookingId.value)
-                    ? ctrl.selectedTargetBookingId.value
-                    : null,
-                items: bookingIds.map((id) {
-                  final row = bookings.firstWhereOrNull((b) =>
-                      toInt(field(b, 'booking_id'), toInt(field(b, 'id'))) == id);
-                  return DropdownMenuItem<int>(
-                    value: id,
-                    child: Text(row != null ? bookingRowLabel(row) : 'Booking #$id',
-                        overflow: TextOverflow.ellipsis),
+          _formGrid([
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _label('Target Booking *'),
+                Obx(() => _dropdown<int>(
+                      hint: 'Select booking',
+                      value: bookingIds.contains(ctrl.selectedTargetBookingId.value)
+                          ? ctrl.selectedTargetBookingId.value
+                          : null,
+                      items: bookingIds.map((id) {
+                        final row = bookings.firstWhereOrNull((b) =>
+                            toInt(field(b, 'booking_id'), toInt(field(b, 'id'))) ==
+                            id);
+                        return DropdownMenuItem<int>(
+                          value: id,
+                          child: Text(
+                              row != null ? bookingRowLabel(row) : 'Booking #$id',
+                              overflow: TextOverflow.ellipsis),
+                        );
+                      }).toList(),
+                      onChanged: _selectBooking,
+                    )),
+              ],
+            ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _label('Target Invoice *'),
+                Obx(() {
+                  // getInvoices: invoice_db_id = PK, invoice_id = 'INV-<id>'.
+                  final open = ctrl.targetInvoices
+                      .where((inv) => toDouble(field(inv, 'balance_due')) > 0)
+                      .toList();
+                  final ids =
+                      open.map((inv) => toInt(field(inv, 'invoice_db_id'))).toSet();
+                  return _dropdown<int>(
+                    hint: ctrl.isLoading.value
+                        ? 'Loading invoices…'
+                        : (open.isEmpty
+                            ? 'No open invoices for this booking'
+                            : 'Select invoice'),
+                    value: ids.contains(ctrl.selectedTargetInvoiceId.value)
+                        ? ctrl.selectedTargetInvoiceId.value
+                        : null,
+                    items: open.map((inv) {
+                      final id = toInt(field(inv, 'invoice_db_id'));
+                      return DropdownMenuItem<int>(
+                        value: id,
+                        child: Text(
+                          '${toStr(field(inv, 'invoice_id'), 'INV-$id')} — Balance ${formatInr(field(inv, 'balance_due'))}',
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      );
+                    }).toList(),
+                    onChanged: open.isEmpty
+                        ? null
+                        : (id) {
+                            ctrl.selectedTargetInvoiceId.value = id;
+                            final inv = open.firstWhereOrNull(
+                                (i) => toInt(field(i, 'invoice_db_id')) == id);
+                            if (inv != null) {
+                              final suggested = math.min(note.available,
+                                  toDouble(field(inv, 'balance_due')));
+                              ctrl.applyAmountCtrl.text =
+                                  suggested.toStringAsFixed(2);
+                            }
+                          },
                   );
-                }).toList(),
-                onChanged: _selectBooking,
-              )),
-          const SizedBox(height: 18),
-
-          _label('Target Invoice *'),
-          Obx(() {
-            // getInvoices: invoice_db_id = PK, invoice_id = 'INV-<id>'.
-            final open = ctrl.targetInvoices
-                .where((inv) => toDouble(field(inv, 'balance_due')) > 0)
-                .toList();
-            final ids = open.map((inv) => toInt(field(inv, 'invoice_db_id'))).toSet();
-            return _dropdown<int>(
-              hint: ctrl.isLoading.value
-                  ? 'Loading invoices…'
-                  : (open.isEmpty ? 'No open invoices for this booking' : 'Select invoice'),
-              value: ids.contains(ctrl.selectedTargetInvoiceId.value)
-                  ? ctrl.selectedTargetInvoiceId.value
-                  : null,
-              items: open.map((inv) {
-                final id = toInt(field(inv, 'invoice_db_id'));
-                return DropdownMenuItem<int>(
-                  value: id,
-                  child: Text(
-                    '${toStr(field(inv, 'invoice_id'), 'INV-$id')} — Balance ${formatInr(field(inv, 'balance_due'))}',
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                );
-              }).toList(),
-              onChanged: open.isEmpty
-                  ? null
-                  : (id) {
-                      ctrl.selectedTargetInvoiceId.value = id;
-                      final inv = open.firstWhereOrNull(
-                          (i) => toInt(field(i, 'invoice_db_id')) == id);
-                      if (inv != null) {
-                        final suggested = math.min(
-                            note.available, toDouble(field(inv, 'balance_due')));
-                        ctrl.applyAmountCtrl.text = suggested.toStringAsFixed(2);
-                      }
-                    },
-            );
-          }),
-          const SizedBox(height: 18),
-
-          _label('Amount to Apply (₹) *'),
-          _textField(ctrl.applyAmountCtrl, '0.00',
-              keyboardType: const TextInputType.numberWithOptions(decimal: true)),
-          const SizedBox(height: 18),
-
+                }),
+              ],
+            ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _label('Amount to Apply (₹) *'),
+                _textField(ctrl.applyAmountCtrl, '0.00',
+                    keyboardType:
+                        const TextInputType.numberWithOptions(decimal: true)),
+              ],
+            ),
+          ]),
+          const SizedBox(height: 16),
           _label('Notes'),
           _textField(ctrl.applyNotesCtrl, 'Optional notes', maxLines: 2),
-          const SizedBox(height: 28),
-
-          Obx(() => SizedBox(
-                width: double.infinity,
-                height: 48,
-                child: ElevatedButton(
-                  onPressed: ctrl.isSubmitting.value
-                      ? null
-                      : () async {
-                          final ok = await ctrl.applyCreditNote();
-                          if (ok) _back();
-                        },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColor.cPrimaryButtonColor,
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10)),
-                  ),
-                  child: ctrl.isSubmitting.value
-                      ? SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(
-                              strokeWidth: 2, color: AppColor.buttonTextWhite),
-                        )
-                      : Text('Apply Credit',
-                          style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w600,
-                              color: AppColor.buttonTextWhite)),
-                ),
-              )),
         ],
       ),
     );

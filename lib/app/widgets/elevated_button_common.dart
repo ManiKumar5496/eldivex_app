@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:eldivex_app/app/core/values/color_constants.dart';
 
+/// Filled button with a caller-supplied colour. Shape, padding and type come
+/// from the app theme's ElevatedButton style.
 class ElevatedButtonCommon extends StatefulWidget {
-  Color buttonColor;
-  Function() onTap;
-  String buttonText;
-  ElevatedButtonCommon(
+  final Color buttonColor;
+  final Function() onTap;
+  final String buttonText;
+  const ElevatedButtonCommon(
       {super.key,
         required this.buttonColor,
         required this.onTap,
@@ -23,20 +25,10 @@ class _ElevatedButtonCommonState extends State<ElevatedButtonCommon> {
       child: ElevatedButton(
         onPressed: widget.onTap,
         style: ElevatedButton.styleFrom(
-            backgroundColor: widget.buttonColor,
-            // padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 20),
-            textStyle: const TextStyle(
-              fontWeight: FontWeight.normal,
-              fontFamily: "poppins_regular",
-            )),
-        child: Text(
-          widget.buttonText,
-          style: TextStyle(
-            color: AppColor.buttonTextWhite,
-            fontWeight: FontWeight.bold,
-            fontFamily: "poppins_regular",
-          ),
+          backgroundColor: widget.buttonColor,
+          foregroundColor: AppColor.buttonTextWhite,
         ),
+        child: Text(widget.buttonText),
       ),
     );
   }

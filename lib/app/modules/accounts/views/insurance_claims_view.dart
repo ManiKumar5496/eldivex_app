@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:eldivex_app/app/core/values/color_constants.dart';
-import 'package:eldivex_app/app/core/values/text_style_constants.dart';
 import 'package:eldivex_app/app/core/values/size_configue.dart';
+import 'package:eldivex_app/app/widgets/ui/ui.dart';
 import '../../../widgets/common_textfield.dart';
 import '../../../widgets/shimmer_loader.dart';
 import '../controllers/accounts_controller.dart';
 import '../models/insurance_claim_model.dart';
 import 'accounts_format.dart';
+import 'package:eldivex_app/app/core/values/lucide_icons.dart';
 
 class InsuranceClaimsView extends GetView<AccountsController> {
   const InsuranceClaimsView({super.key});
@@ -36,47 +37,87 @@ class InsuranceClaimsView extends GetView<AccountsController> {
     }
     return SizeConfig.adaptiveLayout(
       mobile: _buildMobileLayout(context),
-      tablet: _buildDesktopLayout(),
-      desktop: _buildDesktopLayout(),
+      tablet: _buildDesktopLayout(context),
+      desktop: _buildDesktopLayout(context),
+    );
+  }
+
+  Widget _pageHeader(BuildContext context) {
+    if (accountsIsEmbeddedInTabs(context)) return const SizedBox.shrink();
+    return Padding(
+      padding: EdgeInsets.only(bottom: SizeConfig.isMobile ? 16 : 20),
+      child: const AppPageHeader(
+        title: 'Insurance claims',
+        subtitle: 'Track TPA / insurance claims linked to bookings',
+      ),
     );
   }
 
   Widget _buildMobileLayout(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.transparent,
+      backgroundColor: AppColor.cAppBackgroundColor,
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _showClaimFormSheet(context),
-        backgroundColor: Colors.blue.shade700,
-        icon: Icon(Icons.add, color: AppColor.buttonTextWhite),
-        label: Text('New Claim',
-            style: TextStyle(color: AppColor.buttonTextWhite, fontWeight: FontWeight.w600)),
+        icon: const Icon(LucideIcons.plus),
+        label: const Text('New claim',
+            style: TextStyle(fontWeight: FontWeight.w600)),
       ),
-      body: Column(
-        children: [
-          _buildToolbar(),
-          _buildStatusFilter(),
-          Expanded(child: _buildMobileClaimList()),
-        ],
+      body: Padding(
+        padding: accountsPagePadding(context, bottom: false),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _pageHeader(context),
+            _buildToolbar(),
+            _buildStatusFilter(),
+            Expanded(child: _buildMobileClaimList()),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildDesktopLayout() {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(
-          flex: 3,
-          child: Column(
-            children: [
-              _buildToolbar(),
-              _buildStatusFilter(),
-              Expanded(child: _buildDesktopClaimList()),
-            ],
-          ),
+  Widget _buildDesktopLayout(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColor.cAppBackgroundColor,
+      body: Padding(
+        padding: accountsPagePadding(context),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _pageHeader(context),
+            Expanded(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Expanded(
+                    flex: 3,
+                    child: AppCard(
+                      expandChild: true,
+                      padding: EdgeInsets.zero,
+                      title: 'Claims',
+                      actions: [
+                        _searchField(width: 260),
+                        _refreshButton(),
+                      ],
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          _buildStatusFilter(),
+                          Divider(height: 1, color: AppColor.borderSubtle),
+                          Expanded(child: _buildDesktopClaimList()),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(flex: 2, child: _buildForm()),
+                ],
+              ),
+            ),
+          ],
         ),
-        Expanded(flex: 2, child: _buildForm()),
-      ],
+      ),
     );
   }
 
@@ -84,8 +125,10 @@ class InsuranceClaimsView extends GetView<AccountsController> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      backgroundColor: AppColor.whiteColor,
       shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+          borderRadius:
+              BorderRadius.vertical(top: Radius.circular(AppRadius.xl))),
       builder: (ctx) => DraggableScrollableSheet(
         initialChildSize: 0.9,
         maxChildSize: 0.95,
@@ -103,36 +146,45 @@ class InsuranceClaimsView extends GetView<AccountsController> {
               ),
             ),
             Padding(
-              padding: EdgeInsets.fromLTRB(SizeConfig.pagePadding.left,
-                  SizeConfig.spacingMD, SizeConfig.spacingXS, 0),
+              padding: const EdgeInsets.fromLTRB(16, 12, 8, 12),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Row(children: [
-                    Icon(Icons.health_and_safety,
-                        color: Colors.blue.shade700, size: SizeConfig.iconMD),
-                    SizedBox(width: SizeConfig.spacingXS),
-                    Text('New Insurance Claim',
-                        style: TextStyle(
-                            fontSize: SizeConfig.fontH2,
-                            fontWeight: FontWeight.w600,
-                            color: AppColor.cPrimaryHeadingColor)),
-                  ]),
+                  const AppIconTile(
+                      icon: LucideIcons.heartPulse,
+                      tone: AppTone.info,
+                      size: 38),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text('New insurance claim',
+                            style: TextStyle(
+                                fontSize: 17,
+                                fontWeight: FontWeight.w600,
+                                letterSpacing: -0.2,
+                                color: AppColor.textPrimary)),
+                        const SizedBox(height: 2),
+                        Text('Link a TPA/insurance claim to an active booking',
+                            style: TextStyle(
+                                fontSize: 13, color: AppColor.textTertiary)),
+                      ],
+                    ),
+                  ),
                   IconButton(
-                      icon: const Icon(Icons.close),
+                      tooltip: 'Close',
+                      icon: Icon(LucideIcons.x,
+                          size: 20, color: AppColor.textTertiary),
                       onPressed: () => Navigator.pop(ctx)),
                 ],
               ),
             ),
-            const Divider(),
+            Divider(height: 1, color: AppColor.borderSubtle),
             Expanded(
               child: SingleChildScrollView(
                 controller: scrollCtrl,
-                padding: EdgeInsets.fromLTRB(
-                    SizeConfig.pagePadding.left,
-                    SizeConfig.spacingSM,
-                    SizeConfig.pagePadding.right,
-                    SizeConfig.spacingLG),
+                padding: const EdgeInsets.fromLTRB(16, 20, 16, 32),
                 child: _buildFormContent(),
               ),
             ),
@@ -142,72 +194,48 @@ class InsuranceClaimsView extends GetView<AccountsController> {
     );
   }
 
+  void _onSearch(String q) {
+    final lq = q.toLowerCase();
+    if (q.isEmpty) {
+      controller.filteredClaims.value =
+          List.from(controller.claims);
+    } else {
+      controller.filteredClaims.value =
+          controller.claims.where((c) {
+        return (c.clientName ?? '').toLowerCase().contains(lq) ||
+            (c.clientMobile ?? '').contains(q) ||
+            (c.patientName ?? '').toLowerCase().contains(lq) ||
+            c.bookingId.toString().contains(q) ||
+            (c.tpaName ?? '').toLowerCase().contains(lq) ||
+            (c.policyNumber ?? '').contains(q);
+      }).toList();
+    }
+  }
+
+  Widget _searchField({double? width}) {
+    return AppSearchField(
+      onChanged: _onSearch,
+      hint: 'Search by client, TPA, policy number…',
+      width: width,
+    );
+  }
+
+  Widget _refreshButton() {
+    return accountsToolbarIconButton(
+      icon: LucideIcons.refreshCw,
+      tooltip: 'Refresh',
+      onPressed: () => controller.fetchInsuranceClaims(),
+    );
+  }
+
+  /// Mobile toolbar: search + refresh.
   Widget _buildToolbar() {
-    return Padding(
-      padding: EdgeInsets.fromLTRB(SizeConfig.pagePadding.left,
-          SizeConfig.spacingMD, SizeConfig.spacingSM, 0),
-      child: Row(
-        children: [
-          Expanded(
-            child: Container(
-              height: 44,
-              decoration: BoxDecoration(
-                color: AppColor.whiteColor,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColor.textFieldBorderColor),
-              ),
-              child: TextField(
-                onChanged: (q) {
-                  final lq = q.toLowerCase();
-                  if (q.isEmpty) {
-                    controller.filteredClaims.value =
-                        List.from(controller.claims);
-                  } else {
-                    controller.filteredClaims.value =
-                        controller.claims.where((c) {
-                      return (c.clientName ?? '').toLowerCase().contains(lq) ||
-                          (c.clientMobile ?? '').contains(q) ||
-                          (c.patientName ?? '').toLowerCase().contains(lq) ||
-                          c.bookingId.toString().contains(q) ||
-                          (c.tpaName ?? '').toLowerCase().contains(lq) ||
-                          (c.policyNumber ?? '').contains(q);
-                    }).toList();
-                  }
-                },
-                style: TextStyle(fontSize: SizeConfig.fontBody),
-                decoration: InputDecoration(
-                  hintText: 'Search by client, TPA, policy number...',
-                  hintStyle: TextStyle(
-                      color: AppColor.fontColorGrey, fontSize: SizeConfig.fontBody),
-                  prefixIcon: Icon(Icons.search,
-                      color: AppColor.fontColorGrey, size: SizeConfig.iconMD),
-                  border: InputBorder.none,
-                  contentPadding: const EdgeInsets.symmetric(vertical: 12),
-                ),
-              ),
-            ),
-          ),
-          SizedBox(width: SizeConfig.spacingXS),
-          Tooltip(
-            message: 'Refresh',
-            child: InkWell(
-              onTap: () => controller.fetchInsuranceClaims(),
-              borderRadius: BorderRadius.circular(10),
-              child: Container(
-                height: 44,
-                width: 44,
-                decoration: BoxDecoration(
-                  color: AppColor.whiteColor,
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: AppColor.textFieldBorderColor),
-                ),
-                child: Icon(Icons.refresh,
-                    color: AppColor.cPrimaryButtonColor, size: SizeConfig.iconMD),
-              ),
-            ),
-          ),
-        ],
-      ),
+    return Row(
+      children: [
+        Expanded(child: _searchField()),
+        const SizedBox(width: 8),
+        _refreshButton(),
+      ],
     );
   }
 
@@ -217,15 +245,15 @@ class InsuranceClaimsView extends GetView<AccountsController> {
     ];
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
-      padding: EdgeInsets.symmetric(
-          horizontal: SizeConfig.pagePadding.left, vertical: SizeConfig.spacingSM),
+      padding: SizeConfig.isMobile
+          ? const EdgeInsets.symmetric(vertical: 12)
+          : const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
       child: Row(
         children: statuses.map((s) {
           return Padding(
-            padding: EdgeInsets.only(right: SizeConfig.spacingSM),
+            padding: const EdgeInsets.only(right: 8),
             child: FilterChip(
-              label: Text(s,
-                  style: TextStyle(fontSize: SizeConfig.fontBody)),
+              label: Text(s),
               selected: false,
               onSelected: (_) {
                 if (s == 'All') {
@@ -236,14 +264,8 @@ class InsuranceClaimsView extends GetView<AccountsController> {
                       controller.claims.where((c) => c.status == s).toList();
                 }
               },
-              backgroundColor: AppColor.whiteColor,
-              labelStyle: TextStyle(color: AppColor.fontColorGrey),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-                side: BorderSide(color: AppColor.textFieldBorderColor),
-              ),
-              padding: EdgeInsets.symmetric(
-                  horizontal: SizeConfig.spacingXS, vertical: SizeConfig.spacingXS / 2),
+              labelStyle:
+                  TextStyle(fontSize: 13, color: AppColor.textSecondary),
             ),
           );
         }).toList(),
@@ -257,32 +279,14 @@ class InsuranceClaimsView extends GetView<AccountsController> {
         return const ShimmerLoader.table();
       }
       if (controller.filteredClaims.isEmpty) {
-        return Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.health_and_safety_outlined,
-                  size: 64, color: AppColor.divColor),
-              SizedBox(height: SizeConfig.spacingSM),
-              Text('No insurance claims found',
-                  style: AppTextStyles.regular16Gre),
-              SizedBox(height: SizeConfig.spacingXS),
-              Text(
-                'Tap the button below to add\na new insurance claim.',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                    fontSize: SizeConfig.fontBody, color: AppColor.fontColorGrey),
-              ),
-            ],
-          ),
+        return const AppEmptyState(
+          icon: LucideIcons.heartPulse,
+          title: 'No insurance claims found',
+          message: 'Tap the button below to add a new insurance claim.',
         );
       }
       return ListView.builder(
-        padding: EdgeInsets.fromLTRB(
-            SizeConfig.pagePadding.left,
-            SizeConfig.spacingXS,
-            SizeConfig.pagePadding.right,
-            80),
+        padding: const EdgeInsets.only(bottom: 88),
         itemCount: controller.filteredClaims.length,
         itemBuilder: (_, i) =>
             _buildMobileClaimCard(controller.filteredClaims[i]),
@@ -290,170 +294,125 @@ class InsuranceClaimsView extends GetView<AccountsController> {
     });
   }
 
+  Widget _labelValue(String label, Widget value) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label,
+            style: TextStyle(fontSize: 12, color: AppColor.textTertiary)),
+        const SizedBox(height: 2),
+        value,
+      ],
+    );
+  }
+
   Widget _buildMobileClaimCard(InsuranceClaimModel claim) {
-    final statusColor = _statusColor(claim.status);
     final nextList = _nextStatuses(claim.status);
-    return Container(
-      margin: EdgeInsets.only(bottom: SizeConfig.spacingSM),
-      padding: SizeConfig.cardPadding,
-      decoration: BoxDecoration(
-        color: AppColor.whiteColor,
-        borderRadius: BorderRadius.circular(SizeConfig.radiusMD),
-        border: Border.all(color: AppColor.divColor),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 6,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Row 1: Booking # + Status chip
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text('Booking #${claim.bookingId}',
-                  style: TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: SizeConfig.fontBody,
-                      color: AppColor.cPrimaryButtonColor)),
-              Container(
-                padding: EdgeInsets.symmetric(
-                    horizontal: SizeConfig.spacingSM,
-                    vertical: SizeConfig.spacingXS),
-                decoration: BoxDecoration(
-                  color: statusColor.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(claim.status,
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: AppCard(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Row 1: Booking # + Status chip
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('Booking #${claim.bookingId}',
                     style: TextStyle(
-                        color: statusColor,
-                        fontSize: SizeConfig.fontCaption,
-                        fontWeight: FontWeight.w500)),
-              ),
-            ],
-          ),
-          Divider(height: SizeConfig.spacingLG, color: AppColor.fieldColorGrey),
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14,
+                        color: AppColor.cPrimaryButtonColor)),
+                accountsStatusChip(claim.status),
+              ],
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              child: Divider(height: 1, color: AppColor.borderSubtle),
+            ),
 
-          // Row 2: Client / Patient
-          Text(claim.clientName ?? '-',
-              style: TextStyle(
-                  fontWeight: FontWeight.w600, fontSize: SizeConfig.fontBody)),
-          Text(claim.patientName ?? '-',
-              style: TextStyle(
-                  fontSize: SizeConfig.fontCaption,
-                  color: AppColor.fontColorGrey)),
-          SizedBox(height: SizeConfig.spacingSM),
+            // Row 2: Client / Patient
+            accountsCellStack(claim.clientName ?? '-',
+                subtitle: claim.patientName ?? '-'),
+            const SizedBox(height: 12),
 
-          // Row 3: TPA + Policy #
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('TPA',
-                        style: TextStyle(
-                            fontSize: SizeConfig.fontCaption,
-                            color: AppColor.fontColorGrey)),
+            // Row 3: TPA + Policy #
+            Row(
+              children: [
+                Expanded(
+                  child: _labelValue(
+                    'TPA',
                     Text(claim.tpaName ?? '-',
-                        style:
-                            TextStyle(fontSize: SizeConfig.fontBody, fontWeight: FontWeight.w500),
-                        overflow: TextOverflow.ellipsis),
-                  ],
-                ),
-              ),
-              SizedBox(width: SizeConfig.spacingMD),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Policy #',
                         style: TextStyle(
-                            fontSize: SizeConfig.fontCaption,
-                            color: AppColor.fontColorGrey)),
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: AppColor.textPrimary),
+                        overflow: TextOverflow.ellipsis),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: _labelValue(
+                    'Policy #',
                     Text(claim.policyNumber ?? '-',
-                        style: TextStyle(fontSize: SizeConfig.fontBody),
-                        overflow: TextOverflow.ellipsis),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          SizedBox(height: SizeConfig.spacingSM),
-
-          // Row 4: Claim Amount + Settled Amount
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Claim Amount',
                         style: TextStyle(
-                            fontSize: SizeConfig.fontCaption,
-                            color: AppColor.fontColorGrey)),
+                            fontSize: 14, color: AppColor.textPrimary),
+                        overflow: TextOverflow.ellipsis),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+
+            // Row 4: Claim Amount + Settled Amount
+            Row(
+              children: [
+                Expanded(
+                  child: _labelValue(
+                    'Claim Amount',
                     Text(
                       claim.claimAmount != null
                           ? controller.formatCurrency(claim.claimAmount!)
                           : '-',
-                      style: TextStyle(
-                          fontSize: SizeConfig.fontH3,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.teal),
+                      style: accountsAmountStyle(
+                          fontSize: 17, fontWeight: FontWeight.w700),
                     ),
-                  ],
+                  ),
                 ),
-              ),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Settled',
-                        style: TextStyle(
-                            fontSize: SizeConfig.fontCaption,
-                            color: AppColor.fontColorGrey)),
+                Expanded(
+                  child: _labelValue(
+                    'Settled',
                     Text(
                       claim.settledAmount != null
                           ? controller.formatCurrency(claim.settledAmount!)
                           : '-',
-                      style: TextStyle(
-                          fontSize: SizeConfig.fontBody,
-                          fontWeight: FontWeight.w600,
+                      style: accountsAmountStyle(
+                          fontSize: 14,
                           color: claim.settledAmount != null
-                              ? Colors.green
-                              : AppColor.fontColorGrey),
+                              ? AppColor.success
+                              : AppColor.textTertiary),
                     ),
-                  ],
+                  ),
+                ),
+              ],
+            ),
+
+            // Bottom: Status action button
+            if (nextList.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () =>
+                      _showStatusActionsSheet(claim, nextList),
+                  icon: const Icon(LucideIcons.refreshCw, size: 18),
+                  label: const Text('Update status'),
                 ),
               ),
             ],
-          ),
-
-          // Bottom: Status action button
-          if (nextList.isNotEmpty) ...[
-            Divider(height: SizeConfig.spacingLG, color: AppColor.fieldColorGrey),
-            SizedBox(
-              width: double.infinity,
-              height: 44,
-              child: OutlinedButton.icon(
-                onPressed: () =>
-                    _showStatusActionsSheet(claim, nextList),
-                icon: Icon(Icons.update, size: SizeConfig.iconSM),
-                label: Text('Update Status',
-                    style: TextStyle(fontSize: SizeConfig.fontBody)),
-                style: OutlinedButton.styleFrom(
-                  shape: RoundedRectangleBorder(
-                      borderRadius:
-                          BorderRadius.circular(SizeConfig.radiusSM)),
-                ),
-              ),
-            ),
           ],
-        ],
+        ),
       ),
     );
   }
@@ -462,42 +421,45 @@ class InsuranceClaimsView extends GetView<AccountsController> {
       InsuranceClaimModel claim, List<String> nextList) {
     showModalBottomSheet(
       context: Get.context!,
+      backgroundColor: AppColor.whiteColor,
       shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+          borderRadius:
+              BorderRadius.vertical(top: Radius.circular(AppRadius.xl))),
       builder: (ctx) => Column(
         mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Container(
-            width: 40,
-            height: 4,
-            margin: const EdgeInsets.only(top: 12, bottom: 8),
-            decoration: BoxDecoration(
-              color: AppColor.divColor,
-              borderRadius: BorderRadius.circular(2),
+          Center(
+            child: Container(
+              width: 40,
+              height: 4,
+              margin: const EdgeInsets.only(top: 12, bottom: 8),
+              decoration: BoxDecoration(
+                color: AppColor.divColor,
+                borderRadius: BorderRadius.circular(2),
+              ),
             ),
           ),
           Padding(
-            padding: EdgeInsets.symmetric(
-                horizontal: SizeConfig.pagePadding.left,
-                vertical: SizeConfig.spacingSM),
-            child: Text('Update Claim Status',
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+            child: Text('Update claim status',
                 style: TextStyle(
-                    fontSize: SizeConfig.fontH3,
-                    fontWeight: FontWeight.w600)),
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: AppColor.textPrimary)),
           ),
-          const Divider(height: 1),
+          Divider(height: 1, color: AppColor.borderSubtle),
+          const SizedBox(height: 4),
           ...nextList.map((s) => ListTile(
                 leading: Icon(_statusIcon(s),
-                    color: _statusColor(s), size: SizeConfig.iconMD),
+                    color: _statusColor(s), size: 20),
                 title: Text(s,
                     style: TextStyle(
-                        fontSize: SizeConfig.fontBody,
-                        fontWeight: FontWeight.w500,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
                         color: _statusColor(s))),
-                minLeadingWidth: 32,
-                contentPadding: EdgeInsets.symmetric(
-                    horizontal: SizeConfig.pagePadding.left,
-                    vertical: SizeConfig.spacingXS),
+                minLeadingWidth: 28,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16),
                 onTap: () {
                   Navigator.pop(ctx);
                   if (s == 'Settled') {
@@ -507,7 +469,7 @@ class InsuranceClaimsView extends GetView<AccountsController> {
                   }
                 },
               )),
-          SizedBox(height: SizeConfig.spacingMD),
+          const SizedBox(height: 16),
         ],
       ),
     );
@@ -519,64 +481,29 @@ class InsuranceClaimsView extends GetView<AccountsController> {
         return const ShimmerLoader.table();
       }
       if (controller.filteredClaims.isEmpty) {
-        return Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.health_and_safety_outlined,
-                  size: 64, color: AppColor.divColor),
-              SizedBox(height: SizeConfig.spacingSM),
-              Text('No insurance claims found',
-                  style: AppTextStyles.regular16Gre),
-              SizedBox(height: SizeConfig.spacingXS),
-              Text(
-                'Use the form on the right to link\na TPA/insurance claim to a booking.',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                    fontSize: SizeConfig.fontBody, color: AppColor.fontColorGrey),
-              ),
-            ],
-          ),
+        return const AppEmptyState(
+          icon: LucideIcons.heartPulse,
+          title: 'No insurance claims found',
+          message:
+              'Use the form on the right to link a TPA/insurance claim to a booking.',
         );
       }
       return SingleChildScrollView(
-        padding: EdgeInsets.only(
-            left: SizeConfig.pagePadding.left,
-            right: SizeConfig.spacingSM,
-            bottom: SizeConfig.spacingLG),
-        child: Container(
-          width: double.infinity,
-          decoration: BoxDecoration(
-            color: AppColor.whiteColor,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColor.divColor),
-          ),
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: DataTable(
-              headingRowColor: WidgetStateProperty.all(AppColor.fieldColorGrey),
-              headingTextStyle: TextStyle(
-                fontWeight: FontWeight.w600,
-                fontSize: SizeConfig.fontBodySmall,
-                color: AppColor.cPrimaryHeadingColor,
-              ),
-              dataTextStyle: TextStyle(fontSize: SizeConfig.fontBodySmall),
-              columnSpacing: SizeConfig.spacingMD,
-              horizontalMargin: SizeConfig.spacingMD,
-              columns: const [
-                DataColumn(label: Text('Booking')),
-                DataColumn(label: Text('Client / Patient')),
-                DataColumn(label: Text('TPA')),
-                DataColumn(label: Text('Policy #')),
-                DataColumn(label: Text('Claim Amt')),
-                DataColumn(label: Text('Settled')),
-                DataColumn(label: Text('Status')),
-                DataColumn(label: Text('Action')),
-              ],
-              rows: controller.filteredClaims
-                  .map((claim) => _buildRow(claim))
-                  .toList(),
-            ),
+        child: horizontalTable(
+          DataTable(
+            columns: const [
+              DataColumn(label: Text('Booking')),
+              DataColumn(label: Text('Client / Patient')),
+              DataColumn(label: Text('TPA')),
+              DataColumn(label: Text('Policy #')),
+              DataColumn(label: Text('Claim Amt'), numeric: true),
+              DataColumn(label: Text('Settled'), numeric: true),
+              DataColumn(label: Text('Status')),
+              DataColumn(label: Text('Action')),
+            ],
+            rows: controller.filteredClaims
+                .map((claim) => _buildRow(claim))
+                .toList(),
           ),
         ),
       );
@@ -584,70 +511,46 @@ class InsuranceClaimsView extends GetView<AccountsController> {
   }
 
   DataRow _buildRow(InsuranceClaimModel claim) {
-    final statusColor = _statusColor(claim.status);
     final nextList = _nextStatuses(claim.status);
     return DataRow(cells: [
       DataCell(Text('#${claim.bookingId}',
-          style: AppTextStyles.regular14black)),
-      DataCell(Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(claim.clientName ?? '-',
-              style: TextStyle(
-                  fontWeight: FontWeight.w500,
-                  fontSize: SizeConfig.fontBodySmall)),
-          Text(claim.patientName ?? '-',
-              style: TextStyle(
-                  fontSize: SizeConfig.fontCaption,
-                  color: AppColor.fontColorGrey)),
-        ],
-      )),
-      DataCell(Text(claim.tpaName ?? '-',
-          style: TextStyle(fontSize: SizeConfig.fontBodySmall))),
+          style: TextStyle(
+              fontWeight: FontWeight.w600,
+              color: AppColor.cPrimaryButtonColor))),
+      DataCell(accountsCellStack(claim.clientName ?? '-',
+          subtitle: claim.patientName ?? '-')),
+      DataCell(Text(claim.tpaName ?? '-')),
       DataCell(Text(claim.policyNumber ?? '-',
-          style: TextStyle(fontSize: SizeConfig.fontBodySmall))),
+          style: TextStyle(color: AppColor.textSecondary))),
       DataCell(Text(
         claim.claimAmount != null
             ? controller.formatCurrency(claim.claimAmount!)
             : '-',
-        style: TextStyle(
-            fontWeight: FontWeight.w600, fontSize: SizeConfig.fontBodySmall),
+        style: accountsAmountStyle(),
       )),
       DataCell(Text(
         claim.settledAmount != null
             ? controller.formatCurrency(claim.settledAmount!)
             : '-',
-        style: TextStyle(
-            fontSize: SizeConfig.fontBodySmall,
-            color: claim.settledAmount != null ? Colors.green : AppColor.fontColorGrey),
+        style: accountsAmountStyle(
+            fontWeight: FontWeight.w400,
+            color: claim.settledAmount != null
+                ? AppColor.success
+                : AppColor.textTertiary),
       )),
-      DataCell(Container(
-        padding: EdgeInsets.symmetric(
-            horizontal: SizeConfig.spacingSM, vertical: 4),
-        decoration: BoxDecoration(
-          color: statusColor.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Text(claim.status,
-            style: TextStyle(
-                color: statusColor,
-                fontSize: SizeConfig.fontCaption,
-                fontWeight: FontWeight.w500)),
-      )),
+      DataCell(accountsStatusChip(claim.status)),
       DataCell(nextList.isEmpty
-          ? Icon(Icons.lock_outline,
-              size: SizeConfig.iconSM, color: AppColor.lightGrey)
+          ? Icon(LucideIcons.lock,
+              size: 18, color: AppColor.lightGrey)
           : _buildStatusActions(claim, nextList)),
     ]);
   }
 
   Widget _buildStatusActions(InsuranceClaimModel claim, List<String> nextList) {
     return PopupMenuButton<String>(
-      icon: Icon(Icons.more_vert,
-          color: AppColor.fontColorGrey, size: SizeConfig.iconMD),
-      shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(SizeConfig.radiusSM)),
+      tooltip: 'Update status',
+      icon: Icon(LucideIcons.ellipsis,
+          color: AppColor.textTertiary, size: 20),
       onSelected: (newStatus) {
         if (newStatus == 'Settled') {
           _showSettleDialog(claim);
@@ -660,9 +563,9 @@ class InsuranceClaimsView extends GetView<AccountsController> {
           value: s,
           child: Row(
             children: [
-              Icon(_statusIcon(s), size: SizeConfig.iconSM, color: _statusColor(s)),
-              SizedBox(width: SizeConfig.spacingXS),
-              Text(s, style: TextStyle(fontSize: SizeConfig.fontBody)),
+              Icon(_statusIcon(s), size: 18, color: _statusColor(s)),
+              const SizedBox(width: 10),
+              Text(s),
             ],
           ),
         );
@@ -673,83 +576,45 @@ class InsuranceClaimsView extends GetView<AccountsController> {
   IconData _statusIcon(String status) {
     switch (status.toLowerCase()) {
       case 'submitted':
-        return Icons.upload_file;
+        return LucideIcons.fileUp;
       case 'approved':
-        return Icons.verified;
+        return LucideIcons.badgeCheck;
       case 'rejected':
-        return Icons.cancel;
+        return LucideIcons.circleX;
       case 'settled':
-        return Icons.paid;
+        return LucideIcons.badgeIndianRupee;
       default:
-        return Icons.circle;
+        return LucideIcons.circle;
     }
   }
 
-  void _confirmStatusUpdate(InsuranceClaimModel claim, String newStatus) {
-    Get.dialog(AlertDialog(
-      shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(SizeConfig.radiusMD)),
-      title: Text('Update Claim Status',
-          style: TextStyle(
-              fontSize: SizeConfig.fontH3,
-              fontWeight: FontWeight.w600,
-              color: AppColor.cPrimaryHeadingColor)),
-      content: Text(
-          'Mark claim for booking #${claim.bookingId} as "$newStatus"?',
-          style: TextStyle(fontSize: SizeConfig.fontBody)),
-      actions: [
-        TextButton(
-          onPressed: () => Get.back(),
-          child: Text('Cancel',
-              style: TextStyle(color: AppColor.fontColorGrey)),
-        ),
-        ElevatedButton(
-          onPressed: () {
-            Get.back();
-            controller.updateClaimStatus(claim.id, newStatus);
-          },
-          style: ElevatedButton.styleFrom(
-            backgroundColor: _statusColor(newStatus),
-            shape: RoundedRectangleBorder(
-                borderRadius:
-                    BorderRadius.circular(SizeConfig.radiusSM)),
-          ),
-          child: Text(newStatus,
-              style: TextStyle(color: AppColor.buttonTextWhite)),
-        ),
-      ],
-    ));
+  Future<void> _confirmStatusUpdate(
+      InsuranceClaimModel claim, String newStatus) async {
+    final confirmed = await showAppConfirmDialog(
+      title: 'Update Claim Status',
+      message: 'Mark claim for booking #${claim.bookingId} as "$newStatus"?',
+      confirmLabel: newStatus,
+      tone: newStatus.toLowerCase() == 'rejected'
+          ? AppTone.danger
+          : AppTone.primary,
+      icon: _statusIcon(newStatus),
+    );
+    if (confirmed) {
+      controller.updateClaimStatus(claim.id, newStatus);
+    }
   }
 
   void _showSettleDialog(InsuranceClaimModel claim) {
     final amtCtrl = TextEditingController(
         text: claim.claimAmount?.toStringAsFixed(2) ?? '');
-    Get.dialog(AlertDialog(
-      shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(SizeConfig.radiusMD)),
-      title: Text('Settle Insurance Claim',
-          style: TextStyle(
-              fontSize: SizeConfig.fontH3, fontWeight: FontWeight.w600)),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Booking #${claim.bookingId} | ${claim.tpaName ?? ''}',
-              style: TextStyle(
-                  fontSize: SizeConfig.fontBodySmall,
-                  color: AppColor.fontColorGrey)),
-          SizedBox(height: SizeConfig.spacingMD),
-          CommonTextField(
-            label: 'Settled Amount',
-            hint: 'Enter final settled amount',
-            controller: amtCtrl,
-            keyboardType: TextInputType.number,
-            isMandatory: true,
-          ),
-        ],
-      ),
+    Get.dialog(AppDialog(
+      title: 'Settle Insurance Claim',
+      subtitle: 'Booking #${claim.bookingId} | ${claim.tpaName ?? ''}',
+      icon: LucideIcons.badgeIndianRupee,
+      tone: AppTone.success,
+      maxWidth: 440,
       actions: [
-        TextButton(
+        OutlinedButton(
           onPressed: () => Get.back(),
           child: const Text('Cancel'),
         ),
@@ -760,29 +625,26 @@ class InsuranceClaimsView extends GetView<AccountsController> {
             controller.updateClaimStatus(claim.id, 'Settled',
                 settledAmount: amount);
           },
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.green,
-            shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(SizeConfig.radiusSM)),
-          ),
-          child: Text('Mark Settled',
-              style: TextStyle(color: AppColor.buttonTextWhite)),
+          child: const Text('Mark settled'),
         ),
       ],
+      child: CommonTextField(
+        label: 'Settled Amount',
+        hint: 'Enter final settled amount',
+        controller: amtCtrl,
+        keyboardType: TextInputType.number,
+        isMandatory: true,
+      ),
     ));
   }
 
   Widget _buildForm() {
     return SingleChildScrollView(
-      padding: EdgeInsets.fromLTRB(SizeConfig.spacingXS, SizeConfig.spacingMD,
-          SizeConfig.pagePadding.right, SizeConfig.spacingLG),
-      child: Container(
-        padding: SizeConfig.cardPadding,
-        decoration: BoxDecoration(
-          color: AppColor.whiteColor,
-          borderRadius: BorderRadius.circular(SizeConfig.radiusMD),
-          border: Border.all(color: AppColor.divColor),
-        ),
+      child: AppCard(
+        title: 'New insurance claim',
+        subtitle: 'Link a TPA/insurance claim to an active booking',
+        icon: LucideIcons.heartPulse,
+        iconTone: AppTone.info,
         child: _buildFormContent(),
       ),
     );
@@ -792,39 +654,22 @@ class InsuranceClaimsView extends GetView<AccountsController> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            Icon(Icons.health_and_safety,
-                color: Colors.blue.shade700, size: SizeConfig.iconMD),
-            SizedBox(width: SizeConfig.spacingXS),
-            Text('New Insurance Claim',
-                style: TextStyle(
-                    fontSize: SizeConfig.fontH3,
-                    fontWeight: FontWeight.w600,
-                    color: AppColor.cPrimaryHeadingColor)),
-          ],
-        ),
-        SizedBox(height: SizeConfig.spacingXS),
-        Text('Link a TPA/insurance claim to an active booking',
-            style: TextStyle(
-                fontSize: SizeConfig.fontBodySmall,
-                color: AppColor.fontColorGrey)),
-        Divider(height: SizeConfig.spacingLG),
-
         // Client selector
         Obx(() {
           final client = controller.selectedClientForClaim.value;
           if (client != null) {
             return Container(
-              padding: SizeConfig.cardPadding,
-              margin: EdgeInsets.only(bottom: SizeConfig.spacingMD),
+              padding: const EdgeInsets.fromLTRB(14, 12, 4, 12),
+              margin: const EdgeInsets.only(bottom: 16),
               decoration: BoxDecoration(
-                color: Colors.blue.shade50,
-                borderRadius: BorderRadius.circular(SizeConfig.radiusSM),
-                border: Border.all(color: Colors.blue.shade100),
+                color: AppColor.surfaceMuted,
+                borderRadius: BorderRadius.circular(AppRadius.md),
+                border: Border.all(color: AppColor.borderSubtle),
               ),
               child: Row(
                 children: [
+                  AppAvatar(name: client.clientName, size: 36),
+                  const SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -832,18 +677,21 @@ class InsuranceClaimsView extends GetView<AccountsController> {
                         Text(client.clientName,
                             style: TextStyle(
                                 fontWeight: FontWeight.w600,
-                                fontSize: SizeConfig.fontBody)),
-                        SizedBox(height: SizeConfig.spacingXS),
+                                fontSize: 14,
+                                color: AppColor.textPrimary)),
+                        const SizedBox(height: 2),
                         Text(
                             'Booking #${client.bookingId} | ${client.patientName} | ${client.serviceName}',
                             style: TextStyle(
-                                fontSize: SizeConfig.fontBodySmall,
-                                color: AppColor.fontColorGrey)),
+                                fontSize: 12.5,
+                                color: AppColor.textTertiary)),
                       ],
                     ),
                   ),
                   IconButton(
-                    icon: Icon(Icons.close, size: SizeConfig.iconSM),
+                    tooltip: 'Clear selection',
+                    icon: Icon(LucideIcons.x,
+                        size: 18, color: AppColor.textTertiary),
                     onPressed: () =>
                         controller.selectedClientForClaim.value = null,
                   ),
@@ -854,53 +702,32 @@ class InsuranceClaimsView extends GetView<AccountsController> {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                children: [
-                  Text('Booking / Client',
+              accountsFieldLabel('Booking / Client', required: true),
+              accountsDropdownShell(
+                child: DropdownButton<int>(
+                  icon: const Icon(LucideIcons.chevronDown, size: 18),
+                  isExpanded: true,
+                  hint: Text('Select active booking',
                       style: TextStyle(
-                          fontSize: SizeConfig.fontBody,
-                          fontWeight: FontWeight.w500,
-                          color: AppColor.cPrimarySubHeadingColorGrey)),
-                  Text(' *',
-                      style: TextStyle(
-                          color: Colors.red, fontSize: SizeConfig.fontBody)),
-                ],
-              ),
-              SizedBox(height: SizeConfig.spacingXS),
-              Container(
-                height: 44,
-                padding:
-                    EdgeInsets.symmetric(horizontal: SizeConfig.spacingSM),
-                decoration: BoxDecoration(
-                  color: AppColor.whiteColor,
-                  borderRadius: BorderRadius.circular(SizeConfig.radiusSM),
-                  border: Border.all(color: AppColor.textFieldBorderColor),
-                ),
-                child: DropdownButtonHideUnderline(
-                  child: DropdownButton<int>(
-                    isExpanded: true,
-                    hint: Text('Select active booking',
-                        style: TextStyle(
-                            color: AppColor.fontColorGrey,
-                            fontSize: SizeConfig.fontBody)),
-                    items: controller.activeClients.map((c) {
-                      return DropdownMenuItem(
-                        value: c.id,
-                        child: Text('${c.clientName} — #${c.bookingId}',
-                            style: TextStyle(fontSize: SizeConfig.fontBody)),
-                      );
-                    }).toList(),
-                    onChanged: (id) {
-                      final c = controller.activeClients
-                          .firstWhereOrNull((cl) => cl.id == id);
-                      if (c != null) {
-                        controller.selectedClientForClaim.value = c;
-                      }
-                    },
-                  ),
+                          color: AppColor.textTertiary, fontSize: 14)),
+                  items: controller.activeClients.map((c) {
+                    return DropdownMenuItem(
+                      value: c.id,
+                      child: Text('${c.clientName} — #${c.bookingId}',
+                          style: TextStyle(
+                              fontSize: 14, color: AppColor.textPrimary)),
+                    );
+                  }).toList(),
+                  onChanged: (id) {
+                    final c = controller.activeClients
+                        .firstWhereOrNull((cl) => cl.id == id);
+                    if (c != null) {
+                      controller.selectedClientForClaim.value = c;
+                    }
+                  },
                 ),
               ),
-              SizedBox(height: SizeConfig.spacingMD),
+              const SizedBox(height: 16),
             ],
           );
         }),
@@ -911,21 +738,21 @@ class InsuranceClaimsView extends GetView<AccountsController> {
           controller: controller.claimTpaNameController,
           isMandatory: true,
         ),
-        SizedBox(height: SizeConfig.spacingMD),
+        const SizedBox(height: 16),
 
         CommonTextField(
           label: 'Policy Number',
           hint: 'Enter policy number',
           controller: controller.claimPolicyNumberController,
         ),
-        SizedBox(height: SizeConfig.spacingMD),
+        const SizedBox(height: 16),
 
         CommonTextField(
           label: 'Pre-Auth / Reference Number',
           hint: 'Enter pre-authorisation number (if any)',
           controller: controller.claimPreAuthController,
         ),
-        SizedBox(height: SizeConfig.spacingMD),
+        const SizedBox(height: 16),
 
         CommonTextField(
           label: 'Claim Amount',
@@ -934,7 +761,7 @@ class InsuranceClaimsView extends GetView<AccountsController> {
           keyboardType: TextInputType.number,
           isMandatory: true,
         ),
-        SizedBox(height: SizeConfig.spacingMD),
+        const SizedBox(height: 16),
 
         CommonTextField(
           label: 'Remarks',
@@ -942,35 +769,23 @@ class InsuranceClaimsView extends GetView<AccountsController> {
           controller: controller.claimRemarksController,
           maxLines: 3,
         ),
-        SizedBox(height: SizeConfig.spacingLG),
+        const SizedBox(height: 24),
 
         Obx(() => SizedBox(
               width: double.infinity,
-              height: 48,
+              height: 44,
               child: ElevatedButton(
                 onPressed: controller.isLoadingClaims.value
                     ? null
                     : controller.createInsuranceClaim,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue.shade700,
-                  disabledBackgroundColor:
-                      Colors.blue.withValues(alpha: 0.4),
-                  shape: RoundedRectangleBorder(
-                      borderRadius:
-                          BorderRadius.circular(SizeConfig.radiusSM)),
-                ),
                 child: controller.isLoadingClaims.value
                     ? SizedBox(
                         height: 20,
                         width: 20,
                         child: CircularProgressIndicator(
-                            color: AppColor.buttonTextWhite, strokeWidth: 2),
+                            color: AppColor.textTertiary, strokeWidth: 2),
                       )
-                    : Text('Submit Insurance Claim',
-                        style: TextStyle(
-                            color: AppColor.buttonTextWhite,
-                            fontSize: SizeConfig.fontBody,
-                            fontWeight: FontWeight.w600)),
+                    : const Text('Submit insurance claim'),
               ),
             )),
       ],

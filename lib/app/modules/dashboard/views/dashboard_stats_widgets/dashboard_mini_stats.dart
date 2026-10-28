@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:eldivex_app/app/core/values/color_constants.dart';
 import 'package:eldivex_app/app/routes/app_pages.dart';
+import 'package:eldivex_app/app/widgets/ui/ui.dart';
 import 'package:get/get.dart';
 
 import '../../../role/controllers/role_controller.dart';
 import '../../controllers/dashboard_controller.dart';
+import 'package:eldivex_app/app/core/values/lucide_icons.dart';
 
 /// Compact operational mini-stats shown above the main stat cards:
 /// "New bookings today" and "Cancellation rate". Both are Bookings metrics, so
@@ -21,26 +23,31 @@ class DashboardMiniStats extends GetView<DashboardController> {
       if (controller.dashboardLoading.value) {
         return const SizedBox.shrink();
       }
-      return Wrap(
-        spacing: 12,
-        runSpacing: 12,
-        children: [
-          _MiniStat(
-            icon: Icons.today_outlined,
-            iconColor: const Color(0xFF2563EB),
-            label: 'New bookings today',
-            value: '${controller.newBookingsToday.value}',
-            onTap: () => Get.toNamed(Routes.BOOKINGS),
-          ),
-          _MiniStat(
-            icon: Icons.cancel_outlined,
-            iconColor: const Color(0xFFE4574D),
-            label: 'Cancellation rate',
-            value: '${controller.cancellationRate.value.toStringAsFixed(1)}% '
-                '(${controller.cancelledBookings.value})',
-            onTap: () => Get.toNamed(Routes.BOOKINGS),
-          ),
-        ],
+      // Carries its own bottom gap so a hidden strip leaves no empty space.
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 16),
+        child: Wrap(
+          spacing: 12,
+          runSpacing: 12,
+          children: [
+            _MiniStat(
+              icon: LucideIcons.calendarCheck2,
+              tone: AppTone.primary,
+              label: 'New bookings today',
+              value: '${controller.newBookingsToday.value}',
+              onTap: () => Get.toNamed(Routes.BOOKINGS),
+            ),
+            _MiniStat(
+              icon: LucideIcons.calendarX,
+              tone: AppTone.danger,
+              label: 'Cancellation rate',
+              value:
+                  '${controller.cancellationRate.value.toStringAsFixed(1)}% '
+                  '(${controller.cancelledBookings.value})',
+              onTap: () => Get.toNamed(Routes.BOOKINGS),
+            ),
+          ],
+        ),
       );
     });
   }
@@ -48,14 +55,14 @@ class DashboardMiniStats extends GetView<DashboardController> {
 
 class _MiniStat extends StatelessWidget {
   final IconData icon;
-  final Color iconColor;
+  final AppTone tone;
   final String label;
   final String value;
   final VoidCallback? onTap;
 
   const _MiniStat({
     required this.icon,
-    required this.iconColor,
+    required this.tone,
     required this.label,
     required this.value,
     this.onTap,
@@ -63,49 +70,60 @@ class _MiniStat extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final content = Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+    final radius = BorderRadius.circular(AppRadius.lg);
+    return Container(
       decoration: BoxDecoration(
         color: AppColor.whiteColor,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: radius,
         border: Border.all(color: AppColor.divColor),
+        boxShadow: AppShadows.card,
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 20, color: iconColor),
-          const SizedBox(width: 10),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: AppColor.fontColorGrey,
-                  fontWeight: FontWeight.w500,
+      child: Material(
+        type: MaterialType.transparency,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: radius,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(12, 10, 16, 10),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                AppIconTile(icon: icon, tone: tone, size: 32),
+                const SizedBox(width: 12),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      label,
+                      style: TextStyle(
+                        fontSize: 12.5,
+                        color: AppColor.textTertiary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 1),
+                    Text(
+                      value,
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: -0.2,
+                        color: AppColor.textPrimary,
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                value,
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                  color: AppColor.cPrimaryHeadingColor,
-                ),
-              ),
-            ],
+                if (onTap != null) ...[
+                  const SizedBox(width: 14),
+                  Icon(LucideIcons.chevronRight,
+                      size: 18, color: AppColor.lightGrey),
+                ],
+              ],
+            ),
           ),
-        ],
+        ),
       ),
-    );
-
-    if (onTap == null) return content;
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      child: GestureDetector(onTap: onTap, child: content),
     );
   }
 }

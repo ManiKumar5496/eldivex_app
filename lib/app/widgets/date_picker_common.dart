@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:eldivex_app/app/core/values/color_constants.dart';
+import 'package:eldivex_app/app/widgets/ui/app_tokens.dart';
+import 'package:eldivex_app/app/core/values/lucide_icons.dart';
 
 class CommonDatePicker extends StatelessWidget {
   final String label;
@@ -24,79 +26,73 @@ class CommonDatePicker extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final hasValue = selectedDate != null;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label,
           style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-            color: AppColor.cPrimarySubHeadingColorGrey,
+            fontSize: 13.5,
+            fontWeight: FontWeight.w600,
+            color: enabled ? AppColor.textSecondary : AppColor.textTertiary,
           ),
         ),
         const SizedBox(height: 8),
-        InkWell(
-          onTap: enabled
-              ? () async {
-            final DateTime? picked = await showDatePicker(
-              context: context,
-              initialDate: selectedDate ?? DateTime.now(),
-              firstDate: firstDate ?? DateTime(2000),
-              lastDate: lastDate ?? DateTime(2100),
-              builder: (context, child) {
-                return Theme(
-                  data: Theme.of(context).copyWith(
-                    colorScheme: ColorScheme.light(
-                      primary: Colors.blue.shade600,
-                      onPrimary: AppColor.whiteColor,
-                      onSurface: Colors.black,
+        // Styled like the theme's text inputs: field fill, strong outline,
+        // 10px radius. The picker itself follows the app's DatePicker theme
+        // (light and dark).
+        Material(
+          color: enabled ? Theme.of(context).inputDecorationTheme.fillColor ??
+              AppColor.whiteColor : AppColor.surfaceMuted,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppRadius.md),
+            side: BorderSide(
+              color: enabled ? AppColor.borderStrong : AppColor.divColor,
+            ),
+          ),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(AppRadius.md),
+            onTap: enabled
+                ? () async {
+              final DateTime? picked = await showDatePicker(
+                context: context,
+                initialDate: selectedDate ?? DateTime.now(),
+                firstDate: firstDate ?? DateTime(2000),
+                lastDate: lastDate ?? DateTime(2100),
+              );
+              if (picked != null && onDateSelected != null) {
+                onDateSelected!(picked);
+              }
+            }
+                : null,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+              // No flex children: the picker may sit in unbounded-width rows.
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    hasValue
+                        ? DateFormat('dd/MM/yyyy').format(selectedDate!)
+                        : hint,
+                    style: TextStyle(
+                      color: !enabled
+                          ? AppColor.textTertiary
+                          : (hasValue
+                              ? AppColor.textPrimary
+                              : AppColor.textTertiary),
+                      fontSize: 14,
                     ),
                   ),
-                  child: child!,
-                );
-              },
-            );
-            if (picked != null && onDateSelected != null) {
-              onDateSelected!(picked);
-            }
-          }
-              : null,
-          child: Container(
-            decoration: BoxDecoration(
-              color: enabled ? AppColor.whiteColor : AppColor.fieldColorGrey,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: enabled
-                    ? AppColor.textFieldBorderColor
-                    : AppColor.divColor,
-              ),
-            ),
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  selectedDate != null
-                      ? DateFormat('dd/MM/yyyy').format(selectedDate!)
-                      : hint,
-                  style: TextStyle(
-                    color: enabled
-                        ? (selectedDate != null
-                        ? AppColor.cPrimaryHeadingColor
-                        : AppColor.cPrimarySubHeadingColorGrey)
-                        : AppColor.fontColorGrey,
-                    fontSize: 14,
+                  const SizedBox(width: 8),
+                  Icon(
+                    LucideIcons.calendar,
+                    color: enabled ? AppColor.textTertiary : AppColor.lightGrey,
+                    size: 18,
                   ),
-                ),
-                Icon(
-                  Icons.calendar_today,
-                  color: enabled
-                      ? AppColor.prefixIconColor
-                      : AppColor.lightGrey,
-                  size: 18,
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),

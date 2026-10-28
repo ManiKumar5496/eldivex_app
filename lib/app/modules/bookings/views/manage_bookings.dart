@@ -3,9 +3,9 @@ import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:eldivex_app/app/core/values/color_constants.dart';
 import 'package:eldivex_app/app/core/values/size_configue.dart';
-import 'package:eldivex_app/app/core/values/text_style_constants.dart';
 import 'package:eldivex_app/app/widgets/common_textfield.dart';
 import 'package:eldivex_app/app/widgets/date_picker_common.dart';
+import 'package:eldivex_app/app/widgets/ui/ui.dart';
 import '../../../widgets/dropdown_common.dart';
 import '../../settings/models/get_discount_models.dart';
 import '../controllers/bookings_controller.dart';
@@ -13,6 +13,7 @@ import '../../support/views/create_support_ticket.dart';
 import 'assign_cg_dialog.dart';
 import 'cg_review_detail_screen.dart';
 import 'edit_booking_view.dart';
+import 'package:eldivex_app/app/core/values/lucide_icons.dart';
 
 class ManageBookingView extends StatefulWidget {
   final int bookingId;
@@ -25,6 +26,9 @@ class ManageBookingView extends StatefulWidget {
 
 class _ManageBookingViewState extends State<ManageBookingView> {
   late final BookingsController controller;
+
+  /// Below this width the HP table scrolls horizontally.
+  static const double _hpTableMinWidth = 820;
 
   @override
   void initState() {
@@ -55,55 +59,41 @@ class _ManageBookingViewState extends State<ManageBookingView> {
         }
 
         if (controller.bookingsByBookingId.value.isEmpty) {
-          final isMobile = SizeConfig.isMobile;
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.error_outline,
-                  size: isMobile ? 48 : SizeConfig.blockSizeHorizontal * 5,
-                  color: Colors.red,
-                ),
-                SizedBox(height: isMobile ? 16 : SizeConfig.blockSizeVertical * 2),
-                Text('Booking not found', style: AppTextStyles.heading),
-                SizedBox(height: isMobile ? 16 : SizeConfig.blockSizeVertical * 2),
-                ElevatedButton(
-                  onPressed: () => Get.back(),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColor.cPrimaryButtonColor,
-                  ),
-                  child: const Text('Go Back'),
-                ),
-              ],
-            ),
+          return AppEmptyState(
+            icon: LucideIcons.circleAlert,
+            tone: AppTone.danger,
+            title: 'Booking not found',
+            message: 'This booking may have been removed or you may not have access to it.',
+            actionLabel: 'Go Back',
+            actionIcon: LucideIcons.arrowLeft,
+            onAction: () => Get.back(),
           );
         }
 
         return SingleChildScrollView(
-          child: Column(
-            children: [
-              _buildHeader(context),
-              Padding(
-                padding: EdgeInsets.all(SizeConfig.isMobile ? 12 : SizeConfig.blockSizeHorizontal * 2),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildUserPatientDetails(),
-                    SizedBox(height: SizeConfig.blockSizeVertical * 2),
-                    _buildBookingStatusOverview(),
-                    SizedBox(height: SizeConfig.blockSizeVertical * 2),
-                    _buildAssignedHPStatus(),
-                    SizedBox(height: SizeConfig.blockSizeVertical * 2),
-                    _buildCouponAndPriceDetails(),
-                    SizedBox(height: SizeConfig.blockSizeVertical * 2),
-                    _buildLeadDetails(),
-                    SizedBox(height: SizeConfig.blockSizeVertical * 2),
-                    _buildAssignCareManager(),
-                  ],
-                ),
+          padding: SizeConfig.pagePadding,
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 1200),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _buildHeader(context),
+                  const SizedBox(height: 24),
+                  _buildUserPatientDetails(),
+                  const SizedBox(height: 16),
+                  _buildBookingStatusOverview(),
+                  const SizedBox(height: 16),
+                  _buildAssignedHPStatus(),
+                  const SizedBox(height: 16),
+                  _buildCouponAndPriceDetails(),
+                  const SizedBox(height: 16),
+                  _buildLeadDetails(),
+                  const SizedBox(height: 16),
+                  _buildAssignCareManager(),
+                ],
               ),
-            ],
+            ),
           ),
         );
       }),
@@ -117,64 +107,43 @@ class _ManageBookingViewState extends State<ManageBookingView> {
     final booking = controller.bookingsByBookingId.value.first;
     final isMobile = SizeConfig.isMobile;
 
-    return Container(
-      color: AppColor.whiteColor,
-      padding: EdgeInsets.symmetric(
-        horizontal: isMobile ? 12 : SizeConfig.blockSizeHorizontal * 2,
-        vertical: isMobile ? 12 : SizeConfig.blockSizeVertical * 2,
-      ),
-      child: Row(
-        children: [
-          IconButton(
-            onPressed: () => Get.back(),
-            icon: Icon(
-              Icons.arrow_back,
-              size: isMobile ? 24 : SizeConfig.blockSizeHorizontal * 2.5,
-              color: AppColor.fontColorBlack,
-            ),
-          ),
-          SizedBox(width: isMobile ? 4 : 0),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Manage Booking', style: AppTextStyles.heading),
-                SizedBox(height: SizeConfig.blockSizeVertical * 0.5),
-                Text(
-                  'Booking ID: BK-${booking.id}',
-                  style: AppTextStyles.regular16W400,
-                ),
-              ],
-            ),
-          ),
-          ElevatedButton.icon(
-            onPressed: () =>
-                Get.to(() => EditBookingView(bookingId: widget.bookingId)),
-            icon: Icon(Icons.edit, size: isMobile ? 16 : SizeConfig.blockSizeHorizontal * 1.5),
-            label: Text(
-              isMobile ? 'Edit' : 'Edit Booking',
-              style: TextStyle(
-                fontSize: isMobile ? 13 : SizeConfig.blockSizeHorizontal * 1.2,
-                color: AppColor.buttonTextWhite,
-              ),
-            ),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColor.cPrimaryButtonColor,
-              foregroundColor: AppColor.whiteColor,
-              padding: EdgeInsets.symmetric(
-                horizontal: isMobile ? 12 : SizeConfig.blockSizeHorizontal * 2,
-                vertical: isMobile ? 10 : SizeConfig.blockSizeVertical * 1.5,
-              ),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-              elevation: 0,
-            ),
-          ),
-        ],
-      ),
+    return AppPageHeader(
+      title: 'Manage Booking',
+      subtitle: 'Booking ID: BK-${booking.id}',
+      breadcrumbs: const ['Bookings', 'Manage Booking'],
+      onBack: () => Get.back(),
+      actions: [
+        ElevatedButton.icon(
+          onPressed: () =>
+              Get.to(() => EditBookingView(bookingId: widget.bookingId)),
+          icon: const Icon(LucideIcons.pencil, size: 18),
+          label: Text(isMobile ? 'Edit' : 'Edit Booking'),
+        ),
+      ],
     );
   }
+
+  // ─────────────────────────────────────────────
+  // Layout helpers
+  // ─────────────────────────────────────────────
+  /// Responsive field grid: up to [maxColumns] columns on wide screens, one
+  /// column on phones.
+  Widget _responsiveFieldRow(List<Widget> fields, {int maxColumns = 2}) {
+    return AppResponsiveGrid(
+      minItemWidth: 200,
+      maxColumns: maxColumns,
+      spacing: 16,
+      children: fields,
+    );
+  }
+
+  Widget _fieldLabel(String text) => Padding(
+        padding: const EdgeInsets.only(bottom: 8),
+        child: Text(
+          text,
+          style: TextStyle(fontSize: 14, color: AppColor.textSecondary),
+        ),
+      );
 
   // ─────────────────────────────────────────────
   // User & Patient Details
@@ -185,309 +154,146 @@ class _ManageBookingViewState extends State<ManageBookingView> {
     Widget userSection = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _sectionLabel('User Information', Icons.person_outline, Colors.blue.shade600),
-        SizedBox(height: SizeConfig.blockSizeVertical * 1.5),
+        _sectionLabel('User Information', LucideIcons.user, AppTone.info),
+        const SizedBox(height: 16),
         CommonTextField(label: 'User ID', hint: 'User ID', controller: controller.detailUserIdController, enabled: false),
-        SizedBox(height: SizeConfig.blockSizeVertical * 1.5),
+        const SizedBox(height: 16),
         CommonTextField(label: 'User Name', hint: 'User Name', controller: controller.detailUserNameController, enabled: false),
-        SizedBox(height: SizeConfig.blockSizeVertical * 1.5),
-        CommonTextField(label: 'User Mobile', hint: 'Mobile Number', prefixIcon: Icons.phone, controller: controller.detailUserMobileController, keyboardType: TextInputType.phone, enabled: false),
-        SizedBox(height: SizeConfig.blockSizeVertical * 1.5),
-        CommonTextField(label: 'User Email', hint: 'Email', prefixIcon: Icons.email, controller: controller.detailUserEmailController, keyboardType: TextInputType.emailAddress, enabled: false),
+        const SizedBox(height: 16),
+        CommonTextField(label: 'User Mobile', hint: 'Mobile Number', prefixIcon: LucideIcons.phone, controller: controller.detailUserMobileController, keyboardType: TextInputType.phone, enabled: false),
+        const SizedBox(height: 16),
+        CommonTextField(label: 'User Email', hint: 'Email', prefixIcon: LucideIcons.mail, controller: controller.detailUserEmailController, keyboardType: TextInputType.emailAddress, enabled: false),
       ],
     );
 
     Widget patientSection = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _sectionLabel('Patient Information', Icons.person_outline, Colors.teal.shade600),
-        SizedBox(height: SizeConfig.blockSizeVertical * 1.5),
+        _sectionLabel('Patient Information', LucideIcons.bandage, AppTone.success),
+        const SizedBox(height: 16),
         CommonTextField(label: 'Patient ID', hint: 'Patient ID', controller: controller.detailPatientIdController, enabled: false),
-        SizedBox(height: SizeConfig.blockSizeVertical * 1.5),
+        const SizedBox(height: 16),
         CommonTextField(label: 'Patient Name', hint: 'Patient Name', controller: controller.detailPatientNameController, enabled: false),
-        SizedBox(height: SizeConfig.blockSizeVertical * 1.5),
-        CommonTextField(label: 'Patient Phone', hint: 'Phone Number', prefixIcon: Icons.phone, controller: controller.detailPatientPhoneController, keyboardType: TextInputType.phone, enabled: false),
-        SizedBox(height: SizeConfig.blockSizeVertical * 1.5),
-        CommonTextField(label: 'Patient Email', hint: 'Email', prefixIcon: Icons.email, controller: controller.detailPatientEmailController, keyboardType: TextInputType.emailAddress, enabled: false),
+        const SizedBox(height: 16),
+        CommonTextField(label: 'Patient Phone', hint: 'Phone Number', prefixIcon: LucideIcons.phone, controller: controller.detailPatientPhoneController, keyboardType: TextInputType.phone, enabled: false),
+        const SizedBox(height: 16),
+        CommonTextField(label: 'Patient Email', hint: 'Email', prefixIcon: LucideIcons.mail, controller: controller.detailPatientEmailController, keyboardType: TextInputType.emailAddress, enabled: false),
       ],
     );
 
-    return Container(
-      decoration: _cardDecoration(),
-      padding: EdgeInsets.all(isMobile ? 12 : SizeConfig.blockSizeHorizontal * 2),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'User & Patient Details',
-            style: TextStyle(
-              fontSize: isMobile ? 18 : SizeConfig.blockSizeHorizontal * 1.5,
-              fontWeight: FontWeight.w600,
-              color: AppColor.fontColorBlack,
-            ),
-          ),
-          SizedBox(height: isMobile ? 16 : SizeConfig.blockSizeVertical * 2),
-          if (isMobile) ...[
-            userSection,
-            const SizedBox(height: 16),
-            patientSection,
-          ] else
-            Row(
+    return AppCard(
+      title: 'User & Patient Details',
+      icon: LucideIcons.users,
+      child: isMobile
+          ? Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                userSection,
+                const SizedBox(height: 24),
+                patientSection,
+              ],
+            )
+          : Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Expanded(child: userSection),
-                SizedBox(width: SizeConfig.blockSizeHorizontal * 3),
+                const SizedBox(width: 24),
                 Expanded(child: patientSection),
               ],
             ),
-        ],
-      ),
     );
   }
 
   // ─────────────────────────────────────────────
   // Booking Status Overview
   // ─────────────────────────────────────────────
-  /// Helper to build a responsive row of fields: Row on desktop, Column on mobile
-  Widget _responsiveFieldRow(List<Widget> fields) {
-    if (SizeConfig.isMobile) {
-      return Column(
-        children: fields
-            .expand((w) => [w, const SizedBox(height: 12)])
-            .toList()
-          ..removeLast(),
-      );
-    }
-    return Row(
-      children: fields
-          .expand((w) => [
-                Expanded(child: w),
-                SizedBox(width: SizeConfig.blockSizeHorizontal * 1.5),
-              ])
-          .toList()
-        ..removeLast(),
-    );
-  }
-
   Widget _buildBookingStatusOverview() {
     final booking = controller.bookingsByBookingId.value.first;
     final isMobile = SizeConfig.isMobile;
 
-    return Container(
-      decoration: _cardDecoration(),
-      padding: EdgeInsets.all(isMobile ? 12 : SizeConfig.blockSizeHorizontal * 2),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+    return AppCard(
+      title: 'Booking Status Overview',
+      icon: LucideIcons.calendarDays,
+      actions: [
+        _buildStatusBadge(BookingsController.statusLabel(booking.status)),
+      ],
+      footer: Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        crossAxisAlignment: WrapCrossAlignment.center,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Expanded(
-                child: Text(
-                  'Booking Status Overview',
-                  style: TextStyle(
-                    fontSize: isMobile ? 18 : SizeConfig.blockSizeHorizontal * 1.5,
-                    fontWeight: FontWeight.w600,
-                    color: AppColor.fontColorBlack,
-                  ),
-                ),
-              ),
-              _buildStatusBadge(BookingsController.statusLabel(booking.status)),
-            ],
+          OutlinedButton.icon(
+            onPressed: _showRateHistoryDialog,
+            icon: const Icon(LucideIcons.history, size: 18),
+            label: const Text('Rate History'),
           ),
-          SizedBox(height: isMobile ? 16 : SizeConfig.blockSizeVertical * 2),
-
+          Obx(() {
+            if (controller.bookingsByBookingId.value.isEmpty) return const SizedBox.shrink();
+            final bk = controller.bookingsByBookingId.value.first;
+            if (bk.holdTicketOpen == 0) return const SizedBox.shrink();
+            return OutlinedButton.icon(
+              onPressed: () => Get.to(() => const CreateSupportTicket(), arguments: {
+                'bookingId': widget.bookingId,
+                'userId': bk.userId,
+                'typeId': 4, // Hold Request
+              }),
+              icon: const Icon(LucideIcons.circlePause, size: 18),
+              label: Text(isMobile ? 'Hold' : 'Hold Booking'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppColor.warning,
+                side: BorderSide(color: AppColor.warning.withValues(alpha: 0.45)),
+              ),
+            );
+          }),
+          Obx(() {
+            if (controller.bookingsByBookingId.value.isEmpty) return const SizedBox.shrink();
+            final bk = controller.bookingsByBookingId.value.first;
+            if (bk.cancellationTicketOpen == 0) return const SizedBox.shrink();
+            return OutlinedButton.icon(
+              onPressed: () => Get.to(() => const CreateSupportTicket(), arguments: {
+                'bookingId': widget.bookingId,
+                'userId': bk.userId,
+                'typeId': 5, // Cancellation
+              }),
+              icon: const Icon(LucideIcons.circleX, size: 18),
+              label: Text(isMobile ? 'Cancel' : 'Cancel Booking'),
+              style: AppButtonStyles.dangerOutlined,
+            );
+          }),
+          Obx(() {
+            if (controller.bookingsByBookingId.value.isEmpty) return const SizedBox.shrink();
+            final bk = controller.bookingsByBookingId.value.first;
+            if (bk.extensionStatus == 0) return const SizedBox.shrink();
+            final show = bk.serviceEndDate != null && !DateTime.now().isBefore(bk.serviceEndDate!);
+            if (!show) return const SizedBox.shrink();
+            return ElevatedButton.icon(
+              onPressed: _showExtendServiceDialog,
+              icon: const Icon(LucideIcons.calendarDays, size: 18),
+              label: Text(isMobile ? 'Extend' : 'Extend Service'),
+            );
+          }),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
           _responsiveFieldRow([
             CommonTextField(label: 'Service City', hint: 'Service City', controller: controller.serviceCityController, enabled: false),
             CommonTextField(label: 'Base Rate', hint: 'Base Rate', controller: controller.finalRateController, keyboardType: TextInputType.number, enabled: false),
           ]),
-          SizedBox(height: isMobile ? 12 : SizeConfig.blockSizeVertical * 1.5),
-
-          _responsiveFieldRow([
-            Obx(() => CommonDatePicker(label: 'Start Date', hint: 'Select Date', selectedDate: controller.startDate.value, onDateSelected: (_) {}, enabled: false)),
-            Obx(() => CommonDatePicker(label: 'End Date', hint: 'Select Date', selectedDate: controller.endDate.value, onDateSelected: (_) {}, enabled: false)),
-            CommonTextField(label: 'Start Time', hint: '09:00 AM', prefixIcon: Icons.access_time, controller: controller.startTimeController, enabled: false),
-            CommonTextField(label: 'End Time', hint: '06:00 PM', prefixIcon: Icons.access_time, controller: controller.endTimeController, enabled: false),
-          ]),
-          SizedBox(height: isMobile ? 12 : SizeConfig.blockSizeVertical * 1.5),
-
-          if (isMobile)
-            Column(
-              children: [
-                Obx(() => CommonDatePicker(label: 'Hold Start Date', hint: 'Select Date', selectedDate: controller.holdStartDate.value, onDateSelected: (_) {}, enabled: false)),
-                const SizedBox(height: 12),
-                Obx(() => CommonDatePicker(label: 'Hold End Date', hint: 'Select Date', selectedDate: controller.holdEndDate.value, onDateSelected: (_) {}, enabled: false)),
-              ],
-            )
-          else
-            Row(
-              children: [
-                Expanded(child: Obx(() => CommonDatePicker(label: 'Hold Start Date', hint: 'Select Date', selectedDate: controller.holdStartDate.value, onDateSelected: (_) {}, enabled: false))),
-                SizedBox(width: SizeConfig.blockSizeHorizontal * 1.5),
-                Expanded(child: Obx(() => CommonDatePicker(label: 'Hold End Date', hint: 'Select Date', selectedDate: controller.holdEndDate.value, onDateSelected: (_) {}, enabled: false))),
-                SizedBox(width: SizeConfig.blockSizeHorizontal * 1.5),
-                const Expanded(child: SizedBox()),
-                SizedBox(width: SizeConfig.blockSizeHorizontal * 1.5),
-                const Expanded(child: SizedBox()),
-              ],
-            ),
-          SizedBox(height: isMobile ? 16 : SizeConfig.blockSizeVertical * 2),
-
-          isMobile
-              ? Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    _actionButton('Rate History', Icons.history, null, AppColor.fontColorGrey, BorderSide(color: AppColor.divColor), _showRateHistoryDialog),
-                    Obx(() {
-                      if (controller.bookingsByBookingId.value.isEmpty) return const SizedBox.shrink();
-                      final bk = controller.bookingsByBookingId.value.first;
-                      if (bk.holdTicketOpen == 0) return const SizedBox.shrink();
-                      return _actionButton('Hold', Icons.pause_circle_outline, Colors.orange.shade500, AppColor.whiteColor, null, () {
-                        Get.to(() => const CreateSupportTicket(), arguments: {
-                          'bookingId': widget.bookingId,
-                          'userId': bk.userId,
-                          'typeId': 4, // Hold Request
-                        });
-                      });
-                    }),
-                    Obx(() {
-                      if (controller.bookingsByBookingId.value.isEmpty) return const SizedBox.shrink();
-                      final bk = controller.bookingsByBookingId.value.first;
-                      if (bk.cancellationTicketOpen == 0) return const SizedBox.shrink();
-                      return _actionButton('Cancel', Icons.cancel, Colors.red.shade500, AppColor.whiteColor, null, () {
-                        Get.to(() => const CreateSupportTicket(), arguments: {
-                          'bookingId': widget.bookingId,
-                          'userId': bk.userId,
-                          'typeId': 5, // Cancellation
-                        });
-                      });
-                    }),
-                    Obx(() {
-                      if (controller.bookingsByBookingId.value.isEmpty) return const SizedBox.shrink();
-                      final bk = controller.bookingsByBookingId.value.first;
-                      if (bk.extensionStatus == 0) return const SizedBox.shrink();
-                      final show = bk.serviceEndDate != null && !DateTime.now().isBefore(bk.serviceEndDate!);
-                      if (!show) return const SizedBox.shrink();
-                      return _actionButton('Extend', Icons.calendar_month, Colors.green.shade500, AppColor.whiteColor, null, _showExtendServiceDialog);
-                    }),
-                  ],
-                )
-              : Row(
-                  children: [
-                    OutlinedButton.icon(
-                      onPressed: _showRateHistoryDialog,
-                      icon: Icon(Icons.history, size: SizeConfig.blockSizeHorizontal * 1.4),
-                      label: Text('Rate History', style: TextStyle(fontSize: SizeConfig.blockSizeHorizontal * 1.1)),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: AppColor.fontColorGrey,
-                        side: BorderSide(color: AppColor.divColor),
-                        padding: EdgeInsets.symmetric(horizontal: SizeConfig.blockSizeHorizontal * 2, vertical: SizeConfig.blockSizeVertical * 1.2),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                      ),
-                    ),
-                    Obx(() {
-                      if (controller.bookingsByBookingId.value.isEmpty) return const SizedBox.shrink();
-                      final bk = controller.bookingsByBookingId.value.first;
-                      if (bk.holdTicketOpen == 0) return const SizedBox.shrink();
-                      return Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          SizedBox(width: SizeConfig.blockSizeHorizontal * 1),
-                          ElevatedButton.icon(
-                            onPressed: () => Get.to(() => const CreateSupportTicket(), arguments: {
-                              'bookingId': widget.bookingId,
-                              'userId': bk.userId,
-                              'typeId': 4, // Hold Request
-                            }),
-                            icon: Icon(Icons.pause_circle_outline, size: SizeConfig.blockSizeHorizontal * 1.4),
-                            label: Text('Hold Booking', style: TextStyle(fontSize: SizeConfig.blockSizeHorizontal * 1.1)),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.orange.shade500, foregroundColor: AppColor.buttonTextWhite,
-                              padding: EdgeInsets.symmetric(horizontal: SizeConfig.blockSizeHorizontal * 2, vertical: SizeConfig.blockSizeVertical * 1.2),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)), elevation: 0,
-                            ),
-                          ),
-                        ],
-                      );
-                    }),
-                    Obx(() {
-                      if (controller.bookingsByBookingId.value.isEmpty) return const SizedBox.shrink();
-                      final bk = controller.bookingsByBookingId.value.first;
-                      if (bk.cancellationTicketOpen == 0) return const SizedBox.shrink();
-                      return Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          SizedBox(width: SizeConfig.blockSizeHorizontal * 1),
-                          ElevatedButton.icon(
-                            onPressed: () => Get.to(() => const CreateSupportTicket(), arguments: {
-                              'bookingId': widget.bookingId,
-                              'userId': bk.userId,
-                              'typeId': 5, // Cancellation
-                            }),
-                            icon: Icon(Icons.cancel, size: SizeConfig.blockSizeHorizontal * 1.4),
-                            label: Text('Cancel Booking', style: TextStyle(fontSize: SizeConfig.blockSizeHorizontal * 1.1)),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.red.shade500, foregroundColor: AppColor.buttonTextWhite,
-                              padding: EdgeInsets.symmetric(horizontal: SizeConfig.blockSizeHorizontal * 2, vertical: SizeConfig.blockSizeVertical * 1.2),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)), elevation: 0,
-                            ),
-                          ),
-                        ],
-                      );
-                    }),
-                    Obx(() {
-                      if (controller.bookingsByBookingId.value.isEmpty) return const SizedBox.shrink();
-                      final bk = controller.bookingsByBookingId.value.first;
-                      if (bk.extensionStatus == 0) return const SizedBox.shrink();
-                      final show = bk.serviceEndDate != null && !DateTime.now().isBefore(bk.serviceEndDate!);
-                      if (!show) return const SizedBox.shrink();
-                      return Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          SizedBox(width: SizeConfig.blockSizeHorizontal * 1),
-                          ElevatedButton.icon(
-                            onPressed: _showExtendServiceDialog,
-                            icon: Icon(Icons.calendar_month, size: SizeConfig.blockSizeHorizontal * 1.4),
-                            label: Text('Extend Service', style: TextStyle(fontSize: SizeConfig.blockSizeHorizontal * 1.1)),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.green.shade500, foregroundColor: AppColor.buttonTextWhite,
-                              padding: EdgeInsets.symmetric(horizontal: SizeConfig.blockSizeHorizontal * 2, vertical: SizeConfig.blockSizeVertical * 1.2),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)), elevation: 0,
-                            ),
-                          ),
-                        ],
-                      );
-                    }),
-                  ],
-                ),
+          const SizedBox(height: 16),
+          _responsiveFieldRow(
+            [
+              Obx(() => CommonDatePicker(label: 'Start Date', hint: 'Select Date', selectedDate: controller.startDate.value, onDateSelected: (_) {}, enabled: false)),
+              Obx(() => CommonDatePicker(label: 'End Date', hint: 'Select Date', selectedDate: controller.endDate.value, onDateSelected: (_) {}, enabled: false)),
+              CommonTextField(label: 'Start Time', hint: '09:00 AM', prefixIcon: LucideIcons.clock, controller: controller.startTimeController, enabled: false),
+              CommonTextField(label: 'End Time', hint: '06:00 PM', prefixIcon: LucideIcons.clock, controller: controller.endTimeController, enabled: false),
+              Obx(() => CommonDatePicker(label: 'Hold Start Date', hint: 'Select Date', selectedDate: controller.holdStartDate.value, onDateSelected: (_) {}, enabled: false)),
+              Obx(() => CommonDatePicker(label: 'Hold End Date', hint: 'Select Date', selectedDate: controller.holdEndDate.value, onDateSelected: (_) {}, enabled: false)),
+            ],
+            maxColumns: 4,
+          ),
         ],
-      ),
-    );
-  }
-
-  Widget _actionButton(String label, IconData icon, Color? bgColor, Color fgColor, BorderSide? side, VoidCallback onPressed) {
-    if (bgColor != null) {
-      return ElevatedButton.icon(
-        onPressed: onPressed,
-        icon: Icon(icon, size: 16),
-        label: Text(label, style: const TextStyle(fontSize: 13)),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: bgColor, foregroundColor: fgColor,
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)), elevation: 0,
-        ),
-      );
-    }
-    return OutlinedButton.icon(
-      onPressed: onPressed,
-      icon: Icon(icon, size: 16),
-      label: Text(label, style: const TextStyle(fontSize: 13)),
-      style: OutlinedButton.styleFrom(
-        foregroundColor: fgColor,
-        side: side,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       ),
     );
   }
@@ -497,59 +303,32 @@ class _ManageBookingViewState extends State<ManageBookingView> {
   // ─────────────────────────────────────────────
   Widget _buildAssignedHPStatus() {
     final isMobile = SizeConfig.isMobile;
-    return Container(
-      decoration: _cardDecoration(),
-      padding: EdgeInsets.all(isMobile ? 12 : SizeConfig.blockSizeHorizontal * 2),
+    return AppCard(
+      title: 'Assigned HP Status',
+      icon: LucideIcons.stethoscope,
+      padding: EdgeInsets.zero,
+      actions: [
+        ElevatedButton.icon(
+          onPressed: () {
+            // Pre-load globally active HPs so the dialog
+            // can filter them out of the available list.
+            controller.loadGlobalActiveHpIds();
+            Get.dialog(
+              AssignCgDialog(bookingId: widget.bookingId),
+              barrierDismissible: false,
+            );
+          },
+          icon: const Icon(LucideIcons.plus, size: 18),
+          label: Text(isMobile ? 'Assign HP' : 'Assign New HP'),
+        ),
+      ],
+      footer: _buildHPPagination(),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Expanded(
-                child: Text(
-                  'Assigned HP Status',
-                  style: TextStyle(
-                    fontSize: isMobile ? 18 : SizeConfig.blockSizeHorizontal * 1.5,
-                    fontWeight: FontWeight.w600,
-                    color: AppColor.fontColorBlack,
-                  ),
-                ),
-              ),
-              ElevatedButton.icon(
-                onPressed: () {
-                  // Pre-load globally active HPs so the dialog
-                  // can filter them out of the available list.
-                  controller.loadGlobalActiveHpIds();
-                  Get.dialog(
-                    AssignCgDialog(bookingId: widget.bookingId),
-                    barrierDismissible: false,
-                  );
-                },
-                icon: Icon(Icons.add, size: isMobile ? 16 : SizeConfig.blockSizeHorizontal * 1.4),
-                label: Text(
-                  isMobile ? 'Assign HP' : 'Assign New HP',
-                  style: TextStyle(fontSize: isMobile ? 13 : SizeConfig.blockSizeHorizontal * 1.1),
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue.shade600,
-                  foregroundColor: AppColor.buttonTextWhite,
-                  padding: EdgeInsets.symmetric(
-                    horizontal: isMobile ? 12 : SizeConfig.blockSizeHorizontal * 2,
-                    vertical: isMobile ? 10 : SizeConfig.blockSizeVertical * 1.2,
-                  ),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                  elevation: 0,
-                ),
-              ),
-            ],
-          ),
-          SizedBox(height: isMobile ? 16 : SizeConfig.blockSizeVertical * 2),
           Obx(() => _buildTabBar()),
-          SizedBox(height: isMobile ? 16 : SizeConfig.blockSizeVertical * 2),
+          Divider(height: 1, color: AppColor.borderSubtle),
           Obx(() => _buildHPTable()),
-          SizedBox(height: isMobile ? 12 : SizeConfig.blockSizeVertical * 1.5),
-          _buildHPPagination(),
         ],
       ),
     );
@@ -559,37 +338,28 @@ class _ManageBookingViewState extends State<ManageBookingView> {
     final isMobile = SizeConfig.isMobile;
     final tabs = [
       _buildTab('Shortlisted HP (${controller.shortlistedHPs.length})', 0),
-      SizedBox(width: isMobile ? 12 : SizeConfig.blockSizeHorizontal * 2),
       _buildTab('Interview Stage (${controller.interviewStageHPs.length})', 1),
-      SizedBox(width: isMobile ? 12 : SizeConfig.blockSizeHorizontal * 2),
       _buildTab('Finalized (${controller.finalizedHPs.length})', 2),
-      SizedBox(width: isMobile ? 12 : SizeConfig.blockSizeHorizontal * 2),
       _buildTab('Active HP (${controller.activeHPs.length})', 3),
-      SizedBox(width: isMobile ? 12 : SizeConfig.blockSizeHorizontal * 2),
       _buildTab('Released HP (${controller.releasedHPs.length})', 4),
     ];
-    if (isMobile) {
-      return SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Row(children: tabs),
-      );
-    }
-    return Row(children: tabs);
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      padding: EdgeInsets.symmetric(horizontal: isMobile ? 8 : 12),
+      child: Row(children: tabs),
+    );
   }
+
   Widget _buildTab(String title, int index) {
     final isSelected = controller.selectedHPTab.value == index;
-    final isMobile = SizeConfig.isMobile;
-    return GestureDetector(
+    return InkWell(
       onTap: () => controller.selectedHPTab.value = index,
       child: Container(
-        padding: EdgeInsets.symmetric(
-          horizontal: isMobile ? 12 : SizeConfig.blockSizeHorizontal * 1.5,
-          vertical: isMobile ? 8 : SizeConfig.blockSizeVertical * 1,
-        ),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
         decoration: BoxDecoration(
           border: Border(
             bottom: BorderSide(
-              color: isSelected ? Colors.blue.shade600 : Colors.transparent,
+              color: isSelected ? AppColor.cAppPrimaryColor : Colors.transparent,
               width: 2,
             ),
           ),
@@ -597,9 +367,9 @@ class _ManageBookingViewState extends State<ManageBookingView> {
         child: Text(
           title,
           style: TextStyle(
-            fontSize: isMobile ? 13 : SizeConfig.blockSizeHorizontal * 1.1,
-            fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-            color: isSelected ? Colors.blue.shade600 : AppColor.fontColorGrey,
+            fontSize: 13.5,
+            fontWeight: FontWeight.w600,
+            color: isSelected ? AppColor.cAppPrimaryColor : AppColor.textTertiary,
           ),
         ),
       ),
@@ -618,55 +388,56 @@ class _ManageBookingViewState extends State<ManageBookingView> {
     }
 
     if (hpList.isEmpty) {
-      return Padding(
-        padding: EdgeInsets.all(isMobile ? 20 : SizeConfig.blockSizeHorizontal * 2),
-        child: Center(
-          child: Text(
-            'No data found',
-            style: TextStyle(
-              fontSize: isMobile ? 14 : SizeConfig.blockSizeHorizontal * 1.1,
-              color: AppColor.fontColorGrey,
-            ),
-          ),
-        ),
+      return const AppEmptyState(
+        icon: LucideIcons.userSearch,
+        title: 'No data found',
+        message: 'No health professionals in this stage yet.',
+        compact: true,
       );
     }
 
     if (isMobile) {
       return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: List.generate(hpList.length, (index) => _buildMobileHPCard(index)),
       );
     }
 
-    return Column(
-      children: [
-        Container(
-          padding: EdgeInsets.symmetric(
-            horizontal: SizeConfig.blockSizeHorizontal * 1.5,
-            vertical: SizeConfig.blockSizeVertical * 1.2,
-          ),
-          decoration: BoxDecoration(
-            color: AppColor.fieldColorGrey,
-            borderRadius: const BorderRadius.only(
-              topLeft: Radius.circular(8),
-              topRight: Radius.circular(8),
-            ),
-          ),
-          child: Row(
+    return LayoutBuilder(builder: (context, constraints) {
+      final width = constraints.maxWidth < _hpTableMinWidth
+          ? _hpTableMinWidth
+          : constraints.maxWidth;
+      return SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: SizedBox(
+          width: width,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              _buildTableHeader('HP ID', flex: 1),
-              _buildTableHeader('HP Name', flex: 2),
-              _buildTableHeader('Planned Start Date', flex: 2),
-              _buildTableHeader('Planned End Date', flex: 2),
-              _buildTableHeader('Actual Start Date', flex: 2),
-              _buildTableHeader('HP Status', flex: 2),
-              _buildTableHeader('Actions', flex: 1),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                decoration: BoxDecoration(
+                  color: AppColor.surfaceMuted,
+                  border: Border(bottom: BorderSide(color: AppColor.borderSubtle)),
+                ),
+                child: Row(
+                  children: [
+                    _buildTableHeader('HP ID', flex: 1),
+                    _buildTableHeader('HP Name', flex: 2),
+                    _buildTableHeader('Planned Start Date', flex: 2),
+                    _buildTableHeader('Planned End Date', flex: 2),
+                    _buildTableHeader('Actual Start Date', flex: 2),
+                    _buildTableHeader('HP Status', flex: 2),
+                    _buildTableHeader('Actions', flex: 1, alignEnd: true),
+                  ],
+                ),
+              ),
+              ...List.generate(hpList.length, (index) => _buildHPRow(index)),
             ],
           ),
         ),
-        ...List.generate(hpList.length, (index) => _buildHPRow(index)),
-      ],
-    );
+      );
+    });
   }
 
   Widget _buildMobileHPCard(int index) {
@@ -675,30 +446,41 @@ class _ManageBookingViewState extends State<ManageBookingView> {
         date != null ? DateFormat('dd MMM yyyy').format(date) : '-';
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.fromLTRB(16, 12, 8, 14),
       decoration: BoxDecoration(
-        border: Border.all(color: AppColor.divColor),
-        borderRadius: BorderRadius.circular(8),
+        border: Border(bottom: BorderSide(color: AppColor.borderSubtle)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                children: [
-                  Text(
-                    'HP-${hp.hpUniqueId}',
-                    style: TextStyle(fontSize: 14, color: Colors.blue.shade600, fontWeight: FontWeight.w500),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(_hpFullName(hp), style: TextStyle(fontSize: 14, color: AppColor.fontColorBlack)),
-                ],
+              AppAvatar(name: _hpFullName(hp), size: 32),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _hpFullName(hp),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: AppColor.textPrimary,
+                      ),
+                    ),
+                    Text(
+                      'HP-${hp.hpUniqueId}',
+                      style: TextStyle(fontSize: 12.5, color: AppColor.cAppPrimaryColor, fontWeight: FontWeight.w600),
+                    ),
+                  ],
+                ),
               ),
               PopupMenuButton<String>(
-                icon: Icon(Icons.more_vert, color: AppColor.fontColorGrey, size: 22),
+                tooltip: 'Actions',
+                icon: Icon(LucideIcons.ellipsis, color: AppColor.textTertiary, size: 20),
                 onSelected: (value) {
                   if (value == 'view') {
                     Get.to(() => CgReviewDetailScreen(bookingId: widget.bookingId, hp: hp));
@@ -707,15 +489,15 @@ class _ManageBookingViewState extends State<ManageBookingView> {
                   }
                 },
                 itemBuilder: (_) => [
-                  _popupItem('view', Icons.visibility_outlined, 'View', AppColor.fontColorBlack),
-                  _popupItem('release', Icons.logout_outlined, 'Release HP', Colors.orange.shade700),
+                  _popupItem('view', LucideIcons.eye, 'View', AppColor.textPrimary),
+                  _popupItem('release', LucideIcons.logOut, 'Release HP', AppColor.warning),
                 ],
               ),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 10),
           _buildStatusBadge(_mapStatus(hp.status)),
-          const Divider(height: 16),
+          const SizedBox(height: 10),
           _mobileHPField('Planned Start', formatDate(hp.reportingDatePlanned)),
           const SizedBox(height: 4),
           _mobileHPField('Planned End', formatDate(hp.endDatePlanned)),
@@ -729,31 +511,33 @@ class _ManageBookingViewState extends State<ManageBookingView> {
   Widget _mobileHPField(String label, String value) {
     return Row(
       children: [
-        Text('$label: ', style: TextStyle(fontSize: 13, color: AppColor.fontColorGrey)),
-        Text(value, style: TextStyle(fontSize: 13, color: AppColor.fontColorBlack)),
+        SizedBox(
+          width: 96,
+          child: Text(label, style: TextStyle(fontSize: 13, color: AppColor.textTertiary)),
+        ),
+        Expanded(
+          child: Text(value, style: TextStyle(fontSize: 13, color: AppColor.textPrimary)),
+        ),
       ],
     );
   }
-  Widget _buildTableHeader(String title, {int flex = 1}) {
+
+  Widget _buildTableHeader(String title, {int flex = 1, bool alignEnd = false}) {
     return Expanded(
       flex: flex,
-      child: Row(
-        children: [
-          Text(
-            title,
-            style: TextStyle(
-              fontSize: SizeConfig.blockSizeHorizontal * 1.1,
-              fontWeight: FontWeight.w600,
-              color: AppColor.fontColorGrey,
-            ),
+      child: Padding(
+        padding: const EdgeInsets.only(right: 12),
+        child: Text(
+          title,
+          textAlign: alignEnd ? TextAlign.right : TextAlign.left,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            fontSize: 12.5,
+            fontWeight: FontWeight.w600,
+            color: AppColor.textTertiary,
           ),
-          SizedBox(width: SizeConfig.blockSizeHorizontal * 0.5),
-          Icon(
-            Icons.unfold_more,
-            size: SizeConfig.blockSizeHorizontal * 1.2,
-            color: AppColor.fontColorGrey,
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -764,112 +548,106 @@ class _ManageBookingViewState extends State<ManageBookingView> {
     String formatDate(DateTime? date) =>
         date != null ? DateFormat('dd MMM yyyy').format(date) : '-';
 
+    final cellStyle = TextStyle(fontSize: 14, color: AppColor.textSecondary);
+    Widget cell(Widget child, int flex) => Expanded(
+          flex: flex,
+          child: Padding(padding: const EdgeInsets.only(right: 12), child: child),
+        );
+
     return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: SizeConfig.blockSizeHorizontal * 1.5,
-        vertical: SizeConfig.blockSizeVertical * 1.5,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
       decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: AppColor.divColor)),
+        border: Border(bottom: BorderSide(color: AppColor.borderSubtle)),
       ),
       child: Row(
         children: [
-          Expanded(
-            flex: 1,
-            child: Text(
+          cell(
+            Text(
               'HP-${hp.hpUniqueId}',           // HP ID
               style: TextStyle(
-                fontSize: SizeConfig.blockSizeHorizontal * 1.1,
-                color: Colors.blue.shade600,
-                fontWeight: FontWeight.w500,
+                fontSize: 14,
+                color: AppColor.cAppPrimaryColor,
+                fontWeight: FontWeight.w600,
               ),
             ),
+            1,
           ),
-          Expanded(
-            flex: 2,
-            child: Text(
-              _hpFullName(hp),                 // HP Name
-              style: TextStyle(
-                fontSize: SizeConfig.blockSizeHorizontal * 1.1,
-                color: AppColor.fontColorBlack,
-              ),
+          cell(
+            Row(
+              children: [
+                AppAvatar(name: _hpFullName(hp), size: 28),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    _hpFullName(hp),                 // HP Name
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: AppColor.textPrimary,
+                    ),
+                  ),
+                ),
+              ],
             ),
+            2,
           ),
-          Expanded(
-            flex: 2,
-            child: Text(
-              formatDate(hp.reportingDatePlanned),  // Planned Start Date
-              style: TextStyle(
-                fontSize: SizeConfig.blockSizeHorizontal * 1.1,
-                color: AppColor.fontColorGrey,
-              ),
+          cell(Text(formatDate(hp.reportingDatePlanned), style: cellStyle), 2), // Planned Start Date
+          cell(Text(formatDate(hp.endDatePlanned), style: cellStyle), 2),       // Planned End Date
+          cell(Text(formatDate(hp.reportingDateActual), style: cellStyle), 2),  // Actual Start Date
+          cell(
+            Align(
+              alignment: Alignment.centerLeft,
+              child: _buildStatusBadge(_mapStatus(hp.status)), // HP Status
             ),
-          ),
-          Expanded(
-            flex: 2,
-            child: Text(
-              formatDate(hp.endDatePlanned),        // Planned End Date
-              style: TextStyle(
-                fontSize: SizeConfig.blockSizeHorizontal * 1.1,
-                color: AppColor.fontColorGrey,
-              ),
-            ),
-          ),
-          Expanded(
-            flex: 2,
-            child: Text(
-              formatDate(hp.reportingDateActual),   // Actual Start Date
-              style: TextStyle(
-                fontSize: SizeConfig.blockSizeHorizontal * 1.1,
-                color: AppColor.fontColorGrey,
-              ),
-            ),
-          ),
-          Expanded(
-            flex: 2,
-            child: _buildStatusBadge(_mapStatus(hp.status)), // HP Status
+            2,
           ),
           Expanded(
             flex: 1,
-            child: PopupMenuButton<String>(
-              icon: Icon(
-                Icons.more_vert,
-                color: AppColor.fontColorGrey,
-                size: SizeConfig.blockSizeHorizontal * 1.5,
+            child: Align(
+              alignment: Alignment.centerRight,
+              child: PopupMenuButton<String>(
+                tooltip: 'Actions',
+                icon: Icon(
+                  LucideIcons.ellipsis,
+                  color: AppColor.textTertiary,
+                  size: 20,
+                ),
+                onSelected: (value) {
+                  if (value == 'view') {
+                    Get.to(() => CgReviewDetailScreen(
+                      bookingId: widget.bookingId,
+                      hp: hp,
+                    ));
+                  } else if (value == 'release') {
+                    _confirmReleaseHp(hp.hpUniqueId);
+                  }
+                },
+                itemBuilder: (_) => [
+                  _popupItem('view', LucideIcons.eye, 'View', AppColor.textPrimary),
+                  _popupItem('release', LucideIcons.logOut, 'Release HP', AppColor.warning),
+                ],
               ),
-              onSelected: (value) {
-                if (value == 'view') {
-                  Get.to(() => CgReviewDetailScreen(
-                    bookingId: widget.bookingId,
-                    hp: hp,
-                  ));
-                } else if (value == 'release') {
-                  _confirmReleaseHp(hp.hpUniqueId);
-                }
-              },
-              itemBuilder: (_) => [
-                _popupItem('view', Icons.visibility_outlined, 'View', AppColor.fontColorBlack),
-                _popupItem('release', Icons.logout_outlined, 'Release HP', Colors.orange.shade700),
-              ],
             ),
           ),
         ],
       ),
     );
   }
+
   PopupMenuItem<String> _popupItem(
     String value,
     IconData icon,
     String label,
     Color color,
   ) {
-    final isMobile = SizeConfig.isMobile;
     return PopupMenuItem(
       value: value,
       child: Row(
         children: [
-          Icon(icon, size: isMobile ? 18 : SizeConfig.blockSizeHorizontal * 1.3, color: color),
-          SizedBox(width: isMobile ? 8 : SizeConfig.blockSizeHorizontal * 0.8),
+          Icon(icon, size: 18, color: color),
+          const SizedBox(width: 10),
           Text(label, style: TextStyle(color: color)),
         ],
       ),
@@ -882,21 +660,21 @@ class _ManageBookingViewState extends State<ManageBookingView> {
   void _confirmReleaseHp(int hpUniqueId) {
     showDialog<void>(
       context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('Release Health Professional'),
-        content: const Text(
-          'Are you sure you want to release this Health Professional from the booking? '
-          'This action will move them to "Released" status.',
-        ),
+      builder: (_) => AppDialog(
+        title: 'Release Health Professional',
+        icon: LucideIcons.logOut,
+        tone: AppTone.warning,
+        maxWidth: 460,
+        onClose: () => Navigator.of(context).pop(),
         actions: [
-          TextButton(
+          OutlinedButton(
             onPressed: () => Navigator.of(context).pop(),
             child: const Text('Cancel'),
           ),
           Obx(() => ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.orange.shade700,
-              foregroundColor: AppColor.buttonTextWhite,
+              backgroundColor: AppColor.warning,
+              foregroundColor: AppColor.pureWhite,
             ),
             onPressed: controller.isUpdateHPBookingLoading.value
                 ? null
@@ -919,6 +697,11 @@ class _ManageBookingViewState extends State<ManageBookingView> {
                 : const Text('Release HP'),
           )),
         ],
+        child: Text(
+          'Are you sure you want to release this Health Professional from the booking? '
+          'This action will move them to "Released" status.',
+          style: TextStyle(fontSize: 14, height: 1.5, color: AppColor.textSecondary),
+        ),
       ),
     );
   }
@@ -929,8 +712,8 @@ class _ManageBookingViewState extends State<ManageBookingView> {
       return Text(
         'Showing $count health professional${count == 1 ? '' : 's'}',
         style: TextStyle(
-          fontSize: SizeConfig.isMobile ? 13 : SizeConfig.blockSizeHorizontal * 1.1,
-          color: AppColor.fontColorGrey,
+          fontSize: 13,
+          color: AppColor.textTertiary,
         ),
       );
     });
@@ -940,7 +723,6 @@ class _ManageBookingViewState extends State<ManageBookingView> {
   // Rate History
   // ─────────────────────────────────────────────
   Future<void> _showRateHistoryDialog() async {
-    final isMobile = SizeConfig.isMobile;
     final rows = await controller.fetchRateHistory(widget.bookingId);
     if (rows == null || !mounted) return;
     String fmtDate(dynamic v) {
@@ -949,55 +731,54 @@ class _ManageBookingViewState extends State<ManageBookingView> {
     }
 
     Get.dialog(
-      Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        child: Container(
-          width: isMobile ? double.infinity : SizeConfig.blockSizeHorizontal * 45,
-          constraints: BoxConstraints(maxHeight: Get.height * 0.7),
-          padding: EdgeInsets.all(isMobile ? 16 : SizeConfig.blockSizeHorizontal * 2),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _dialogHeader('Rate History', Icons.history, Colors.blueGrey.shade600),
-              const SizedBox(height: 12),
-              if (rows.isEmpty)
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 24),
-                  child: Center(
-                    child: Text('No rate changes recorded for this booking',
-                        style: TextStyle(color: AppColor.fontColorGrey)),
-                  ),
-                )
-              else
-                Flexible(
-                  child: ListView.separated(
-                    shrinkWrap: true,
-                    itemCount: rows.length,
-                    separatorBuilder: (_, __) => Divider(height: 1, color: AppColor.divColor),
-                    itemBuilder: (_, i) {
+      AppDialog(
+        title: 'Rate History',
+        subtitle: 'BK-${widget.bookingId}',
+        icon: LucideIcons.history,
+        tone: AppTone.neutral,
+        maxWidth: 600,
+        onClose: () => Get.back(),
+        bodyPadding: rows.isEmpty ? null : const EdgeInsets.symmetric(vertical: 4),
+        child: rows.isEmpty
+            ? const AppEmptyState(
+                icon: LucideIcons.history,
+                title: 'No rate changes recorded for this booking',
+                compact: true,
+              )
+            : Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  for (var i = 0; i < rows.length; i++) ...[
+                    if (i > 0) Divider(height: 1, color: AppColor.borderSubtle),
+                    Builder(builder: (_) {
                       final r = rows[i];
                       final by = '${r['changed_by_name'] ?? ''}'.trim();
                       final reason = '${r['reason'] ?? ''}'.trim();
                       return ListTile(
                         dense: true,
-                        contentPadding: EdgeInsets.zero,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 24),
                         title: Text('${r['old_rate'] ?? '-'}  →  ${r['new_rate'] ?? '-'}',
-                            style: const TextStyle(fontWeight: FontWeight.w600)),
-                        subtitle: Text([
-                          'Effective ${fmtDate(r['effective_date'])}',
-                          if (by.isNotEmpty) 'by $by',
-                          if (reason.isNotEmpty && reason != 'NA') reason,
-                        ].join(' · ')),
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: AppColor.textPrimary,
+                              fontFeatures: const [FontFeature.tabularFigures()],
+                            )),
+                        subtitle: Text(
+                          [
+                            'Effective ${fmtDate(r['effective_date'])}',
+                            if (by.isNotEmpty) 'by $by',
+                            if (reason.isNotEmpty && reason != 'NA') reason,
+                          ].join(' · '),
+                          style: TextStyle(fontSize: 12.5, color: AppColor.textTertiary),
+                        ),
                         trailing: Text(fmtDate(r['changed_on']),
-                            style: TextStyle(fontSize: 12, color: AppColor.fontColorGrey)),
+                            style: TextStyle(fontSize: 12, color: AppColor.textTertiary)),
                       );
-                    },
-                  ),
-                ),
-            ],
-          ),
-        ),
+                    }),
+                  ],
+                ],
+              ),
       ),
     );
   }
@@ -1006,20 +787,11 @@ class _ManageBookingViewState extends State<ManageBookingView> {
   // Price Details
   // ─────────────────────────────────────────────
   Widget _buildCouponAndPriceDetails() {
-    final isMobile = SizeConfig.isMobile;
-
     Widget couponDropdown(CouponModel? selected, List<CouponModel> coupons) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Coupon',
-            style: TextStyle(
-              fontSize: isMobile ? 13 : SizeConfig.blockSizeHorizontal * 1,
-              color: AppColor.fontColorGrey,
-            ),
-          ),
-          SizedBox(height: SizeConfig.blockSizeVertical * 0.5),
+          _fieldLabel('Coupon'),
           AppDropdown<CouponModel>(
             hint: 'Select Coupon',
             value: selected,
@@ -1029,68 +801,43 @@ class _ManageBookingViewState extends State<ManageBookingView> {
             onChanged: (coupon) => controller.applyCoupon(coupon),
           ),
           if (selected != null)
-            TextButton(
-              onPressed: () => controller.applyCoupon(null),
-              style: TextButton.styleFrom(
-                backgroundColor: Colors.blue,
-                padding: EdgeInsets.symmetric(horizontal: isMobile ? 10 : SizeConfig.blockSizeHorizontal * 1, vertical: 4),
-                minimumSize: Size.zero,
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: TextButton.icon(
+                onPressed: () => controller.applyCoupon(null),
+                icon: const Icon(LucideIcons.x, size: 16),
+                label: const Text('Clear'),
+                style: AppButtonStyles.compact,
               ),
-              child: Text('Clear', style: TextStyle(color: AppColor.buttonTextWhite)),
             ),
         ],
       );
     }
 
-    return Container(
-      decoration: _cardDecoration(),
-      padding: EdgeInsets.all(isMobile ? 12 : SizeConfig.blockSizeHorizontal * 2),
+    return AppCard(
+      title: 'Price Details',
+      icon: LucideIcons.banknote,
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(
-            'Price Details',
-            style: TextStyle(
-              fontSize: isMobile ? 18 : SizeConfig.blockSizeHorizontal * 1.5,
-              fontWeight: FontWeight.w600,
-              color: AppColor.fontColorBlack,
-            ),
-          ),
-          SizedBox(height: isMobile ? 16 : SizeConfig.blockSizeVertical * 2),
-
           _responsiveFieldRow([
             CommonTextField(label: 'Base Rate (Per Day)', hint: 'Base Rate', controller: controller.finalRateController, keyboardType: TextInputType.number, enabled: false),
             CommonTextField(label: 'Final Rate', hint: 'Final Rate', controller: controller.finalRateDisplayController, keyboardType: TextInputType.number, enabled: false),
           ]),
 
-          SizedBox(height: isMobile ? 12 : SizeConfig.blockSizeVertical * 2),
+          const SizedBox(height: 16),
 
           Obx(() {
             final coupons = controller.settingsController.getAllCuponsData.value;
             final selected = controller.selectedCoupon.value;
 
-            if (isMobile) {
-              return Column(
-                children: [
-                  couponDropdown(selected, coupons),
-                  const SizedBox(height: 12),
-                  CommonTextField(label: 'Applied Coupon Discount %', hint: '0.00', controller: controller.discountPercentDisplayController, keyboardType: TextInputType.number, enabled: false),
-                  const SizedBox(height: 12),
-                  CommonTextField(label: 'Applied Coupon Discount Value', hint: '0.00', controller: controller.discountValueDisplayController, keyboardType: TextInputType.number, enabled: false),
-                ],
-              );
-            }
-
-            return Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Expanded(child: couponDropdown(selected, coupons)),
-                SizedBox(width: SizeConfig.blockSizeHorizontal * 1.5),
-                Expanded(child: CommonTextField(label: 'Applied Coupon Discount %', hint: '0.00', controller: controller.discountPercentDisplayController, keyboardType: TextInputType.number, enabled: false)),
-                SizedBox(width: SizeConfig.blockSizeHorizontal * 1.5),
-                Expanded(child: CommonTextField(label: 'Applied Coupon Discount Value', hint: '0.00', controller: controller.discountValueDisplayController, keyboardType: TextInputType.number, enabled: false)),
+            return _responsiveFieldRow(
+              [
+                couponDropdown(selected, coupons),
+                CommonTextField(label: 'Applied Coupon Discount %', hint: '0.00', controller: controller.discountPercentDisplayController, keyboardType: TextInputType.number, enabled: false),
+                CommonTextField(label: 'Applied Coupon Discount Value', hint: '0.00', controller: controller.discountValueDisplayController, keyboardType: TextInputType.number, enabled: false),
               ],
+              maxColumns: 3,
             );
           }),
         ],
@@ -1102,67 +849,18 @@ class _ManageBookingViewState extends State<ManageBookingView> {
   // Status Badge
   // ─────────────────────────────────────────────
   Widget _buildStatusBadge(String status) {
-    Color bgColor;
-    Color textColor;
-    final isMobile = SizeConfig.isMobile;
-
-    switch (status.toLowerCase()) {
-      case 'active':
-        bgColor = Colors.green.shade50;
-        textColor = Colors.green.shade700;
-        break;
-      case 'shortlisted':
-        bgColor = Colors.blue.shade50;
-        textColor = Colors.blue.shade700;
-        break;
-      case 'pending approval':
-        bgColor = Colors.orange.shade50;
-        textColor = Colors.orange.shade700;
-        break;
-      case 'released':
-        bgColor = AppColor.fieldColorGrey;
-        textColor = AppColor.fontColorGrey;
-        break;
-      case 'confirmed':
-        bgColor = Colors.green.shade50;
-        textColor = Colors.green.shade700;
-        break;
-      case 'cancelled':
-        bgColor = Colors.red.shade50;
-        textColor = Colors.red.shade700;
-        break;
-      case 'in progress':
-        bgColor = Colors.blue.shade50;
-        textColor = Colors.blue.shade700;
-        break;
-      case 'completed':
-        bgColor = Colors.teal.shade50;
-        textColor = Colors.teal.shade700;
-        break;
-      default:
-        bgColor = AppColor.fieldColorGrey;
-        textColor = AppColor.fontColorGrey;
-    }
-
-    return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: isMobile ? 10 : SizeConfig.blockSizeHorizontal * 1,
-        vertical: isMobile ? 4 : SizeConfig.blockSizeVertical * 0.5,
-      ),
-      decoration: BoxDecoration(
-        color: bgColor,
-        borderRadius: BorderRadius.circular(6),
-      ),
-      child: Text(
-        status,
-        style: TextStyle(
-          fontSize: isMobile ? 13 : SizeConfig.blockSizeHorizontal * 1,
-          fontWeight: FontWeight.w500,
-          color: textColor,
-        ),
-        textAlign: TextAlign.center,
-      ),
-    );
+    // HP lifecycle stages get distinct tones; booking statuses use the shared
+    // mapping.
+    const hpTones = <String, AppTone>{
+      'shortlisted': AppTone.info,
+      'interview stage': AppTone.warning,
+      'finalized': AppTone.violet,
+      'active': AppTone.success,
+      'released': AppTone.neutral,
+      'unknown': AppTone.neutral,
+    };
+    final tone = hpTones[status.toLowerCase()] ?? toneForStatus(status);
+    return AppStatusBadge(label: status, tone: tone);
   }
 
   // ─────────────────────────────────────────────
@@ -1172,111 +870,79 @@ class _ManageBookingViewState extends State<ManageBookingView> {
     final Rx<DateTime?> newStartDate = Rx<DateTime?>(null);
     final Rx<DateTime?> newEndDate = Rx<DateTime?>(null);
     final extendNotesController = TextEditingController();
-    final isMobile = SizeConfig.isMobile;
 
     Get.dialog(
-      Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        child: Container(
-          width: isMobile ? double.infinity : SizeConfig.blockSizeHorizontal * 40,
-          padding: EdgeInsets.all(isMobile ? 16 : SizeConfig.blockSizeHorizontal * 2.5),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _dialogHeader(
-                'Extend Service',
-                Icons.calendar_month,
-                Colors.green.shade600,
-              ),
-              SizedBox(height: isMobile ? 16 : SizeConfig.blockSizeVertical * 2),
-              Text(
-                'Extend the service period by providing new dates:',
-                style: TextStyle(
-                  fontSize: isMobile ? 14 : SizeConfig.blockSizeHorizontal * 1.1,
-                  color: AppColor.fontColorGrey,
-                ),
-              ),
-              SizedBox(height: isMobile ? 16 : SizeConfig.blockSizeVertical * 2),
-              Obx(
-                () => CommonDatePicker(
-                  label: 'New Service Start Date',
-                  hint: 'Select New Start Date',
-                  selectedDate: newStartDate.value,
-                  onDateSelected: (date) => newStartDate.value = date,
-                ),
-              ),
-              SizedBox(height: isMobile ? 16 : SizeConfig.blockSizeVertical * 2),
-              Obx(
-                () => CommonDatePicker(
-                  label: 'New Service End Date',
-                  hint: 'Select New End Date',
-                  selectedDate: newEndDate.value,
-                  onDateSelected: (date) => newEndDate.value = date,
-                ),
-              ),
-              SizedBox(height: isMobile ? 12 : SizeConfig.blockSizeVertical * 1.5),
-              _buildTextArea(
-                'Extension Notes (Optional)',
-                extendNotesController,
-                'Add any notes about the extension',
-                maxLines: 3,
-              ),
-              SizedBox(height: isMobile ? 20 : SizeConfig.blockSizeVertical * 2.5),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  _cancelButton(),
-                  SizedBox(width: isMobile ? 8 : SizeConfig.blockSizeHorizontal * 1),
-                  ElevatedButton(
-                    onPressed: () {
-                      if (newStartDate.value == null) {
-                        _showError('Please select new service start date');
-                        return;
-                      }
-                      if (newEndDate.value == null) {
-                        _showError('Please select new service end date');
-                        return;
-                      }
-                      if (newEndDate.value!.isBefore(newStartDate.value!)) {
-                        _showError('New end date cannot be before the new start date');
-                        return;
-                      }
-                      final bk = controller.bookingsByBookingId.value.firstOrNull;
-                      if (bk != null && bk.serviceEndDate != null &&
-                          newEndDate.value!.isBefore(bk.serviceEndDate!)) {
-                        _showError(
-                          'New end date must be after current end date',
-                        );
-                        return;
-                      }
-                      Get.back();
-                      controller.extendService(
-                        widget.bookingId,
-                        newStartDate.value!,
-                        newEndDate.value!,
-                        extendNotesController.text.trim(),
-                      );
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green.shade600,
-                      foregroundColor: AppColor.buttonTextWhite,
-                      padding: _buttonPadding(),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                    child: Text(
-                      'Confirm Extension',
-                      style: TextStyle(
-                        fontSize: isMobile ? 14 : SizeConfig.blockSizeHorizontal * 1.1,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
+      AppDialog(
+        title: 'Extend Service',
+        subtitle: 'Extend the service period by providing new dates',
+        icon: LucideIcons.calendarDays,
+        tone: AppTone.success,
+        maxWidth: 520,
+        onClose: () => Get.back(),
+        actions: [
+          _cancelButton(),
+          ElevatedButton(
+            onPressed: () {
+              if (newStartDate.value == null) {
+                _showError('Please select new service start date');
+                return;
+              }
+              if (newEndDate.value == null) {
+                _showError('Please select new service end date');
+                return;
+              }
+              if (newEndDate.value!.isBefore(newStartDate.value!)) {
+                _showError('New end date cannot be before the new start date');
+                return;
+              }
+              final bk = controller.bookingsByBookingId.value.firstOrNull;
+              if (bk != null && bk.serviceEndDate != null &&
+                  newEndDate.value!.isBefore(bk.serviceEndDate!)) {
+                _showError(
+                  'New end date must be after current end date',
+                );
+                return;
+              }
+              Get.back();
+              controller.extendService(
+                widget.bookingId,
+                newStartDate.value!,
+                newEndDate.value!,
+                extendNotesController.text.trim(),
+              );
+            },
+            child: const Text('Confirm Extension'),
           ),
+        ],
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Obx(
+              () => CommonDatePicker(
+                label: 'New Service Start Date',
+                hint: 'Select New Start Date',
+                selectedDate: newStartDate.value,
+                onDateSelected: (date) => newStartDate.value = date,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Obx(
+              () => CommonDatePicker(
+                label: 'New Service End Date',
+                hint: 'Select New End Date',
+                selectedDate: newEndDate.value,
+                onDateSelected: (date) => newEndDate.value = date,
+              ),
+            ),
+            const SizedBox(height: 16),
+            _buildTextArea(
+              'Extension Notes (Optional)',
+              extendNotesController,
+              'Add any notes about the extension',
+              maxLines: 3,
+            ),
+          ],
         ),
       ),
     );
@@ -1285,139 +951,56 @@ class _ManageBookingViewState extends State<ManageBookingView> {
   // ─────────────────────────────────────────────
   // Shared Dialog Helpers
   // ─────────────────────────────────────────────
-  Widget _dialogHeader(String title, IconData icon, Color color) {
-    final isMobile = SizeConfig.isMobile;
-    return Row(
-      children: [
-        Icon(icon, color: color, size: isMobile ? 24 : SizeConfig.blockSizeHorizontal * 2),
-        SizedBox(width: isMobile ? 8 : SizeConfig.blockSizeHorizontal * 1),
-        Expanded(
-          child: Text(
-            title,
-            style: TextStyle(
-              fontSize: isMobile ? 18 : SizeConfig.blockSizeHorizontal * 1.5,
-              fontWeight: FontWeight.w600,
-              color: AppColor.fontColorBlack,
-            ),
-          ),
-        ),
-        IconButton(
-          onPressed: () => Get.back(),
-          icon: const Icon(Icons.close),
-          iconSize: isMobile ? 22 : SizeConfig.blockSizeHorizontal * 1.5,
-        ),
-      ],
-    );
-  }
-
   Widget _buildTextArea(
     String label,
     TextEditingController ctrl,
     String hint, {
     int maxLines = 4,
   }) {
-    final isMobile = SizeConfig.isMobile;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: isMobile ? 14 : SizeConfig.blockSizeHorizontal * 1.1,
-            fontWeight: FontWeight.w500,
-            color: AppColor.fontColorGrey,
-          ),
-        ),
-        SizedBox(height: SizeConfig.blockSizeVertical * 0.5),
+        _fieldLabel(label),
         TextField(
           controller: ctrl,
           maxLines: maxLines,
-          decoration: InputDecoration(
-            hintText: hint,
-            contentPadding: EdgeInsets.all(
-              isMobile ? 12 : SizeConfig.blockSizeHorizontal * 1.5,
-            ),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide(color: AppColor.divColor),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide(color: AppColor.divColor),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide(color: Colors.blue.shade600),
-            ),
-          ),
-          style: TextStyle(fontSize: isMobile ? 14 : SizeConfig.blockSizeHorizontal * 1.1),
+          decoration: InputDecoration(hintText: hint),
+          style: TextStyle(fontSize: 14, color: AppColor.textPrimary),
         ),
       ],
     );
   }
 
   Widget _cancelButton() {
-    final isMobile = SizeConfig.isMobile;
     return OutlinedButton(
       onPressed: () => Get.back(),
-      style: OutlinedButton.styleFrom(
-        foregroundColor: AppColor.fontColorGrey,
-        side: BorderSide(color: AppColor.divColor),
-        padding: _buttonPadding(),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-      ),
-      child: Text(
-        'Cancel',
-        style: TextStyle(fontSize: isMobile ? 14 : SizeConfig.blockSizeHorizontal * 1.1),
-      ),
+      child: const Text('Cancel'),
     );
   }
-
-  EdgeInsetsGeometry _buttonPadding() => SizeConfig.isMobile
-      ? const EdgeInsets.symmetric(horizontal: 16, vertical: 10)
-      : EdgeInsets.symmetric(
-          horizontal: SizeConfig.blockSizeHorizontal * 2,
-          vertical: SizeConfig.blockSizeVertical * 1.2,
-        );
 
   void _showError(String msg) {
     Get.snackbar(
       'Error',
       msg,
       snackPosition: SnackPosition.TOP,
-      backgroundColor: Colors.red.shade100,
-      colorText: Colors.red.shade900,
+      backgroundColor: AppColor.danger,
+      colorText: AppColor.pureWhite,
     );
   }
 
-  // ─────────────────────────────────────────────
-  // Card Decoration
-  // ─────────────────────────────────────────────
-  BoxDecoration _cardDecoration() => BoxDecoration(
-    color: AppColor.whiteColor,
-    borderRadius: BorderRadius.circular(12),
-    border: Border.all(color: AppColor.divColor),
-    boxShadow: [
-      BoxShadow(
-        color: Colors.black.withOpacity(0.05),
-        blurRadius: 10,
-        offset: const Offset(0, 2),
-      ),
-    ],
-  );
-
-  Widget _sectionLabel(String label, IconData icon, Color color) {
-    final isMobile = SizeConfig.isMobile;
+  Widget _sectionLabel(String label, IconData icon, AppTone tone) {
     return Row(
       children: [
-        Icon(icon, size: isMobile ? 18 : SizeConfig.blockSizeHorizontal * 1.5, color: color),
-        SizedBox(width: isMobile ? 6 : SizeConfig.blockSizeHorizontal * 0.5),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: isMobile ? 15 : SizeConfig.blockSizeHorizontal * 1.2,
-            fontWeight: FontWeight.w600,
-            color: color,
+        AppIconTile(icon: icon, tone: tone, size: 28),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 14.5,
+              fontWeight: FontWeight.w600,
+              color: AppColor.textPrimary,
+            ),
           ),
         ),
       ],
@@ -1425,21 +1008,23 @@ class _ManageBookingViewState extends State<ManageBookingView> {
   }
 
   Widget _buildLeadDetails() {
-    final isMobile = SizeConfig.isMobile;
-    return _sectionCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Lead Details',
-            style: TextStyle(
-              fontSize: isMobile ? 18 : SizeConfig.blockSizeHorizontal * 1.5,
-              fontWeight: FontWeight.w600,
-              color: AppColor.fontColorBlack,
-            ),
-          ),
-          SizedBox(height: isMobile ? 16 : SizeConfig.blockSizeVertical * 2),
-          _responsiveFieldRow([
+    return AppCard(
+      title: 'Lead Details',
+      icon: LucideIcons.trendingUp,
+      footer: Align(
+        alignment: Alignment.centerRight,
+        child: ElevatedButton(
+          onPressed: () {
+            controller.updateBookingsTotal(widget.bookingId);
+          },
+          child: const Text("Update"),
+        ),
+      ),
+      child: _responsiveFieldRow([
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _fieldLabel('Lead Type'),
             Obx(
               () => AppDropdown<String>(
                 hint: 'Select Lead Type',
@@ -1455,94 +1040,76 @@ class _ManageBookingViewState extends State<ManageBookingView> {
                 },
               ),
             ),
-            Obx(
-              () => CommonDatePicker(
-                label: 'Next Followup Date',
-                hint: 'Select Date',
-                selectedDate: controller.selectedFollowupDate.value,
-                onDateSelected: (date) {
-                  controller.selectedFollowupDate.value = date;
-                },
-                enabled: true,
-              ),
-            ),
-          ]),
-
-          SizedBox(height: isMobile ? 16 : SizeConfig.blockSizeVertical * 2),
-
-          Align(
-            alignment: Alignment.centerRight,
-            child: ElevatedButton(
-              onPressed: () {
-                controller.updateBookingsTotal(widget.bookingId);
-              },
-              child: const Text("Update"),
-            ),
+          ],
+        ),
+        Obx(
+          () => CommonDatePicker(
+            label: 'Next Followup Date',
+            hint: 'Select Date',
+            selectedDate: controller.selectedFollowupDate.value,
+            onDateSelected: (date) {
+              controller.selectedFollowupDate.value = date;
+            },
+            enabled: true,
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget _sectionCard({required Widget child}) {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColor.whiteColor,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColor.divColor),
-      ),
-      padding: EdgeInsets.all(SizeConfig.isMobile ? 12 : SizeConfig.blockSizeHorizontal * 2),
-      child: child,
+        ),
+      ]),
     );
   }
 
   Widget _buildAssignCareManager() {
-    final isMobile = SizeConfig.isMobile;
-    return _sectionCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Assign Care Manager',
-            style: TextStyle(
-              fontSize: isMobile ? 18 : SizeConfig.blockSizeHorizontal * 1.5,
-              fontWeight: FontWeight.w600,
-              color: AppColor.fontColorBlack,
+    return AppCard(
+      title: 'Assign Care Manager',
+      icon: LucideIcons.headset,
+      footer: Align(
+        alignment: Alignment.centerRight,
+        child: ElevatedButton(
+          onPressed: () {
+            controller.updateBookingsTotal(widget.bookingId);
+          },
+          child: const Text("Update"),
+        ),
+      ),
+      child: Obx(() {
+        final managers = controller.careManagers;
+
+        if (managers.isEmpty) {
+          return Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+            decoration: BoxDecoration(
+              border: Border.all(color: AppColor.borderSubtle),
+              borderRadius: BorderRadius.circular(AppRadius.md),
+              color: AppColor.surfaceMuted,
             ),
-          ),
-          SizedBox(height: isMobile ? 16 : SizeConfig.blockSizeVertical * 2),
-
-          Obx(() {
-            final managers = controller.careManagers;
-
-            if (managers.isEmpty) {
-              return Container(
-                padding: EdgeInsets.symmetric(
-                  horizontal: isMobile ? 10 : SizeConfig.blockSizeHorizontal * 1,
-                  vertical: isMobile ? 14 : SizeConfig.blockSizeVertical * 1.8,
-                ),
-                decoration: BoxDecoration(
-                  border: Border.all(color: AppColor.divColor),
-                  borderRadius: BorderRadius.circular(6),
-                  color: AppColor.fieldColorGrey,
-                ),
-                child: Text(
-                  'No care managers available',
-                  style: TextStyle(
-                    color: AppColor.fontColorGrey,
-                    fontSize: isMobile ? 14 : SizeConfig.blockSizeHorizontal * 1.1,
+            child: Row(
+              children: [
+                Icon(LucideIcons.info, size: 18, color: AppColor.textTertiary),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'No care managers available',
+                    style: TextStyle(
+                      color: AppColor.textTertiary,
+                      fontSize: 14,
+                    ),
                   ),
                 ),
-              );
-            }
+              ],
+            ),
+          );
+        }
 
-            final validIds = managers.map((u) => u.id).toSet();
-            final currentId = controller.selectedCareManagerIdForBooking.value;
-            final safeValue = (currentId != 0 && validIds.contains(currentId))
-                ? currentId
-                : null;
+        final validIds = managers.map((u) => u.id).toSet();
+        final currentId = controller.selectedCareManagerIdForBooking.value;
+        final safeValue = (currentId != 0 && validIds.contains(currentId))
+            ? currentId
+            : null;
 
-            return AppDropdown<int>(
+        return Align(
+          alignment: Alignment.centerLeft,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 520),
+            child: AppDropdown<int>(
               hint: 'Select Care Manager',
               value: safeValue,
               items: managers
@@ -1554,24 +1121,13 @@ class _ManageBookingViewState extends State<ManageBookingView> {
               onChanged: (value) {
                 controller.selectedCareManagerIdForBooking.value = value ?? 0;
               },
-            );
-          }),
-
-          SizedBox(height: isMobile ? 16 : SizeConfig.blockSizeVertical * 2),
-
-          Align(
-            alignment: Alignment.centerRight,
-            child: ElevatedButton(
-              onPressed: () {
-                controller.updateBookingsTotal(widget.bookingId);
-              },
-              child: const Text("Update"),
             ),
           ),
-        ],
-      ),
+        );
+      }),
     );
   }
+
   String _hpFullName(dynamic hp) {
     final first = (hp.hpRegFirstName ?? '').toString().trim();
     final last = (hp.hpRegLastName ?? '').toString().trim();

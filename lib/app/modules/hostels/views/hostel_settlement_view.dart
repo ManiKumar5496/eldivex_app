@@ -3,13 +3,17 @@ import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 
 import 'package:eldivex_app/app/core/values/color_constants.dart';
+import 'package:eldivex_app/app/widgets/ui/ui.dart';
+import '../../../core/values/size_configue.dart';
 import '../controllers/hostels_controller.dart';
+import 'package:eldivex_app/app/core/values/lucide_icons.dart';
 
 class HostelSettlementView extends StatelessWidget {
   const HostelSettlementView({super.key});
 
   @override
   Widget build(BuildContext context) {
+    SizeConfig.init(context);
     final c = Get.isRegistered<HostelsController>()
         ? Get.find<HostelsController>()
         : Get.put(HostelsController());
@@ -17,51 +21,47 @@ class HostelSettlementView extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppColor.cAppBackgroundColor,
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+        padding: SizeConfig.pagePadding,
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text('Hostel Settlements',
-                style: TextStyle(
-                    fontSize: 20, fontWeight: FontWeight.w700, color: AppColor.blackColor)),
-            const SizedBox(height: 4),
-            Text('Total payable to each hostel for the period, with a per-caregiver breakdown.',
-                style: TextStyle(color: AppColor.fontColorGrey)),
-            const SizedBox(height: 16),
+            const AppPageHeader(
+              title: 'Hostel Settlements',
+              subtitle:
+                  'Total payable to each hostel for the period, with a per-caregiver breakdown.',
+            ),
+            SizedBox(height: SizeConfig.isMobile ? 16 : 24),
             _filters(c),
-            const SizedBox(height: 16),
+            const SizedBox(height: 20),
             Obx(() {
               if (c.loadingSettlement.value) {
-                return const Center(
-                    child: Padding(padding: EdgeInsets.all(40), child: CircularProgressIndicator()));
+                return const AppCard(
+                  child: Padding(
+                    padding: EdgeInsets.all(40),
+                    child: Center(child: CircularProgressIndicator()),
+                  ),
+                );
               }
               if (c.settlementError.value.isNotEmpty) {
-                return Padding(
-                  padding: const EdgeInsets.all(24),
-                  child: Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(c.settlementError.value,
-                            style: TextStyle(color: AppColor.calenderRed)),
-                        const SizedBox(height: 8),
-                        OutlinedButton.icon(
-                          onPressed: c.fetchSettlement,
-                          icon: const Icon(Icons.refresh),
-                          label: const Text('Retry'),
-                        ),
-                      ],
-                    ),
+                return AppCard(
+                  child: AppEmptyState(
+                    icon: LucideIcons.circleAlert,
+                    tone: AppTone.danger,
+                    title: 'Could not calculate settlement',
+                    message: c.settlementError.value,
+                    actionLabel: 'Retry',
+                    actionIcon: LucideIcons.refreshCw,
+                    onAction: c.fetchSettlement,
                   ),
                 );
               }
               final s = c.settlement.value;
               if (s == null) {
-                return Padding(
-                  padding: const EdgeInsets.all(24),
-                  child: Center(
-                    child: Text('Pick a hostel and period, then tap Calculate.',
-                        style: TextStyle(color: AppColor.fontColorGrey)),
+                return const AppCard(
+                  child: AppEmptyState(
+                    icon: LucideIcons.calculator,
+                    title: 'No settlement calculated',
+                    message: 'Pick a hostel and period, then tap Calculate.',
                   ),
                 );
               }
@@ -74,29 +74,28 @@ class HostelSettlementView extends StatelessWidget {
   }
 
   Widget _filters(HostelsController c) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColor.whiteColor,
-        borderRadius: BorderRadius.circular(12),
-      ),
+    final narrow = SizeConfig.isMobile;
+    return AppCard(
+      title: 'Settlement period',
+      subtitle: 'Only active hostels can be settled',
+      icon: LucideIcons.slidersHorizontal,
       child: Wrap(
         spacing: 12,
         runSpacing: 12,
         crossAxisAlignment: WrapCrossAlignment.center,
         children: [
           SizedBox(
-            width: 260,
+            width: narrow ? double.infinity : 280,
             child: Obx(() {
               // Only active hostels can be settled.
               final hostels = c.activeHostels;
               final sel = c.settlementHostelId.value;
               return DropdownButtonFormField<int>(
+icon: const Icon(LucideIcons.chevronDown, size: 18),
                   key: ValueKey('settle-hostel-${hostels.length}-$sel'),
                   initialValue: hostels.any((h) => h.id == sel) ? sel : null,
                   isExpanded: true,
-                  decoration: const InputDecoration(
-                      labelText: 'Hostel', border: OutlineInputBorder()),
+                  decoration: const InputDecoration(labelText: 'Hostel'),
                   items: hostels
                       .map((h) => DropdownMenuItem<int>(
                             value: h.id,
@@ -109,16 +108,11 @@ class HostelSettlementView extends StatelessWidget {
                 );
             }),
           ),
-          SizedBox(width: 170, child: _dateField(c.settlementFromCtrl, 'From')),
-          SizedBox(width: 170, child: _dateField(c.settlementToCtrl, 'To')),
+          SizedBox(width: narrow ? 150 : 170, child: _dateField(c.settlementFromCtrl, 'From')),
+          SizedBox(width: narrow ? 150 : 170, child: _dateField(c.settlementToCtrl, 'To')),
           ElevatedButton.icon(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColor.cAppPrimaryColor,
-              foregroundColor: AppColor.buttonTextWhite,
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-            ),
             onPressed: c.fetchSettlement,
-            icon: const Icon(Icons.calculate_outlined),
+            icon: const Icon(LucideIcons.calculator, size: 18),
             label: const Text('Calculate'),
           ),
         ],
@@ -127,115 +121,139 @@ class HostelSettlementView extends StatelessWidget {
   }
 
   Widget _result(HostelsController c, dynamic s) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColor.whiteColor,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text('${s.hostelName} — ${s.periodFrom} to ${s.periodTo}',
-                    style: TextStyle(
-                        fontSize: 16, fontWeight: FontWeight.w700, color: AppColor.blackColor)),
-              ),
-              Obx(() {
-                final savedId = c.lastSettlementId.value;
-                if (savedId != null) {
-                  // Saved in this session → offer mark-paid on it.
-                  if (c.lastSettlementStatus.value == 'Paid') {
-                    return Chip(
-                      label: Text('Settlement #$savedId · Paid'),
-                      backgroundColor: Colors.green.withValues(alpha: 0.12),
-                    );
-                  }
-                  return ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green.shade700,
-                      foregroundColor: AppColor.buttonTextWhite,
-                    ),
-                    onPressed: c.isSubmitting.value
-                        ? null
-                        : () => _confirmMarkPaid(c, savedId),
-                    icon: const Icon(Icons.check_circle_outline, size: 18),
-                    label: Text('Mark #$savedId as paid'),
+    final List lines = s.lines as List;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        AppResponsiveGrid(
+          minItemWidth: SizeConfig.isMobile ? 140 : 200,
+          maxColumns: 4,
+          spacing: SizeConfig.isMobile ? 12 : 16,
+          children: [
+            _summary('Total payable', '₹${s.totalAmount.toStringAsFixed(0)}',
+                LucideIcons.wallet, AppTone.primary),
+            _summary('Caregivers', '${s.cgCount}', LucideIcons.users,
+                AppTone.info),
+            _summary('Total nights', '${s.totalNights}', LucideIcons.moon,
+                AppTone.violet),
+            _summary('Rate / day', '₹${s.ratePerDay.toStringAsFixed(0)}',
+                LucideIcons.banknote, AppTone.neutral),
+          ],
+        ),
+        const SizedBox(height: 20),
+        AppCard(
+          title: '${s.hostelName}',
+          subtitle: '${s.periodFrom} to ${s.periodTo}',
+          icon: LucideIcons.receiptText,
+          padding: EdgeInsets.zero,
+          actions: [
+            Obx(() {
+              final savedId = c.lastSettlementId.value;
+              if (savedId != null) {
+                // Saved in this session → offer mark-paid on it.
+                if (c.lastSettlementStatus.value == 'Paid') {
+                  return AppStatusBadge(
+                    label: 'Settlement #$savedId · Paid',
+                    tone: AppTone.success,
                   );
                 }
                 return ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColor.cAppPrimaryColor,
-                      foregroundColor: AppColor.buttonTextWhite,
-                    ),
-                    onPressed: (c.isSubmitting.value || s.lines.isEmpty)
-                        ? null
-                        : () => c.generateSettlement(),
-                    icon: const Icon(Icons.receipt_long_outlined, size: 18),
-                    label: const Text('Generate settlement'),
-                  );
-              }),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Wrap(spacing: 24, runSpacing: 8, children: [
-            _summary('Total payable', '₹${s.totalAmount.toStringAsFixed(0)}', emphasize: true),
-            _summary('Caregivers', '${s.cgCount}'),
-            _summary('Total nights', '${s.totalNights}'),
-            _summary('Rate / day', '₹${s.ratePerDay.toStringAsFixed(0)}'),
-          ]),
-          const Divider(height: 28),
-          if (s.lines.isEmpty)
-            Text('No stays in this period.', style: TextStyle(color: AppColor.fontColorGrey))
-          else ...[
-            _headerRow(),
-            ...s.lines.map<Widget>((l) => Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  child: Row(children: [
-                    Expanded(flex: 3, child: Text(l.hpName.isEmpty ? 'CG #${l.hpId}' : l.hpName)),
-                    Expanded(flex: 1, child: Text('${l.nights}')),
-                    Expanded(flex: 2, child: Text('₹${l.ratePerDay.toStringAsFixed(0)}')),
-                    Expanded(
-                        flex: 2,
-                        child: Text('₹${l.amount.toStringAsFixed(0)}',
-                            style: const TextStyle(fontWeight: FontWeight.w600))),
-                  ]),
-                )),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColor.success,
+                    foregroundColor: AppColor.pureWhite,
+                  ),
+                  onPressed: c.isSubmitting.value
+                      ? null
+                      : () => _confirmMarkPaid(c, savedId),
+                  icon: const Icon(LucideIcons.circleCheck, size: 18),
+                  label: Text('Mark #$savedId as paid'),
+                );
+              }
+              return ElevatedButton.icon(
+                  onPressed: (c.isSubmitting.value || s.lines.isEmpty)
+                      ? null
+                      : () => c.generateSettlement(),
+                  icon: const Icon(LucideIcons.receiptText, size: 18),
+                  label: const Text('Generate settlement'),
+                );
+            }),
           ],
-        ],
-      ),
+          child: lines.isEmpty
+              ? const AppEmptyState(
+                  compact: true,
+                  icon: LucideIcons.calendarX,
+                  title: 'No stays in this period.',
+                )
+              : _linesTable(lines),
+        ),
+      ],
     );
+  }
+
+  /// Per-caregiver breakdown; money and counts right-aligned.
+  Widget _linesTable(List lines) {
+    final money = TextStyle(
+      fontSize: 14,
+      color: AppColor.textSecondary,
+      fontFeatures: const [FontFeature.tabularFigures()],
+    );
+    return LayoutBuilder(builder: (context, constraints) {
+      final table = DataTable(
+        horizontalMargin: 20,
+        columnSpacing: 24,
+        headingRowHeight: 44,
+        columns: const [
+          DataColumn(label: Text('Caregiver')),
+          DataColumn(label: Text('Nights'), numeric: true),
+          DataColumn(label: Text('Rate/day'), numeric: true),
+          DataColumn(label: Text('Amount'), numeric: true),
+        ],
+        rows: [
+          for (final l in lines)
+            DataRow(cells: [
+              DataCell(Text(
+                l.hpName.isEmpty ? 'CG #${l.hpId}' : l.hpName,
+                style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: AppColor.textPrimary),
+              )),
+              DataCell(Text('${l.nights}', style: money)),
+              DataCell(Text('₹${l.ratePerDay.toStringAsFixed(0)}', style: money)),
+              DataCell(Text('₹${l.amount.toStringAsFixed(0)}',
+                  style: money.copyWith(
+                      fontWeight: FontWeight.w600, color: AppColor.textPrimary))),
+            ]),
+        ],
+      );
+      return SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: ConstrainedBox(
+          constraints: BoxConstraints(minWidth: constraints.maxWidth),
+          child: table,
+        ),
+      );
+    });
   }
 
   void _confirmMarkPaid(HostelsController c, int id) {
     final modeCtrl = TextEditingController();
     Get.dialog(
-      AlertDialog(
-        backgroundColor: AppColor.whiteColor,
-        title: Text('Mark settlement #$id as paid?'),
-        content: SizedBox(
-          width: 360,
-          child: TextField(
-            controller: modeCtrl,
-            decoration: const InputDecoration(
-              labelText: 'Payment mode (optional)',
-              hintText: 'e.g. Bank transfer, UPI, Cash',
-              border: OutlineInputBorder(),
-            ),
-          ),
-        ),
+      AppDialog(
+        title: 'Mark settlement #$id as paid?',
+        icon: LucideIcons.circleCheck,
+        tone: AppTone.success,
+        maxWidth: 440,
+        // Same guard as Cancel: no closing while the request runs.
+        onClose: () {
+          if (!c.isSubmitting.value) Get.back();
+        },
         actions: [
-          Obx(() => TextButton(
+          Obx(() => OutlinedButton(
                 onPressed: c.isSubmitting.value ? null : Get.back,
                 child: const Text('Cancel'),
               )),
           Obx(() => ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColor.cAppPrimaryColor,
-                  foregroundColor: AppColor.buttonTextWhite,
-                ),
                 onPressed: c.isSubmitting.value
                     ? null
                     : () async {
@@ -246,23 +264,17 @@ class HostelSettlementView extends StatelessWidget {
                 child: const Text('Mark paid'),
               )),
         ],
+        child: TextField(
+          controller: modeCtrl,
+          decoration: const InputDecoration(
+            labelText: 'Payment mode (optional)',
+            hintText: 'e.g. Bank transfer, UPI, Cash',
+          ),
+        ),
       ),
       barrierDismissible: false,
     );
   }
-
-  Widget _headerRow() => Padding(
-        padding: const EdgeInsets.only(bottom: 4),
-        child: Row(children: [
-          Expanded(flex: 3, child: _h('Caregiver')),
-          Expanded(flex: 1, child: _h('Nights')),
-          Expanded(flex: 2, child: _h('Rate/day')),
-          Expanded(flex: 2, child: _h('Amount')),
-        ]),
-      );
-
-  Widget _h(String t) =>
-      Text(t, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColor.fontColorGrey));
 
   Widget _dateField(TextEditingController ctrl, String label) {
     return TextField(
@@ -270,8 +282,7 @@ class HostelSettlementView extends StatelessWidget {
       readOnly: true,
       decoration: InputDecoration(
         labelText: label,
-        border: const OutlineInputBorder(),
-        suffixIcon: const Icon(Icons.calendar_today, size: 18),
+        suffixIcon: const Icon(LucideIcons.calendar, size: 18),
       ),
       onTap: () async {
         final initial = DateTime.tryParse(ctrl.text) ?? DateTime.now();
@@ -288,16 +299,6 @@ class HostelSettlementView extends StatelessWidget {
     );
   }
 
-  Widget _summary(String k, String v, {bool emphasize = false}) => Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(k, style: TextStyle(fontSize: 12, color: AppColor.fontColorGrey)),
-          const SizedBox(height: 2),
-          Text(v,
-              style: TextStyle(
-                  fontSize: emphasize ? 22 : 16,
-                  fontWeight: FontWeight.w700,
-                  color: emphasize ? AppColor.cAppPrimaryColor : AppColor.blackColor)),
-        ],
-      );
+  Widget _summary(String k, String v, IconData icon, AppTone tone) =>
+      AppStatCard(label: k, value: v, icon: icon, tone: tone);
 }

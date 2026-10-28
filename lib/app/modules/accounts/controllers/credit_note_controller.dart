@@ -2,10 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../data/api_constant_url.dart';
 import '../../../data/base_api_services.dart';
+import '../../../core/values/color_constants.dart';
 import '../../../widgets/helper_ui.dart';
+import '../../../widgets/ui/ui.dart';
 import '../models/credit_note_model.dart';
 import '../models/credit_note_application_model.dart';
 import 'accounts_feedback.dart';
+import 'package:eldivex_app/app/core/values/lucide_icons.dart';
 
 class CreditNoteController extends GetxController {
   // ─────────────────────────────────────────────
@@ -290,26 +293,31 @@ class CreditNoteController extends GetxController {
   Future<bool> confirmAndUpdateStatus(CreditNoteModel note, String action) async {
     final approving = action == 'Approved';
     final ok = await Get.dialog<bool>(
-      AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        title: Text(approving ? 'Approve Credit Note' : 'Reject Credit Note'),
-        content: Text(
-          '${approving ? 'Approve' : 'Reject'} CN-${note.id} for booking '
-          '#${note.bookingId} (₹${note.amount.toStringAsFixed(2)})?',
-        ),
+      AppDialog(
+        title: approving ? 'Approve Credit Note' : 'Reject Credit Note',
+        icon: approving
+            ? LucideIcons.circleCheck
+            : LucideIcons.circleX,
+        tone: approving ? AppTone.success : AppTone.danger,
+        maxWidth: 440,
+        onClose: () => Get.back(result: false),
         actions: [
-          TextButton(
+          OutlinedButton(
             onPressed: () => Get.back(result: false),
             child: const Text('Cancel'),
           ),
           ElevatedButton(
             onPressed: () => Get.back(result: true),
-            style: ElevatedButton.styleFrom(
-                backgroundColor: approving ? Colors.green : Colors.red),
-            child: Text(approving ? 'Approve' : 'Reject',
-                style: const TextStyle(color: Colors.white)),
+            style: approving ? null : AppButtonStyles.danger,
+            child: Text(approving ? 'Approve' : 'Reject'),
           ),
         ],
+        child: Text(
+          '${approving ? 'Approve' : 'Reject'} CN-${note.id} for booking '
+          '#${note.bookingId} (₹${note.amount.toStringAsFixed(2)})?',
+          style: TextStyle(
+              fontSize: 14, height: 1.5, color: AppColor.textSecondary),
+        ),
       ),
     );
     if (ok != true) return false;

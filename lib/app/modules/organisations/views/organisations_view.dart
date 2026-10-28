@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import '../../../core/values/color_constants.dart';
 import '../../../core/values/text_style_constants.dart';
 import '../controllers/organisations_controller.dart';
+import 'package:eldivex_app/app/core/values/lucide_icons.dart';
 
 class OrganisationsView extends GetView<OrganisationsController> {
   const OrganisationsView({super.key});
@@ -34,7 +35,7 @@ class OrganisationsView extends GetView<OrganisationsController> {
                   ),
                   ElevatedButton.icon(
                     onPressed: () => _showOrgDialog(context, null),
-                    icon: const Icon(Icons.add, size: 18),
+                    icon: const Icon(LucideIcons.plus, size: 18),
                     label: const Text('New Org'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColor.cPrimaryButtonColor,
@@ -61,7 +62,7 @@ class OrganisationsView extends GetView<OrganisationsController> {
                   onChanged: controller.searchOrganisations,
                   decoration: const InputDecoration(
                     hintText: 'Search by org ID, name, slug, or email...',
-                    prefixIcon: Icon(Icons.search),
+                    prefixIcon: Icon(LucideIcons.search),
                     border: InputBorder.none,
                     contentPadding:
                         EdgeInsets.symmetric(horizontal: 12, vertical: 12),
@@ -125,7 +126,7 @@ class OrganisationsView extends GetView<OrganisationsController> {
               DataCell(Row(
                 children: [
                   IconButton(
-                    icon: const Icon(Icons.edit_outlined, size: 18),
+                    icon: const Icon(LucideIcons.pencil, size: 18),
                     onPressed: () => _showOrgDialog(context, org),
                     tooltip: 'Edit',
                   ),
@@ -173,7 +174,7 @@ class OrganisationsView extends GetView<OrganisationsController> {
               _PlanChip(org.planName),
               TextButton.icon(
                 onPressed: () => _showOrgDialog(context, org),
-                icon: const Icon(Icons.edit_outlined, size: 16),
+                icon: const Icon(LucideIcons.pencil, size: 16),
                 label: const Text('Edit'),
               ),
             ],
@@ -207,6 +208,7 @@ class OrganisationsView extends GetView<OrganisationsController> {
                 _field(controller.phoneCtrl, 'Phone'),
                 const SizedBox(height: 16),
                 Obx(() => DropdownButtonFormField<String>(
+icon: const Icon(LucideIcons.chevronDown, size: 18),
                       value: controller.selectedPlan.value,
                       decoration:
                           const InputDecoration(labelText: 'Plan', border: OutlineInputBorder()),
@@ -219,6 +221,7 @@ class OrganisationsView extends GetView<OrganisationsController> {
                 if (isEdit) ...[
                   const SizedBox(height: 12),
                   Obx(() => DropdownButtonFormField<String>(
+icon: const Icon(LucideIcons.chevronDown, size: 18),
                         value: controller.selectedStatus.value,
                         decoration:
                             const InputDecoration(labelText: 'Status', border: OutlineInputBorder()),

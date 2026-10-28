@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:eldivex_app/app/core/values/color_constants.dart';
-import 'package:eldivex_app/app/core/values/text_style_constants.dart';
+import 'package:eldivex_app/app/widgets/ui/ui.dart';
 import '../../../../routes/app_pages.dart';
-import '../../../../widgets/common_textfield.dart';
 import '../../../../widgets/helper_ui.dart';
 import '../../controllers/write_off_controller.dart';
 import '../../models/active_booking_client_model.dart';
 import '../../models/parse_utils.dart';
 import '../accounts_format.dart';
+import 'package:eldivex_app/app/core/values/lucide_icons.dart';
 
 class CreateWriteOffView extends StatefulWidget {
   const CreateWriteOffView({super.key});
@@ -42,106 +42,118 @@ class _CreateWriteOffViewState extends State<CreateWriteOffView> {
     return 'L3';
   }
 
-  Color _approvalLevelColor(double? amount) {
-    if (amount == null || amount <= 0) return AppColor.fontColorGrey;
-    if (amount <= 500) return Colors.green;
-    if (amount <= 5000) return Colors.orange;
-    return Colors.red;
+  AppTone _approvalLevelTone(double? amount) {
+    if (amount == null || amount <= 0) return AppTone.neutral;
+    if (amount <= 500) return AppTone.success;
+    if (amount <= 5000) return AppTone.warning;
+    return AppTone.danger;
+  }
+
+  /// Client dropdown change — also used to preselect the client passed by
+  /// the outstanding page's Quick Actions.
+  void _selectClient(int? id) {
+    ctrl.selectedClientId.value = id;
+    ctrl.selectedBookingId.value = null;
+    ctrl.bookingInvoices.value = [];
+    ctrl.selectedInvoiceIds.clear();
   }
 
   @override
   Widget build(BuildContext context) {
+    applyClientArgument(context, _selectClient);
+    final pad = MediaQuery.sizeOf(context).width < 600 ? 16.0 : 24.0;
     return Scaffold(
       backgroundColor: AppColor.cAppBackgroundColor,
-      appBar: AppBar(
-        backgroundColor: AppColor.whiteColor,
-        elevation: 0,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_new, size: 18, color: AppColor.cPrimaryHeadingColor),
-          onPressed: () => HelperUi.safeBack(Routes.MAIN),
-        ),
-        title: Text(
-          'Create Write-off',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w600,
-            color: AppColor.cPrimaryHeadingColor,
-          ),
-        ),
-      ),
+      bottomNavigationBar: _buildActionBar(pad),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildSectionCard(
-                title: 'Booking Details',
-                icon: Icons.event_note_outlined,
-                iconColor: Colors.blue,
+        padding: EdgeInsets.all(pad),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 1100),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  _buildClientDropdown(),
-                  const SizedBox(height: 14),
-                  _buildBookingDropdown(),
+                  AppPageHeader(
+                    title: 'Create Write-off',
+                    subtitle: 'Write off unpaid invoice balances for a booking',
+                    breadcrumbs: const ['Accounts', 'Write-offs'],
+                    onBack: () => HelperUi.safeBack(Routes.MAIN),
+                  ),
+                  const SizedBox(height: 24),
+                  _buildSectionCard(
+                    title: 'Booking Details',
+                    icon: LucideIcons.calendarDays,
+                    tone: AppTone.info,
+                    children: [
+                      _formGrid([
+                        _buildClientDropdown(),
+                        _buildBookingDropdown(),
+                      ]),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  _buildSectionCard(
+                    title: 'Invoice Selection',
+                    subtitle: 'Invoices whose balance is being written off',
+                    icon: LucideIcons.receiptText,
+                    tone: AppTone.success,
+                    children: [
+                      _buildInvoiceList(),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  _buildSectionCard(
+                    title: 'Write-off Details',
+                    icon: LucideIcons.banknoteX,
+                    tone: AppTone.warning,
+                    children: [
+                      _formGrid([
+                        _buildWriteOffTypeDropdown(),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            _formField(
+                              label: 'Amount',
+                              hint: 'Enter write-off amount',
+                              controller: ctrl.writeOffAmountCtrl,
+                              keyboardType: TextInputType.number,
+                              required: true,
+                              validator: (v) {
+                                if (v == null || v.isEmpty) return 'Amount is required';
+                                if (double.tryParse(v) == null || double.parse(v) <= 0) {
+                                  return 'Enter a valid amount greater than zero';
+                                }
+                                return null;
+                              },
+                            ),
+                            _buildApprovalLevelBadge(),
+                          ],
+                        ),
+                        _formField(
+                          label: 'Reason',
+                          hint: 'Enter reason for write-off',
+                          controller: ctrl.reasonCtrl,
+                          maxLines: 3,
+                          required: true,
+                          validator: (v) => (v == null || v.trim().isEmpty)
+                              ? 'Reason is required'
+                              : null,
+                        ),
+                        _formField(
+                          label: 'Remarks',
+                          hint: 'Additional remarks (optional)',
+                          controller: ctrl.remarksCtrl,
+                          maxLines: 3,
+                        ),
+                      ]),
+                    ],
+                  ),
                 ],
               ),
-              const SizedBox(height: 16),
-              _buildSectionCard(
-                title: 'Invoice Selection',
-                icon: Icons.receipt_long_outlined,
-                iconColor: Colors.teal,
-                children: [
-                  _buildInvoiceList(),
-                ],
-              ),
-              const SizedBox(height: 16),
-              _buildSectionCard(
-                title: 'Write-off Details',
-                icon: Icons.money_off_outlined,
-                iconColor: Colors.orange.shade700,
-                children: [
-                  _buildWriteOffTypeDropdown(),
-                  const SizedBox(height: 14),
-                  _formField(
-                    label: 'Amount',
-                    hint: 'Enter write-off amount',
-                    controller: ctrl.writeOffAmountCtrl,
-                    keyboardType: TextInputType.number,
-                    required: true,
-                    validator: (v) {
-                      if (v == null || v.isEmpty) return 'Amount is required';
-                      if (double.tryParse(v) == null || double.parse(v) <= 0) {
-                        return 'Enter a valid amount greater than zero';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 10),
-                  _buildApprovalLevelBadge(),
-                  const SizedBox(height: 14),
-                  _formField(
-                    label: 'Reason',
-                    hint: 'Enter reason for write-off',
-                    controller: ctrl.reasonCtrl,
-                    maxLines: 3,
-                    required: true,
-                    validator: (v) => (v == null || v.trim().isEmpty)
-                        ? 'Reason is required'
-                        : null,
-                  ),
-                  const SizedBox(height: 14),
-                  CommonTextField(
-                    label: 'Remarks',
-                    hint: 'Additional remarks (optional)',
-                    controller: ctrl.remarksCtrl,
-                    maxLines: 2,
-                  ),
-                ],
-              ),
-              const SizedBox(height: 24),
-              _buildSubmitButton(),
-            ],
+            ),
           ),
         ),
       ),
@@ -152,7 +164,7 @@ class _CreateWriteOffViewState extends State<CreateWriteOffView> {
 
   Widget _buildClientDropdown() {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _fieldLabel('Client', required: true),
         const SizedBox(height: 8),
@@ -161,36 +173,22 @@ class _CreateWriteOffViewState extends State<CreateWriteOffView> {
           final selected = clients.any((c) => c.userId == ctrl.selectedClientId.value)
               ? ctrl.selectedClientId.value
               : null;
-          return Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            decoration: BoxDecoration(
-              color: AppColor.whiteColor,
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: AppColor.textFieldBorderColor),
-            ),
-            child: DropdownButtonHideUnderline(
-              child: DropdownButton<int>(
-                isExpanded: true,
-                value: selected,
-                hint: Text(
-                  'Select active client',
-                  style: TextStyle(color: AppColor.fontColorGrey, fontSize: 14),
-                ),
-                items: clients.map((c) {
-                  return DropdownMenuItem<int>(
-                    value: c.userId,
-                    child: Text(c.label,
-                        style: const TextStyle(fontSize: 14),
-                        overflow: TextOverflow.ellipsis),
-                  );
-                }).toList(),
-                onChanged: (id) {
-                  ctrl.selectedClientId.value = id;
-                  ctrl.selectedBookingId.value = null;
-                  ctrl.bookingInvoices.value = [];
-                  ctrl.selectedInvoiceIds.clear();
-                },
-              ),
+          return _dropdownFrame(
+            child: DropdownButton<int>(
+              isExpanded: true,
+              value: selected,
+              icon: const Icon(LucideIcons.chevronDown, size: 18),
+              borderRadius: BorderRadius.circular(AppRadius.md),
+              hint: _hint('Select active client'),
+              items: clients.map((c) {
+                return DropdownMenuItem<int>(
+                  value: c.userId,
+                  child: Text(c.label,
+                      style: _itemStyle,
+                      overflow: TextOverflow.ellipsis),
+                );
+              }).toList(),
+              onChanged: _selectClient,
             ),
           );
         }),
@@ -202,7 +200,7 @@ class _CreateWriteOffViewState extends State<CreateWriteOffView> {
 
   Widget _buildBookingDropdown() {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _fieldLabel('Booking', required: true),
         const SizedBox(height: 8),
@@ -213,39 +211,32 @@ class _CreateWriteOffViewState extends State<CreateWriteOffView> {
           // getActiveClients returns one row per booking for the client.
           final bookings = bookingRowsForUser(clients, clientId);
 
-          return Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            decoration: BoxDecoration(
-              color: clientId == null ? AppColor.fieldColorGrey : AppColor.whiteColor,
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: AppColor.textFieldBorderColor),
-            ),
-            child: DropdownButtonHideUnderline(
-              child: DropdownButton<int>(
-                isExpanded: true,
-                value: ctrl.selectedBookingId.value,
-                hint: Text(
-                  clientId == null ? 'Select a client first' : 'Select booking',
-                  style: TextStyle(color: AppColor.fontColorGrey, fontSize: 14),
-                ),
-                items: bookings.map((b) {
-                  final bid = toInt(field(b, 'booking_id'), toInt(field(b, 'id')));
-                  final due = toDouble(field(b, 'outstanding_amount'));
-                  return DropdownMenuItem<int>(
-                    value: bid,
-                    child: Text('${bookingRowLabel(b)} · Due ${formatInr(due)}',
-                        style: const TextStyle(fontSize: 14),
-                        overflow: TextOverflow.ellipsis),
-                  );
-                }).toList(),
-                onChanged: clientId == null
-                    ? null
-                    : (id) {
-                        ctrl.selectedBookingId.value = id;
-                        ctrl.selectedInvoiceIds.clear();
-                        if (id != null) ctrl.loadBookingInvoices(id);
-                      },
-              ),
+          return _dropdownFrame(
+            enabled: clientId != null,
+            child: DropdownButton<int>(
+              isExpanded: true,
+              value: ctrl.selectedBookingId.value,
+              icon: const Icon(LucideIcons.chevronDown, size: 18),
+              borderRadius: BorderRadius.circular(AppRadius.md),
+              hint: _hint(
+                  clientId == null ? 'Select a client first' : 'Select booking'),
+              items: bookings.map((b) {
+                final bid = toInt(field(b, 'booking_id'), toInt(field(b, 'id')));
+                final due = toDouble(field(b, 'outstanding_amount'));
+                return DropdownMenuItem<int>(
+                  value: bid,
+                  child: Text('${bookingRowLabel(b)} · Due ${formatInr(due)}',
+                      style: _itemStyle,
+                      overflow: TextOverflow.ellipsis),
+                );
+              }).toList(),
+              onChanged: clientId == null
+                  ? null
+                  : (id) {
+                      ctrl.selectedBookingId.value = id;
+                      ctrl.selectedInvoiceIds.clear();
+                      if (id != null) ctrl.loadBookingInvoices(id);
+                    },
             ),
           );
         }),
@@ -259,10 +250,10 @@ class _CreateWriteOffViewState extends State<CreateWriteOffView> {
     return Obx(() {
       final invoices = ctrl.bookingInvoices;
       if (ctrl.selectedBookingId.value == null) {
-        return _emptyHint(Icons.receipt_outlined, 'Select a booking to see invoices');
+        return _emptyHint(LucideIcons.receipt, 'Select a booking to see invoices');
       }
       if (invoices.isEmpty) {
-        return _emptyHint(Icons.check_circle_outline, 'No invoices found for this booking');
+        return _emptyHint(LucideIcons.circleCheck, 'No invoices found for this booking');
       }
       return Column(
         children: invoices.map((inv) {
@@ -276,35 +267,39 @@ class _CreateWriteOffViewState extends State<CreateWriteOffView> {
           return Container(
             margin: const EdgeInsets.only(bottom: 8),
             decoration: BoxDecoration(
-              color: isSelected ? Colors.blue.shade50 : AppColor.whiteColor,
-              borderRadius: BorderRadius.circular(10),
+              color: isSelected ? AppColor.primarySoft : AppColor.whiteColor,
+              borderRadius: BorderRadius.circular(AppRadius.md),
               border: Border.all(
-                color: isSelected ? Colors.blue.shade200 : AppColor.divColor,
+                color: isSelected
+                    ? AppColor.cAppPrimaryColor.withValues(alpha: 0.4)
+                    : AppColor.divColor,
               ),
             ),
             child: CheckboxListTile(
               value: isSelected,
               onChanged: (_) => ctrl.toggleInvoiceSelection(id),
-              activeColor: AppColor.cPrimaryButtonColor,
+              controlAffinity: ListTileControlAffinity.leading,
               contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
               title: Text(
                 invoiceId,
                 style: TextStyle(
                   fontWeight: FontWeight.w600,
-                  fontSize: 13,
-                  color: AppColor.cPrimaryButtonColor,
+                  fontSize: 14,
+                  color: AppColor.textPrimary,
                 ),
               ),
               subtitle: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(period, style: TextStyle(fontSize: 12, color: AppColor.fontColorGrey)),
-                  const SizedBox(height: 4),
-                  Row(
+                  Text(period,
+                      style: TextStyle(fontSize: 13, color: AppColor.textTertiary)),
+                  const SizedBox(height: 6),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 6,
                     children: [
-                      _miniChip('Total', formatInr(total), Colors.blue),
-                      const SizedBox(width: 8),
-                      _miniChip('Balance', formatInr(balance), Colors.red),
+                      _miniChip('Total', formatInr(total), AppTone.info),
+                      _miniChip('Balance', formatInr(balance), AppTone.danger),
                     ],
                   ),
                 ],
@@ -320,29 +315,23 @@ class _CreateWriteOffViewState extends State<CreateWriteOffView> {
 
   Widget _buildWriteOffTypeDropdown() {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _fieldLabel('Write-off Type', required: true),
         const SizedBox(height: 8),
-        Obx(() => Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              decoration: BoxDecoration(
-                color: AppColor.whiteColor,
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: AppColor.textFieldBorderColor),
-              ),
-              child: DropdownButtonHideUnderline(
-                child: DropdownButton<String>(
-                  isExpanded: true,
-                  value: ctrl.writeOffType.value,
-                  items: _writeOffTypes
-                      .map((t) => DropdownMenuItem(
-                            value: t,
-                            child: Text(_typeLabel(t), style: const TextStyle(fontSize: 14)),
-                          ))
-                      .toList(),
-                  onChanged: (v) => ctrl.writeOffType.value = v ?? 'BAD_DEBT',
-                ),
+        Obx(() => _dropdownFrame(
+              child: DropdownButton<String>(
+                isExpanded: true,
+                value: ctrl.writeOffType.value,
+                icon: const Icon(LucideIcons.chevronDown, size: 18),
+                borderRadius: BorderRadius.circular(AppRadius.md),
+                items: _writeOffTypes
+                    .map((t) => DropdownMenuItem(
+                          value: t,
+                          child: Text(_typeLabel(t), style: _itemStyle),
+                        ))
+                    .toList(),
+                onChanged: (v) => ctrl.writeOffType.value = v ?? 'BAD_DEBT',
               ),
             )),
       ],
@@ -358,24 +347,26 @@ class _CreateWriteOffViewState extends State<CreateWriteOffView> {
       final amount = double.tryParse(value.text.trim());
       if (amount == null || amount <= 0) return const SizedBox.shrink();
       final label = _approvalLevelLabel(amount);
-      final color = _approvalLevelColor(amount);
+      final tone = _approvalLevelTone(amount);
       return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        margin: const EdgeInsets.only(top: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.08),
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: color.withValues(alpha: 0.25)),
+          color: tone.soft,
+          borderRadius: BorderRadius.circular(AppRadius.sm),
         ),
         child: Row(
           children: [
-            Icon(Icons.verified_user_outlined, size: 16, color: color),
+            Icon(LucideIcons.shieldCheck, size: 16, color: tone.color),
             const SizedBox(width: 8),
-            Text(
-              'Approval Level: $label (approver required)',
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w500,
-                color: color,
+            Expanded(
+              child: Text(
+                'Approval Level: $label (approver required)',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: tone.color,
+                ),
               ),
             ),
           ],
@@ -384,147 +375,155 @@ class _CreateWriteOffViewState extends State<CreateWriteOffView> {
         });
   }
 
+  // ── Bottom action bar (Cancel + Submit) ─────────────────────────────────────
+
+  Widget _buildActionBar(double pad) {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColor.whiteColor,
+        border: Border(top: BorderSide(color: AppColor.divColor)),
+      ),
+      padding: EdgeInsets.symmetric(horizontal: pad, vertical: 12),
+      child: SafeArea(
+        top: false,
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 1100),
+            child: Wrap(
+              alignment: WrapAlignment.end,
+              spacing: 12,
+              runSpacing: 8,
+              children: [
+                OutlinedButton(
+                  onPressed: () => HelperUi.safeBack(Routes.MAIN),
+                  child: const Text('Cancel'),
+                ),
+                _buildSubmitButton(),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   // ── Submit Button ────────────────────────────────────────────────────────────
 
   Widget _buildSubmitButton() {
-    return Obx(() => SizedBox(
-          width: double.infinity,
-          height: 48,
-          child: ElevatedButton.icon(
-            onPressed: ctrl.isSubmitting.value
-                ? null
-                : () async {
-                    if (_formKey.currentState?.validate() ?? false) {
-                      final ok = await ctrl.createWriteOff();
-                      if (ok) HelperUi.safeBack(Routes.MAIN);
-                    }
-                  },
-            icon: ctrl.isSubmitting.value
-                ? SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: AppColor.buttonTextWhite,
-                    ),
-                  )
-                : Icon(Icons.check_circle_outline, size: 18, color: AppColor.buttonTextWhite),
-            label: Text(
-              ctrl.isSubmitting.value ? 'Submitting...' : 'Submit Write-off',
-              style: TextStyle(
-                color: AppColor.buttonTextWhite,
-                fontSize: 15,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.orange.shade700,
-              disabledBackgroundColor: Colors.orange.shade200,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
-            ),
+    return Obx(() => ElevatedButton.icon(
+          onPressed: ctrl.isSubmitting.value
+              ? null
+              : () async {
+                  if (_formKey.currentState?.validate() ?? false) {
+                    final ok = await ctrl.createWriteOff();
+                    if (ok) HelperUi.safeBack(Routes.MAIN);
+                  }
+                },
+          icon: ctrl.isSubmitting.value
+              ? SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: AppColor.cAppPrimaryColor,
+                  ),
+                )
+              : const Icon(LucideIcons.circleCheck, size: 18),
+          label: Text(
+            ctrl.isSubmitting.value ? 'Submitting...' : 'Submit Write-off',
           ),
         ));
   }
 
   // ── Helpers ──────────────────────────────────────────────────────────────────
 
+  TextStyle get _itemStyle =>
+      TextStyle(fontSize: 14, color: AppColor.textPrimary);
+
+  Text _hint(String text) =>
+      Text(text, style: TextStyle(color: AppColor.textTertiary, fontSize: 14));
+
+  /// Theme-styled field frame for a [DropdownButton].
+  Widget _dropdownFrame({required Widget child, bool enabled = true}) {
+    return InputDecorator(
+      decoration: InputDecoration(
+        enabled: enabled,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 14),
+      ),
+      child: DropdownButtonHideUnderline(child: child),
+    );
+  }
+
+  /// Two columns when the card is wide enough, one on phones.
+  Widget _formGrid(List<Widget> fields) {
+    return LayoutBuilder(builder: (context, c) {
+      final cols = c.maxWidth >= 600 ? 2 : 1;
+      final w = (c.maxWidth - 20 * (cols - 1)) / cols;
+      return Wrap(
+        spacing: 20,
+        runSpacing: 16,
+        children: [for (final f in fields) SizedBox(width: w, child: f)],
+      );
+    });
+  }
+
   Widget _buildSectionCard({
     required String title,
+    String? subtitle,
     required IconData icon,
-    required Color iconColor,
+    required AppTone tone,
     required List<Widget> children,
   }) {
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: AppColor.whiteColor,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColor.divColor),
-      ),
+    return AppCard(
+      title: title,
+      subtitle: subtitle,
+      icon: icon,
+      iconTone: tone,
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(icon, color: iconColor, size: 18),
-              const SizedBox(width: 8),
-              Text(
-                title,
-                style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
-                  color: AppColor.cPrimaryHeadingColor,
-                ),
-              ),
-            ],
-          ),
-          const Divider(height: 20),
-          ...children,
-        ],
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: children,
       ),
     );
   }
 
   Widget _fieldLabel(String label, {bool required = false}) {
-    return Row(
-      children: [
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-            color: AppColor.cPrimarySubHeadingColorGrey,
-          ),
-        ),
+    return Text.rich(
+      TextSpan(text: label, children: [
         if (required)
-          const Text(' *', style: TextStyle(color: Colors.red, fontSize: 14)),
-      ],
+          TextSpan(text: ' *', style: TextStyle(color: AppColor.danger)),
+      ]),
+      style: TextStyle(
+        fontSize: 13,
+        fontWeight: FontWeight.w600,
+        color: AppColor.textSecondary,
+      ),
     );
   }
 
   Widget _emptyHint(IconData icon, String message) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 20),
-      decoration: BoxDecoration(
-        color: AppColor.fieldColorGrey,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppColor.divColor),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 32, color: AppColor.divColor),
-          const SizedBox(height: 8),
-          Text(message, style: AppTextStyles.regular14Gre),
-        ],
-      ),
-    );
+    return AppEmptyState(icon: icon, title: message, compact: true);
   }
 
-  Widget _miniChip(String label, String value, Color color) {
+  Widget _miniChip(String label, String value, AppTone tone) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: color.withValues(alpha: 0.2)),
+        color: tone.soft,
+        borderRadius: BorderRadius.circular(AppRadius.xs),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
             '$label: ',
-            style: TextStyle(fontSize: 11, color: AppColor.fontColorGrey),
+            style: TextStyle(fontSize: 12, color: AppColor.textSecondary),
           ),
           Text(
             value,
             style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
-              color: color,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: tone.color,
             ),
           ),
         ],
@@ -532,8 +531,7 @@ class _CreateWriteOffViewState extends State<CreateWriteOffView> {
     );
   }
 
-  /// A validated text field that visually matches [CommonTextField] but wraps
-  /// a [TextFormField] so that [Form] validation works.
+  /// A labelled, theme-styled [TextFormField] so that [Form] validation works.
   Widget _formField({
     required String label,
     required String hint,
@@ -544,43 +542,18 @@ class _CreateWriteOffViewState extends State<CreateWriteOffView> {
     String? Function(String?)? validator,
   }) {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
       children: [
-        Row(
-          children: [
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-                color: AppColor.cPrimarySubHeadingColorGrey,
-              ),
-            ),
-            if (required)
-              const Text(' *', style: TextStyle(color: Colors.red, fontSize: 14)),
-          ],
-        ),
+        _fieldLabel(label, required: required),
         const SizedBox(height: 8),
-        Container(
-          decoration: BoxDecoration(
-            color: AppColor.whiteColor,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppColor.textFieldBorderColor),
-          ),
-          child: TextFormField(
-            controller: controller,
-            keyboardType: keyboardType,
-            maxLines: maxLines,
-            validator: validator,
-            style: TextStyle(color: AppColor.fontColorBlack, fontSize: 14),
-            decoration: InputDecoration(
-              hintText: hint,
-              hintStyle: TextStyle(color: AppColor.fontColorGrey, fontSize: 14),
-              border: InputBorder.none,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              errorStyle: const TextStyle(fontSize: 12),
-            ),
-          ),
+        TextFormField(
+          controller: controller,
+          keyboardType: keyboardType,
+          maxLines: maxLines,
+          validator: validator,
+          style: TextStyle(color: AppColor.textPrimary, fontSize: 14),
+          decoration: InputDecoration(hintText: hint),
         ),
       ],
     );

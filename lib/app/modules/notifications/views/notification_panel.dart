@@ -3,8 +3,10 @@ import 'package:get/get.dart';
 
 import '../../../core/values/color_constants.dart';
 import '../../../core/values/size_configue.dart';
+import '../../../widgets/ui/ui.dart';
 import '../controllers/notifications_controller.dart';
 import '../models/notification_model.dart';
+import 'package:eldivex_app/app/core/values/lucide_icons.dart';
 
 /// Bell icon for the dashboard top bar: unread badge + anchored dropdown
 /// panel. Self-registers its controller like the other shell widgets.
@@ -27,32 +29,38 @@ class NotificationBell extends StatelessWidget {
         children: [
           IconButton(
             tooltip: 'Notifications',
-            icon: const Icon(Icons.notifications_none_outlined),
-            iconSize: SizeConfig.iconMD,
+            icon: Icon(count > 0
+                ? LucideIcons.bell
+                : LucideIcons.bell),
+            iconSize: 20,
             onPressed: () => _openPanel(context, controller),
           ),
           if (count > 0)
             Positioned(
-              right: 6,
-              top: 4,
+              right: 5,
+              top: 5,
               child: IgnorePointer(
                 child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                  height: 17,
+                  padding: const EdgeInsets.symmetric(horizontal: 4.5),
+                  alignment: Alignment.center,
                   decoration: BoxDecoration(
-                    color: AppColor.calenderRed,
-                    borderRadius: BorderRadius.circular(10),
+                    color: AppColor.danger,
+                    borderRadius: BorderRadius.circular(9),
+                    // Ring in the top bar's surface colour so the badge
+                    // stays legible over the bell in both themes.
                     border: Border.all(color: AppColor.whiteColor, width: 1.5),
                   ),
-                  constraints: const BoxConstraints(minWidth: 18),
+                  constraints: const BoxConstraints(minWidth: 17),
                   child: Text(
                     count > 99 ? '99+' : '$count',
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                      color: AppColor.buttonTextWhite,
+                      color: AppColor.pureWhite,
                       fontSize: 10,
                       fontWeight: FontWeight.w700,
-                      height: 1.2,
+                      height: 1.1,
+                      fontFeatures: const [FontFeature.tabularFigures()],
                     ),
                   ),
                 ),
@@ -82,6 +90,8 @@ class NotificationBell extends StatelessWidget {
   }
 }
 
+/// Inbox-style popover: header with unread count and bulk actions, then the
+/// feed grouped by day, unread rows marked with a dot.
 class _NotificationPanel extends StatelessWidget {
   const _NotificationPanel();
 
@@ -98,21 +108,16 @@ class _NotificationPanel extends StatelessWidget {
         ),
         decoration: BoxDecoration(
           color: AppColor.whiteColor,
-          borderRadius: BorderRadius.circular(SizeConfig.radiusMD),
-          border: Border.all(color: AppColor.divColor.withValues(alpha: 0.6)),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.15),
-              blurRadius: 24,
-              offset: const Offset(0, 8),
-            ),
-          ],
+          borderRadius: BorderRadius.circular(AppRadius.lg),
+          border: Border.all(color: AppColor.divColor),
+          boxShadow: AppShadows.overlay,
         ),
+        clipBehavior: Clip.antiAlias,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             _buildHeader(context, controller),
-            Divider(height: 1, color: AppColor.divColor.withValues(alpha: 0.5)),
+            Divider(height: 1, color: AppColor.borderSubtle),
             Flexible(child: _buildList(controller)),
           ],
         ),
@@ -123,12 +128,7 @@ class _NotificationPanel extends StatelessWidget {
   Widget _buildHeader(
       BuildContext context, NotificationsController controller) {
     return Padding(
-      padding: EdgeInsets.fromLTRB(
-        SizeConfig.spacingMD,
-        SizeConfig.spacingSM,
-        SizeConfig.spacingSM,
-        SizeConfig.spacingSM,
-      ),
+      padding: const EdgeInsets.fromLTRB(16, 10, 8, 10),
       child: Obx(() {
         final unread = controller.unreadCount.value;
         final hasAny = controller.notifications.isNotEmpty;
@@ -137,55 +137,38 @@ class _NotificationPanel extends StatelessWidget {
             Text(
               'Notifications',
               style: TextStyle(
-                fontSize: SizeConfig.fontH3,
+                fontSize: 15,
                 fontWeight: FontWeight.w600,
-                color: AppColor.fontColorBlack,
+                letterSpacing: -0.1,
+                color: AppColor.textPrimary,
               ),
             ),
             if (unread > 0) ...[
-              SizedBox(width: SizeConfig.spacingXS),
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                decoration: BoxDecoration(
-                  color: AppColor.cPrimaryButtonColor.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  '$unread new',
-                  style: TextStyle(
-                    fontSize: SizeConfig.fontCaption,
-                    fontWeight: FontWeight.w600,
-                    color: AppColor.cPrimaryButtonColor,
-                  ),
-                ),
+              const SizedBox(width: 8),
+              AppStatusBadge(
+                label: '$unread new',
+                tone: AppTone.primary,
+                showDot: false,
+                dense: true,
               ),
             ],
             const Spacer(),
             if (unread > 0)
-              TextButton(
+              TextButton.icon(
                 onPressed: controller.markAllRead,
-                style: TextButton.styleFrom(
-                  foregroundColor: AppColor.cPrimaryButtonColor,
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                  visualDensity: VisualDensity.compact,
-                ),
-                child: Text(
-                  'Mark all read',
-                  style: TextStyle(fontSize: SizeConfig.fontCaption),
-                ),
+                style: AppButtonStyles.compact,
+                icon: const Icon(LucideIcons.checkCheck, size: 16),
+                label: const Text('Mark all read'),
               ),
             if (hasAny)
-              TextButton(
+              IconButton(
+                tooltip: 'Clear all',
                 onPressed: () => _confirmClearAll(context, controller),
-                style: TextButton.styleFrom(
-                  foregroundColor: AppColor.calenderRed,
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                  visualDensity: VisualDensity.compact,
-                ),
-                child: Text(
-                  'Clear all',
-                  style: TextStyle(fontSize: SizeConfig.fontCaption),
+                visualDensity: VisualDensity.compact,
+                icon: Icon(
+                  LucideIcons.trash2,
+                  size: 18,
+                  color: AppColor.textTertiary,
                 ),
               ),
           ],
@@ -198,112 +181,98 @@ class _NotificationPanel extends StatelessWidget {
     return Obx(() {
       if (controller.isLoading.value && controller.notifications.isEmpty) {
         return Padding(
-          padding: EdgeInsets.all(SizeConfig.spacingXL),
+          padding: const EdgeInsets.all(32),
           child: Center(
-            child: CircularProgressIndicator(
-              strokeWidth: 2.5,
-              color: AppColor.cPrimaryButtonColor,
+            child: SizedBox(
+              width: 22,
+              height: 22,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: AppColor.cPrimaryButtonColor,
+              ),
             ),
           ),
         );
       }
       if (controller.notifications.isEmpty) {
-        return Padding(
-          padding: EdgeInsets.symmetric(
-            vertical: SizeConfig.spacingSection,
-            horizontal: SizeConfig.spacingLG,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                Icons.notifications_off_outlined,
-                size: 40,
-                color: AppColor.lightGrey,
-              ),
-              SizedBox(height: SizeConfig.spacingSM),
-              Text(
-                "You're all caught up",
-                style: TextStyle(
-                  fontSize: SizeConfig.fontBody,
-                  fontWeight: FontWeight.w600,
-                  color: AppColor.fontColorBlack,
-                ),
-              ),
-              SizedBox(height: 4),
-              Text(
-                'New bookings, reminders and payment alerts will appear here.',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: SizeConfig.fontCaption,
-                  color: AppColor.fontColorGrey,
-                ),
-              ),
-            ],
-          ),
+        return const AppEmptyState(
+          icon: LucideIcons.bell,
+          title: "You're all caught up",
+          message:
+              'New bookings, reminders and payment alerts will appear here.',
+          compact: true,
         );
       }
-      return ListView.separated(
+
+      // Flatten into day groups: a heading row, then that day's items.
+      final entries = <Object>[];
+      String? lastGroup;
+      for (final n in controller.notifications) {
+        final group = _groupLabel(n.createdAt);
+        if (group != lastGroup) {
+          entries.add(group);
+          lastGroup = group;
+        }
+        entries.add(n);
+      }
+
+      return ListView.builder(
         shrinkWrap: true,
-        padding: EdgeInsets.zero,
-        itemCount: controller.notifications.length,
-        separatorBuilder: (_, __) => Divider(
-          height: 1,
-          indent: 64,
-          color: AppColor.divColor.withValues(alpha: 0.35),
-        ),
-        itemBuilder: (_, i) =>
-            _NotificationTile(notification: controller.notifications[i]),
+        padding: const EdgeInsets.only(bottom: 6),
+        itemCount: entries.length,
+        itemBuilder: (_, i) {
+          final e = entries[i];
+          if (e is String) return _GroupHeading(label: e, first: i == 0);
+          return _NotificationTile(notification: e as AppNotification);
+        },
       );
     });
   }
 
-  void _confirmClearAll(
-      BuildContext context, NotificationsController controller) {
-    showDialog(
-      context: context,
-      builder: (dialogCtx) => AlertDialog(
-        backgroundColor: AppColor.whiteColor,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(SizeConfig.radiusMD),
-        ),
-        title: Text(
-          'Clear all notifications?',
-          style: TextStyle(
-            fontSize: SizeConfig.fontH3,
-            fontWeight: FontWeight.w600,
-            color: AppColor.fontColorBlack,
-          ),
-        ),
-        content: Text(
-          'All notifications for your organisation will be permanently '
+  /// "Today" / "Yesterday" / "This week" / "Earlier".
+  static String _groupLabel(DateTime? at) {
+    if (at == null) return 'Earlier';
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final day = DateTime(at.year, at.month, at.day);
+    final diff = today.difference(day).inDays;
+    if (diff <= 0) return 'Today';
+    if (diff == 1) return 'Yesterday';
+    if (diff < 7) return 'This week';
+    return 'Earlier';
+  }
+
+  Future<void> _confirmClearAll(
+      BuildContext context, NotificationsController controller) async {
+    final confirmed = await showAppConfirmDialog(
+      title: 'Clear all notifications?',
+      message: 'All notifications for your organisation will be permanently '
           'deleted. This cannot be undone.',
-          style: TextStyle(
-            fontSize: SizeConfig.fontBody,
-            color: AppColor.fontColorGrey,
-          ),
+      confirmLabel: 'Delete permanently',
+      tone: AppTone.danger,
+      icon: LucideIcons.trash2,
+    );
+    if (confirmed) controller.clearAll();
+  }
+}
+
+class _GroupHeading extends StatelessWidget {
+  const _GroupHeading({required this.label, required this.first});
+  final String label;
+  final bool first;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.fromLTRB(16, first ? 12 : 16, 16, 6),
+      child: Text(
+        label.toUpperCase(),
+        style: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 0.6,
+          color: AppColor.textTertiary,
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogCtx).pop(),
-            style: TextButton.styleFrom(
-              foregroundColor: AppColor.fontColorGrey,
-            ),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.of(dialogCtx).pop();
-              controller.clearAll();
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColor.calenderRed,
-              foregroundColor: AppColor.buttonTextWhite,
-              elevation: 0,
-            ),
-            child: const Text('Delete permanently'),
-          ),
-        ],
       ),
     );
   }
@@ -314,75 +283,102 @@ class _NotificationTile extends StatelessWidget {
   const _NotificationTile({required this.notification});
 
   static const _typeIcons = <String, IconData>{
-    'booking': Icons.event_available_outlined,
-    'extension_due': Icons.hourglass_bottom_outlined,
-    'payment_due': Icons.currency_rupee,
-    'invoice': Icons.receipt_outlined,
-    'receipt': Icons.payments_outlined,
-    'credit_note': Icons.receipt_long_outlined,
-    'support': Icons.support_agent_outlined,
-    'subscription': Icons.workspace_premium_outlined,
-    'system': Icons.info_outline,
+    'booking': LucideIcons.calendarCheck,
+    'extension_due': LucideIcons.hourglass,
+    'payment_due': LucideIcons.indianRupee,
+    'invoice': LucideIcons.receipt,
+    'receipt': LucideIcons.banknote,
+    'credit_note': LucideIcons.receiptText,
+    'support': LucideIcons.headset,
+    'subscription': LucideIcons.award,
+    'system': LucideIcons.info,
   };
 
-  static final _typeColors = <String, Color>{
-    'booking': const Color(0xFF3B82F6),
-    'extension_due': const Color(0xFFF59E0B),
-    'payment_due': const Color(0xFFEF4444),
-    'invoice': const Color(0xFF6366F1),
-    'receipt': const Color(0xFF10B981),
-    'credit_note': const Color(0xFF8B5CF6),
-    'support': const Color(0xFF0EA5E9),
-    'subscription': const Color(0xFF8B5CF6),
-    'system': const Color(0xFF6B7280),
+  static const _typeTones = <String, AppTone>{
+    'booking': AppTone.primary,
+    'extension_due': AppTone.warning,
+    'payment_due': AppTone.danger,
+    'invoice': AppTone.info,
+    'receipt': AppTone.success,
+    'credit_note': AppTone.violet,
+    'support': AppTone.info,
+    'subscription': AppTone.violet,
+    'system': AppTone.neutral,
   };
 
   @override
   Widget build(BuildContext context) {
     final controller = Get.find<NotificationsController>();
-    final icon = _typeIcons[notification.type] ?? Icons.info_outline;
-    final color = _typeColors[notification.type] ?? const Color(0xFF6B7280);
+    final icon = _typeIcons[notification.type] ?? LucideIcons.info;
+    final tone = _typeTones[notification.type] ?? AppTone.neutral;
+    final unread = !notification.read;
 
     return InkWell(
       onTap: () {
         Navigator.of(context).pop(); // close the panel before navigating
         controller.openNotification(notification);
       },
-      child: Container(
-        color: notification.read
-            ? Colors.transparent
-            : AppColor.cPrimaryButtonColor.withValues(alpha: 0.04),
-        padding: EdgeInsets.symmetric(
-          horizontal: SizeConfig.spacingMD,
-          vertical: SizeConfig.spacingSM,
-        ),
+      hoverColor: AppColor.surfaceMuted,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(6, 10, 8, 10),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              width: 38,
-              height: 38,
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.12),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(icon, size: 19, color: color),
+            // Unread dot gutter.
+            SizedBox(
+              width: 10,
+              height: 32,
+              child: unread
+                  ? Center(
+                      child: Container(
+                        width: 6,
+                        height: 6,
+                        decoration: BoxDecoration(
+                          color: AppColor.cPrimaryButtonColor,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                    )
+                  : null,
             ),
-            SizedBox(width: SizeConfig.spacingSM),
+            const SizedBox(width: 4),
+            AppIconTile(icon: icon, tone: tone, size: 32),
+            const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    notification.title,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: SizeConfig.fontBodySmall,
-                      fontWeight:
-                          notification.read ? FontWeight.w500 : FontWeight.w700,
-                      color: AppColor.fontColorBlack,
-                    ),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          notification.title,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 13.5,
+                            height: 1.35,
+                            fontWeight:
+                                unread ? FontWeight.w600 : FontWeight.w400,
+                            color: unread
+                                ? AppColor.textPrimary
+                                : AppColor.textSecondary,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Padding(
+                        padding: const EdgeInsets.only(top: 1),
+                        child: Text(
+                          notification.timeAgo,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: AppColor.textTertiary,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                   if (notification.body.isNotEmpty) ...[
                     const SizedBox(height: 2),
@@ -391,51 +387,24 @@ class _NotificationTile extends StatelessWidget {
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        fontSize: SizeConfig.fontCaption,
-                        color: AppColor.fontColorGrey,
-                        height: 1.35,
+                        fontSize: 13,
+                        color: AppColor.textTertiary,
+                        height: 1.4,
                       ),
                     ),
                   ],
-                  const SizedBox(height: 4),
-                  Text(
-                    notification.timeAgo,
-                    style: TextStyle(
-                      fontSize: SizeConfig.fontCaption,
-                      color: AppColor.lightGrey,
-                    ),
-                  ),
                 ],
               ),
             ),
-            SizedBox(width: SizeConfig.spacingXS),
-            Column(
-              children: [
-                if (!notification.read)
-                  Container(
-                    width: 8,
-                    height: 8,
-                    margin: const EdgeInsets.only(top: 4, bottom: 6),
-                    decoration: BoxDecoration(
-                      color: AppColor.cPrimaryButtonColor,
-                      shape: BoxShape.circle,
-                    ),
-                  )
-                else
-                  const SizedBox(height: 18),
-                InkWell(
-                  onTap: () => controller.deleteOne(notification),
-                  borderRadius: BorderRadius.circular(12),
-                  child: Padding(
-                    padding: const EdgeInsets.all(3),
-                    child: Icon(
-                      Icons.close,
-                      size: 15,
-                      color: AppColor.lightGrey,
-                    ),
-                  ),
-                ),
-              ],
+            const SizedBox(width: 2),
+            IconButton(
+              tooltip: 'Delete',
+              onPressed: () => controller.deleteOne(notification),
+              visualDensity: VisualDensity.compact,
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+              iconSize: 16,
+              icon: Icon(LucideIcons.x, color: AppColor.lightGrey),
             ),
           ],
         ),

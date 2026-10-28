@@ -3,11 +3,13 @@ import 'package:get/get.dart';
 
 import '../../../core/values/color_constants.dart';
 import '../controllers/hp_controller.dart';
+import 'hp_widgets.dart';
 import 'tabs/hp_dashboard_tab.dart';
 import 'tabs/hp_bookings_tab.dart';
 import 'tabs/hp_attendance_tab.dart';
 import 'tabs/hp_earnings_tab.dart';
 import 'tabs/hp_more_tab.dart';
+import 'package:eldivex_app/app/core/values/lucide_icons.dart';
 
 /// Mobile-first bottom-nav scaffold hosting the caregiver portal tabs.
 class HpShellView extends StatefulWidget {
@@ -36,15 +38,15 @@ class _HpShellViewState extends State<HpShellView> {
     return Scaffold(
       backgroundColor: AppColor.cAppBackgroundColor,
       body: SafeArea(child: IndexedStack(index: _index, children: _tabs)),
-      bottomNavigationBar: NavigationBar(
+      bottomNavigationBar: HpUi.bottomNav(
         selectedIndex: _index,
         onDestinationSelected: (i) => setState(() => _index = i),
         destinations: const [
-          NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home), label: 'Home'),
-          NavigationDestination(icon: Icon(Icons.work_outline), selectedIcon: Icon(Icons.work), label: 'Bookings'),
-          NavigationDestination(icon: Icon(Icons.fact_check_outlined), selectedIcon: Icon(Icons.fact_check), label: 'Attendance'),
-          NavigationDestination(icon: Icon(Icons.payments_outlined), selectedIcon: Icon(Icons.payments), label: 'Earnings'),
-          NavigationDestination(icon: Icon(Icons.menu), label: 'More'),
+          NavigationDestination(icon: Icon(LucideIcons.house), selectedIcon: Icon(LucideIcons.house), label: 'Home'),
+          NavigationDestination(icon: Icon(LucideIcons.briefcase), selectedIcon: Icon(LucideIcons.briefcase), label: 'Bookings'),
+          NavigationDestination(icon: Icon(LucideIcons.clipboardCheck), selectedIcon: Icon(LucideIcons.clipboardCheck), label: 'Attendance'),
+          NavigationDestination(icon: Icon(LucideIcons.banknote), selectedIcon: Icon(LucideIcons.banknote), label: 'Earnings'),
+          NavigationDestination(icon: Icon(LucideIcons.menu), label: 'More'),
         ],
       ),
     );

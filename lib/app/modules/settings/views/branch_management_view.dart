@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../../core/values/color_constants.dart';
-import '../../../core/values/text_style_constants.dart';
 import '../../../widgets/helper_ui.dart';
+import '../../../widgets/ui/ui.dart';
 import '../controllers/settings_controller.dart';
+import 'package:eldivex_app/app/core/values/lucide_icons.dart';
 
 class BranchManagementView extends StatefulWidget {
   const BranchManagementView({super.key});
@@ -27,14 +28,15 @@ class _BranchManagementViewState extends State<BranchManagementView> {
 
   @override
   Widget build(BuildContext context) {
+    final narrow = MediaQuery.sizeOf(context).width < 600;
 
     return Scaffold(
       backgroundColor: AppColor.cAppBackgroundColor,
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(24),
+          padding: EdgeInsets.all(narrow ? 16 : 24),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               _Header(controller: controller),
               const SizedBox(height: 24),
@@ -55,47 +57,15 @@ class _Header extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        IconButton(
-          onPressed: () => Get.back(),
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
-          style: IconButton.styleFrom(
-            backgroundColor: AppColor.whiteColor,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
-              side: BorderSide(color: AppColor.divColor),
-            ),
-          ),
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Branch Management', style: AppTextStyles.heading),
-              const SizedBox(height: 4),
-              Text(
-                'Add, edit, and activate or deactivate city branches.',
-                style: AppTextStyles.regular14Gre,
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(width: 16),
+    return AppPageHeader(
+      title: 'Branch Management',
+      subtitle: 'Add, edit, and activate or deactivate city branches.',
+      onBack: () => Get.back(),
+      actions: [
         ElevatedButton.icon(
           onPressed: () => _showBranchDialog(context, controller),
-          icon: Icon(Icons.add, size: 18, color: AppColor.buttonTextWhite),
-          label: Text('Add Branch', style: AppTextStyles.regular14white),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppColor.cPrimaryButtonColor,
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
-            elevation: 0,
-          ),
+          icon: const Icon(LucideIcons.plus, size: 18),
+          label: const Text('Add Branch'),
         ),
       ],
     );
@@ -103,6 +73,11 @@ class _Header extends StatelessWidget {
 }
 
 // ── Branches List ─────────────────────────────────────────────────────────────
+
+/// Column widths shared by the header and the rows.
+const double _kStatusCol = 96;
+const double _kActionCol = 64;
+const double _kTableMinWidth = 760;
 
 class _BranchesList extends StatelessWidget {
   const _BranchesList({required this.controller});
@@ -115,116 +90,112 @@ class _BranchesList extends StatelessWidget {
         return const Center(child: CircularProgressIndicator());
       }
       if (controller.branchesList.isEmpty) {
-        return Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                Icons.account_balance_outlined,
-                size: 56,
-                color: AppColor.lightGrey,
-              ),
-              const SizedBox(height: 16),
-              Text('No branches yet', style: AppTextStyles.regular16Gre),
-              const SizedBox(height: 8),
-              Text(
-                'Click "Add Branch" to register your first branch.',
-                style: AppTextStyles.regular14Gre,
-              ),
-            ],
+        return AppCard(
+          child: AppEmptyState(
+            icon: LucideIcons.landmark,
+            tone: AppTone.primary,
+            title: 'No branches yet',
+            message: 'Click "Add Branch" to register your first branch.',
+            actionLabel: 'Add Branch',
+            actionIcon: LucideIcons.plus,
+            onAction: () => _showBranchDialog(context, controller),
           ),
         );
       }
 
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Search
-          Container(
-            margin: const EdgeInsets.only(bottom: 12),
-            decoration: BoxDecoration(
-              color: AppColor.whiteColor,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: AppColor.divColor),
-            ),
-            child: TextField(
-              onChanged: controller.searchBranches,
-              decoration: const InputDecoration(
-                hintText: 'Search branches by name, city, state...',
-                prefixIcon: Icon(Icons.search),
-                border: InputBorder.none,
-                contentPadding:
-                    EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-              ),
-            ),
-          ),
-          // Column headers
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: BoxDecoration(
-              color: AppColor.fieldColorGrey,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  flex: 2,
-                  child: Text(
-                    'Branch Name',
-                    style: AppTextStyles.regular14Gre.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-                Expanded(
-                  flex: 2,
-                  child: Text(
-                    'City / State',
-                    style: AppTextStyles.regular14Gre.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-                Expanded(
-                  flex: 3,
-                  child: Text(
-                    'Address',
-                    style: AppTextStyles.regular14Gre.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-                SizedBox(
-                  width: 80,
-                  child: Text(
-                    'Active',
-                    style: AppTextStyles.regular14Gre.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 80),
-              ],
-            ),
-          ),
-          const SizedBox(height: 8),
-          Expanded(
-            child: ListView.separated(
-              itemCount: controller.filteredBranches.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 8),
-              itemBuilder: (context, index) {
-                final branch = controller.filteredBranches[index];
-                return _BranchRow(
-                  branch: branch,
-                  controller: controller,
-                  onEdit: () => _showBranchDialog(context, controller, branch),
-                );
-              },
-            ),
+      final count = controller.filteredBranches.length;
+      return AppCard(
+        expandChild: true,
+        padding: EdgeInsets.zero,
+        title: 'All branches',
+        subtitle: '$count of ${controller.branchesList.length} '
+            '${controller.branchesList.length == 1 ? 'branch' : 'branches'}',
+        actions: [
+          AppSearchField(
+            hint: 'Search branches by name, city, state...',
+            onChanged: controller.searchBranches,
+            width: MediaQuery.sizeOf(context).width < 600 ? null : 320,
           ),
         ],
+        child: LayoutBuilder(builder: (context, constraints) {
+          final tableWidth = constraints.maxWidth < _kTableMinWidth
+              ? _kTableMinWidth
+              : constraints.maxWidth;
+
+          final table = SizedBox(
+            width: tableWidth,
+            height: constraints.maxHeight,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const _TableHeader(),
+                Expanded(
+                  child: count == 0
+                      ? const AppEmptyState(
+                          icon: LucideIcons.searchX,
+                          title: 'No matching branches',
+                          message: 'Try a different name, city or state.',
+                          compact: true,
+                        )
+                      : ListView.separated(
+                          itemCount: controller.filteredBranches.length,
+                          separatorBuilder: (_, __) => Divider(
+                              height: 1, color: AppColor.borderSubtle),
+                          itemBuilder: (context, index) {
+                            final branch = controller.filteredBranches[index];
+                            return _BranchRow(
+                              branch: branch,
+                              controller: controller,
+                              onEdit: () => _showBranchDialog(
+                                  context, controller, branch),
+                            );
+                          },
+                        ),
+                ),
+              ],
+            ),
+          );
+
+          if (tableWidth == constraints.maxWidth) return table;
+          return SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: table,
+          );
+        }),
       );
     });
+  }
+}
+
+class _TableHeader extends StatelessWidget {
+  const _TableHeader();
+
+  @override
+  Widget build(BuildContext context) {
+    final style = TextStyle(
+      fontSize: 12.5,
+      fontWeight: FontWeight.w600,
+      color: AppColor.textTertiary,
+    );
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 11),
+      decoration: BoxDecoration(
+        color: AppColor.surfaceMuted,
+        border: Border(bottom: BorderSide(color: AppColor.borderSubtle)),
+      ),
+      child: Row(
+        children: [
+          Expanded(flex: 2, child: Text('Branch Name', style: style)),
+          Expanded(flex: 2, child: Text('City / State', style: style)),
+          Expanded(flex: 3, child: Text('Address', style: style)),
+          SizedBox(width: _kStatusCol, child: Text('Active', style: style)),
+          SizedBox(
+            width: _kActionCol,
+            child: Text('Actions', style: style, textAlign: TextAlign.right),
+          ),
+        ],
+      ),
+    );
   }
 }
 
@@ -249,60 +220,109 @@ class _BranchRow extends StatelessWidget {
     final address = branch['br_address']?.toString() ?? '—';
     final status = SettingsController.toInt(branch['br_status'], fallback: 0);
     final isActive = status == 1;
+    final cityState = [city, state].where((s) => s.isNotEmpty).join(', ');
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      decoration: BoxDecoration(
-        color: AppColor.whiteColor,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppColor.divColor),
+    return _HoverRow(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+        child: Row(
+          children: [
+            Expanded(
+              flex: 2,
+              child: Row(
+                children: [
+                  AppIconTile(
+                    icon: LucideIcons.landmark,
+                    tone: isActive ? AppTone.primary : AppTone.neutral,
+                    size: 32,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: AppColor.textPrimary,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              flex: 2,
+              child: Text(
+                cityState.isEmpty ? '—' : cityState,
+                style: TextStyle(fontSize: 13.5, color: AppColor.textSecondary),
+              ),
+            ),
+            Expanded(
+              flex: 3,
+              child: Padding(
+                padding: const EdgeInsets.only(right: 12),
+                child: Text(
+                  address,
+                  style:
+                      TextStyle(fontSize: 13.5, color: AppColor.textSecondary),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ),
+            SizedBox(
+              width: _kStatusCol,
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Tooltip(
+                  message: isActive ? 'Deactivate branch' : 'Activate branch',
+                  child: Switch(
+                    value: isActive,
+                    onChanged: (_) => controller.toggleBranchStatus(id, status),
+                  ),
+                ),
+              ),
+            ),
+            SizedBox(
+              width: _kActionCol,
+              child: Align(
+                alignment: Alignment.centerRight,
+                child: IconButton(
+                  tooltip: 'Edit branch',
+                  onPressed: onEdit,
+                  icon: const Icon(LucideIcons.pencil, size: 18),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
-      child: Row(
-        children: [
-          Expanded(
-            flex: 2,
-            child: Text(
-              name,
-              style: AppTextStyles.regular16.copyWith(
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
-          Expanded(
-            flex: 2,
-            child: Text(
-              [city, state].where((s) => s.isNotEmpty).join(', '),
-              style: AppTextStyles.regular14Gre,
-            ),
-          ),
-          Expanded(
-            flex: 3,
-            child: Text(
-              address,
-              style: AppTextStyles.regular14Gre,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-          SizedBox(
-            width: 80,
-            child: Switch(
-              value: isActive,
-              activeThumbColor: AppColor.cAppPrimaryColor,
-              activeTrackColor: AppColor.cAppPrimaryColor.withValues(
-                alpha: 0.3,
-              ),
-              onChanged: (_) => controller.toggleBranchStatus(id, status),
-            ),
-          ),
-          SizedBox(
-            width: 80,
-            child: TextButton(
-              onPressed: onEdit,
-              child: Text('Edit', style: AppTextStyles.regular16blue),
-            ),
-          ),
-        ],
+    );
+  }
+}
+
+/// Table row background that tints on mouse hover.
+class _HoverRow extends StatefulWidget {
+  const _HoverRow({required this.child});
+  final Widget child;
+
+  @override
+  State<_HoverRow> createState() => _HoverRowState();
+}
+
+class _HoverRowState extends State<_HoverRow> {
+  bool _hover = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hover = true),
+      onExit: (_) => setState(() => _hover = false),
+      child: ColoredBox(
+        color: _hover ? AppColor.surfaceMuted : Colors.transparent,
+        child: widget.child,
       ),
     );
   }
@@ -342,105 +362,17 @@ void _showBranchDialog(
   showDialog<void>(
     context: context,
     builder: (ctx) {
-      return AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        title: Text(
-          isEdit ? 'Edit Branch' : 'Add Branch',
-          style: AppTextStyles.heading.copyWith(fontSize: 20),
-        ),
-        content: SizedBox(
-          width: 480,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Branch Name *', style: AppTextStyles.fieldsHeading16),
-              const SizedBox(height: 6),
-              TextField(
-                controller: nameCtrl,
-                decoration: _inputDecoration('e.g. Mumbai Central'),
-              ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('City *', style: AppTextStyles.fieldsHeading16),
-                        const SizedBox(height: 6),
-                        TextField(
-                          controller: cityCtrl,
-                          decoration: _inputDecoration('City'),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('State *', style: AppTextStyles.fieldsHeading16),
-                        const SizedBox(height: 6),
-                        TextField(
-                          controller: stateCtrl,
-                          decoration: _inputDecoration('State'),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Phone', style: AppTextStyles.fieldsHeading16),
-                        const SizedBox(height: 6),
-                        TextField(
-                          controller: phoneCtrl,
-                          keyboardType: TextInputType.phone,
-                          decoration: _inputDecoration('e.g. 9876543210'),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Email', style: AppTextStyles.fieldsHeading16),
-                        const SizedBox(height: 6),
-                        TextField(
-                          controller: emailCtrl,
-                          keyboardType: TextInputType.emailAddress,
-                          decoration: _inputDecoration('branch@example.com'),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              Text('Full Address', style: AppTextStyles.fieldsHeading16),
-              const SizedBox(height: 6),
-              TextField(
-                controller: addressCtrl,
-                maxLines: 2,
-                decoration: _inputDecoration('Street address, landmark…'),
-              ),
-            ],
-          ),
-        ),
+      return AppDialog(
+        title: isEdit ? 'Edit Branch' : 'Add Branch',
+        subtitle: isEdit
+            ? 'Update the branch details.'
+            : 'Register a new city branch office.',
+        icon: LucideIcons.landmark,
+        maxWidth: 560,
         actions: [
-          TextButton(
+          OutlinedButton(
             onPressed: () => Navigator.of(ctx).pop(),
-            child: Text('Cancel', style: AppTextStyles.regular16Gre),
+            child: const Text('Cancel'),
           ),
           Obx(() {
             final loading = controller.isBranchSubmitting.value;
@@ -456,20 +388,20 @@ void _showBranchDialog(
                       if (name.isEmpty || city.isEmpty || state.isEmpty) {
                         HelperUi.showToast(
                             message: 'Branch name, city and state are required.',
-                            backgroundColor: Colors.red);
+                            backgroundColor: AppColor.danger);
                         return;
                       }
                       if (phone.isNotEmpty &&
                           !RegExp(r'^[0-9+\- ]{7,15}$').hasMatch(phone)) {
                         HelperUi.showToast(
                             message: 'Enter a valid phone number.',
-                            backgroundColor: Colors.red);
+                            backgroundColor: AppColor.danger);
                         return;
                       }
                       if (email.isNotEmpty && !GetUtils.isEmail(email)) {
                         HelperUi.showToast(
                             message: 'Enter a valid email address.',
-                            backgroundColor: Colors.red);
+                            backgroundColor: AppColor.danger);
                         return;
                       }
                       bool ok;
@@ -495,13 +427,6 @@ void _showBranchDialog(
                       }
                       if (ok && ctx.mounted) Navigator.of(ctx).pop();
                     },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColor.cPrimaryButtonColor,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                elevation: 0,
-              ),
               child: loading
                   ? SizedBox(
                       width: 18,
@@ -511,36 +436,113 @@ void _showBranchDialog(
                         color: AppColor.buttonTextWhite,
                       ),
                     )
-                  : Text(
-                      isEdit ? 'Save Changes' : 'Create',
-                      style: AppTextStyles.regular16white,
-                    ),
+                  : Text(isEdit ? 'Save Changes' : 'Create'),
             );
           }),
         ],
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _labeled(
+              'Branch Name *',
+              TextField(
+                controller: nameCtrl,
+                decoration: const InputDecoration(
+                    hintText: 'e.g. Mumbai Central'),
+              ),
+            ),
+            const SizedBox(height: 16),
+            _pair(
+              _labeled(
+                'City *',
+                TextField(
+                  controller: cityCtrl,
+                  decoration: const InputDecoration(hintText: 'City'),
+                ),
+              ),
+              _labeled(
+                'State *',
+                TextField(
+                  controller: stateCtrl,
+                  decoration: const InputDecoration(hintText: 'State'),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            _pair(
+              _labeled(
+                'Phone',
+                TextField(
+                  controller: phoneCtrl,
+                  keyboardType: TextInputType.phone,
+                  decoration: const InputDecoration(
+                      hintText: 'e.g. 9876543210'),
+                ),
+              ),
+              _labeled(
+                'Email',
+                TextField(
+                  controller: emailCtrl,
+                  keyboardType: TextInputType.emailAddress,
+                  decoration: const InputDecoration(
+                      hintText: 'branch@example.com'),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            _labeled(
+              'Full Address',
+              TextField(
+                controller: addressCtrl,
+                maxLines: 2,
+                decoration: const InputDecoration(
+                    hintText: 'Street address, landmark…'),
+              ),
+            ),
+          ],
+        ),
       );
     },
   );
 }
 
-InputDecoration _inputDecoration(String hint) {
-  return InputDecoration(
-    hintText: hint,
-    hintStyle: AppTextStyles.regular14Gre,
-    filled: true,
-    fillColor: AppColor.fieldColorGrey,
-    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-    border: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(8),
-      borderSide: BorderSide(color: AppColor.textFieldBorderColor),
-    ),
-    enabledBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(8),
-      borderSide: BorderSide(color: AppColor.textFieldBorderColor),
-    ),
-    focusedBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(8),
-      borderSide: BorderSide(color: AppColor.cPrimaryButtonColor, width: 1.5),
-    ),
+/// Label above a field (13/w600, secondary text).
+Widget _labeled(String label, Widget field) {
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      Text(
+        label,
+        style: TextStyle(
+          fontSize: 13,
+          fontWeight: FontWeight.w600,
+          color: AppColor.textSecondary,
+        ),
+      ),
+      const SizedBox(height: 6),
+      field,
+    ],
   );
+}
+
+/// Two fields side by side; stacked when the dialog is narrow.
+Widget _pair(Widget left, Widget right) {
+  return LayoutBuilder(builder: (context, constraints) {
+    if (constraints.maxWidth < 400) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [left, const SizedBox(height: 16), right],
+      );
+    }
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(child: left),
+        const SizedBox(width: 12),
+        Expanded(child: right),
+      ],
+    );
+  });
 }

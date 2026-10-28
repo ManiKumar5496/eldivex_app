@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../../core/values/color_constants.dart';
+import '../../../widgets/ui/ui.dart';
 import '../../hp_portal/views/hp_widgets.dart';
 import '../controllers/client_controller.dart';
+import 'package:eldivex_app/app/core/values/lucide_icons.dart';
 
 class ClientPatientsView extends StatefulWidget {
   const ClientPatientsView({super.key});
@@ -28,11 +30,17 @@ class _ClientPatientsViewState extends State<ClientPatientsView> {
       appBar: AppBar(title: const Text('Patients')),
       body: Obx(() {
         if (c.loadingPatients.value) return const Center(child: CircularProgressIndicator());
-        if (c.patients.isEmpty) return HpUi.empty('No patients found.', icon: Icons.elderly);
+        if (c.patients.isEmpty) {
+          return const AppEmptyState(
+            icon: LucideIcons.heartHandshake,
+            title: 'No patients found.',
+            message: 'Patients linked to your account will appear here.',
+          );
+        }
         return RefreshIndicator(
           onRefresh: c.fetchPatients,
           child: ListView.separated(
-            padding: const EdgeInsets.all(16),
+            padding: HpUi.pagePadding(context, top: 20),
             itemCount: c.patients.length,
             separatorBuilder: (_, __) => const SizedBox(height: 12),
             itemBuilder: (_, i) => _tile(context, c.patients[i]),
@@ -43,27 +51,35 @@ class _ClientPatientsViewState extends State<ClientPatientsView> {
   }
 
   Widget _tile(BuildContext context, Map<String, dynamic> p) {
-    return InkWell(
+    return HpUi.card(
       onTap: () => _edit(context, p),
-      borderRadius: BorderRadius.circular(14),
-      child: HpUi.card(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(children: [
-              Expanded(
-                child: Text('${p['patient_name'] ?? '—'}',
-                    style: TextStyle(fontWeight: FontWeight.w700, color: AppColor.cPrimaryHeadingColor)),
-              ),
-              Icon(Icons.edit_outlined, size: 18, color: AppColor.fontColorGrey),
-            ]),
-            const SizedBox(height: 4),
-            HpUi.kv('Age', '${p['age'] ?? '—'}'),
-            HpUi.kv('Relation', '${p['relation'] ?? '—'}'),
-            HpUi.kv('Phone', '${p['phone_number'] ?? '—'}'),
-            HpUi.kv('Languages', '${p['languages'] ?? '—'}'),
-          ],
-        ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(children: [
+            AppAvatar(name: '${p['patient_name'] ?? '—'}', size: 40),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text('${p['patient_name'] ?? '—'}',
+                  style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: AppColor.textPrimary)),
+            ),
+            Tooltip(
+              message: 'Edit patient',
+              child: Icon(LucideIcons.pencil,
+                  size: 18, color: AppColor.textTertiary),
+            ),
+          ]),
+          const SizedBox(height: 8),
+          Divider(height: 1, color: AppColor.borderSubtle),
+          const SizedBox(height: 4),
+          HpUi.kv('Age', '${p['age'] ?? '—'}'),
+          HpUi.kv('Relation', '${p['relation'] ?? '—'}'),
+          HpUi.kv('Phone', '${p['phone_number'] ?? '—'}'),
+          HpUi.kv('Languages', '${p['languages'] ?? '—'}'),
+        ],
       ),
     );
   }
@@ -79,61 +95,43 @@ class _ClientPatientsViewState extends State<ClientPatientsView> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      builder: (_) => Padding(
-        padding: EdgeInsets.only(
-            bottom: MediaQuery.of(context).viewInsets.bottom, left: 16, right: 16, top: 16),
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text('Edit patient',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppColor.cPrimaryHeadingColor)),
-              const SizedBox(height: 12),
-              _f('Name', name),
-              _f('Phone', phone),
-              _f('Age', age, number: true),
-              _f('Relation', relation),
-              _f('Languages', languages),
-              const SizedBox(height: 12),
-              Obx(() => SizedBox(
-                    width: double.infinity,
-                    height: 46,
-                    child: ElevatedButton(
-                      onPressed: c.busy.value
-                          ? null
-                          : () async {
-                              final ok = await c.updatePatient(id, {
-                                'patient_name': name.text.trim(),
-                                'phone_number': phone.text.trim(),
-                                if (age.text.trim().isNotEmpty) 'age': int.tryParse(age.text.trim()),
-                                'relation': relation.text.trim(),
-                                'languages': languages.text.trim(),
-                              });
-                              if (ok) Get.back();
-                            },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColor.cPrimaryButtonColor,
-                        foregroundColor: AppColor.buttonTextWhite,
-                      ),
-                      child: c.busy.value
-                          ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                          : const Text('Save'),
-                    ),
-                  )),
-              const SizedBox(height: 16),
-            ],
-          ),
-        ),
+      builder: (_) => HpUi.sheet(
+        title: 'Edit patient',
+        subtitle: 'Keep the patient details up to date',
+        icon: LucideIcons.heartHandshake,
+        bottomInset: MediaQuery.of(context).viewInsets.bottom,
+        children: [
+          _f('Name', name),
+          _f('Phone', phone),
+          _f('Age', age, number: true),
+          _f('Relation', relation),
+          _f('Languages', languages),
+          const SizedBox(height: 6),
+          Obx(() => HpUi.primaryButton(
+                label: 'Save',
+                loading: c.busy.value,
+                onTap: () async {
+                  final ok = await c.updatePatient(id, {
+                    'patient_name': name.text.trim(),
+                    'phone_number': phone.text.trim(),
+                    if (age.text.trim().isNotEmpty) 'age': int.tryParse(age.text.trim()),
+                    'relation': relation.text.trim(),
+                    'languages': languages.text.trim(),
+                  });
+                  if (ok) Get.back();
+                },
+              )),
+        ],
       ),
     );
   }
 
-  Widget _f(String label, TextEditingController ctrl, {bool number = false}) => Padding(
-        padding: const EdgeInsets.symmetric(vertical: 6),
-        child: TextField(
+  Widget _f(String label, TextEditingController ctrl, {bool number = false}) =>
+      HpUi.field(
+        label,
+        TextField(
           controller: ctrl,
           keyboardType: number ? TextInputType.number : TextInputType.text,
-          decoration: InputDecoration(labelText: label, border: const OutlineInputBorder()),
         ),
       );
 }

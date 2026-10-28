@@ -4,8 +4,10 @@ import 'package:get/get.dart';
 
 import '../../../core/values/color_constants.dart';
 import '../../../widgets/helper_ui.dart';
+import '../../../widgets/ui/ui.dart';
 import '../../hp_portal/views/hp_widgets.dart';
 import '../controllers/client_controller.dart';
+import 'package:eldivex_app/app/core/values/lucide_icons.dart';
 
 class ClientBookingDetailView extends StatefulWidget {
   const ClientBookingDetailView({super.key});
@@ -50,17 +52,17 @@ class _ClientBookingDetailViewState extends State<ClientBookingDetailView> {
       backgroundColor: AppColor.cAppBackgroundColor,
       appBar: AppBar(title: const Text('Booking details')),
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: HpUi.pagePadding(context, top: 20),
         children: [
           _patientCard(),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
           _serviceCard(),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
           if (_loading)
-            HpUi.card(child: const Center(child: Padding(padding: EdgeInsets.all(16), child: CircularProgressIndicator())))
+            HpUi.card(child: HpUi.loader())
           else ...[
             _caregiverCard(),
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
             _attendanceCard(),
           ],
         ],
@@ -68,119 +70,159 @@ class _ClientBookingDetailViewState extends State<ClientBookingDetailView> {
     );
   }
 
-  Widget _patientCard() => HpUi.card(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            HpUi.sectionTitle('Patient'),
-            HpUi.kv('Name', '${b['patient_name'] ?? '—'}'),
-            HpUi.kv('Age', '${b['patient_age'] ?? '—'}'),
-            HpUi.kv('Relation', '${b['patient_relation'] ?? '—'}'),
-            HpUi.kv('Phone', '${b['patient_phone'] ?? '—'}'),
-          ],
-        ),
+  Widget _patientCard() => HpUi.section(
+        title: 'Patient',
+        icon: LucideIcons.user,
+        children: [
+          HpUi.kv('Name', '${b['patient_name'] ?? '—'}'),
+          HpUi.kv('Age', '${b['patient_age'] ?? '—'}'),
+          HpUi.kv('Relation', '${b['patient_relation'] ?? '—'}'),
+          HpUi.kv('Phone', '${b['patient_phone'] ?? '—'}'),
+        ],
       );
 
-  Widget _serviceCard() => HpUi.card(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            HpUi.sectionTitle('Service'),
-            HpUi.kv('Service', '${b['service_name'] ?? '—'}'),
-            HpUi.kv('Status', '${b['status_label'] ?? '—'}'),
-            HpUi.kv('Rate', '${b['base_rate'] ?? '—'} / ${b['base_unit'] ?? ''}'),
-            HpUi.kv('Period', '${b['service_start_date'] ?? '—'} → ${b['service_end_date'] ?? '—'}'),
-            HpUi.kv('Address',
-                '${b['address_line1'] ?? ''} ${b['locality'] ?? ''} ${b['city'] ?? ''}'.trim()),
-          ],
-        ),
-      );
+  Widget _serviceCard() {
+    final status = '${b['status_label'] ?? ''}';
+    return HpUi.section(
+      title: 'Service',
+      icon: LucideIcons.stethoscope,
+      children: [
+        HpUi.kv('Service', '${b['service_name'] ?? '—'}'),
+        status.isEmpty || status == 'NA'
+            ? HpUi.kv('Status', '—')
+            : AppInfoRow(
+                label: 'Status',
+                horizontal: true,
+                labelWidth: 112,
+                valueWidget: Align(
+                  alignment: Alignment.centerLeft,
+                  child: AppStatusBadge.status(status),
+                ),
+              ),
+        HpUi.kv('Rate', '${b['base_rate'] ?? '—'} / ${b['base_unit'] ?? ''}'),
+        HpUi.kv('Period', '${b['service_start_date'] ?? '—'} → ${b['service_end_date'] ?? '—'}'),
+        HpUi.kv('Address',
+            '${b['address_line1'] ?? ''} ${b['locality'] ?? ''} ${b['city'] ?? ''}'.trim()),
+      ],
+    );
+  }
 
   Widget _caregiverCard() {
     if (_hp.isEmpty) {
-      return HpUi.card(child: HpUi.empty('No caregiver assigned yet.', icon: Icons.person_search));
+      return const AppCard(
+        title: 'Assigned caregiver',
+        icon: LucideIcons.heartPulse,
+        padding: EdgeInsets.zero,
+        child: AppEmptyState(
+          compact: true,
+          icon: LucideIcons.userSearch,
+          title: 'No caregiver assigned yet.',
+          message: 'We will let you know as soon as one is assigned.',
+        ),
+      );
     }
     final hp = _hp.first;
     final otp = hp['otp'];
     final verified = (hp['otp_verified'] ?? 0) == 1;
-    return HpUi.card(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          HpUi.sectionTitle('Assigned caregiver'),
-          Row(
+    final name = '${hp['hp_reg_first_name'] ?? ''} ${hp['hp_reg_last_name'] ?? ''}';
+    return HpUi.section(
+      title: 'Assigned caregiver',
+      icon: LucideIcons.heartPulse,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          child: Row(
             children: [
-              CircleAvatar(
-                radius: 26,
-                backgroundColor: AppColor.cAppPrimaryColor.withValues(alpha: 0.15),
-                backgroundImage:
-                    hp['hp_reg_photo_url'] != null ? NetworkImage(hp['hp_reg_photo_url']) : null,
-                child: hp['hp_reg_photo_url'] == null
-                    ? Icon(Icons.person, color: AppColor.cAppPrimaryColor)
-                    : null,
+              AppAvatar(
+                name: name,
+                imageUrl: hp['hp_reg_photo_url']?.toString(),
+                size: 48,
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('${hp['hp_reg_first_name'] ?? ''} ${hp['hp_reg_last_name'] ?? ''}',
+                    Text(name,
                         style: TextStyle(
-                            fontWeight: FontWeight.w700, color: AppColor.cPrimaryHeadingColor)),
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            color: AppColor.textPrimary)),
+                    const SizedBox(height: 2),
                     Text('${hp['hp_reg_experience'] ?? ''} yrs • ${hp['hp_reg_languages'] ?? ''}',
-                        style: TextStyle(color: AppColor.fontColorGrey, fontSize: 12)),
+                        style: TextStyle(color: AppColor.textTertiary, fontSize: 12.5)),
                   ],
                 ),
               ),
               IconButton(
-                icon: Icon(Icons.call, color: AppColor.lightGreen),
+                tooltip: 'Call',
+                style: IconButton.styleFrom(
+                  backgroundColor: AppColor.successSoft,
+                  foregroundColor: AppColor.success,
+                ),
+                icon: const Icon(LucideIcons.phone, size: 18),
                 onPressed: () {},
               ),
             ],
           ),
-          HpUi.kv('Phone', '${hp['hp_reg_phone_number'] ?? '—'}'),
-          HpUi.kv('Education', '${hp['hp_reg_education'] ?? '—'}'),
-          const SizedBox(height: 8),
-          // Service-start OTP — shown to the client to hand to the caregiver on
-          // day one. Hidden once verified.
-          if (otp != null && '$otp'.isNotEmpty)
-            _otpBox('$otp', verified),
+        ),
+        Divider(height: 1, color: AppColor.borderSubtle),
+        const SizedBox(height: 4),
+        HpUi.kv('Phone', '${hp['hp_reg_phone_number'] ?? '—'}'),
+        HpUi.kv('Education', '${hp['hp_reg_education'] ?? '—'}'),
+        // Service-start OTP — shown to the client to hand to the caregiver on
+        // day one. Hidden once verified.
+        if (otp != null && '$otp'.isNotEmpty) ...[
+          const SizedBox(height: 6),
+          _otpBox('$otp', verified),
+          const SizedBox(height: 10),
         ],
-      ),
+      ],
     );
   }
 
   Widget _otpBox(String otp, bool verified) {
+    final tone = verified ? AppTone.success : AppTone.warning;
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.fromLTRB(12, 10, 6, 10),
       decoration: BoxDecoration(
-        color: (verified ? AppColor.lightGreen : Colors.orange).withValues(alpha: 0.10),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(
-            color: (verified ? AppColor.lightGreen : Colors.orange).withValues(alpha: 0.4)),
+        color: tone.soft,
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        border: Border.all(color: tone.color.withValues(alpha: 0.3)),
       ),
       child: Row(
         children: [
-          Icon(verified ? Icons.verified : Icons.vpn_key,
-              color: verified ? AppColor.lightGreen : Colors.orange),
-          const SizedBox(width: 10),
+          AppIconTile(
+            icon: verified ? LucideIcons.badgeCheck : LucideIcons.keyRound,
+            tone: tone,
+            size: 36,
+          ),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(verified ? 'Service start verified' : 'Service-start OTP',
-                    style: TextStyle(fontSize: 12, color: AppColor.fontColorGrey)),
+                    style: TextStyle(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w600,
+                        color: AppColor.textSecondary)),
+                const SizedBox(height: 2),
                 Text(verified ? otp : otp,
                     style: TextStyle(
-                        fontSize: 20, fontWeight: FontWeight.w800, letterSpacing: 3,
-                        color: AppColor.cPrimaryHeadingColor)),
+                        fontSize: 20,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 3,
+                        color: AppColor.textPrimary,
+                        fontFeatures: const [FontFeature.tabularFigures()])),
               ],
             ),
           ),
           if (!verified)
             IconButton(
-              icon: const Icon(Icons.copy, size: 18),
+              tooltip: 'Copy OTP',
+              icon: const Icon(LucideIcons.copy, size: 18),
               onPressed: () async {
                 await Clipboard.setData(ClipboardData(text: otp));
                 HelperUi.showToast(message: 'OTP copied', backgroundColor: Get.theme.colorScheme.primary);
@@ -192,31 +234,48 @@ class _ClientBookingDetailViewState extends State<ClientBookingDetailView> {
   }
 
   Widget _attendanceCard() {
-    return HpUi.card(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+    return AppCard(
+      title: 'Caregiver attendance',
+      icon: LucideIcons.clipboardCheck,
+      padding: EdgeInsets.zero,
+      child: _attendance.isEmpty
+          ? const AppEmptyState(
+              compact: true,
+              icon: LucideIcons.calendarDays,
+              title: 'No attendance recorded yet.',
+            )
+          : Column(
+              children: [
+                for (final entry in _attendance.take(31).toList().asMap().entries) ...[
+                  if (entry.key > 0) Divider(height: 1, color: AppColor.borderSubtle),
+                  _attendanceRow(entry.value),
+                ],
+              ],
+            ),
+    );
+  }
+
+  Widget _attendanceRow(Map<String, dynamic> a) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      child: Row(
         children: [
-          HpUi.sectionTitle('Caregiver attendance'),
-          if (_attendance.isEmpty)
-            Text('No attendance recorded yet.', style: TextStyle(color: AppColor.fontColorGrey))
-          else
-            ..._attendance.take(31).map((a) {
-              final color = HpUi.attendanceColor(a['status']?.toString());
-              return Padding(
-                padding: const EdgeInsets.symmetric(vertical: 5),
-                child: Row(
-                  children: [
-                    CircleAvatar(radius: 5, backgroundColor: color),
-                    const SizedBox(width: 10),
-                    Expanded(child: Text('${a['att_date'] ?? a['from_date'] ?? ''}')),
-                    Text('${a['check_in'] ?? ''}${a['check_out'] != null ? ' → ${a['check_out']}' : ''}',
-                        style: TextStyle(color: AppColor.fontColorGrey, fontSize: 12)),
-                    const SizedBox(width: 10),
-                    HpUi.statusChip((a['status'] ?? '—').toString().toUpperCase(), color),
-                  ],
-                ),
-              );
-            }),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('${a['att_date'] ?? a['from_date'] ?? ''}',
+                    style: TextStyle(fontSize: 14, color: AppColor.textPrimary)),
+                if (a['check_in'] != null || a['check_out'] != null) ...[
+                  const SizedBox(height: 2),
+                  Text('${a['check_in'] ?? ''}${a['check_out'] != null ? ' → ${a['check_out']}' : ''}',
+                      style: TextStyle(color: AppColor.textTertiary, fontSize: 12.5)),
+                ],
+              ],
+            ),
+          ),
+          const SizedBox(width: 10),
+          HpUi.attendanceBadge(a['status']?.toString(), dense: true),
         ],
       ),
     );

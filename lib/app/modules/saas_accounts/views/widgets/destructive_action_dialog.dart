@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../../core/values/color_constants.dart';
+import 'package:eldivex_app/app/core/values/lucide_icons.dart';
 
 enum DestructiveTier { low, medium, high }
 
@@ -100,8 +101,8 @@ class _DestructiveActionDialogState extends State<DestructiveActionDialog> {
         children: [
           Icon(
             widget.tier == DestructiveTier.high
-                ? Icons.warning_amber_rounded
-                : Icons.info_outline,
+                ? LucideIcons.triangleAlert
+                : LucideIcons.info,
             color: _btnColor,
             size: 22,
           ),
@@ -167,7 +168,7 @@ class _DestructiveActionDialogState extends State<DestructiveActionDialog> {
                     border: const OutlineInputBorder(),
                     suffixIcon: _slugCtrl.text.trim().toLowerCase() ==
                             widget.requireSlug!.toLowerCase()
-                        ? const Icon(Icons.check_circle, color: Colors.green)
+                        ? const Icon(LucideIcons.circleCheck, color: Colors.green)
                         : null,
                   ),
                   onChanged: (_) => setState(() {}),

@@ -4,6 +4,7 @@ import '../../../core/values/color_constants.dart';
 import '../../../core/values/text_style_constants.dart';
 import '../controllers/saas_accounts_controller.dart';
 import '../models/saas_billing_invoice_model.dart';
+import 'package:eldivex_app/app/core/values/lucide_icons.dart';
 
 class SaasBillingView extends GetView<SaasAccountsController> {
   const SaasBillingView({super.key});
@@ -19,7 +20,7 @@ class SaasBillingView extends GetView<SaasAccountsController> {
             const Spacer(),
             ElevatedButton.icon(
               onPressed: () => _showGenerateDialog(context),
-              icon: const Icon(Icons.add, size: 16),
+              icon: const Icon(LucideIcons.plus, size: 16),
               label: const Text('Generate Invoice'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColor.cPrimaryButtonColor,
@@ -43,7 +44,7 @@ class SaasBillingView extends GetView<SaasAccountsController> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.receipt_long_outlined,
+                    Icon(LucideIcons.receiptText,
                         size: 48, color: AppColor.divColor),
                     const SizedBox(height: 12),
                     Text('No invoices yet.', style: AppTextStyles.regular14Gre),
@@ -211,6 +212,7 @@ class _GenerateInvoiceDialog extends GetView<SaasAccountsController> {
             mainAxisSize: MainAxisSize.min,
             children: [
               DropdownButtonFormField<int>(
+icon: const Icon(LucideIcons.chevronDown, size: 18),
                 initialValue: controller.billingOrgId.value == 0
                     ? null
                     : controller.billingOrgId.value,
@@ -233,6 +235,7 @@ class _GenerateInvoiceDialog extends GetView<SaasAccountsController> {
                 children: [
                   Expanded(
                     child: DropdownButtonFormField<int>(
+icon: const Icon(LucideIcons.chevronDown, size: 18),
                       initialValue: controller.billingMonth.value,
                       decoration: const InputDecoration(
                         labelText: 'Month *',
@@ -253,6 +256,7 @@ class _GenerateInvoiceDialog extends GetView<SaasAccountsController> {
                   const SizedBox(width: 12),
                   Expanded(
                     child: DropdownButtonFormField<int>(
+icon: const Icon(LucideIcons.chevronDown, size: 18),
                       initialValue: controller.billingYear.value,
                       decoration: const InputDecoration(
                         labelText: 'Year *',
@@ -284,7 +288,7 @@ class _GenerateInvoiceDialog extends GetView<SaasAccountsController> {
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.warning_amber_outlined,
+                      const Icon(LucideIcons.triangleAlert,
                           color: Colors.orange, size: 16),
                       const SizedBox(width: 8),
                       Expanded(

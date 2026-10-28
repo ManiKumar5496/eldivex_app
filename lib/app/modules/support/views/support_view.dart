@@ -2,12 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:eldivex_app/app/modules/support/models/get_all_support_tickets.dart';
+import 'package:eldivex_app/app/widgets/ui/ui.dart';
 
 import '../../../core/values/color_constants.dart';
-import '../../../core/values/text_style_constants.dart';
 import '../../../core/values/size_configue.dart';
 import '../../../widgets/shimmer_loader.dart';
 import '../controllers/support_controller.dart';
+import 'package:eldivex_app/app/core/values/lucide_icons.dart';
 
 class SupportView extends GetView<SupportController> {
   const SupportView({super.key});
@@ -26,9 +27,9 @@ class SupportView extends GetView<SupportController> {
       backgroundColor: AppColor.cAppBackgroundColor,
       body: SizeConfig.isMobile
           ? SingleChildScrollView(
-              padding: const EdgeInsets.all(12),
+              padding: SizeConfig.pagePadding,
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   _leftSectionMobile(),
                   const SizedBox(height: 16),
@@ -36,210 +37,198 @@ class SupportView extends GetView<SupportController> {
                 ],
               ),
             )
-          : Padding(
-              padding: const EdgeInsets.all(24),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(flex: 3, child: _leftSection()),
-                  const SizedBox(width: 24),
-                  Expanded(flex: 1, child: _rightSection()),
-                ],
-              ),
-            ),
+          : LayoutBuilder(builder: (context, constraints) {
+              // Inbox fills the height next to a side rail on large
+              // screens; otherwise everything stacks and the page scrolls.
+              final roomy =
+                  constraints.maxWidth >= 1100 && constraints.maxHeight >= 700;
+              if (roomy) {
+                return Padding(
+                  padding: SizeConfig.pagePadding,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      ..._topSection(),
+                      Expanded(
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(child: _leftSection()),
+                            const SizedBox(width: 20),
+                            SizedBox(
+                              width: 300,
+                              child: SingleChildScrollView(
+                                child: _rightSection(),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }
+              return SingleChildScrollView(
+                padding: SizeConfig.pagePadding,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    ..._topSection(),
+                    SizedBox(height: 620, child: _leftSection()),
+                    const SizedBox(height: 20),
+                    AppResponsiveGrid(
+                      minItemWidth: 280,
+                      maxColumns: 2,
+                      children: [_quickLinks(), _supportHours()],
+                    ),
+                  ],
+                ),
+              );
+            }),
     );
   }
 
+  // ================= HEADER + SUMMARY =================
+
+  List<Widget> _topSection() {
+    return [
+      const AppPageHeader(
+        title: 'Support Center',
+        subtitle: 'Manage customer support tickets and inquiries',
+      ),
+      const SizedBox(height: 24),
+      Obx(() => controller.isStatsLoading.value
+          ? const SizedBox()
+          : Padding(
+              padding: const EdgeInsets.only(bottom: 20),
+              child: _summaryCards(),
+            )),
+    ];
+  }
 
   Widget _leftSectionMobile() {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text('Support Center', style: AppTextStyles.heading),
-        const SizedBox(height: 4),
-        Text(
-          'Manage customer support tickets and inquiries',
-          style: AppTextStyles.regular14Gre,
+        const AppPageHeader(
+          title: 'Support Center',
+          subtitle: 'Manage customer support tickets and inquiries',
         ),
         const SizedBox(height: 16),
-        Obx(() => controller.isStatsLoading.value ? const SizedBox() : _summaryCardsMobile()),
+        Obx(() => controller.isStatsLoading.value
+            ? const SizedBox()
+            : _summaryCardsMobile()),
         const SizedBox(height: 16),
-        Text('Recent Tickets', style: AppTextStyles.semiBold18),
-        const SizedBox(height: 12),
-        _ticketSearchBar(),
-        const SizedBox(height: 12),
-        _ticketsListMobile(),
+        AppCard(
+          title: 'Recent Tickets',
+          icon: LucideIcons.inbox,
+          padding: EdgeInsets.zero,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _ticketSearchBar(),
+              Divider(height: 1, color: AppColor.borderSubtle),
+              _ticketsListMobile(),
+            ],
+          ),
+        ),
       ],
     );
   }
 
+  /// Ticket inbox card; fills a bounded height.
   Widget _leftSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('Support Center', style: AppTextStyles.heading),
-        const SizedBox(height: 4),
-        Text(
-          'Manage customer support tickets and inquiries',
-          style: AppTextStyles.regular14Gre,
-        ),
-        const SizedBox(height: 24),
-        Obx(() => controller.isStatsLoading.value ? const SizedBox() : _summaryCards()),
-        const SizedBox(height: 24),
-        Text('Recent Tickets', style: AppTextStyles.semiBold18),
-        const SizedBox(height: 16),
-        _ticketSearchBar(),
-        const SizedBox(height: 12),
-        Expanded(child: _ticketsList()),
-      ],
+    return AppCard(
+      title: 'Recent Tickets',
+      icon: LucideIcons.inbox,
+      padding: EdgeInsets.zero,
+      expandChild: true,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _ticketSearchBar(),
+          Divider(height: 1, color: AppColor.borderSubtle),
+          Expanded(child: _ticketsList()),
+        ],
+      ),
     );
   }
 
   // ================= SUMMARY =================
 
   Widget _summaryCardsMobile() {
-    return Column(
-      children: [
-        _summaryCardMobile('Open Tickets', controller.openTickets.value,
-            Icons.chat_bubble_outline, Colors.blue),
-        const SizedBox(height: 8),
-        _summaryCardMobile('In Progress', controller.inProgressTickets.value,
-            Icons.autorenew, Colors.orange),
-        const SizedBox(height: 8),
-        _summaryCardMobile('Resolved Today', controller.resolvedToday.value,
-            Icons.check_circle, Colors.green),
-        const SizedBox(height: 8),
-        _summaryCardMobile('Avg Response', controller.avgResponseTime.value,
-            Icons.timer_outlined, Colors.purple, isText: true),
-      ],
-    );
-  }
-
-  Widget _summaryCardMobile(String title, dynamic value, IconData icon, Color color,
-      {bool isText = false}) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColor.whiteColor,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColor.divColor),
-      ),
-      child: Row(
-        children: [
-          CircleAvatar(
-            backgroundColor: color.withValues(alpha: 0.15),
-            child: Icon(icon, color: color),
-          ),
-          const SizedBox(width: 12),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(title, style: AppTextStyles.regular14Gre),
-              const SizedBox(height: 4),
-              Text(
-                value.toString(),
-                style: AppTextStyles.bold20,
-              ),
-            ],
-          )
-        ],
-      ),
+    return AppResponsiveGrid(
+      minItemWidth: 140,
+      maxColumns: 2,
+      spacing: 12,
+      children: _summaryTiles(),
     );
   }
 
   Widget _summaryCards() {
-    return Row(
-      children: [
-        _summaryCard('Open Tickets', controller.openTickets.value,
-            Icons.chat_bubble_outline, Colors.blue),
-        _summaryCard('In Progress', controller.inProgressTickets.value,
-            Icons.autorenew, Colors.orange),
-        _summaryCard('Resolved Today', controller.resolvedToday.value,
-            Icons.check_circle, Colors.green),
-        _summaryCard('Avg Response', controller.avgResponseTime.value,
-            Icons.timer_outlined, Colors.purple, isText: true),
-      ],
+    return AppResponsiveGrid(
+      minItemWidth: 200,
+      maxColumns: 4,
+      children: _summaryTiles(),
     );
   }
 
-  Widget _summaryCard(String title, dynamic value, IconData icon, Color color,
-      {bool isText = false}) {
-    return Expanded(
-      child: Container(
-        margin: const EdgeInsets.only(right: 16),
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: AppColor.whiteColor,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColor.divColor),
-        ),
-        child: Row(
-          children: [
-            CircleAvatar(
-              backgroundColor: color.withValues(alpha: 0.15),
-              child: Icon(icon, color: color),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(title,
-                      style: AppTextStyles.regular14Gre,
-                      overflow: TextOverflow.ellipsis),
-                  const SizedBox(height: 4),
-                  Text(
-                    value.toString(),
-                    style: AppTextStyles.bold20,
-                  ),
-                ],
-              ),
-            )
-          ],
-        ),
-      ),
+  /// Read inside the caller's `Obx`.
+  List<Widget> _summaryTiles() {
+    return [
+      _summaryCard('Open Tickets', controller.openTickets.value,
+          LucideIcons.messageSquare, AppTone.info),
+      _summaryCard('In Progress', controller.inProgressTickets.value,
+          LucideIcons.refreshCw, AppTone.warning),
+      _summaryCard('Resolved Today', controller.resolvedToday.value,
+          LucideIcons.circleCheck, AppTone.success),
+      _summaryCard('Avg Response', controller.avgResponseTime.value,
+          LucideIcons.timer, AppTone.violet),
+    ];
+  }
+
+  Widget _summaryCard(String title, dynamic value, IconData icon, AppTone tone) {
+    return AppStatCard(
+      label: title,
+      value: value.toString(),
+      icon: icon,
+      tone: tone,
     );
   }
 
   // ================= TICKETS =================
 
   Widget _ticketSearchBar() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          decoration: BoxDecoration(
-            color: AppColor.whiteColor,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColor.divColor),
-          ),
-          child: TextField(
-            onChanged: controller.searchTickets,
-            decoration: const InputDecoration(
-              hintText: 'Search by title, booking, user, or ticket #...',
-              prefixIcon: Icon(Icons.search),
-              border: InputBorder.none,
-              contentPadding:
-                  EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+    return Padding(
+      padding: EdgeInsets.all(SizeConfig.isMobile ? 12 : 16),
+      child: Wrap(
+        spacing: 12,
+        runSpacing: 10,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        children: [
+          SizedBox(
+            width: SizeConfig.isMobile ? double.infinity : 340,
+            child: AppSearchField(
+              onChanged: controller.searchTickets,
+              hint: 'Search by title, booking, user, or ticket #...',
             ),
           ),
-        ),
-        const SizedBox(height: 8),
-        Obx(() => Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                _ticketStatusChip('All', -1),
-                for (final s in const [
-                  SupportController.statusOpen,
-                  SupportController.statusInProgress,
-                  SupportController.statusResolved,
-                  SupportController.statusClosed,
-                ])
-                  _ticketStatusChip(SupportController.statusLabel(s), s),
-              ],
-            )),
-      ],
+          Obx(() => Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: [
+                  _ticketStatusChip('All', -1),
+                  for (final s in const [
+                    SupportController.statusOpen,
+                    SupportController.statusInProgress,
+                    SupportController.statusResolved,
+                    SupportController.statusClosed,
+                  ])
+                    _ticketStatusChip(SupportController.statusLabel(s), s),
+                ],
+              )),
+        ],
+      ),
     );
   }
 
@@ -264,21 +253,18 @@ class SupportView extends GetView<SupportController> {
       }
 
       if (controller.filteredSupportTickets.isEmpty) {
-        return Center(
-          child: Text(
-            'No tickets found',
-            style: AppTextStyles.regular14Gre,
-          ),
-        );
+        return _emptyState();
       }
 
+      final tickets = controller.filteredSupportTickets;
       return Column(
-        children: controller.filteredSupportTickets.map((ticket) {
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: _ticketCard(ticket),
-          );
-        }).toList(),
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          for (var i = 0; i < tickets.length; i++) ...[
+            if (i > 0) Divider(height: 1, color: AppColor.borderSubtle),
+            _ticketCard(tickets[i]),
+          ],
+        ],
       );
     });
   }
@@ -291,21 +277,17 @@ class SupportView extends GetView<SupportController> {
 
       if (controller.loadError.value.isNotEmpty &&
           controller.getAllSupportTicketsData.isEmpty) {
-        return _errorState();
+        return SingleChildScrollView(child: _errorState());
       }
 
       if (controller.filteredSupportTickets.isEmpty) {
-        return Center(
-          child: Text(
-            'No tickets found',
-            style: AppTextStyles.regular14Gre,
-          ),
-        );
+        return SingleChildScrollView(child: _emptyState());
       }
 
       return ListView.separated(
         itemCount: controller.filteredSupportTickets.length,
-        separatorBuilder: (_, __) => const SizedBox(height: 16),
+        separatorBuilder: (_, __) =>
+            Divider(height: 1, color: AppColor.borderSubtle),
         itemBuilder: (context, index) {
           final GetAllSupportTickets ticket =
           controller.filteredSupportTickets[index];
@@ -315,26 +297,27 @@ class SupportView extends GetView<SupportController> {
     });
   }
 
+  Widget _emptyState() {
+    return const AppEmptyState(
+      compact: true,
+      icon: LucideIcons.inbox,
+      title: 'No tickets found',
+    );
+  }
+
   Widget _errorState() {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.error_outline, size: 40, color: AppColor.fontColorGrey),
-          const SizedBox(height: 8),
-          Text(controller.loadError.value,
-              textAlign: TextAlign.center, style: AppTextStyles.regular14Gre),
-          const SizedBox(height: 8),
-          OutlinedButton.icon(
-            onPressed: () {
-              controller.getAllSupportTicketsApi();
-              controller.getSupportStatsApi();
-            },
-            icon: const Icon(Icons.refresh),
-            label: const Text('Retry'),
-          ),
-        ],
-      ),
+    return AppEmptyState(
+      compact: true,
+      icon: LucideIcons.circleAlert,
+      tone: AppTone.danger,
+      title: 'Could not load tickets',
+      message: controller.loadError.value,
+      actionLabel: 'Retry',
+      actionIcon: LucideIcons.refreshCw,
+      onAction: () {
+        controller.getAllSupportTicketsApi();
+        controller.getSupportStatsApi();
+      },
     );
   }
 
@@ -345,78 +328,97 @@ class SupportView extends GetView<SupportController> {
       status == SupportController.statusOpen ||
       status == SupportController.statusInProgress;
 
+  /// Inbox row: subject, ticket meta, then status / requester / created time.
   Widget _ticketCard(GetAllSupportTickets ticket) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColor.whiteColor,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColor.divColor),
-      ),
-      child: Column(
+    final isMobile = SizeConfig.isMobile;
+    // Status can change only while the ticket is Open / In Progress
+    final updateButton = _canChangeStatus(ticket.status)
+        ? OutlinedButton.icon(
+            onPressed: () => _showCloseTicketDialog(ticket),
+            style: AppButtonStyles.compact,
+            icon: const Icon(LucideIcons.notebookPen, size: 18),
+            label: const Text('Update Status'),
+          )
+        : null;
+
+    return Padding(
+      padding: EdgeInsets.symmetric(
+          horizontal: isMobile ? 12 : 16, vertical: 14),
+      child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Expanded(
-                child: Text(ticket.title, style: AppTextStyles.semiBold16),
-              ),
-              // Status can change only while the ticket is Open / In Progress
-              if (_canChangeStatus(ticket.status))
-                ElevatedButton.icon(
-                  onPressed: () => _showCloseTicketDialog(ticket),
-                  icon: const Icon(Icons.edit_note, size: 16),
-                  label: const Text('Update Status'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColor.cPrimaryButtonColor,
-                    foregroundColor: AppColor.buttonTextWhite,
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 8),
+          if (!isMobile) ...[
+            AppIconTile(
+              icon: LucideIcons.ticket,
+              tone: _statusTone(ticket.status),
+              size: 36,
+            ),
+            const SizedBox(width: 12),
+          ],
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  ticket.title,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 14.5,
+                    fontWeight: FontWeight.w600,
+                    color: AppColor.textPrimary,
                   ),
                 ),
-            ],
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'Ticket #${ticket.id} · ${controller.categoryName(ticket.supportTypeId)}'
-            '${ticket.bookingDetails.isNotEmpty && ticket.bookingDetails != 'NA' ? ' · Booking ${ticket.bookingDetails}' : ''}',
-            style: AppTextStyles.regular14Gre,
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              _statusChip(ticket.status),
-              const SizedBox(width: 8),
-            ],
-          ),
-          const Divider(height: 24),
-          Row(
-            children: [
-              const Icon(Icons.person, size: 16),
-              const SizedBox(width: 6),
-              Text('User ${ticket.userId}', style: AppTextStyles.regular14Gre),
-              const Spacer(),
-              const Icon(Icons.access_time, size: 16),
-              const SizedBox(width: 6),
-              Flexible(
-                child: Text(
-                  _formatDate(ticket.createdOn),
-                  style: AppTextStyles.regular14Gre,
-                  overflow: TextOverflow.ellipsis,
+                const SizedBox(height: 4),
+                Text(
+                  'Ticket #${ticket.id} · ${controller.categoryName(ticket.supportTypeId)}'
+                  '${ticket.bookingDetails.isNotEmpty && ticket.bookingDetails != 'NA' ? ' · Booking ${ticket.bookingDetails}' : ''}',
+                  style: TextStyle(fontSize: 13, color: AppColor.textTertiary),
                 ),
-              ),
-            ],
+                const SizedBox(height: 10),
+                Wrap(
+                  spacing: 14,
+                  runSpacing: 8,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    _statusChip(ticket.status),
+                    _metaItem(LucideIcons.user, 'User ${ticket.userId}'),
+                    _metaItem(LucideIcons.clock, _formatDate(ticket.createdOn)),
+                  ],
+                ),
+                if (isMobile && updateButton != null) ...[
+                  const SizedBox(height: 12),
+                  updateButton,
+                ],
+              ],
+            ),
           ),
+          if (!isMobile && updateButton != null) ...[
+            const SizedBox(width: 12),
+            updateButton,
+          ],
         ],
       ),
+    );
+  }
+
+  Widget _metaItem(IconData icon, String text) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 15, color: AppColor.textTertiary),
+        const SizedBox(width: 5),
+        Text(
+          text,
+          style: TextStyle(fontSize: 12.5, color: AppColor.textSecondary),
+        ),
+      ],
     );
   }
 
   // ================= CLOSE TICKET DIALOG =================
 
   void _showCloseTicketDialog(GetAllSupportTickets ticket) {
-    final isMobile = SizeConfig.isMobile;
     controller.supportCommentsController.clear();
     final targets = [
       SupportController.statusInProgress,
@@ -425,141 +427,106 @@ class SupportView extends GetView<SupportController> {
     ].where((s) => s != ticket.status).toList();
     final RxInt target = SupportController.statusClosed.obs;
 
+    final fieldLabel = TextStyle(
+      fontSize: 13.5,
+      fontWeight: FontWeight.w600,
+      color: AppColor.textSecondary,
+    );
+
     Get.dialog(
-      Dialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Container(
-          width: isMobile ? double.infinity : 500,
-          padding: EdgeInsets.all(isMobile ? 16 : 24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Update Ticket Status',
-                    style: AppTextStyles.semiBold18,
-                  ),
-                  IconButton(
-                    onPressed: () {
-                      if (!controller.updateSupportStatusLoading.value) Get.back();
-                    },
-                    icon: const Icon(Icons.close),
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 24),
-
-              // Ticket Details
-              _detailRow('Ticket ID:', ticket.id.toString()),
-              const SizedBox(height: 12),
-              _detailRow('Title:', ticket.title),
-              const SizedBox(height: 12),
-              _detailRow('Support Type:', controller.categoryName(ticket.supportTypeId)),
-              const SizedBox(height: 12),
-              _detailRow('Status:', SupportController.statusLabel(ticket.status)),
-              const SizedBox(height: 12),
-              _detailRow('User ID:', ticket.userId.toString()),
-              const SizedBox(height: 12),
-              _detailRow('Created On:', _formatDate(ticket.createdOn)),
-              const SizedBox(height: 12),
-              _detailRow('Description:',
-                  ticket.description.isEmpty ? 'N/A' : ticket.description),
-              if (ticket.comments.isNotEmpty && ticket.comments != 'NA') ...[
-                const SizedBox(height: 12),
-                _detailRow('Comments:', ticket.comments),
-              ],
-
-              const SizedBox(height: 24),
-              const Divider(),
-              const SizedBox(height: 24),
-
-              Text('New Status', style: AppTextStyles.medium16),
-              const SizedBox(height: 8),
-              Obx(() => Wrap(
-                    spacing: 8,
-                    children: targets
-                        .map((s) => ChoiceChip(
-                              label: Text(SupportController.statusLabel(s)),
-                              selected: target.value == s,
-                              onSelected: (_) => target.value = s,
-                            ))
-                        .toList(),
-                  )),
-              const SizedBox(height: 16),
-
-              // Comments Field
-              Text('Comments', style: AppTextStyles.medium16),
-              const SizedBox(height: 8),
-              TextField(
-                controller: controller.supportCommentsController,
-                maxLines: 4,
-                decoration: InputDecoration(
-                  hintText: 'Enter comments (optional)...',
-                  hintStyle: AppTextStyles.regular14Gre,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  filled: true,
-                  fillColor: AppColor.fieldColorGrey,
-                ),
-              ),
-
-              const SizedBox(height: 24),
-
-              // Action Buttons
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  TextButton(
-                    onPressed: () {
-                      if (!controller.updateSupportStatusLoading.value) Get.back();
-                    },
-                    child: Text(
-                      'Cancel',
-                      style: AppTextStyles.medium16.copyWith(
-                        color: AppColor.cPrimaryButtonColor,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Obx(() => ElevatedButton(
-                    onPressed: controller.updateSupportStatusLoading.value
-                        ? null
-                        : () async {
-                      final ok = await controller.updateSupportStatus(
-                          target.value, ticket.id);
-                      if (ok && (Get.isDialogOpen ?? false)) Get.back();
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColor.cPrimaryButtonColor,
-                      foregroundColor: AppColor.buttonTextWhite,
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 24, vertical: 12),
-                    ),
-                    child: controller.updateSupportStatusLoading.value
-                        ? SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                            AppColor.buttonTextWhite),
-                      ),
-                    )
-                        : const Text('Update'),
-                  )),
-                ],
-              ),
-            ],
+      AppDialog(
+        title: 'Update Ticket Status',
+        subtitle: 'Ticket #${ticket.id}',
+        icon: LucideIcons.notebookPen,
+        onClose: () {
+          if (!controller.updateSupportStatusLoading.value) Get.back();
+        },
+        actions: [
+          OutlinedButton(
+            onPressed: () {
+              if (!controller.updateSupportStatusLoading.value) Get.back();
+            },
+            child: const Text('Cancel'),
           ),
+          Obx(() => ElevatedButton(
+            onPressed: controller.updateSupportStatusLoading.value
+                ? null
+                : () async {
+              final ok = await controller.updateSupportStatus(
+                  target.value, ticket.id);
+              if (ok && (Get.isDialogOpen ?? false)) Get.back();
+            },
+            child: controller.updateSupportStatusLoading.value
+                ? SizedBox(
+              width: 16,
+              height: 16,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                valueColor: AlwaysStoppedAnimation<Color>(
+                    AppColor.textTertiary),
+              ),
+            )
+                : const Text('Update'),
+          )),
+        ],
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Ticket Details
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+              decoration: BoxDecoration(
+                color: AppColor.surfaceMuted,
+                borderRadius: BorderRadius.circular(AppRadius.md),
+                border: Border.all(color: AppColor.borderSubtle),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _detailRow('Ticket ID', ticket.id.toString()),
+                  _detailRow('Title', ticket.title),
+                  _detailRow('Support Type',
+                      controller.categoryName(ticket.supportTypeId)),
+                  _detailRow('Status', SupportController.statusLabel(ticket.status)),
+                  _detailRow('User ID', ticket.userId.toString()),
+                  _detailRow('Created On', _formatDate(ticket.createdOn)),
+                  _detailRow('Description',
+                      ticket.description.isEmpty ? 'N/A' : ticket.description),
+                  if (ticket.comments.isNotEmpty && ticket.comments != 'NA')
+                    _detailRow('Comments', ticket.comments),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 20),
+
+            Text('New Status', style: fieldLabel),
+            const SizedBox(height: 8),
+            Obx(() => Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: targets
+                      .map((s) => ChoiceChip(
+                            label: Text(SupportController.statusLabel(s)),
+                            selected: target.value == s,
+                            onSelected: (_) => target.value = s,
+                          ))
+                      .toList(),
+                )),
+            const SizedBox(height: 16),
+
+            // Comments Field
+            Text('Comments', style: fieldLabel),
+            const SizedBox(height: 8),
+            TextField(
+              controller: controller.supportCommentsController,
+              maxLines: 4,
+              decoration: const InputDecoration(
+                hintText: 'Enter comments (optional)...',
+              ),
+            ),
+          ],
         ),
       ),
       barrierDismissible: false,
@@ -567,34 +534,11 @@ class SupportView extends GetView<SupportController> {
   }
 
   Widget _detailRow(String label, String value) {
-    final isMobile = SizeConfig.isMobile;
-    if (isMobile) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(label, style: AppTextStyles.medium16),
-          const SizedBox(height: 2),
-          Text(value, style: AppTextStyles.regular14Gre),
-        ],
-      );
-    }
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SizedBox(
-          width: 120,
-          child: Text(
-            label,
-            style: AppTextStyles.medium16,
-          ),
-        ),
-        Expanded(
-          child: Text(
-            value,
-            style: AppTextStyles.regular14Gre,
-          ),
-        ),
-      ],
+    return AppInfoRow(
+      label: label,
+      value: value,
+      horizontal: !SizeConfig.isMobile,
+      labelWidth: 110,
     );
   }
 
@@ -602,42 +546,40 @@ class SupportView extends GetView<SupportController> {
 
   Widget _rightSection() {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _quickLinks(),
-        const SizedBox(height: 24),
+        const SizedBox(height: 20),
         _supportHours(),
       ],
     );
   }
 
   Widget _quickLinks() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: _cardDecoration(),
+    return AppCard(
+      title: 'Quick Links',
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text('Quick Links', style: AppTextStyles.semiBold18),
-          const SizedBox(height: 16),
+          _quickLinkItem(LucideIcons.fileText, 'Knowledge Base',
+              'Browse help articles'),
+          const SizedBox(height: 14),
           _quickLinkItem(
-              Icons.description, 'Knowledge Base', 'Browse help articles'),
-          _quickLinkItem(Icons.email, 'Email Support', 'support@example.com'),
-          _quickLinkItem(Icons.phone, 'Phone Support', '+1 (555) 123-4567'),
+              LucideIcons.mail, 'Email Support', 'support@example.com'),
+          const SizedBox(height: 14),
+          _quickLinkItem(
+              LucideIcons.phone, 'Phone Support', '+1 (555) 123-4567'),
         ],
       ),
     );
   }
 
   Widget _supportHours() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: _cardDecoration(),
+    return AppCard(
+      title: 'Support Hours',
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text('Support Hours', style: AppTextStyles.semiBold18),
-          const SizedBox(height: 12),
           _hoursRow('Monday - Friday', '9:00 AM - 6:00 PM'),
           _hoursRow('Saturday', '10:00 AM - 4:00 PM'),
           _hoursRow('Sunday', 'Closed'),
@@ -648,23 +590,33 @@ class SupportView extends GetView<SupportController> {
 
   // ================= HELPERS =================
 
-  BoxDecoration _cardDecoration() {
-    return BoxDecoration(
-      color: AppColor.whiteColor,
-      borderRadius: BorderRadius.circular(16),
-      border: Border.all(color: AppColor.divColor),
-    );
-  }
-
   Widget _quickLinkItem(IconData icon, String title, String subtitle) {
-    return ListTile(
-      contentPadding: EdgeInsets.zero,
-      leading: CircleAvatar(
-        backgroundColor: AppColor.fieldColorGrey,
-        child: Icon(icon, color: AppColor.cPrimaryButtonColor),
-      ),
-      title: Text(title, style: AppTextStyles.medium16),
-      subtitle: Text(subtitle, style: AppTextStyles.regular14Gre),
+    return Row(
+      children: [
+        AppIconTile(icon: icon, tone: AppTone.primary, size: 36),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: AppColor.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                subtitle,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(fontSize: 13, color: AppColor.textTertiary),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
@@ -674,20 +626,37 @@ class SupportView extends GetView<SupportController> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(day, style: AppTextStyles.regular14Gre),
-          Text(time, style: AppTextStyles.regular14black),
+          Text(day, style: TextStyle(fontSize: 13.5, color: AppColor.textTertiary)),
+          Text(
+            time,
+            style: TextStyle(
+              fontSize: 13.5,
+              fontWeight: FontWeight.w600,
+              color: AppColor.textPrimary,
+            ),
+          ),
         ],
       ),
     );
   }
 
+  AppTone _statusTone(int status) {
+    switch (status) {
+      case SupportController.statusOpen:
+        return AppTone.info;
+      case SupportController.statusInProgress:
+        return AppTone.warning;
+      case SupportController.statusResolved:
+        return AppTone.success;
+      default:
+        return AppTone.neutral;
+    }
+  }
+
   Widget _statusChip(int status) {
-    final color = SupportController.statusColor(status);
-    return Chip(
-      label: Text(SupportController.statusLabel(status)),
-      labelStyle: TextStyle(color: color, fontWeight: FontWeight.w600),
-      backgroundColor: color.withValues(alpha: 0.12),
-      side: BorderSide.none,
+    return AppStatusBadge(
+      label: SupportController.statusLabel(status),
+      tone: _statusTone(status),
     );
   }
 }

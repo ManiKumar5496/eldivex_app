@@ -1,37 +1,36 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:eldivex_app/app/core/values/color_constants.dart';
-import 'package:eldivex_app/app/core/values/text_style_constants.dart';
 import 'package:eldivex_app/app/core/values/size_configue.dart';
+import 'package:eldivex_app/app/widgets/ui/ui.dart';
 import '../../../../routes/app_pages.dart';
 import '../../../../widgets/shimmer_loader.dart';
 import '../../controllers/credit_note_controller.dart';
 import '../../models/credit_note_model.dart';
 import '../accounts_format.dart';
+import 'package:eldivex_app/app/core/values/lucide_icons.dart';
 
 class CreditNoteListView extends GetView<CreditNoteController> {
   const CreditNoteListView({super.key});
 
-  Color _statusColor(String status) => accountsStatusColor(status);
-
-  Color _typeColor(String type) {
+  AppTone _typeTone(String type) {
     switch (type.toLowerCase()) {
       case 'service_adjustment':
-        return Colors.teal;
+        return AppTone.info;
       case 'billing_error':
-        return Colors.red.shade700;
+        return AppTone.danger;
       case 'goodwill':
-        return Colors.purple;
+        return AppTone.violet;
       case 'advance_credit':
-        return Colors.blue;
+        return AppTone.info;
       case 'cancellation':
-        return Colors.orange;
+        return AppTone.warning;
       case 'hold':
-        return Colors.blue;
+        return AppTone.info;
       case 'overpayment':
-        return Colors.teal;
+        return AppTone.success;
       default:
-        return AppColor.fontColorGrey;
+        return AppTone.neutral;
     }
   }
 
@@ -70,134 +69,126 @@ class CreditNoteListView extends GetView<CreditNoteController> {
     if (!Get.isRegistered<CreditNoteController>()) {
       Get.put(CreditNoteController());
     }
+    final pad = MediaQuery.sizeOf(context).width < 600 ? 16.0 : 24.0;
     return Scaffold(
       backgroundColor: AppColor.cAppBackgroundColor,
-      appBar: AppBar(
-        backgroundColor: AppColor.whiteColor,
-        elevation: 0,
-        title: Text(
-          'Credit Notes',
-          style: TextStyle(
-            fontSize: SizeConfig.fontH2,
-            fontWeight: FontWeight.w600,
-            color: AppColor.cPrimaryHeadingColor,
-          ),
+      body: SingleChildScrollView(
+        padding: EdgeInsets.all(pad),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            AppPageHeader(
+              title: 'Credit Notes',
+              subtitle: 'Issue, approve and apply client credit notes',
+              actions: [
+                ElevatedButton.icon(
+                  onPressed: () => Get.toNamed(Routes.CREATE_CREDIT_NOTE),
+                  icon: const Icon(LucideIcons.plus, size: 18),
+                  label: const Text('New Credit Note'),
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
+            _buildKpis(),
+            const SizedBox(height: 20),
+            AppCard(
+              padding: EdgeInsets.zero,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _buildToolbar(),
+                  Divider(height: 1, color: AppColor.borderSubtle),
+                  _buildBody(),
+                ],
+              ),
+            ),
+          ],
         ),
-        actions: [
-          Padding(
-            padding: EdgeInsets.only(right: SizeConfig.spacingMD),
-            child: SizeConfig.isMobile
-                ? IconButton(
-                    onPressed: () =>
-                        Get.toNamed(Routes.CREATE_CREDIT_NOTE),
-                    icon: Icon(Icons.add,
-                        color: AppColor.cPrimaryButtonColor,
-                        size: SizeConfig.iconMD),
-                    tooltip: 'New Credit Note',
-                  )
-                : ElevatedButton.icon(
-                    onPressed: () =>
-                        Get.toNamed(Routes.CREATE_CREDIT_NOTE),
-                    icon: Icon(Icons.add, size: SizeConfig.iconSM, color: AppColor.buttonTextWhite),
-                    label: Text('New Credit Note',
-                        style: TextStyle(
-                            color: AppColor.buttonTextWhite, fontSize: SizeConfig.fontBody)),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColor.cPrimaryButtonColor,
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(SizeConfig.radiusSM)),
-                      padding: EdgeInsets.symmetric(
-                          horizontal: SizeConfig.spacingMD,
-                          vertical: SizeConfig.spacingSM),
-                    ),
-                  ),
-          ),
-        ],
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(1),
-          child: Divider(height: 1, color: AppColor.divColor),
-        ),
-      ),
-      body: Column(
-        children: [
-          _buildToolbar(),
-          _buildStatusFilters(),
-          Expanded(child: _buildBody()),
-        ],
       ),
     );
   }
+
+  // ── KPI row (derived from the loaded list) ─────────────────────────────────
+
+  Widget _buildKpis() {
+    return Obx(() {
+      final notes = controller.creditNotes.whereType<CreditNoteModel>().toList();
+      final pending = notes.where((n) => n.status == 'Pending').length;
+      final total = notes.fold<double>(0, (s, n) => s + n.amount);
+      final available = notes
+          .where((n) => n.canApply)
+          .fold<double>(0, (s, n) => s + n.available);
+      return AppResponsiveGrid(
+        minItemWidth: 200,
+        maxColumns: 4,
+        children: [
+          AppStatCard(
+            label: 'Credit notes',
+            value: '${notes.length}',
+            icon: LucideIcons.notebookPen,
+            caption: 'Matching the status filter',
+          ),
+          AppStatCard(
+            label: 'Pending approval',
+            value: '$pending',
+            icon: LucideIcons.hourglass,
+            tone: AppTone.warning,
+          ),
+          AppStatCard(
+            label: 'Total credited',
+            value: _formatCurrency(total),
+            icon: LucideIcons.wallet,
+            tone: AppTone.info,
+          ),
+          AppStatCard(
+            label: 'Available to apply',
+            value: _formatCurrency(available),
+            icon: LucideIcons.piggyBank,
+            tone: AppTone.success,
+          ),
+        ],
+      );
+    });
+  }
+
+  // ── Toolbar: search + status filter + refresh ──────────────────────────────
 
   Widget _buildToolbar() {
-    return Padding(
-      padding: EdgeInsets.fromLTRB(SizeConfig.pagePadding.left,
-          SizeConfig.spacingMD, SizeConfig.pagePadding.right, 0),
-      child: Row(
-        children: [
-          Expanded(
-            child: Container(
-              height: 44,
-              decoration: BoxDecoration(
-                color: AppColor.whiteColor,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColor.textFieldBorderColor),
-              ),
-              child: TextField(
-                onChanged: controller.searchCreditNotes,
-                style: TextStyle(fontSize: SizeConfig.fontBody),
-                decoration: InputDecoration(
-                  hintText: 'Search by booking, client, type...',
-                  hintStyle: TextStyle(
-                      color: AppColor.fontColorGrey,
-                      fontSize: SizeConfig.fontBody),
-                  prefixIcon: Icon(Icons.search,
-                      color: AppColor.fontColorGrey, size: SizeConfig.iconMD),
-                  border: InputBorder.none,
-                  contentPadding: const EdgeInsets.symmetric(vertical: 12),
-                ),
-              ),
-            ),
-          ),
-          SizedBox(width: SizeConfig.spacingSM),
-          Tooltip(
-            message: 'Refresh',
-            child: InkWell(
-              onTap: () => controller.loadCreditNotes(),
-              borderRadius: BorderRadius.circular(10),
-              child: Container(
-                height: 44,
-                width: 44,
-                decoration: BoxDecoration(
-                  color: AppColor.whiteColor,
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: AppColor.textFieldBorderColor),
-                ),
-                child: Icon(Icons.refresh,
-                    color: AppColor.cPrimaryButtonColor, size: SizeConfig.iconMD),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStatusFilters() {
     // getCreditNotes filters on edx_credit_notes.status.
     final filters = ['All', 'Pending', 'Approved', 'Rejected'];
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      padding: EdgeInsets.symmetric(
-          horizontal: SizeConfig.pagePadding.left, vertical: SizeConfig.spacingSM),
-      child: Row(
-        children: filters.map((f) {
-          return _FilterChipItem(
-            label: f,
-            filterList: filters,
-            controller: controller,
-            statusColorFn: _statusColor,
-          );
-        }).toList(),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 14, 12, 14),
+      child: Wrap(
+        alignment: WrapAlignment.spaceBetween,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        spacing: 12,
+        runSpacing: 10,
+        children: [
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 320),
+            child: AppSearchField(
+              hint: 'Search by booking, client, type...',
+              onChanged: controller.searchCreditNotes,
+            ),
+          ),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              ...filters.map((f) => _FilterChipItem(
+                    label: f,
+                    filterList: filters,
+                    controller: controller,
+                  )),
+              IconButton(
+                tooltip: 'Refresh',
+                onPressed: () => controller.loadCreditNotes(),
+                icon: const Icon(LucideIcons.refreshCw, size: 18),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -205,27 +196,15 @@ class CreditNoteListView extends GetView<CreditNoteController> {
   Widget _buildBody() {
     return Obx(() {
       if (controller.isLoading.value) {
-        return const ShimmerLoader.table();
+        return const SizedBox(height: 380, child: ShimmerLoader.table());
       }
       final notes = controller.filteredCreditNotes;
       if (notes.isEmpty) {
-        return Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.note_alt_outlined,
-                  size: 64, color: AppColor.lightGrey),
-              SizedBox(height: SizeConfig.spacingSM),
-              Text('No credit notes found', style: AppTextStyles.regular16Gre),
-              SizedBox(height: SizeConfig.spacingXS),
-              Text(
-                'Create a credit note using the "New Credit Note" button above.',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                    fontSize: SizeConfig.fontBody, color: AppColor.fontColorGrey),
-              ),
-            ],
-          ),
+        return const AppEmptyState(
+          icon: LucideIcons.notebookPen,
+          title: 'No credit notes found',
+          message:
+              'Create a credit note using the "New Credit Note" button above.',
         );
       }
       return SizeConfig.adaptiveLayout(
@@ -236,24 +215,25 @@ class CreditNoteListView extends GetView<CreditNoteController> {
     });
   }
 
+  // ── Mobile list ────────────────────────────────────────────────────────────
+
   Widget _buildMobileCreditNoteList(List notes) {
-    return ListView.builder(
-      padding: EdgeInsets.symmetric(
-          horizontal: SizeConfig.pagePadding.left, vertical: SizeConfig.spacingXS),
-      itemCount: notes.length,
-      itemBuilder: (_, i) {
-        final note = notes[i];
-        if (note is CreditNoteModel) {
-          return _buildMobileCreditNoteCard(note);
+    final items = <Widget>[];
+    for (final note in notes) {
+      if (note is CreditNoteModel) {
+        if (items.isNotEmpty) {
+          items.add(Divider(height: 1, color: AppColor.borderSubtle));
         }
-        return const SizedBox.shrink();
-      },
+        items.add(_buildMobileCreditNoteCard(note));
+      }
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: items,
     );
   }
 
   Widget _buildMobileCreditNoteCard(CreditNoteModel note) {
-    final statusColor = _statusColor(note.displayStatus);
-    final typeColor = _typeColor(note.creditType);
     final double amount = note.amount;
     final double remaining = note.available;
     final double progress = amount > 0
@@ -262,144 +242,81 @@ class CreditNoteListView extends GetView<CreditNoteController> {
 
     return InkWell(
       onTap: () => _openDetail(note),
-      borderRadius: BorderRadius.circular(SizeConfig.radiusMD),
-      child: Container(
-        margin: EdgeInsets.only(bottom: SizeConfig.spacingSM),
-        padding: SizeConfig.cardPadding,
-        decoration: BoxDecoration(
-          color: AppColor.whiteColor,
-          borderRadius: BorderRadius.circular(SizeConfig.radiusMD),
-          border: Border.all(color: AppColor.divColor),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
-              blurRadius: 6,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Row 1: Note ID + Status chip
+            // Row 1: Note ID + type + status
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text('CN-${note.id}',
                     style: TextStyle(
                         fontWeight: FontWeight.w600,
-                        fontSize: SizeConfig.fontBody,
-                        color: AppColor.cPrimaryButtonColor)),
-                Container(
-                  padding: EdgeInsets.symmetric(
-                      horizontal: SizeConfig.spacingSM,
-                      vertical: SizeConfig.spacingXS),
-                  decoration: BoxDecoration(
-                    color: statusColor.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(humanizeStatus(note.displayStatus),
-                      style: TextStyle(
-                          color: statusColor,
-                          fontSize: SizeConfig.fontCaption,
-                          fontWeight: FontWeight.w500)),
-                ),
+                        fontSize: 14,
+                        color: AppColor.cAppPrimaryColor)),
+                const SizedBox(width: 8),
+                _typeBadge(note.creditType),
+                const Spacer(),
+                AppStatusBadge.status(note.displayStatus, dense: true),
               ],
             ),
-            Divider(height: SizeConfig.spacingLG, color: AppColor.divColor),
+            const SizedBox(height: 8),
 
-            // Row 2: Type chip + Booking # + Date
+            // Row 2: Booking # + client + date
             Row(
               children: [
-                Container(
-                  padding: EdgeInsets.symmetric(
-                      horizontal: SizeConfig.spacingSM, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: typeColor.withValues(alpha: 0.08),
-                    borderRadius: BorderRadius.circular(20),
-                    border:
-                        Border.all(color: typeColor.withValues(alpha: 0.25)),
-                  ),
-                  child: Text(_typeLabel(note.creditType),
-                      style: TextStyle(
-                          color: typeColor,
-                          fontSize: SizeConfig.fontCaption,
-                          fontWeight: FontWeight.w500)),
-                ),
-                SizedBox(width: SizeConfig.spacingXS),
-                Flexible(
+                Expanded(
                   child: Text(
                       '#${note.bookingId}${note.clientName != null ? ' · ${note.clientName}' : ''}',
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                          fontSize: SizeConfig.fontBodySmall,
-                          color: AppColor.fontColorGrey)),
+                          fontSize: 13, color: AppColor.textSecondary)),
                 ),
-                const Spacer(),
+                const SizedBox(width: 8),
                 Text(_formatDateStr(note.creditDate),
                     style: TextStyle(
-                        fontSize: SizeConfig.fontCaption,
-                        color: AppColor.fontColorGrey)),
+                        fontSize: 12.5, color: AppColor.textTertiary)),
               ],
             ),
-            SizedBox(height: SizeConfig.spacingSM),
+            const SizedBox(height: 12),
 
             // Row 3: Amount
             Text(
               _formatCurrency(amount),
               style: TextStyle(
-                  fontSize: SizeConfig.fontH3,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.teal),
+                fontSize: 20,
+                fontWeight: FontWeight.w700,
+                letterSpacing: -0.3,
+                color: AppColor.textPrimary,
+                fontFeatures: const [FontFeature.tabularFigures()],
+              ),
             ),
-            SizedBox(height: SizeConfig.spacingSM),
+            const SizedBox(height: 10),
 
             // Row 4: Remaining label + Progress bar
             Text(
               'Remaining: ${_formatCurrency(remaining)} / ${_formatCurrency(amount)}',
-              style: TextStyle(
-                  fontSize: SizeConfig.fontBodySmall,
-                  fontWeight: FontWeight.w500),
+              style: TextStyle(fontSize: 12.5, color: AppColor.textSecondary),
             ),
-            SizedBox(height: SizeConfig.spacingXS),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(4),
-              child: LinearProgressIndicator(
-                value: progress,
-                minHeight: 6,
-                backgroundColor: AppColor.divColor,
-                valueColor: AlwaysStoppedAnimation<Color>(
-                  progress >= 1.0 ? Colors.blue : Colors.green,
-                ),
-              ),
-            ),
+            const SizedBox(height: 6),
+            _progressBar(progress, height: 6),
 
             if (note.status == 'Pending') ...[
-              SizedBox(height: SizeConfig.spacingMD),
+              const SizedBox(height: 16),
               _approvalButtons(note),
             ],
 
             // Bottom: Apply button if applicable
             if (note.canApply) ...[
-              SizedBox(height: SizeConfig.spacingMD),
+              const SizedBox(height: 16),
               SizedBox(
                 width: double.infinity,
-                height: 44,
                 child: ElevatedButton.icon(
                   onPressed: () => _openApply(note),
-                  icon: Icon(Icons.check_circle_outline,
-                      size: SizeConfig.iconSM, color: AppColor.buttonTextWhite),
-                  label: Text('Apply Credit Note',
-                      style: TextStyle(
-                          color: AppColor.buttonTextWhite,
-                          fontSize: SizeConfig.fontBody,
-                          fontWeight: FontWeight.w600)),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green.shade600,
-                    shape: RoundedRectangleBorder(
-                        borderRadius:
-                            BorderRadius.circular(SizeConfig.radiusSM)),
-                  ),
+                  icon: const Icon(LucideIcons.circleCheck,
+                      size: 18),
+                  label: const Text('Apply Credit Note'),
                 ),
               ),
             ],
@@ -409,55 +326,35 @@ class CreditNoteListView extends GetView<CreditNoteController> {
     );
   }
 
+  // ── Table (tablet / desktop) ───────────────────────────────────────────────
+
   Widget _buildScrollableTable(List notes) {
-    return SingleChildScrollView(
-      padding: EdgeInsets.symmetric(
-          horizontal: SizeConfig.pagePadding.left, vertical: 4),
-      child: Container(
-        width: double.infinity,
-        decoration: BoxDecoration(
-          color: AppColor.whiteColor,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppColor.divColor),
-        ),
-        child: horizontalTable(DataTable(
-            headingRowColor: WidgetStateProperty.all(AppColor.cAppBackgroundColor),
-            headingTextStyle: TextStyle(
-              fontWeight: FontWeight.w600,
-              fontSize: SizeConfig.fontBodySmall,
-              color: AppColor.cPrimaryHeadingColor,
-            ),
-            dataTextStyle: TextStyle(fontSize: SizeConfig.fontBodySmall),
-            columnSpacing: SizeConfig.spacingMD,
-            horizontalMargin: SizeConfig.spacingMD,
-            columns: const [
-              DataColumn(label: Text('Credit Note #')),
-              DataColumn(label: Text('Client / Booking')),
-              DataColumn(label: Text('Type')),
-              DataColumn(label: Text('Amount')),
-              DataColumn(label: Text('Remaining')),
-              DataColumn(label: Text('Status')),
-              DataColumn(label: Text('Date')),
-              DataColumn(label: Text('Actions')),
-            ],
-            rows: notes.map((note) {
-              if (note is CreditNoteModel) {
-                return _buildRow(note);
-              }
-              return const DataRow(cells: [
-                DataCell(Text('-')), DataCell(Text('-')), DataCell(Text('-')),
-                DataCell(Text('-')), DataCell(Text('-')), DataCell(Text('-')),
-                DataCell(Text('-')), DataCell(Text('-')),
-              ]);
-            }).toList(),
-        )),
-      ),
-    );
+    return horizontalTable(DataTable(
+      showCheckboxColumn: false,
+      columns: const [
+        DataColumn(label: Text('Credit Note #')),
+        DataColumn(label: Text('Client / Booking')),
+        DataColumn(label: Text('Type')),
+        DataColumn(label: Text('Amount'), numeric: true),
+        DataColumn(label: Text('Remaining'), numeric: true),
+        DataColumn(label: Text('Status')),
+        DataColumn(label: Text('Date')),
+        DataColumn(label: Text('Actions')),
+      ],
+      rows: notes.map((note) {
+        if (note is CreditNoteModel) {
+          return _buildRow(note);
+        }
+        return const DataRow(cells: [
+          DataCell(Text('-')), DataCell(Text('-')), DataCell(Text('-')),
+          DataCell(Text('-')), DataCell(Text('-')), DataCell(Text('-')),
+          DataCell(Text('-')), DataCell(Text('-')),
+        ]);
+      }).toList(),
+    ));
   }
 
   DataRow _buildRow(CreditNoteModel note) {
-    final statusColor = _statusColor(note.displayStatus);
-    final typeColor = _typeColor(note.creditType);
     final double amount = note.amount;
     final double remaining = note.available;
     final double used = amount - remaining;
@@ -470,76 +367,35 @@ class CreditNoteListView extends GetView<CreditNoteController> {
           'CN-${note.id}',
           style: TextStyle(
             fontWeight: FontWeight.w600,
-            fontSize: SizeConfig.fontBodySmall,
-            color: AppColor.cPrimaryButtonColor,
+            color: AppColor.cAppPrimaryColor,
           ),
         )),
-        DataCell(Text(
-            note.clientName != null
-                ? '${note.clientName} · #${note.bookingId}'
-                : '#${note.bookingId}',
-            style: TextStyle(fontSize: SizeConfig.fontBodySmall))),
-        DataCell(Container(
-          padding: EdgeInsets.symmetric(
-              horizontal: SizeConfig.spacingSM, vertical: 3),
-          decoration: BoxDecoration(
-            color: typeColor.withValues(alpha: 0.08),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: typeColor.withValues(alpha: 0.25)),
-          ),
-          child: Text(_typeLabel(note.creditType),
-              style: TextStyle(
-                  color: typeColor,
-                  fontSize: SizeConfig.fontCaption,
-                  fontWeight: FontWeight.w500)),
-        )),
+        DataCell(Text(note.clientName != null
+            ? '${note.clientName} · #${note.bookingId}'
+            : '#${note.bookingId}')),
+        DataCell(_typeBadge(note.creditType)),
         DataCell(Text(_formatCurrency(amount),
             style: const TextStyle(
-                fontWeight: FontWeight.w600, color: Colors.teal))),
+                fontWeight: FontWeight.w600,
+                fontFeatures: [FontFeature.tabularFigures()]))),
         DataCell(SizedBox(
-          width: 130,
+          width: 150,
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
                 '${_formatCurrency(remaining)} / ${_formatCurrency(amount)}',
-                style: TextStyle(
-                    fontSize: SizeConfig.fontBodySmall,
-                    fontWeight: FontWeight.w500),
+                style: TextStyle(fontSize: 12.5, color: AppColor.textSecondary),
               ),
-              SizedBox(height: SizeConfig.spacingXS),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(4),
-                child: LinearProgressIndicator(
-                  value: progress,
-                  minHeight: 5,
-                  backgroundColor: AppColor.divColor,
-                  valueColor: AlwaysStoppedAnimation<Color>(
-                    progress >= 1.0 ? Colors.blue : Colors.green,
-                  ),
-                ),
-              ),
+              const SizedBox(height: 4),
+              _progressBar(progress, height: 5),
             ],
           ),
         )),
-        DataCell(Container(
-          padding: EdgeInsets.symmetric(
-              horizontal: SizeConfig.spacingSM, vertical: 4),
-          decoration: BoxDecoration(
-            color: statusColor.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Text(humanizeStatus(note.displayStatus),
-              style: TextStyle(
-                  color: statusColor,
-                  fontSize: SizeConfig.fontCaption,
-                  fontWeight: FontWeight.w500)),
-        )),
+        DataCell(AppStatusBadge.status(note.displayStatus)),
         DataCell(Text(_formatDateStr(note.creditDate ?? note.createdOn),
-            style: TextStyle(
-                fontSize: SizeConfig.fontBodySmall,
-                color: AppColor.fontColorGrey))),
+            style: TextStyle(color: AppColor.textSecondary))),
         DataCell(_buildActions(note)),
       ],
     );
@@ -549,49 +405,23 @@ class CreditNoteListView extends GetView<CreditNoteController> {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Tooltip(
-          message: 'View Details',
-          child: InkWell(
-            onTap: () => _openDetail(note),
-            borderRadius: BorderRadius.circular(6),
-            child: Container(
-              padding: EdgeInsets.all(SizeConfig.spacingSM),
-              decoration: BoxDecoration(
-                color: AppColor.cPrimaryButtonColor.withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(6),
-              ),
-              child: Icon(Icons.visibility_outlined,
-                  size: SizeConfig.iconSM, color: AppColor.cPrimaryButtonColor),
-            ),
-          ),
+        IconButton(
+          tooltip: 'View Details',
+          onPressed: () => _openDetail(note),
+          icon: const Icon(LucideIcons.eye, size: 18),
         ),
         if (note.status == 'Pending') ...[
-          SizedBox(width: SizeConfig.spacingXS),
+          const SizedBox(width: 4),
           _approvalButtons(note, compact: true),
         ],
         if (note.canApply) ...[
-          SizedBox(width: SizeConfig.spacingXS),
+          const SizedBox(width: 4),
           Tooltip(
             message: 'Apply',
-            child: InkWell(
-              onTap: () => _openApply(note),
-              borderRadius: BorderRadius.circular(6),
-              child: Container(
-                padding: EdgeInsets.symmetric(
-                    horizontal: SizeConfig.spacingSM,
-                    vertical: SizeConfig.spacingXS),
-                decoration: BoxDecoration(
-                  color: Colors.green.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(6),
-                  border:
-                      Border.all(color: Colors.green.withValues(alpha: 0.3)),
-                ),
-                child: Text('Apply',
-                    style: TextStyle(
-                        fontSize: SizeConfig.fontBodySmall,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.green.shade700)),
-              ),
+            child: TextButton(
+              onPressed: () => _openApply(note),
+              style: AppButtonStyles.compact.merge(AppButtonStyles.soft),
+              child: const Text('Apply'),
             ),
           ),
         ],
@@ -604,48 +434,81 @@ class CreditNoteListView extends GetView<CreditNoteController> {
   Widget _approvalButtons(CreditNoteModel note, {bool compact = false}) {
     return Obx(() {
       final busy = controller.isSubmitting.value;
-      Widget btn(String label, Color color, String action) => compact
-          ? Tooltip(
-              message: label,
-              child: InkWell(
-                onTap: busy ? null : () => controller.confirmAndUpdateStatus(note, action),
-                borderRadius: BorderRadius.circular(6),
-                child: Container(
-                  padding: EdgeInsets.symmetric(
-                      horizontal: SizeConfig.spacingSM,
-                      vertical: SizeConfig.spacingXS),
-                  decoration: BoxDecoration(
-                    color: color.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(6),
-                    border: Border.all(color: color.withValues(alpha: 0.3)),
-                  ),
-                  child: Text(label,
-                      style: TextStyle(
-                          fontSize: SizeConfig.fontBodySmall,
-                          fontWeight: FontWeight.w600,
-                          color: color)),
-                ),
-              ),
-            )
-          : Expanded(
+      if (compact) {
+        return Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Tooltip(
+              message: 'Approve',
               child: OutlinedButton(
-                onPressed: busy ? null : () => controller.confirmAndUpdateStatus(note, action),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: color,
-                  side: BorderSide(color: color.withValues(alpha: 0.5)),
-                ),
-                child: Text(label),
+                onPressed: busy
+                    ? null
+                    : () => controller.confirmAndUpdateStatus(note, 'Approved'),
+                style: AppButtonStyles.compact,
+                child: const Text('Approve'),
               ),
-            );
+            ),
+            const SizedBox(width: 6),
+            Tooltip(
+              message: 'Reject',
+              child: OutlinedButton(
+                onPressed: busy
+                    ? null
+                    : () => controller.confirmAndUpdateStatus(note, 'Rejected'),
+                style: AppButtonStyles.compact
+                    .merge(AppButtonStyles.dangerOutlined),
+                child: const Text('Reject'),
+              ),
+            ),
+          ],
+        );
+      }
       return Row(
-        mainAxisSize: compact ? MainAxisSize.min : MainAxisSize.max,
         children: [
-          btn('Approve', Colors.green.shade700, 'Approved'),
-          SizedBox(width: SizeConfig.spacingXS),
-          btn('Reject', Colors.red.shade700, 'Rejected'),
+          Expanded(
+            child: ElevatedButton(
+              onPressed: busy
+                  ? null
+                  : () => controller.confirmAndUpdateStatus(note, 'Approved'),
+              child: const Text('Approve'),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: OutlinedButton(
+              onPressed: busy
+                  ? null
+                  : () => controller.confirmAndUpdateStatus(note, 'Rejected'),
+              style: AppButtonStyles.dangerOutlined,
+              child: const Text('Reject'),
+            ),
+          ),
         ],
       );
     });
+  }
+
+  // ── Small pieces ───────────────────────────────────────────────────────────
+
+  Widget _typeBadge(String type) => AppStatusBadge(
+        label: _typeLabel(type),
+        tone: _typeTone(type),
+        showDot: false,
+        dense: true,
+      );
+
+  Widget _progressBar(double progress, {required double height}) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(AppRadius.xs),
+      child: LinearProgressIndicator(
+        value: progress,
+        minHeight: height,
+        backgroundColor: AppColor.borderSubtle,
+        valueColor: AlwaysStoppedAnimation<Color>(
+          progress >= 1.0 ? AppColor.info : AppColor.success,
+        ),
+      ),
+    );
   }
 
   String _formatCurrency(double amount) => formatInr(amount);
@@ -657,13 +520,11 @@ class _FilterChipItem extends StatefulWidget {
   final String label;
   final List<String> filterList;
   final CreditNoteController controller;
-  final Color Function(String) statusColorFn;
 
   const _FilterChipItem({
     required this.label,
     required this.filterList,
     required this.controller,
-    required this.statusColorFn,
   });
 
   @override
@@ -677,33 +538,23 @@ class _FilterChipItemState extends State<_FilterChipItem> {
   Widget build(BuildContext context) {
     return Obx(() {
       final isSelected = _selected.value == widget.label;
-      return Padding(
-        padding: EdgeInsets.only(right: SizeConfig.spacingSM),
-        child: FilterChip(
-          label: Text(widget.label),
-          selected: isSelected,
-          onSelected: (_) {
-            _selected.value = widget.label;
-            widget.controller.loadCreditNotes();
-          },
-          backgroundColor: AppColor.whiteColor,
-          selectedColor: AppColor.cPrimaryButtonColor.withValues(alpha: 0.1),
-          labelStyle: TextStyle(
-            fontSize: SizeConfig.fontBody,
-            color: isSelected
-                ? AppColor.cPrimaryButtonColor
-                : AppColor.fontColorGrey,
-          ),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-            side: BorderSide(
-              color: isSelected
-                  ? AppColor.cPrimaryButtonColor
-                  : AppColor.textFieldBorderColor,
-            ),
-          ),
-          padding: EdgeInsets.symmetric(
-              horizontal: SizeConfig.spacingSM, vertical: SizeConfig.spacingXS),
+      return FilterChip(
+        label: Text(widget.label),
+        selected: isSelected,
+        showCheckmark: false,
+        onSelected: (_) {
+          _selected.value = widget.label;
+          widget.controller.loadCreditNotes();
+        },
+        labelStyle: TextStyle(
+          fontSize: 13,
+          fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+          color: isSelected ? AppColor.cAppPrimaryColor : AppColor.textSecondary,
+        ),
+        side: BorderSide(
+          color: isSelected
+              ? AppColor.cAppPrimaryColor.withValues(alpha: 0.45)
+              : AppColor.divColor,
         ),
       );
     });

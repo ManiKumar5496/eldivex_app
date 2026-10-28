@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:eldivex_app/app/core/values/color_constants.dart';
+import 'package:eldivex_app/app/widgets/ui/app_tokens.dart';
 import 'package:shimmer/shimmer.dart';
 
 /// Common shimmer loading widget used across the app.
@@ -69,13 +70,7 @@ class ShimmerLoader extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // Header row
-        Container(
-          height: 40,
-          decoration: BoxDecoration(
-            color: AppColor.whiteColor,
-            borderRadius: BorderRadius.circular(6),
-          ),
-        ),
+        _box(height: 40, radius: AppRadius.sm),
         const SizedBox(height: 16),
         // Data rows
         ...List.generate(itemCount, (index) {
@@ -83,7 +78,7 @@ class ShimmerLoader extends StatelessWidget {
             padding: const EdgeInsets.only(bottom: 12),
             child: Row(
               children: [
-                _box(width: 40, height: 40, radius: 20),
+                _box(width: 36, height: 36, radius: 18),
                 const SizedBox(width: 12),
                 Expanded(
                   flex: 3,
@@ -101,7 +96,7 @@ class ShimmerLoader extends StatelessWidget {
                 const SizedBox(width: 12),
                 Expanded(flex: 2, child: _box(height: 14)),
                 const SizedBox(width: 12),
-                _box(width: 70, height: 28, radius: 14),
+                _box(width: 72, height: 22, radius: AppRadius.xs),
               ],
             ),
           );
@@ -124,15 +119,15 @@ class ShimmerLoader extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _box(width: 100, height: 14),
+                _box(width: 110, height: 13),
                 const SizedBox(height: 8),
-                _box(height: 44, radius: 8),
+                _box(height: 48, radius: AppRadius.md),
               ],
             ),
           );
         }),
         const SizedBox(height: 12),
-        _box(width: 140, height: 44, radius: 8),
+        _box(width: 140, height: 40, radius: AppRadius.md),
       ],
     );
   }
@@ -147,12 +142,12 @@ class ShimmerLoader extends StatelessWidget {
           margin: const EdgeInsets.only(bottom: 14),
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            border: Border.all(color: AppColor.fieldColorGrey),
-            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppColor.divColor),
+            borderRadius: BorderRadius.circular(AppRadius.lg),
           ),
           child: Row(
             children: [
-              _box(width: 48, height: 48, radius: 24),
+              _box(width: 40, height: 40, radius: 20),
               const SizedBox(width: 14),
               Expanded(
                 child: Column(
@@ -164,7 +159,7 @@ class ShimmerLoader extends StatelessWidget {
                   ],
                 ),
               ),
-              _box(width: 60, height: 28, radius: 14),
+              _box(width: 64, height: 22, radius: AppRadius.xs),
             ],
           ),
         );
@@ -184,7 +179,7 @@ class ShimmerLoader extends StatelessWidget {
           height: 180,
           decoration: BoxDecoration(
             color: AppColor.whiteColor,
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(AppRadius.lg),
           ),
         );
       }),

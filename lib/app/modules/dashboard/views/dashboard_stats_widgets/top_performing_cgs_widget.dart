@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:eldivex_app/app/core/values/color_constants.dart';
+import 'package:eldivex_app/app/widgets/ui/ui.dart';
 import 'package:get/get.dart';
 
 import '../../controllers/dashboard_controller.dart';
 import 'dashboard_shimmer.dart';
+import 'package:eldivex_app/app/core/values/lucide_icons.dart';
 
 /// =======================
 /// Model
@@ -54,61 +56,42 @@ class TopPerformingCgsWidget extends GetView<DashboardController> {
 
       final items = controller.topCgItems;
 
-      return Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: AppColor.whiteColor,
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            /// Header
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                InkWell(
-                  onTap: onViewAll,
-                  child: const Text(
-                    'View all',
-                    style: TextStyle(
-                      color: Colors.blue,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ),
-              ],
-            ),
+      return AppCard(
+        title: title,
+        subtitle: 'Ranked by bookings',
+        padding: EdgeInsets.zero,
+        actions: [
+          TextButton(
+            onPressed: onViewAll,
+            style: AppButtonStyles.compact,
+            child: const Text('View all'),
+          ),
+        ],
 
-            const SizedBox(height: 16),
-
-            /// List
-            if (items.isEmpty)
-              Padding(
-                padding: EdgeInsets.all(20),
-                child: Center(
-                  child: Text(
-                    'No health professionals found',
-                    style: TextStyle(color: AppColor.lightGrey, fontSize: 14),
-                  ),
-                ),
+        /// List
+        child: items.isEmpty
+            ? const AppEmptyState(
+                icon: LucideIcons.userSearch,
+                title: 'No health professionals found',
+                compact: true,
               )
-            else
-              Column(
-                children: items.map((item) {
-                  return _TopCgTile(item: item);
-                }).toList(),
+            : Padding(
+                padding: const EdgeInsets.symmetric(vertical: 6),
+                child: Column(
+                  children: [
+                    for (var i = 0; i < items.length; i++) ...[
+                      if (i > 0)
+                        Divider(
+                          height: 1,
+                          indent: 20,
+                          endIndent: 20,
+                          color: AppColor.borderSubtle,
+                        ),
+                      _TopCgTile(item: items[i], rank: i + 1),
+                    ],
+                  ],
+                ),
               ),
-          ],
-        ),
       );
     });
   }
@@ -119,34 +102,34 @@ class TopPerformingCgsWidget extends GetView<DashboardController> {
 /// =======================
 class _TopCgTile extends StatelessWidget {
   final TopCgItem item;
+  final int rank;
 
-  const _TopCgTile({required this.item});
+  const _TopCgTile({required this.item, required this.rank});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        border: Border.all(color: AppColor.divColor),
-        borderRadius: BorderRadius.circular(12),
-      ),
+    final numberStyle = TextStyle(
+      fontSize: 13,
+      fontWeight: FontWeight.w600,
+      color: AppColor.textTertiary,
+      fontFeatures: const [FontFeature.tabularFigures()],
+    );
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
       child: Row(
         children: [
-          /// Avatar
-          CircleAvatar(
-            radius: 22,
-            backgroundColor: Colors.blue.shade400,
-            child: Text(
-              item.initials,
-              style: TextStyle(
-                color: AppColor.buttonTextWhite,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
+          /// Rank
+          SizedBox(
+            width: 22,
+            child: Text('$rank', style: numberStyle),
           ),
+          const SizedBox(width: 6),
 
-          const SizedBox(width: 14),
+          /// Avatar
+          AppAvatar(name: item.name, size: 34),
+
+          const SizedBox(width: 12),
 
           /// Name & Service
           Expanded(
@@ -155,46 +138,76 @@ class _TopCgTile extends StatelessWidget {
               children: [
                 Text(
                   item.name,
-                  style: const TextStyle(
-                    fontSize: 15,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 14,
                     fontWeight: FontWeight.w600,
+                    color: AppColor.textPrimary,
                   ),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 2),
                 Text(
                   item.service,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    fontSize: 13,
-                    color: AppColor.fontColorGrey,
+                    fontSize: 12.5,
+                    color: AppColor.textTertiary,
                   ),
                 ),
               ],
             ),
           ),
 
+          const SizedBox(width: 12),
+
           /// Rating & Bookings
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
+            mainAxisSize: MainAxisSize.min,
             children: [
-              if (item.rating > 0)
-                Row(
+              Text.rich(
+                TextSpan(
                   children: [
-                    const Icon(Icons.star, color: Colors.orange, size: 18),
-                    const SizedBox(width: 4),
-                    Text(
-                      item.rating.toStringAsFixed(1),
-                      style: const TextStyle(fontWeight: FontWeight.w600),
+                    TextSpan(
+                      text: '${item.bookings}',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: AppColor.textPrimary,
+                        fontFeatures: const [FontFeature.tabularFigures()],
+                      ),
+                    ),
+                    TextSpan(
+                      text: ' bookings',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: AppColor.textTertiary,
+                      ),
                     ),
                   ],
                 ),
-              const SizedBox(height: 4),
-              Text(
-                '${item.bookings} bookings',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: AppColor.fontColorGrey,
-                ),
               ),
+              if (item.rating > 0) ...[
+                const SizedBox(height: 2),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(LucideIcons.star,
+                        color: AppColor.warning, size: 14),
+                    const SizedBox(width: 2),
+                    Text(
+                      item.rating.toStringAsFixed(1),
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: AppColor.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ],
           ),
         ],

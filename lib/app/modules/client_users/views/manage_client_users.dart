@@ -2,18 +2,23 @@ import 'package:data_table_2/data_table_2.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:eldivex_app/app/modules/client_users/views/create_client_user.dart';
+import 'package:eldivex_app/app/widgets/ui/ui.dart';
 
 import '../../../core/values/color_constants.dart';
 import '../../../core/values/size_configue.dart';
-import '../../../core/values/text_style_constants.dart';
 import '../../../widgets/dropdown_common.dart';
 import '../../../widgets/helper_ui.dart';
 import '../controllers/client_users_controller.dart';
 import '../models/client_user_model.dart';
 import '../../client_portal/views/client_portal_link_card.dart';
+import 'package:eldivex_app/app/core/values/lucide_icons.dart';
 
 class ManageClientUsers extends GetView<ClientUsersController> {
-  const ManageClientUsers({super.key});
+  const ManageClientUsers({super.key, this.onBack});
+
+  /// Set when the page is opened as a stand-alone route (see
+  /// [ClientUsersView]); shows a back button in the page header.
+  final VoidCallback? onBack;
 
   // Registered once on first access (shell page has no route binding).
   @override
@@ -28,29 +33,93 @@ class ManageClientUsers extends GetView<ClientUsersController> {
 
     return Scaffold(
       backgroundColor: AppColor.cAppBackgroundColor,
-      body: Padding(
-        padding: SizeConfig.pagePadding,
+      body: SizeConfig.isMobile ? _buildMobileBody() : _buildWideBody(),
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  // LAYOUTS
+  // ═══════════════════════════════════════════════════════════════
+
+  /// Tablet / desktop: the table card fills the remaining height. On short
+  /// viewports the page scrolls instead and the table gets a fixed height.
+  Widget _buildWideBody() {
+    return LayoutBuilder(builder: (context, constraints) {
+      final top = <Widget>[
+        _buildHeader(),
+        const SizedBox(height: 20),
+        const ClientPortalLinkCard(),
+        const SizedBox(height: 16),
+        _buildStatsCards(),
+        const SizedBox(height: 16),
+      ];
+      final tableCard = AppCard(
+        padding: EdgeInsets.zero,
+        expandChild: true,
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            _buildHeader(),
-            SizedBox(height: SizeConfig.spacingMD),
-            const ClientPortalLinkCard(),
-            SizedBox(height: SizeConfig.spacingLG),
-            _buildSearchBar(),
-            Obx(() => controller.showFilters.value
-                ? Padding(
-                    padding: EdgeInsets.only(top: SizeConfig.spacingMD),
-                    child: _buildFilterPanel(),
-                  )
-                : const SizedBox.shrink()),
-            SizedBox(height: SizeConfig.spacingLG),
-            _buildStatsCards(),
-            SizedBox(height: SizeConfig.spacingLG),
+            _buildToolbar(),
+            _buildFilterPanelSlot(),
+            Divider(height: 1, color: AppColor.borderSubtle),
             Expanded(child: _buildContent()),
           ],
         ),
-      ),
+      );
+
+      if (constraints.maxHeight >= 760) {
+        return Padding(
+          padding: SizeConfig.pagePadding,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [...top, Expanded(child: tableCard)],
+          ),
+        );
+      }
+      return SingleChildScrollView(
+        padding: SizeConfig.pagePadding,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [...top, SizedBox(height: 600, child: tableCard)],
+        ),
+      );
+    });
+  }
+
+  /// Phones: one scroll view; client cards are a lazy sliver list.
+  Widget _buildMobileBody() {
+    final pad = SizeConfig.pagePadding;
+    return CustomScrollView(
+      slivers: [
+        SliverPadding(
+          padding: pad.copyWith(bottom: 0),
+          sliver: SliverList(
+            delegate: SliverChildListDelegate([
+              _buildHeader(),
+              const SizedBox(height: 16),
+              const ClientPortalLinkCard(),
+              const SizedBox(height: 16),
+              _buildStatsCards(),
+              const SizedBox(height: 16),
+              AppCard(
+                padding: EdgeInsets.zero,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _buildToolbar(),
+                    _buildFilterPanelSlot(),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+            ]),
+          ),
+        ),
+        SliverPadding(
+          padding: pad.copyWith(top: 0),
+          sliver: _buildMobileCardList(),
+        ),
+      ],
     );
   }
 
@@ -59,76 +128,24 @@ class ManageClientUsers extends GetView<ClientUsersController> {
   // ═══════════════════════════════════════════════════════════════
 
   Widget _buildHeader() {
-    if (SizeConfig.isMobile) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Client Users',
-              style: AppTextStyles.heading.copyWith(fontSize: SizeConfig.fontH1)),
-          SizedBox(height: SizeConfig.spacingXS),
-          Text('Manage all client users and their bookings',
-              style: AppTextStyles.regular14Gre
-                  .copyWith(fontSize: SizeConfig.fontCaption)),
-          SizedBox(height: SizeConfig.spacingMD),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton.icon(
-              onPressed: _openCreateClient,
-              icon: Icon(Icons.add, size: SizeConfig.iconSM, color: AppColor.buttonTextWhite),
-              label: Text('Add Client',
-                  style: TextStyle(fontSize: SizeConfig.fontBodySmall)),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColor.cPrimaryButtonColor,
-                padding: SizeConfig.buttonPadding,
-                elevation: 0,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(SizeConfig.radiusSM)),
-              ),
-            ),
-          ),
-        ],
-      );
-    }
-
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Client Users',
-                  style: AppTextStyles.heading
-                      .copyWith(fontSize: SizeConfig.fontH1)),
-              SizedBox(height: SizeConfig.spacingXS),
-              Text('Manage all client users and their bookings',
-                  style: AppTextStyles.regular14Gre),
-            ],
-          ),
-        ),
-        SizedBox(width: SizeConfig.spacingMD),
-        Row(
-          children: [
-            _filtersButton(),
-            SizedBox(width: SizeConfig.spacingSM),
-            ElevatedButton.icon(
-              onPressed: _openCreateClient,
-              icon:
-              Icon(Icons.add, color: AppColor.buttonTextWhite, size: SizeConfig.iconSM),
-              label: Text('Add New Client',style: TextStyle(color: AppColor.buttonTextWhite),),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColor.cPrimaryButtonColor,
-                padding: SizeConfig.buttonPadding,
-              ),
-            ),
-          ],
+    return AppPageHeader(
+      title: 'Client Users',
+      subtitle: 'Manage all client users and their bookings',
+      onBack: onBack,
+      breadcrumbs:
+          onBack != null ? const ['Dashboard', 'Client Users'] : const [],
+      actions: [
+        ElevatedButton.icon(
+          onPressed: _openCreateClient,
+          icon: const Icon(LucideIcons.plus, size: 18),
+          label: const Text('Add Client'),
         ),
       ],
     );
   }
 
   // ═══════════════════════════════════════════════════════════════
-  // SEARCH BAR
+  // TOOLBAR (search, filters, refresh)
   // ═══════════════════════════════════════════════════════════════
 
   void _openCreateClient() {
@@ -142,56 +159,53 @@ class ManageClientUsers extends GetView<ClientUsersController> {
       return OutlinedButton.icon(
         onPressed: controller.toggleFilters,
         icon: Icon(
-          controller.showFilters.value ? Icons.expand_less : Icons.filter_list,
-          size: SizeConfig.iconSM,
+          controller.showFilters.value
+              ? LucideIcons.chevronUp
+              : LucideIcons.listFilter,
+          size: 18,
         ),
         label: Text(active ? 'Filters •' : 'Filters'),
-        style: OutlinedButton.styleFrom(
-          padding: SizeConfig.buttonPadding,
-        ),
       );
     });
   }
 
-  Widget _buildSearchBar() {
-    return Row(
-      children: [
-        Expanded(
-          child: TextField(
-            controller: controller.searchController,
-            onChanged: controller.onSearchChanged,
-            decoration: InputDecoration(
-              hintText: 'Search by name, phone, email or ID...',
-              prefixIcon: const Icon(Icons.search),
-              filled: true,
-              fillColor: AppColor.whiteColor,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(SizeConfig.radiusMD),
-                borderSide: BorderSide(color: AppColor.divColor),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(SizeConfig.radiusMD),
-                borderSide: BorderSide(color: AppColor.divColor),
-              ),
-              contentPadding: EdgeInsets.symmetric(
-                vertical: SizeConfig.spacingMD,
-                horizontal: SizeConfig.spacingMD,
+  Widget _buildToolbar() {
+    final search = AppSearchField(
+      controller: controller.searchController,
+      onChanged: controller.onSearchChanged,
+      hint: 'Search by name, phone, email or ID...',
+    );
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 14, 12, 14),
+      child: Row(
+        children: [
+          Expanded(
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 380),
+                child: search,
               ),
             ),
           ),
-        ),
-        SizedBox(width: SizeConfig.spacingSM),
-        if (SizeConfig.isMobile) ...[
+          const SizedBox(width: 8),
           _filtersButton(),
-          SizedBox(width: SizeConfig.spacingXS),
+          const SizedBox(width: 4),
+          IconButton(
+            tooltip: 'Refresh',
+            onPressed: controller.fetchClientUsers,
+            icon: Icon(LucideIcons.refreshCw,
+                size: 20, color: AppColor.textSecondary),
+          ),
         ],
-        IconButton(
-          tooltip: 'Refresh',
-          onPressed: controller.fetchClientUsers,
-          icon: Icon(Icons.refresh, color: AppColor.fontColorGrey),
-        ),
-      ],
+      ),
     );
+  }
+
+  Widget _buildFilterPanelSlot() {
+    return Obx(() => controller.showFilters.value
+        ? _buildFilterPanel()
+        : const SizedBox.shrink());
   }
 
   Widget _buildFilterPanel() {
@@ -222,18 +236,17 @@ class ManageClientUsers extends GetView<ClientUsersController> {
           )),
     ];
     return Container(
-      padding: SizeConfig.cardPadding,
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
       decoration: BoxDecoration(
-        color: AppColor.whiteColor,
-        borderRadius: BorderRadius.circular(SizeConfig.radiusMD),
-        border: Border.all(color: AppColor.divColor),
+        color: AppColor.surfaceMuted,
+        border: Border(top: BorderSide(color: AppColor.borderSubtle)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           if (SizeConfig.isMobile)
             ...children.map((c) => Padding(
-                  padding: EdgeInsets.only(bottom: SizeConfig.spacingSM),
+                  padding: const EdgeInsets.only(bottom: 12),
                   child: c,
                 ))
           else
@@ -241,14 +254,14 @@ class ManageClientUsers extends GetView<ClientUsersController> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Expanded(child: children[0]),
-                SizedBox(width: SizeConfig.spacingMD),
+                const SizedBox(width: 16),
                 Expanded(child: children[1]),
               ],
             ),
-          SizedBox(height: SizeConfig.spacingSM),
+          const SizedBox(height: 4),
           TextButton.icon(
             onPressed: controller.clearFilters,
-            icon: Icon(Icons.clear, size: SizeConfig.iconSM),
+            icon: const Icon(LucideIcons.x, size: 18),
             label: const Text('Clear filters'),
           ),
         ],
@@ -268,161 +281,94 @@ class ManageClientUsers extends GetView<ClientUsersController> {
       final active =
           controller.clientUsers.where((u) => u.isActive).length;
 
-      if (SizeConfig.isMobile) {
-        return Column(
-          children: [
-            Row(
-              children: [
-                Expanded(
-                    child: _buildStatCard('Total Clients', total,
-                        Icons.people, AppColor.cPrimaryButtonColor)),
-                SizedBox(width: SizeConfig.spacingXS),
-                Expanded(
-                    child: _buildStatCard('New Users', newUsers,
-                        Icons.person_add, Colors.orange)),
-              ],
-            ),
-            SizedBox(height: SizeConfig.spacingXS),
-            Row(
-              children: [
-                Expanded(
-                    child: _buildStatCard('Active', active,
-                        Icons.check_circle, AppColor.lightGreen)),
-                SizedBox(width: SizeConfig.spacingXS),
-                const Expanded(child: SizedBox()),
-              ],
-            ),
-          ],
-        );
-      }
-
-      return Row(
+      return AppResponsiveGrid(
+        minItemWidth: SizeConfig.isMobile ? 140 : 200,
+        maxColumns: 3,
+        spacing: SizeConfig.isMobile ? 12 : 16,
         children: [
-          _buildStatCard('Total Clients', total, Icons.people,
-              AppColor.cPrimaryButtonColor),
-          _buildStatCard(
-              'New Users', newUsers, Icons.person_add, Colors.orange),
-          _buildStatCard(
-              'Active', active, Icons.check_circle, AppColor.lightGreen),
+          AppStatCard(
+            label: 'Total Clients',
+            value: '$total',
+            icon: LucideIcons.users,
+            tone: AppTone.primary,
+          ),
+          AppStatCard(
+            label: 'New Users',
+            value: '$newUsers',
+            icon: LucideIcons.userPlus,
+            tone: AppTone.warning,
+          ),
+          AppStatCard(
+            label: 'Active',
+            value: '$active',
+            icon: LucideIcons.circleCheck,
+            tone: AppTone.success,
+          ),
         ],
       );
     });
-  }
-
-  Widget _buildStatCard(
-      String title, int count, IconData icon, Color color) {
-    final cardContent = Container(
-      margin: EdgeInsets.only(
-          right: SizeConfig.isMobile ? 0 : SizeConfig.spacingMD),
-      padding: SizeConfig.cardPadding,
-      decoration: BoxDecoration(
-        color: AppColor.whiteColor,
-        borderRadius: BorderRadius.circular(SizeConfig.radiusMD),
-        border: Border.all(color: AppColor.divColor),
-      ),
-      child: Row(
-        children: [
-          CircleAvatar(
-            radius: SizeConfig.isMobile ? 16 : SizeConfig.iconMD,
-            backgroundColor: color.withOpacity(0.1),
-            child: Icon(icon,
-                color: color,
-                size: SizeConfig.isMobile
-                    ? SizeConfig.iconSM
-                    : SizeConfig.iconMD),
-          ),
-          SizedBox(width: SizeConfig.spacingSM),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title,
-                    style: AppTextStyles.regular14Gre.copyWith(
-                        fontSize: SizeConfig.isMobile
-                            ? SizeConfig.fontCaption
-                            : SizeConfig.fontBody),
-                    overflow: TextOverflow.ellipsis),
-                SizedBox(height: SizeConfig.spacingXS),
-                Text('$count',
-                    style: AppTextStyles.bold20.copyWith(
-                        fontSize: SizeConfig.isMobile
-                            ? SizeConfig.fontH2
-                            : SizeConfig.fontH1)),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-
-    return SizeConfig.isMobile ? cardContent : Expanded(child: cardContent);
   }
 
   // ═══════════════════════════════════════════════════════════════
   // CONTENT (TABLE OR CARDS)
   // ═══════════════════════════════════════════════════════════════
 
+  /// Loading / error / empty / no-results view, or null when there are rows
+  /// to show. Must be called inside an `Obx` (reads observables).
+  Widget? _buildStateView() {
+    if (controller.isLoadingClientUsers.value) {
+      return Center(child: HelperUi().loader());
+    }
+
+    if (controller.loadError.value.isNotEmpty &&
+        controller.clientUsers.isEmpty) {
+      return AppEmptyState(
+        icon: LucideIcons.circleAlert,
+        tone: AppTone.danger,
+        title: 'Could not load clients',
+        message: controller.loadError.value,
+        actionLabel: 'Retry',
+        actionIcon: LucideIcons.refreshCw,
+        onAction: controller.fetchClientUsers,
+      );
+    }
+
+    if (controller.clientUsers.isNotEmpty &&
+        controller.filteredClients.isEmpty) {
+      return const AppEmptyState(
+        icon: LucideIcons.searchX,
+        title: 'No results',
+        message: 'No clients match your search or filters',
+      );
+    }
+
+    if (controller.clientUsers.isEmpty) {
+      return const AppEmptyState(
+        icon: LucideIcons.users,
+        title: 'No clients found',
+        message: 'Add your first client to get started',
+      );
+    }
+    return null;
+  }
+
   Widget _buildContent() {
     return Obx(() {
-      if (controller.isLoadingClientUsers.value) {
-        return Center(child: HelperUi().loader());
-      }
-
-      if (controller.loadError.value.isNotEmpty &&
-          controller.clientUsers.isEmpty) {
-        return Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.error_outline, size: 48, color: AppColor.fontColorGrey),
-              SizedBox(height: SizeConfig.spacingSM),
-              Text(controller.loadError.value,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: AppColor.fontColorGrey)),
-              SizedBox(height: SizeConfig.spacingSM),
-              OutlinedButton.icon(
-                onPressed: controller.fetchClientUsers,
-                icon: const Icon(Icons.refresh),
-                label: const Text('Retry'),
-              ),
-            ],
+      final state = _buildStateView();
+      if (state != null) {
+        // The shimmer loader fills the card as before.
+        if (controller.isLoadingClientUsers.value) return state;
+        // Centred in the card, scrollable when the card is short.
+        return LayoutBuilder(
+          builder: (context, constraints) => SingleChildScrollView(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: constraints.maxHeight),
+              child: Center(child: state),
+            ),
           ),
         );
       }
-
-      if (controller.clientUsers.isNotEmpty &&
-          controller.filteredClients.isEmpty) {
-        return Center(
-          child: Text('No clients match your search or filters',
-              style: TextStyle(
-                  fontSize: SizeConfig.fontBody, color: AppColor.fontColorGrey)),
-        );
-      }
-
-      if (controller.clientUsers.isEmpty) {
-        return Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.people_outline,
-                  size: 64, color: AppColor.divColor),
-              SizedBox(height: SizeConfig.spacingMD),
-              Text('No clients found',
-                  style: TextStyle(
-                      fontSize: SizeConfig.fontH2,
-                      fontWeight: FontWeight.w600)),
-              SizedBox(height: SizeConfig.spacingSM),
-              Text('Add your first client to get started',
-                  style: TextStyle(
-                      fontSize: SizeConfig.fontBody, color: AppColor.fontColorGrey)),
-            ],
-          ),
-        );
-      }
-
-      return SizeConfig.isMobile
-          ? _buildMobileCardList()
-          : _buildDataTableWithPagination();
+      return _buildDataTableWithPagination();
     });
   }
 
@@ -431,161 +377,113 @@ class ManageClientUsers extends GetView<ClientUsersController> {
   // ═══════════════════════════════════════════════════════════════
 
   Widget _buildMobileCardList() {
-    return Obx(() => ListView.builder(
-          itemCount: controller.filteredClients.length,
-          itemBuilder: (context, index) =>
-              _buildUserCard(controller.filteredClients[index]),
-        ));
+    return Obx(() {
+      final state = _buildStateView();
+      if (state != null) {
+        return SliverToBoxAdapter(
+          child: AppCard(padding: EdgeInsets.zero, child: state),
+        );
+      }
+      final clients = controller.filteredClients;
+      return SliverList(
+        delegate: SliverChildBuilderDelegate(
+          (context, index) => Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: _buildUserCard(clients[index]),
+          ),
+          childCount: clients.length,
+        ),
+      );
+    });
   }
 
   Widget _buildUserCard(ClientUserModel user) {
-    return Container(
-      margin: EdgeInsets.only(bottom: SizeConfig.spacingSM),
-      decoration: BoxDecoration(
-        color: AppColor.whiteColor,
-        borderRadius: BorderRadius.circular(SizeConfig.radiusMD),
-        border: Border.all(color: AppColor.divColor),
-      ),
+    return AppCard(
+      padding: const EdgeInsets.all(16),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Header
-          Container(
-            padding: SizeConfig.cardPadding,
-            decoration: BoxDecoration(
-              color: AppColor.fieldColorGrey,
-              borderRadius: BorderRadius.only(
-                topLeft: Radius.circular(SizeConfig.radiusMD),
-                topRight: Radius.circular(SizeConfig.radiusMD),
+          Row(
+            children: [
+              AppAvatar(
+                name: user.displayName,
+                imageUrl: user.userImage,
+                size: 40,
               ),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Row(
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    CircleAvatar(
-                      radius: 16,
-                      backgroundColor:
-                      AppColor.cPrimaryButtonColor.withOpacity(0.1),
-                      backgroundImage: user.userImage?.isNotEmpty == true
-                          ? NetworkImage(user.userImage!)
-                          : null,
-                      child: user.userImage?.isEmpty != false
-                          ? Icon(Icons.person,
-                          size: 16, color: AppColor.cPrimaryButtonColor)
-                          : null,
+                    Text(
+                      user.displayName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 14.5,
+                        fontWeight: FontWeight.w600,
+                        color: AppColor.textPrimary,
+                      ),
                     ),
-                    SizedBox(width: SizeConfig.spacingXS),
-                    Text('ID: ${user.id}',
-                        style: AppTextStyles.regular14black.copyWith(
-                            color: AppColor.cPrimaryButtonColor,
-                            fontWeight: FontWeight.bold,
-                            fontSize: SizeConfig.fontBody)),
+                    const SizedBox(height: 2),
+                    Text(
+                      'ID: ${user.id}',
+                      style: TextStyle(
+                          fontSize: 12.5, color: AppColor.textTertiary),
+                    ),
                   ],
                 ),
-                _statusBadge(user.isActive),
-              ],
-            ),
+              ),
+              const SizedBox(width: 8),
+              _statusBadge(user.isActive),
+            ],
           ),
-
-          // Content
-          Padding(
-            padding: SizeConfig.cardPadding,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Icon(Icons.person_outline,
-                        size: SizeConfig.iconSM, color: AppColor.fontColorGrey),
-                    SizedBox(width: SizeConfig.spacingXS),
-                    Expanded(
-                      child: Text(user.displayName,
-                          style: AppTextStyles.regular14black.copyWith(
-                              fontWeight: FontWeight.w600,
-                              fontSize: SizeConfig.fontBody)),
-                    ),
-                  ],
+          const SizedBox(height: 14),
+          _mobileInfoLine(LucideIcons.phone, user.displayPhone),
+          const SizedBox(height: 6),
+          _mobileInfoLine(LucideIcons.mail, user.displayEmail),
+          const SizedBox(height: 6),
+          _mobileInfoLine(LucideIcons.mapPin, user.displayLocation),
+          const SizedBox(height: 14),
+          Divider(height: 1, color: AppColor.borderSubtle),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () => controller.viewClient(user.id ?? 0),
+                  child: const Text('View Bookings'),
                 ),
-                SizedBox(height: SizeConfig.spacingXS),
-                Row(
-                  children: [
-                    Icon(Icons.phone_outlined,
-                        size: SizeConfig.iconSM, color: AppColor.fontColorGrey),
-                    SizedBox(width: SizeConfig.spacingXS),
-                    Text(user.displayPhone,
-                        style: AppTextStyles.regular14Gre.copyWith(
-                            fontSize: SizeConfig.fontBodySmall)),
-                  ],
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: () => controller.editClient(user),
+                  child: const Text('Edit'),
                 ),
-                SizedBox(height: SizeConfig.spacingXS),
-                Row(
-                  children: [
-                    Icon(Icons.email_outlined,
-                        size: SizeConfig.iconSM, color: AppColor.fontColorGrey),
-                    SizedBox(width: SizeConfig.spacingXS),
-                    Expanded(
-                      child: Text(user.displayEmail,
-                          style: AppTextStyles.regular14Gre.copyWith(
-                              fontSize: SizeConfig.fontBodySmall),
-                          overflow: TextOverflow.ellipsis),
-                    ),
-                  ],
-                ),
-                SizedBox(height: SizeConfig.spacingXS),
-                Row(
-                  children: [
-                    Icon(Icons.location_on_outlined,
-                        size: SizeConfig.iconSM, color: AppColor.fontColorGrey),
-                    SizedBox(width: SizeConfig.spacingXS),
-                    Text(user.displayLocation,
-                        style: AppTextStyles.regular14Gre.copyWith(
-                            fontSize: SizeConfig.fontBodySmall)),
-                  ],
-                ),
-                SizedBox(height: SizeConfig.spacingSM),
-                const Divider(height: 1),
-                SizedBox(height: SizeConfig.spacingSM),
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: () =>
-                            controller.viewClient(user.id ?? 0),
-                        style: OutlinedButton.styleFrom(
-                          padding: EdgeInsets.symmetric(
-                              vertical: SizeConfig.spacingSM),
-                          side: BorderSide(
-                              color: AppColor.cPrimaryButtonColor),
-                        ),
-                        child: Text('View Bookings',
-                            style: TextStyle(
-                                color: AppColor.cPrimaryButtonColor,
-                                fontSize: SizeConfig.fontBodySmall)),
-                      ),
-                    ),
-                    SizedBox(width: SizeConfig.spacingXS),
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: () => controller.editClient(user),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColor.cPrimaryButtonColor,
-                          padding: EdgeInsets.symmetric(
-                              vertical: SizeConfig.spacingSM),
-                        ),
-                        child: Text('Edit',
-                            style: TextStyle(
-                                color: AppColor.buttonTextWhite,
-                                fontSize: SizeConfig.fontBodySmall)),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
         ],
       ),
+    );
+  }
+
+  Widget _mobileInfoLine(IconData icon, String text) {
+    return Row(
+      children: [
+        Icon(icon, size: 16, color: AppColor.textTertiary),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            text,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(fontSize: 13, color: AppColor.textSecondary),
+          ),
+        ),
+      ],
     );
   }
 
@@ -606,90 +504,57 @@ class ManageClientUsers extends GetView<ClientUsersController> {
 
       return Column(
         children: [
-          // ── Table (no scroll) ──────────────────────────────────
+          // ── Table ──────────────────────────────────────────────
           Expanded(
-            child: Container(
-              decoration: BoxDecoration(
-                color: AppColor.whiteColor,
-                borderRadius: BorderRadius.circular(SizeConfig.radiusSM),
-                border: Border.all(color: AppColor.divColor),
-              ),
-              child: DataTable2(
-                columnSpacing: SizeConfig.spacingSM,
-                horizontalMargin: SizeConfig.spacingMD,
-                dividerThickness: 0.5,
-                // Fixed row heights to prevent vertical scroll within table
-                dataRowHeight:
-                SizeConfig.isTablet ? 72 : SizeConfig.blockSizeVertical * 8,
-                headingRowHeight:
-                SizeConfig.isTablet ? 50 : SizeConfig.blockSizeVertical * 6,
-                headingTextStyle: TextStyle(
-                  fontFamily: "poppins_regular",
-                  fontSize: SizeConfig.isTablet
-                      ? SizeConfig.fontCaption
-                      : SizeConfig.fontBody,
-                  fontWeight: FontWeight.bold,
-                  color: AppColor.fontColorBlack,
-                ),
-                dataTextStyle: TextStyle(
-                  fontFamily: "poppins_regular",
-                  fontSize: SizeConfig.isTablet
-                      ? SizeConfig.fontCaption
-                      : SizeConfig.fontBodySmall,
-                  color: AppColor.fontColorBlack,
-                ),
-                headingRowColor: WidgetStateProperty.all<Color>(
-                    AppColor.fieldColorGrey),
-                border: TableBorder(
-                  horizontalInside:
-                  BorderSide(color: AppColor.divColor, width: 0.5),
-                ),
-                // ── No minWidth forces fit-to-screen, no horizontal scroll ──
-                columns: const [
-                  DataColumn2(
-                      label: Text('ID'), size: ColumnSize.S, fixedWidth: 60),
-                  DataColumn2(
-                      label: Text('Client Info'), size: ColumnSize.L),
-                  DataColumn2(
-                      label: Text('Location'), size: ColumnSize.M),
-                  DataColumn2(
-                      label: Text('Status'), size: ColumnSize.S),
-                  DataColumn2(
-                      label: Text('Actions'), size: ColumnSize.S),
-                ],
-                rows: pageUsers.map((user) {
-                  return DataRow(cells: [
-                    // ── ID ──────────────────────────────────────
-                    DataCell(Text(
-                      '${user.id}',
-                      style: AppTextStyles.regular14black.copyWith(
-                          color: AppColor.cPrimaryButtonColor,
-                          fontWeight: FontWeight.w600,
-                          fontSize: SizeConfig.isTablet
-                              ? SizeConfig.fontCaption
-                              : SizeConfig.fontBody),
-                    )),
+            child: DataTable2(
+              columnSpacing: 16,
+              horizontalMargin: 16,
+              minWidth: 760,
+              dataRowHeight: 64,
+              headingRowHeight: 44,
+              columns: const [
+                DataColumn2(
+                    label: Text('ID'), size: ColumnSize.S, fixedWidth: 70),
+                DataColumn2(label: Text('Client Info'), size: ColumnSize.L),
+                DataColumn2(label: Text('Location'), size: ColumnSize.M),
+                DataColumn2(label: Text('Status'), size: ColumnSize.S),
+                DataColumn2(
+                    label: Text('Actions'),
+                    size: ColumnSize.S,
+                    fixedWidth: 104),
+              ],
+              rows: pageUsers.map((user) {
+                return DataRow(cells: [
+                  // ── ID ──────────────────────────────────────
+                  DataCell(Text(
+                    '${user.id}',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: AppColor.textSecondary,
+                      fontFeatures: const [FontFeature.tabularFigures()],
+                    ),
+                  )),
 
-                    // ── Client Info (name + phone + email) ──────
-                    DataCell(_buildClientInfoCell(user)),
+                  // ── Client Info (name + phone + email) ──────
+                  DataCell(_buildClientInfoCell(user)),
 
-                    // ── Location ────────────────────────────────
-                    DataCell(Text(
-                      user.displayLocation,
-                      style: AppTextStyles.regular14black.copyWith(
-                          fontSize: SizeConfig.isTablet
-                              ? SizeConfig.fontCaption
-                              : SizeConfig.fontBody),
-                    )),
+                  // ── Location ────────────────────────────────
+                  DataCell(Text(
+                    user.displayLocation,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style:
+                        TextStyle(fontSize: 13.5, color: AppColor.textSecondary),
+                  )),
 
-                    // ── Status ──────────────────────────────────
-                    DataCell(_statusBadge(user.isActive)),
+                  // ── Status ──────────────────────────────────
+                  DataCell(_statusBadge(user.isActive)),
 
-                    // ── Actions ─────────────────────────────────
-                    DataCell(_buildCompactActions(user)),
-                  ]);
-                }).toList(),
-              ),
+                  // ── Actions ─────────────────────────────────
+                  DataCell(_buildCompactActions(user)),
+                ]);
+              }).toList(),
             ),
           ),
 
@@ -707,22 +572,12 @@ class ManageClientUsers extends GetView<ClientUsersController> {
     });
   }
 
-  /// Combined name + phone + email in one cell
+  /// Avatar + name, with phone and email underneath.
   Widget _buildClientInfoCell(ClientUserModel user) {
     return Row(
       children: [
-        CircleAvatar(
-          radius: 18,
-          backgroundColor: AppColor.cPrimaryButtonColor.withOpacity(0.1),
-          backgroundImage: user.userImage?.isNotEmpty == true
-              ? NetworkImage(user.userImage!)
-              : null,
-          child: user.userImage?.isEmpty != false
-              ? Icon(Icons.person,
-              size: 16, color: AppColor.cPrimaryButtonColor)
-              : null,
-        ),
-        SizedBox(width: SizeConfig.spacingSM),
+        AppAvatar(name: user.displayName, imageUrl: user.userImage, size: 36),
+        const SizedBox(width: 12),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -730,41 +585,20 @@ class ManageClientUsers extends GetView<ClientUsersController> {
             children: [
               Text(
                 user.displayName,
-                style: AppTextStyles.regular14black.copyWith(
-                    fontWeight: FontWeight.w600,
-                    fontSize: SizeConfig.isTablet
-                        ? SizeConfig.fontCaption
-                        : SizeConfig.fontBody),
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: AppColor.textPrimary,
+                ),
+                maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
-              SizedBox(height: 2),
-              Row(
-                children: [
-                  Icon(Icons.phone_outlined,
-                      size: 11, color: AppColor.fontColorGrey),
-                  const SizedBox(width: 3),
-                  Text(
-                    user.displayPhone,
-                    style: AppTextStyles.regular14Gre.copyWith(
-                        fontSize: SizeConfig.fontCaption),
-                  ),
-                ],
-              ),
-              SizedBox(height: 1),
-              Row(
-                children: [
-                  Icon(Icons.email_outlined,
-                      size: 11, color: AppColor.fontColorGrey),
-                  const SizedBox(width: 3),
-                  Expanded(
-                    child: Text(
-                      user.displayEmail,
-                      style: AppTextStyles.regular14Gre.copyWith(
-                          fontSize: SizeConfig.fontCaption),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ],
+              const SizedBox(height: 2),
+              Text(
+                '${user.displayPhone}  ·  ${user.displayEmail}',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(fontSize: 12.5, color: AppColor.textTertiary),
               ),
             ],
           ),
@@ -773,46 +607,22 @@ class ManageClientUsers extends GetView<ClientUsersController> {
     );
   }
 
-  /// Stacked View / Edit buttons to save horizontal space
+  /// View bookings / edit as compact icon actions.
   Widget _buildCompactActions(ClientUserModel user) {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      crossAxisAlignment: CrossAxisAlignment.start,
+    return Row(
+      mainAxisSize: MainAxisSize.min,
       children: [
-        SizedBox(
-          height: 28,
-          child: OutlinedButton(
-            onPressed: () => controller.viewClient(user.id ?? 0),
-            style: OutlinedButton.styleFrom(
-              padding:
-              const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
-              side: BorderSide(color: AppColor.cPrimaryButtonColor),
-              minimumSize: const Size(64, 28),
-              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-            ),
-            child: Text('View',
-                style: TextStyle(
-                    color: AppColor.cPrimaryButtonColor,
-                    fontSize: SizeConfig.fontCaption)),
-          ),
+        IconButton(
+          tooltip: 'View bookings',
+          onPressed: () => controller.viewClient(user.id ?? 0),
+          icon: Icon(LucideIcons.eye,
+              size: 18, color: AppColor.textSecondary),
         ),
-        const SizedBox(height: 4),
-        SizedBox(
-          height: 28,
-          child: ElevatedButton(
-            onPressed: () => controller.editClient(user),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColor.cPrimaryButtonColor,
-              padding:
-              const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
-              minimumSize: const Size(64, 28),
-              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-            ),
-            child: Text('Edit',
-                style: TextStyle(
-                    color: AppColor.buttonTextWhite,
-                    fontSize: SizeConfig.fontCaption)),
-          ),
+        IconButton(
+          tooltip: 'Edit client',
+          onPressed: () => controller.editClient(user),
+          icon: Icon(LucideIcons.pencil,
+              size: 18, color: AppColor.textSecondary),
         ),
       ],
     );
@@ -830,24 +640,17 @@ class ManageClientUsers extends GetView<ClientUsersController> {
     required int startIndex,
     required int endIndex,
   }) {
+    final caption = TextStyle(fontSize: 13, color: AppColor.textTertiary);
     return Container(
-      margin: EdgeInsets.only(top: SizeConfig.spacingSM),
-      padding: EdgeInsets.symmetric(
-        horizontal: SizeConfig.spacingMD,
-        vertical: SizeConfig.spacingSM,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
-        color: AppColor.whiteColor,
-        borderRadius: BorderRadius.circular(SizeConfig.radiusSM),
-        border: Border.all(color: AppColor.divColor),
+        border: Border(top: BorderSide(color: AppColor.borderSubtle)),
       ),
       child: Row(
         children: [
           // ── Rows per page ──────────────────────────────────────
-          Text('Rows per page:',
-              style: AppTextStyles.regular14Gre
-                  .copyWith(fontSize: SizeConfig.fontCaption)),
-          SizedBox(width: SizeConfig.spacingXS),
+          Text('Rows per page', style: caption),
+          const SizedBox(width: 8),
           AppDropdown<int>(
             hint: '',
             value: rowsPerPage,
@@ -865,27 +668,28 @@ class ManageClientUsers extends GetView<ClientUsersController> {
             },
           ),
 
-          SizedBox(width: SizeConfig.spacingMD),
+          const SizedBox(width: 16),
 
           // ── Range label ────────────────────────────────────────
           Text(
             totalItems == 0
                 ? '0 of 0'
                 : '${startIndex + 1}–$endIndex of $totalItems',
-            style: AppTextStyles.regular14Gre
-                .copyWith(fontSize: SizeConfig.fontCaption),
+            style: caption,
           ),
 
           const Spacer(),
 
           // ── Page buttons ───────────────────────────────────────
           _pageButton(
-            icon: Icons.first_page,
+            icon: LucideIcons.chevronFirst,
+            tooltip: 'First page',
             enabled: currentPage > 0,
             onTap: () => controller.goToPage(0),
           ),
           _pageButton(
-            icon: Icons.chevron_left,
+            icon: LucideIcons.chevronLeft,
+            tooltip: 'Previous page',
             enabled: currentPage > 0,
             onTap: () => controller.goToPage(currentPage - 1),
           ),
@@ -893,9 +697,9 @@ class ManageClientUsers extends GetView<ClientUsersController> {
           // Page number chips
           ...List.generate(totalPages, (i) => i)
               .where((i) =>
-          i == 0 ||
-              i == totalPages - 1 ||
-              (i - currentPage).abs() <= 1)
+                  i == 0 ||
+                  i == totalPages - 1 ||
+                  (i - currentPage).abs() <= 1)
               .map((i) => _PageChip(
                     pageNumber: i,
                     isSelected: i == currentPage,
@@ -903,12 +707,14 @@ class ManageClientUsers extends GetView<ClientUsersController> {
                   )),
 
           _pageButton(
-            icon: Icons.chevron_right,
+            icon: LucideIcons.chevronRight,
+            tooltip: 'Next page',
             enabled: currentPage < totalPages - 1,
             onTap: () => controller.goToPage(currentPage + 1),
           ),
           _pageButton(
-            icon: Icons.last_page,
+            icon: LucideIcons.chevronLast,
+            tooltip: 'Last page',
             enabled: currentPage < totalPages - 1,
             onTap: () => controller.goToPage(totalPages - 1),
           ),
@@ -919,14 +725,16 @@ class ManageClientUsers extends GetView<ClientUsersController> {
 
   Widget _pageButton({
     required IconData icon,
+    required String tooltip,
     required bool enabled,
     required VoidCallback onTap,
   }) {
     return IconButton(
+      tooltip: tooltip,
       onPressed: enabled ? onTap : null,
       icon: Icon(icon,
-          size: SizeConfig.iconSM,
-          color: enabled ? AppColor.fontColorBlack : AppColor.divColor),
+          size: 18,
+          color: enabled ? AppColor.textSecondary : AppColor.borderStrong),
       splashRadius: 18,
       constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
       padding: EdgeInsets.zero,
@@ -938,36 +746,9 @@ class ManageClientUsers extends GetView<ClientUsersController> {
   // ═══════════════════════════════════════════════════════════════
 
   Widget _statusBadge(bool isActive) {
-    return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: SizeConfig.spacingSM,
-        vertical: SizeConfig.spacingXS,
-      ),
-      decoration: BoxDecoration(
-        color: isActive
-            ? AppColor.lightGreen.withOpacity(0.15)
-            : Colors.red.withOpacity(0.15),
-        borderRadius: BorderRadius.circular(SizeConfig.radiusSM),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            isActive ? Icons.check_circle : Icons.cancel,
-            size: SizeConfig.iconSM,
-            color: isActive ? AppColor.lightGreen : Colors.red,
-          ),
-          SizedBox(width: SizeConfig.spacingXS),
-          Text(
-            isActive ? 'Active' : 'Inactive',
-            style: TextStyle(
-              color: isActive ? AppColor.lightGreen : Colors.red,
-              fontWeight: FontWeight.w600,
-              fontSize: SizeConfig.fontCaption,
-            ),
-          ),
-        ],
-      ),
+    return AppStatusBadge(
+      label: isActive ? 'Active' : 'Inactive',
+      tone: isActive ? AppTone.success : AppTone.danger,
     );
   }
 }
@@ -989,30 +770,28 @@ class _PageChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 2),
-        width: 30,
-        height: 30,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: isSelected ? AppColor.cPrimaryButtonColor : Colors.transparent,
-          borderRadius: BorderRadius.circular(6),
-          border: Border.all(
-            color: isSelected
-                ? AppColor.cPrimaryButtonColor
-                : AppColor.divColor,
-          ),
-        ),
-        child: Text(
-          '${pageNumber + 1}',
-          style: TextStyle(
-            fontSize: 12,
-            fontFamily: 'poppins_regular',
-            fontWeight:
-            isSelected ? FontWeight.bold : FontWeight.normal,
-            color: isSelected ? AppColor.buttonTextWhite : AppColor.fontColorBlack,
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 2),
+      child: Material(
+        color: isSelected ? AppColor.primarySoft : Colors.transparent,
+        borderRadius: BorderRadius.circular(AppRadius.sm),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(AppRadius.sm),
+          child: Container(
+            width: 30,
+            height: 30,
+            alignment: Alignment.center,
+            child: Text(
+              '${pageNumber + 1}',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                color: isSelected
+                    ? AppColor.cAppPrimaryColor
+                    : AppColor.textSecondary,
+              ),
+            ),
           ),
         ),
       ),

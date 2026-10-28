@@ -7,7 +7,9 @@ import '../../../core/values/color_constants.dart';
 import '../../../core/values/size_configue.dart';
 import '../../../widgets/dropdown_common.dart';
 import '../../../widgets/helper_ui.dart';
+import '../../../widgets/ui/ui.dart';
 import '../controllers/client_users_controller.dart';
+import 'package:eldivex_app/app/core/values/lucide_icons.dart';
 
 class AddClientUserDetails extends StatefulWidget {
   const AddClientUserDetails({super.key});
@@ -46,271 +48,186 @@ class _AddClientUserDetailsState extends State<AddClientUserDetails> {
     if (userId == 0) {
       return Scaffold(
         backgroundColor: AppColor.cAppBackgroundColor,
-        body: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text('No client selected',
-                  style: TextStyle(color: AppColor.fontColorGrey)),
-              const SizedBox(height: 12),
-              OutlinedButton(
-                onPressed: () => HelperUi.safeBack(Routes.MAIN),
-                child: const Text('Back'),
-              ),
-            ],
-          ),
+        body: AppEmptyState(
+          icon: LucideIcons.userX,
+          title: 'No client selected',
+          message: 'Open a client from the client list to edit their details.',
+          actionLabel: 'Back',
+          actionIcon: LucideIcons.arrowLeft,
+          onAction: () => HelperUi.safeBack(Routes.MAIN),
         ),
       );
     }
+
+    final isEdit = controller.isEditMode.value;
 
     return Scaffold(
       backgroundColor: AppColor.cAppBackgroundColor,
       body: SingleChildScrollView(
         padding: SizeConfig.pagePadding,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // ── Back button + Title row ──────────────────────
-            Row(
+        child: Align(
+          alignment: Alignment.topCenter,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 1100),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                IconButton(
-                  onPressed: () => HelperUi.safeBack(Routes.MAIN),
-                  icon: Icon(Icons.arrow_back_ios, color: AppColor.fontColorBlack),
+                // ── Back button + Title ──────────────────────────
+                AppPageHeader(
+                  title: isEdit ? 'Edit Client Details' : 'Add Client Details',
+                  subtitle: 'Contact details and lead information for this client',
+                  breadcrumbs: ['Clients', isEdit ? 'Edit Client' : 'Add Client'],
+                  onBack: () => HelperUi.safeBack(Routes.MAIN),
                 ),
-                SizedBox(width: SizeConfig.spacingXS),
-                Text(
-                  controller.isEditMode.value
-                      ? 'Edit Client Details'
-                      : 'Add Client Details',
-                  style: TextStyle(
-                    fontSize: SizeConfig.fontH1,
-                    fontWeight: FontWeight.bold,
-                    color: AppColor.fontColorBlack,
-                    fontFamily: "poppins_regular",
-                  ),
-                ),
-              ],
-            ),
-            SizedBox(height: SizeConfig.spacingMD),
+                const SizedBox(height: 24),
 
-            // ── Loading indicator while fetching user details ─
-            Obx(() => controller.isFetchingUserDetails.value
-                ? const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 20),
-                    child: Center(child: CircularProgressIndicator()),
-                  )
-                : const SizedBox.shrink()),
+                // ── Loading indicator while fetching user details ─
+                Obx(() => controller.isFetchingUserDetails.value
+                    ? const Padding(
+                        padding: EdgeInsets.only(bottom: 16),
+                        child: LinearProgressIndicator(minHeight: 2),
+                      )
+                    : const SizedBox.shrink()),
 
-            _buildSectionCard(
-              title: 'User Details',
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-              // ── Full Name ──────────────────────────────────────
-              _buildLabel('Full Name', hint: 'e.g. Irfan Ahmed', required: true),
-              SizedBox(height: SizeConfig.spacingXS),
-              _buildTextField(
-                ctrl: controller.fullNameController,
-                hint: 'Enter full name',
-              ),
-              SizedBox(height: SizeConfig.spacingMD),
-
-              // ── Phone + Email ──────────────────────────────────
-              SizeConfig.adaptiveLayout(
-                mobile: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildLabel('Phone Number', required: true),
-                    SizedBox(height: SizeConfig.spacingXS),
-                    _buildPhoneField(),
-                    SizedBox(height: SizeConfig.spacingMD),
-                    _buildLabel('Email', hint: 'optional, single address'),
-                    SizedBox(height: SizeConfig.spacingXS),
-                    _buildTextField(
-                      ctrl: controller.clientEmailController,
-                      hint: 'Enter email address',
-                      inputType: TextInputType.emailAddress,
-                    ),
-                  ],
-                ),
-                tablet: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _buildLabel('Phone Number', required: true),
-                          SizedBox(height: SizeConfig.spacingXS),
-                          _buildPhoneField(),
-                        ],
+                AppCard(
+                  title: 'User Details',
+                  subtitle: 'Who the client is and how to reach them',
+                  icon: LucideIcons.user,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      // ── Full Name ────────────────────────────────
+                      _field(
+                        _buildLabel('Full Name',
+                            hint: 'e.g. Irfan Ahmed', required: true),
+                        _buildTextField(
+                          ctrl: controller.fullNameController,
+                          hint: 'Enter full name',
+                        ),
                       ),
-                    ),
-                    SizedBox(width: SizeConfig.spacingMD),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
+                      const SizedBox(height: 16),
+
+                      // ── Phone + Email ────────────────────────────
+                      _twoColumns(
+                        _field(
+                          _buildLabel('Phone Number', required: true),
+                          _buildPhoneField(),
+                        ),
+                        _field(
                           _buildLabel('Email', hint: 'optional, single address'),
-                          SizedBox(height: SizeConfig.spacingXS),
                           _buildTextField(
                             ctrl: controller.clientEmailController,
                             hint: 'Enter email address',
                             inputType: TextInputType.emailAddress,
                           ),
-                        ],
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-              SizedBox(height: SizeConfig.spacingMD),
+                const SizedBox(height: 20),
 
-              // ── Service City + Lead Source ─────────────────────
-              SizeConfig.adaptiveLayout(
-                mobile: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildLabel('Service City', required: true),
-                    SizedBox(height: SizeConfig.spacingXS),
-                    _buildBranchDropdown(),
-                    SizedBox(height: SizeConfig.spacingMD),
-                    _buildLabel('Lead Source', required: true),
-                    SizedBox(height: SizeConfig.spacingXS),
-                    _buildDropdown(
-                      obs: controller.selectedLeadSource,
-                      items: controller.leadSourceList,
-                      hint: 'Select lead source',
-                      onChanged: (v) =>
-                      controller.selectedLeadSource.value = v ?? '',
-                    ),
-                  ],
-                ),
-                tablet: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
+                AppCard(
+                  title: 'Lead Details',
+                  subtitle: 'Where the enquiry came from and what it is for',
+                  icon: LucideIcons.clipboardList,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      // ── Service City + Lead Source ───────────────
+                      _twoColumns(
+                        _field(
                           _buildLabel('Service City', required: true),
-                          SizedBox(height: SizeConfig.spacingXS),
                           _buildBranchDropdown(),
-                        ],
-                      ),
-                    ),
-                    SizedBox(width: SizeConfig.spacingMD),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
+                        ),
+                        _field(
                           _buildLabel('Lead Source', required: true),
-                          SizedBox(height: SizeConfig.spacingXS),
                           _buildDropdown(
                             obs: controller.selectedLeadSource,
                             items: controller.leadSourceList,
                             hint: 'Select lead source',
                             onChanged: (v) =>
-                            controller.selectedLeadSource.value = v ?? '',
+                                controller.selectedLeadSource.value = v ?? '',
                           ),
-                        ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+
+                      // ── Lead Type + Enquired For ─────────────────
+                      _twoColumns(
+                        _field(
+                          _buildLabel('Lead Type', required: true),
+                          _buildDropdown(
+                            obs: controller.selectedLeadType,
+                            items: controller.leadTypeList,
+                            hint: 'Select lead type',
+                            onChanged: (v) =>
+                                controller.selectedLeadType.value = v ?? '',
+                            clearable: true,
+                          ),
+                        ),
+                        _field(
+                          _buildLabel('Enquired For', required: true),
+                          _buildCategoryDropdown(),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+
+                      // ── Internal Remarks ─────────────────────────
+                      _field(
+                        _buildLabel('Internal Remarks'),
+                        _buildTextField(
+                          ctrl: controller.internalRemarksController,
+                          hint: 'Enter internal remarks...',
+                          maxLines: 4,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 24),
+
+                // ── Actions ──────────────────────────────────────
+                // userId and isNewUser read from args above and forwarded here
+                Wrap(
+                  alignment: WrapAlignment.end,
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    OutlinedButton(
+                      onPressed: () => HelperUi.safeBack(Routes.MAIN),
+                      child: const Text('Cancel'),
+                    ),
+                    Obx(
+                      () => ElevatedButton(
+                        onPressed: controller.clientDetailsUpdateLoading.value
+                            ? null
+                            : () =>
+                                controller.validateAndNext(userId, isNewUser),
+                        child: controller.clientDetailsUpdateLoading.value
+                            ? SizedBox(
+                                height: 18,
+                                width: 18,
+                                child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: AppColor.textTertiary),
+                              )
+                            : const Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text('Next'),
+                                  SizedBox(width: 6),
+                                  Icon(LucideIcons.arrowRight, size: 18),
+                                ],
+                              ),
                       ),
                     ),
                   ],
                 ),
-              ),
-              SizedBox(height: SizeConfig.spacingMD),
-
-              // ── Lead Type ──────────────────────────────────────
-              _buildLabel('Lead Type', required: true),
-              SizedBox(height: SizeConfig.spacingXS),
-              _buildDropdown(
-                obs: controller.selectedLeadType,
-                items: controller.leadTypeList,
-                hint: 'Select lead type',
-                onChanged: (v) => controller.selectedLeadType.value = v ?? '',
-                clearable: true,
-              ),
-              SizedBox(height: SizeConfig.spacingMD),
-
-              // ── Enquired For ───────────────────────────────────
-              _buildLabel('Enquired For', required: true),
-              SizedBox(height: SizeConfig.spacingXS),
-              _buildCategoryDropdown(),
-              SizedBox(height: SizeConfig.spacingMD),
-
-              // ── Internal Remarks ───────────────────────────────
-              _buildLabel('Internal Remarks'),
-              SizedBox(height: SizeConfig.spacingXS),
-              _buildTextField(
-                ctrl: controller.internalRemarksController,
-                hint: 'Enter internal remarks...',
-                maxLines: 4,
-              ),
-              SizedBox(height: SizeConfig.spacingXL),
-
-
-              // ── Next Button  ───────────────────────────────────
-              // userId and isNewUser read from args above and forwarded here
-              Align(
-                alignment: Alignment.centerRight,
-                child: Obx(
-                      () => SizedBox(
-                    width: SizeConfig.isMobile ? double.infinity : null,
-                    child: ElevatedButton(
-                      onPressed: controller.clientDetailsUpdateLoading.value
-                          ? null
-                          : () =>
-                          controller.validateAndNext(userId, isNewUser),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColor.cPrimaryButtonColor,
-                        disabledBackgroundColor:
-                        AppColor.cPrimaryButtonColor.withValues(alpha: 0.6),
-                        padding: EdgeInsets.symmetric(
-                          horizontal: SizeConfig.isMobile
-                              ? SizeConfig.spacingXL
-                              : 40,
-                          vertical: SizeConfig.spacingMD,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius:
-                          BorderRadius.circular(SizeConfig.radiusSM),
-                        ),
-                        elevation: 0,
-                      ),
-                      child: controller.clientDetailsUpdateLoading.value
-                          ? SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(
-                            strokeWidth: 2, color: AppColor.buttonTextWhite),
-                      )
-                          : Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            'Next',
-                            style: TextStyle(
-                              fontSize: SizeConfig.fontBody,
-                              fontWeight: FontWeight.w600,
-                              color: AppColor.buttonTextWhite,
-                              fontFamily: "poppins_regular",
-                            ),
-                          ),
-                          SizedBox(width: SizeConfig.spacingXS),
-                          Icon(Icons.arrow_forward,
-                              size: SizeConfig.iconSM,
-                              color: AppColor.buttonTextWhite),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ],
+                const SizedBox(height: 8),
+              ],
+            ),
           ),
-        ),
-          ],
         ),
       ),
     );
@@ -318,36 +235,33 @@ class _AddClientUserDetailsState extends State<AddClientUserDetails> {
 
   // ── WIDGET HELPERS ───────────────────────────────────────────────
 
-  Widget _buildSectionCard({required String title, required Widget child}) {
-    return Container(
-      width: double.infinity,
-      padding: SizeConfig.cardPadding,
-      decoration: BoxDecoration(
-        color: AppColor.whiteColor,
-        borderRadius: BorderRadius.circular(SizeConfig.radiusMD),
-        border: Border.all(color: AppColor.divColor),
-        boxShadow: [
-          BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
-              blurRadius: 8,
-              offset: const Offset(0, 2)),
-        ],
-      ),
-      child: Column(
+  /// Label above its input.
+  Widget _field(Widget label, Widget input) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      children: [label, const SizedBox(height: 8), input],
+    );
+  }
+
+  /// Two fields side by side on wide cards, stacked on narrow ones.
+  Widget _twoColumns(Widget left, Widget right) {
+    return LayoutBuilder(builder: (context, constraints) {
+      if (constraints.maxWidth < 640) {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [left, const SizedBox(height: 16), right],
+        );
+      }
+      return Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title,
-              style: TextStyle(
-                fontSize: SizeConfig.fontH2,
-                fontWeight: FontWeight.w600,
-                color: AppColor.cPrimaryButtonColor,
-                fontFamily: "poppins_regular",
-              )),
-          SizedBox(height: SizeConfig.spacingLG),
-          child,
+          Expanded(child: left),
+          const SizedBox(width: 16),
+          Expanded(child: right),
         ],
-      ),
-    );
+      );
+    });
   }
 
   Widget _buildLabel(String label, {String? hint, bool required = false}) {
@@ -356,19 +270,26 @@ class _AddClientUserDetailsState extends State<AddClientUserDetails> {
         TextSpan(
           text: label,
           style: TextStyle(
-            fontSize: SizeConfig.fontBodySmall,
-            fontWeight: FontWeight.w500,
-            color: required ? AppColor.cPrimaryButtonColor : AppColor.unSelectedMenu,
-            fontFamily: "poppins_regular",
+            fontSize: 13.5,
+            fontWeight: FontWeight.w600,
+            color: AppColor.textSecondary,
           ),
         ),
+        if (required)
+          TextSpan(
+            text: ' *',
+            style: TextStyle(
+              fontSize: 13.5,
+              fontWeight: FontWeight.w600,
+              color: AppColor.danger,
+            ),
+          ),
         if (hint != null)
           TextSpan(
             text: '  ($hint)',
             style: TextStyle(
-              fontSize: SizeConfig.fontCaption,
-              color: AppColor.unSelectedMenu,
-              fontFamily: "poppins_regular",
+              fontSize: 12.5,
+              color: AppColor.textTertiary,
             ),
           ),
       ]),
@@ -385,116 +306,57 @@ class _AddClientUserDetailsState extends State<AddClientUserDetails> {
       controller: ctrl,
       maxLines: maxLines,
       keyboardType: inputType,
-      style: TextStyle(
-          fontSize: SizeConfig.fontBody,
-          color: AppColor.fontColorBlack,
-          fontFamily: "poppins_regular"),
-      decoration: InputDecoration(
-        hintText: hint,
-        hintStyle: TextStyle(
-            fontSize: SizeConfig.fontBody,
-            color: AppColor.lightGrey,
-            fontFamily: "poppins_regular"),
-        filled: true,
-        fillColor: AppColor.whiteColor,
-        contentPadding: EdgeInsets.symmetric(
-            horizontal: SizeConfig.spacingMD, vertical: SizeConfig.spacingMD),
-        border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(SizeConfig.radiusSM),
-            borderSide: BorderSide(color: AppColor.divColor)),
-        enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(SizeConfig.radiusSM),
-            borderSide: BorderSide(color: AppColor.divColor)),
-        focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(SizeConfig.radiusSM),
-            borderSide:
-            BorderSide(color: AppColor.cPrimaryButtonColor, width: 1.5)),
-      ),
+      style: TextStyle(fontSize: 14, color: AppColor.textPrimary),
+      decoration: InputDecoration(hintText: hint),
     );
   }
 
+  /// Country code picker inside the phone input, so both share one border
+  /// and focus ring.
   Widget _buildPhoneField() {
-    return Row(
-      children: [
-        Obx(() => Container(
-          height: 50,
-          padding: EdgeInsets.symmetric(horizontal: SizeConfig.spacingSM),
-          decoration: BoxDecoration(
-            color: AppColor.fieldColorGrey,
-            borderRadius: BorderRadius.only(
-              topLeft: Radius.circular(SizeConfig.radiusSM),
-              bottomLeft: Radius.circular(SizeConfig.radiusSM),
-            ),
-            border: Border.all(color: AppColor.divColor),
-          ),
-          child: DropdownButtonHideUnderline(
-            child: DropdownButton<String>(
-              value: controller.detailsCountryCode.value,
-              icon: Icon(Icons.arrow_drop_down,
-                  size: SizeConfig.iconSM, color: AppColor.fontColorGrey),
-              style: TextStyle(
-                  fontSize: SizeConfig.fontBody,
-                  fontWeight: FontWeight.w600,
-                  color: AppColor.fontColorBlack,
-                  fontFamily: "poppins_regular"),
-              items: ClientUsersController.countryCodes
-                  .map((cc) => DropdownMenuItem<String>(
-                        value: cc['code'],
-                        child: Text('${cc['flag']} ${cc['code']}',
-                            style: TextStyle(
-                                fontSize: SizeConfig.fontBody,
-                                fontFamily: "poppins_regular")),
-                      ))
-                  .toList(),
-              onChanged: (v) {
-                if (v != null) controller.detailsCountryCode.value = v;
-              },
-            ),
-          ),
-        )),
-        Container(height: 50, width: 1, color: AppColor.divColor),
-        Expanded(
-          child: TextFormField(
-            controller: controller.clientPhoneController,
-            keyboardType: TextInputType.phone,
-            inputFormatters: [
-              FilteringTextInputFormatter.digitsOnly,
-              LengthLimitingTextInputFormatter(15),
-            ],
-            style: TextStyle(
-                fontSize: SizeConfig.fontBody, fontFamily: "poppins_regular"),
-            decoration: InputDecoration(
-              hintText: 'e.g. 9876543210',
-              hintStyle: TextStyle(
-                  fontSize: SizeConfig.fontBody, color: AppColor.lightGrey),
-              filled: true,
-              fillColor: AppColor.fieldColorGrey,
-              contentPadding: EdgeInsets.symmetric(
-                  horizontal: SizeConfig.spacingMD,
-                  vertical: SizeConfig.spacingMD),
-              border: OutlineInputBorder(
-                  borderRadius: BorderRadius.only(
-                    topRight: Radius.circular(SizeConfig.radiusSM),
-                    bottomRight: Radius.circular(SizeConfig.radiusSM),
-                  ),
-                  borderSide: BorderSide(color: AppColor.divColor)),
-              enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.only(
-                    topRight: Radius.circular(SizeConfig.radiusSM),
-                    bottomRight: Radius.circular(SizeConfig.radiusSM),
-                  ),
-                  borderSide: BorderSide(color: AppColor.divColor)),
-              focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.only(
-                    topRight: Radius.circular(SizeConfig.radiusSM),
-                    bottomRight: Radius.circular(SizeConfig.radiusSM),
-                  ),
-                  borderSide: BorderSide(
-                      color: AppColor.cPrimaryButtonColor, width: 1.5)),
-            ),
-          ),
-        ),
+    return TextFormField(
+      controller: controller.clientPhoneController,
+      keyboardType: TextInputType.phone,
+      inputFormatters: [
+        FilteringTextInputFormatter.digitsOnly,
+        LengthLimitingTextInputFormatter(15),
       ],
+      style: TextStyle(fontSize: 14, color: AppColor.textPrimary),
+      decoration: InputDecoration(
+        hintText: 'e.g. 9876543210',
+        prefixIconConstraints: const BoxConstraints(minWidth: 0, minHeight: 0),
+        prefixIcon: Container(
+          margin: const EdgeInsets.only(right: 10),
+          padding: const EdgeInsets.only(left: 12, right: 4),
+          decoration: BoxDecoration(
+            border: Border(right: BorderSide(color: AppColor.borderSubtle)),
+          ),
+          child: Obx(() => DropdownButtonHideUnderline(
+                child: DropdownButton<String>(
+                  value: controller.detailsCountryCode.value,
+                  isDense: true,
+                  borderRadius: BorderRadius.circular(AppRadius.md),
+                  dropdownColor: AppColor.whiteColor,
+                  icon: Icon(LucideIcons.chevronDown,
+                      size: 18, color: AppColor.textTertiary),
+                  style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: AppColor.textPrimary),
+                  items: ClientUsersController.countryCodes
+                      .map((cc) => DropdownMenuItem<String>(
+                            value: cc['code'],
+                            child: Text('${cc['flag']} ${cc['code']}',
+                                style: const TextStyle(fontSize: 14)),
+                          ))
+                      .toList(),
+                  onChanged: (v) {
+                    if (v != null) controller.detailsCountryCode.value = v;
+                  },
+                ),
+              )),
+        ),
+      ),
     );
   }
 
@@ -502,7 +364,7 @@ class _AddClientUserDetailsState extends State<AddClientUserDetails> {
     return Obx(() {
       if (controller.dashboardController.getAllBranchesLoading.value) {
         return Container(
-          height: 50,
+          height: 48,
           alignment: Alignment.center,
           child: const SizedBox(
             height: 20, width: 20,
@@ -538,7 +400,7 @@ class _AddClientUserDetailsState extends State<AddClientUserDetails> {
     return Obx(() {
       if (controller.dashboardController.getCategoriesLoading.value) {
         return Container(
-          height: 50,
+          height: 48,
           alignment: Alignment.center,
           child: const SizedBox(
             height: 20, width: 20,

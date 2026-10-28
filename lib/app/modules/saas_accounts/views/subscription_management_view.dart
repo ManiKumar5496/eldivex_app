@@ -8,6 +8,7 @@ import 'widgets/account_status_badge.dart';
 import 'widgets/destructive_action_dialog.dart';
 import 'widgets/plan_chip.dart';
 import 'widgets/status_transition_dialog.dart';
+import 'package:eldivex_app/app/core/values/lucide_icons.dart';
 
 class SubscriptionManagementView extends GetView<SaasAccountsController> {
   const SubscriptionManagementView({super.key});
@@ -167,7 +168,7 @@ class _SubActionsMenu extends GetView<SaasAccountsController> {
   @override
   Widget build(BuildContext context) {
     return PopupMenuButton<String>(
-      icon: const Icon(Icons.more_vert, size: 18),
+      icon: const Icon(LucideIcons.ellipsisVertical, size: 18),
       onSelected: (v) => _handle(v),
       itemBuilder: (_) => [
         const PopupMenuItem(

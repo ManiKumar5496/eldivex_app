@@ -1,10 +1,11 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:eldivex_app/app/core/values/color_constants.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:get/get.dart';
 
 import '../core/values/size_configue.dart';
+import 'ui/app_tokens.dart';
+import 'package:eldivex_app/app/core/values/lucide_icons.dart';
 
 class CommonFileUpload extends StatefulWidget {
   final String label;
@@ -59,8 +60,9 @@ class _CommonFileUploadState extends State<CommonFileUpload> {
               'File Too Large',
               '${file.name} exceeds ${widget.maxFileSizeMB}MB limit',
               snackPosition: SnackPosition.BOTTOM,
-              backgroundColor: Colors.red.shade100,
-              colorText: Colors.red.shade900,
+              backgroundColor: Color.alphaBlend(
+                  AppColor.dangerSoft, AppColor.whiteColor),
+              colorText: AppColor.textPrimary,
             );
           }
         }
@@ -75,8 +77,9 @@ class _CommonFileUploadState extends State<CommonFileUpload> {
         'Error',
         'Failed to pick files: $e',
         snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Colors.red.shade100,
-        colorText: Colors.red.shade900,
+        backgroundColor:
+            Color.alphaBlend(AppColor.dangerSoft, AppColor.whiteColor),
+        colorText: AppColor.textPrimary,
       );
     } finally {
       isUploading.value = false;
@@ -98,30 +101,30 @@ class _CommonFileUploadState extends State<CommonFileUpload> {
   IconData getFileIcon(String extension) {
     switch (extension.toLowerCase()) {
       case 'pdf':
-        return Icons.picture_as_pdf;
+        return LucideIcons.fileText;
       case 'doc':
       case 'docx':
-        return Icons.description;
+        return LucideIcons.fileText;
       case 'jpg':
       case 'jpeg':
       case 'png':
-        return Icons.image;
+        return LucideIcons.image;
       default:
-        return Icons.insert_drive_file;
+        return LucideIcons.file;
     }
   }
 
   Color getFileIconColor(String extension) {
     switch (extension.toLowerCase()) {
       case 'pdf':
-        return Colors.red;
+        return AppColor.danger;
       case 'doc':
       case 'docx':
-        return Colors.blue;
+        return AppColor.info;
       case 'jpg':
       case 'jpeg':
       case 'png':
-        return Colors.green;
+        return AppColor.success;
       default:
         return AppColor.fontColorGrey;
     }
@@ -130,80 +133,99 @@ class _CommonFileUploadState extends State<CommonFileUpload> {
   @override
   Widget build(BuildContext context) {
     SizeConfig.init(context);
+    final radius = BorderRadius.circular(AppRadius.lg);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           widget.label,
           style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-            color: AppColor.fontColorGrey,
+            fontSize: 13.5,
+            fontWeight: FontWeight.w600,
+            color: AppColor.textSecondary,
           ),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 8),
 
-        // Upload Area
-        Container(
-          width: SizeConfig.blockSizeHorizontal * 90,
-          decoration: BoxDecoration(
-            border: Border.all(
-              color: Colors.blue.shade300,
-              width: 2,
-              style: BorderStyle.solid,
-            ),
-            borderRadius: BorderRadius.circular(12),
-            color: Colors.blue.shade50.withOpacity(0.3),
-          ),
-          child: Material(
-            color: Colors.transparent,
-            child: InkWell(
-              onTap: pickFiles,
-              borderRadius: BorderRadius.circular(12),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 24),
-                child: Column(
-                  children: [
-                    Icon(
-                      Icons.upload_outlined,
-                      size: 48,
-                      color: AppColor.lightGrey,
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      widget.hint,
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: AppColor.fontColorGrey,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      widget.supportedFormats,
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: AppColor.fontColorGrey,
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    OutlinedButton(
-                      onPressed: pickFiles,
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 24,
-                          vertical: 12,
+        // Upload Area — dashed drop-zone card. Fills the available width
+        // (falls back to the old 90%-of-screen width in unbounded rows).
+        LayoutBuilder(builder: (context, constraints) {
+          final width = constraints.hasBoundedWidth
+              ? constraints.maxWidth
+              : SizeConfig.blockSizeHorizontal * 90;
+          return SizedBox(
+            width: width,
+            child: CustomPaint(
+              foregroundPainter: _DashedBorderPainter(
+                color: AppColor.borderStrong,
+                radius: AppRadius.lg,
+              ),
+              child: Material(
+                color: AppColor.surfaceMuted,
+                borderRadius: radius,
+                child: InkWell(
+                  onTap: pickFiles,
+                  borderRadius: radius,
+                  hoverColor: AppColor.primarySoft,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                        vertical: 28, horizontal: 20),
+                    child: Column(
+                      children: [
+                        Obx(() => Container(
+                              width: 44,
+                              height: 44,
+                              decoration: BoxDecoration(
+                                color: AppColor.primarySoft,
+                                shape: BoxShape.circle,
+                              ),
+                              child: isUploading.value
+                                  ? Padding(
+                                      padding: const EdgeInsets.all(12),
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: AppColor.cAppPrimaryColor,
+                                      ),
+                                    )
+                                  : Icon(
+                                      LucideIcons.cloudUpload,
+                                      size: 22,
+                                      color: AppColor.cAppPrimaryColor,
+                                    ),
+                            )),
+                        const SizedBox(height: 12),
+                        Text(
+                          widget.hint,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: AppColor.textPrimary,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
-                        side: BorderSide(color: AppColor.lightGrey),
-                      ),
-                      child: const Text('Choose Files'),
+                        const SizedBox(height: 4),
+                        Text(
+                          widget.supportedFormats,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 12.5,
+                            color: AppColor.textTertiary,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        OutlinedButton.icon(
+                          onPressed: pickFiles,
+                          icon: const Icon(LucideIcons.paperclip, size: 18),
+                          label: const Text('Choose Files'),
+                        ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
               ),
             ),
-          ),
-        ),
+          );
+        }),
 
         // Uploaded Files List
         Obx(() {
@@ -214,41 +236,43 @@ class _CommonFileUploadState extends State<CommonFileUpload> {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const SizedBox(height: 24),
+              const SizedBox(height: 16),
               Text(
                 'Uploaded Documents (${uploadedFiles.length})',
                 style: TextStyle(
-                  fontSize: 14,
+                  fontSize: 13,
                   fontWeight: FontWeight.w600,
-                  color: AppColor.fontColorGrey,
+                  color: AppColor.textSecondary,
                 ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 8),
               ...uploadedFiles.asMap().entries.map((entry) {
                 final index = entry.key;
                 final file = entry.value;
                 final extension = file.extension ?? '';
+                final tint = getFileIconColor(extension);
 
                 return Container(
-                  margin: const EdgeInsets.only(bottom: 12),
-                  padding: const EdgeInsets.all(16),
+                  margin: const EdgeInsets.only(bottom: 8),
+                  padding: const EdgeInsets.fromLTRB(12, 10, 6, 10),
                   decoration: BoxDecoration(
-                    color: AppColor.fieldColorGrey,
-                    borderRadius: BorderRadius.circular(8),
+                    color: AppColor.whiteColor,
+                    borderRadius: BorderRadius.circular(AppRadius.md),
                     border: Border.all(color: AppColor.divColor),
                   ),
                   child: Row(
                     children: [
                       Container(
-                        padding: const EdgeInsets.all(12),
+                        width: 36,
+                        height: 36,
                         decoration: BoxDecoration(
-                          color: getFileIconColor(extension).withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(8),
+                          color: tint.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(AppRadius.sm),
                         ),
                         child: Icon(
                           getFileIcon(extension),
-                          color: getFileIconColor(extension),
-                          size: 24,
+                          color: tint,
+                          size: 18,
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -259,42 +283,76 @@ class _CommonFileUploadState extends State<CommonFileUpload> {
                             Text(
                               file.name,
                               style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w500,
-                                color: AppColor.fontColorGrey,
+                                fontSize: 13.5,
+                                fontWeight: FontWeight.w600,
+                                color: AppColor.textPrimary,
                               ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             ),
-                            const SizedBox(height: 4),
+                            const SizedBox(height: 2),
                             Text(
                               formatFileSize(file.size),
                               style: TextStyle(
                                 fontSize: 12,
-                                color: AppColor.fontColorGrey,
+                                color: AppColor.textTertiary,
                               ),
                             ),
                           ],
                         ),
                       ),
                       IconButton(
+                        tooltip: 'Remove',
                         onPressed: () => removeFile(index),
                         icon: Icon(
-                          Icons.close,
-                          color: AppColor.fontColorGrey,
-                          size: 20,
+                          LucideIcons.x,
+                          color: AppColor.textTertiary,
+                          size: 18,
                         ),
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(),
+                        visualDensity: VisualDensity.compact,
                       ),
                     ],
                   ),
                 );
-              }).toList(),
+              }),
             ],
           );
         }),
       ],
     );
   }
+}
+
+/// Dashed rounded-rectangle outline for the drop zone.
+class _DashedBorderPainter extends CustomPainter {
+  _DashedBorderPainter({required this.color, required this.radius});
+
+  final Color color;
+  final double radius;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    const dash = 6.0;
+    const gap = 4.0;
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = 1.2
+      ..style = PaintingStyle.stroke;
+    final rrect = RRect.fromRectAndRadius(
+      Offset.zero & size,
+      Radius.circular(radius),
+    ).deflate(0.6);
+    final path = Path()..addRRect(rrect);
+    for (final metric in path.computeMetrics()) {
+      var d = 0.0;
+      while (d < metric.length) {
+        canvas.drawPath(metric.extractPath(d, d + dash), paint);
+        d += dash + gap;
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(_DashedBorderPainter old) =>
+      old.color != color || old.radius != radius;
 }
