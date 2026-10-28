@@ -109,6 +109,7 @@ class _BookingsExtensionViewState extends State<BookingsExtensionView> {
           spacing: 8,
           runSpacing: 8,
           children: [
+            _buildTab('Overdue', 3, controller.overdueExtensions.length),
             _buildTab('Today', 0, controller.todayExtensions.length),
             _buildTab('Tomorrow', 1, controller.tomorrowExtensions.length),
             _buildTab('Next Day', 2, controller.nextDayExtensions.length),
@@ -145,6 +146,8 @@ class _BookingsExtensionViewState extends State<BookingsExtensionView> {
         return AppTone.info;
       case 2:
         return AppTone.violet;
+      case 3:
+        return AppTone.danger;
       default:
         return AppTone.neutral;
     }
@@ -241,6 +244,8 @@ class _BookingsExtensionViewState extends State<BookingsExtensionView> {
       final summaryItems = [
         _SummaryData('Total Extensions', controller.extensionBookings.length,
             LucideIcons.calendarPlus, AppTone.primary),
+        _SummaryData('Overdue', controller.overdueExtensions.length,
+            LucideIcons.calendarX, AppTone.danger),
         _SummaryData('Today', controller.todayExtensions.length,
             LucideIcons.calendarCheck2, AppTone.warning),
         _SummaryData('Tomorrow', controller.tomorrowExtensions.length,
@@ -251,7 +256,7 @@ class _BookingsExtensionViewState extends State<BookingsExtensionView> {
 
       return AppResponsiveGrid(
         minItemWidth: 200,
-        maxColumns: 4,
+        maxColumns: 5,
         children: summaryItems.map((s) => _buildSummaryCard(s)).toList(),
       );
     });
@@ -435,7 +440,23 @@ class _BookingsExtensionViewState extends State<BookingsExtensionView> {
             flex: 2,
           ),
           _cell(
-            Text(_formatDate(booking.serviceEndDate), style: primary),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(_formatDate(booking.serviceEndDate), style: primary),
+                if (_overdueLabel(booking) != null) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    _overdueLabel(booking)!,
+                    style: TextStyle(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w600,
+                      color: AppColor.danger,
+                    ),
+                  ),
+                ],
+              ],
+            ),
             flex: 2,
           ),
           _cell(
@@ -509,6 +530,18 @@ class _BookingsExtensionViewState extends State<BookingsExtensionView> {
           _mobileField(LucideIcons.stethoscope, 'Service', booking.serviceName ?? '-'),
           const SizedBox(height: 6),
           _mobileField(LucideIcons.calendar, 'Service End', _formatDate(booking.serviceEndDate)),
+          if (_overdueLabel(booking) != null)
+            Padding(
+              padding: const EdgeInsets.only(left: 24, top: 2),
+              child: Text(
+                _overdueLabel(booking)!,
+                style: TextStyle(
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w600,
+                  color: AppColor.danger,
+                ),
+              ),
+            ),
           const SizedBox(height: 6),
           _mobileField(LucideIcons.mapPin, 'City', booking.city ?? '-'),
           const SizedBox(height: 6),
@@ -557,6 +590,12 @@ class _BookingsExtensionViewState extends State<BookingsExtensionView> {
   String _formatDate(DateTime? date) {
     if (date == null) return 'N/A';
     return DateFormat('dd MMM yyyy').format(date);
+  }
+
+  String? _overdueLabel(GetBookingsModel booking) {
+    final days = booking.overdueDays ?? 0;
+    if (booking.extensionStatus != 4 || days <= 0) return null;
+    return days == 1 ? '1 day overdue' : '$days days overdue';
   }
 
   Widget _buildStatusBadge(String status) {

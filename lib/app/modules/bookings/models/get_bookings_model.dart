@@ -86,6 +86,8 @@ class GetBookingsModel {
   final String? serviceTypeName;
 
   final int? extensionStatus;
+  // Days since service_end_date; only meaningful when extensionStatus == 4.
+  final int? overdueDays;
   final int? holdTicketOpen;
   final int? cancellationTicketOpen;
 
@@ -156,6 +158,7 @@ class GetBookingsModel {
     this.serviceName,
     this.serviceTypeName,
     this.extensionStatus,
+    this.overdueDays,
     this.holdTicketOpen,
     this.cancellationTicketOpen,
     this.patientLanguages,
@@ -254,6 +257,7 @@ class GetBookingsModel {
       serviceName: _str(json['service_name']),
       serviceTypeName: _str(json['service_type_name']),
       extensionStatus: _toInt(json['extension_status']),
+      overdueDays: _toInt(json['overdue_days']),
       holdTicketOpen: _toInt(json['hold_ticket_open']),
       cancellationTicketOpen: _toInt(json['cancellation_ticket_open']),
       patientLanguages: _str(json['patient_languages']),
@@ -325,6 +329,7 @@ class GetBookingsModel {
       'service_name': serviceName,
       'service_type_name': serviceTypeName,
       'extension_status': extensionStatus,
+      'overdue_days': overdueDays,
       'hold_ticket_open': holdTicketOpen,
       'cancellation_ticket_open': cancellationTicketOpen,
       'patient_languages': patientLanguages,

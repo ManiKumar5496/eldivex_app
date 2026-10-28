@@ -359,6 +359,11 @@ class BookingsController extends GetxController {
   List<GetBookingsModel> get nextDayExtensions =>
       extensionBookings.where((b) => b.extensionStatus == 3).toList();
 
+  // End date passed without an extension or closure; longest overdue first.
+  List<GetBookingsModel> get overdueExtensions =>
+      extensionBookings.where((b) => b.extensionStatus == 4).toList()
+        ..sort((a, b) => (b.overdueDays ?? 0).compareTo(a.overdueDays ?? 0));
+
   List<GetBookingsModel> get currentExtensionTabBookings {
     List<GetBookingsModel> list;
     switch (selectedExtensionTab.value) {
@@ -367,6 +372,9 @@ class BookingsController extends GetxController {
         break;
       case 2:
         list = nextDayExtensions;
+        break;
+      case 3:
+        list = overdueExtensions;
         break;
       default:
         list = todayExtensions;
