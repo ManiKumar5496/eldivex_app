@@ -10,22 +10,38 @@ import '../../../widgets/dropdown_common.dart';
 import '../../dashboard/controllers/dashboard_controller.dart';
 import '../controllers/bookings_controller.dart';
 
-class CreateBookingsView extends GetView<BookingsController> {
+class CreateBookingsView extends StatefulWidget {
   const CreateBookingsView({super.key});
-  Map<String, dynamic>? get data => Get.arguments as Map<String, dynamic>?;
+
+  @override
+  State<CreateBookingsView> createState() => _CreateBookingsViewState();
+}
+
+class _CreateBookingsViewState extends State<CreateBookingsView> {
+  late final BookingsController controller;
+  late final DashboardController dashboardController;
+
+  @override
+  void initState() {
+    super.initState();
+    controller = Get.isRegistered<BookingsController>()
+        ? Get.find<BookingsController>()
+        : Get.put(BookingsController());
+    dashboardController = Get.isRegistered<DashboardController>()
+        ? Get.find<DashboardController>()
+        : Get.put(DashboardController());
+    final args = Get.arguments;
+    final raw = args is Map ? args['userId'] : null;
+    final userId = raw is int ? raw : int.tryParse('${raw ?? ''}');
+    if (userId != null && userId > 0) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        controller.selectClientById(userId);
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    if (!Get.isRegistered<BookingsController>()) {
-      Get.put(BookingsController());
-    }
-    final dashboardController = Get.find<DashboardController>();
-    final userId = data?['userId'];
-    if (userId != null) {
-      controller.userIdControllerCreateBooking.text = userId.toString();
-    } else {
-      controller.userIdControllerCreateBooking.text = "";
-    }
     return Scaffold(
       appBar: AppBar(
         title: const Text('Create Booking'),
@@ -47,21 +63,23 @@ class CreateBookingsView extends GetView<BookingsController> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Client Section
+            _buildSectionTitle('Client'),
+            Text(
+              'Find the client this booking is for by phone number',
+              style: TextStyle(fontSize: 13, color: AppColor.fontColorGrey),
+            ),
+            const SizedBox(height: 16),
+            _buildClientLookup(),
+            const SizedBox(height: 24),
+
             // Patient Information Section
             _buildSectionTitle('Patient Information'),
             Text(
               'Please provide accurate patient details',
               style: TextStyle(fontSize: 13, color: AppColor.fontColorGrey),
             ),
-            const SizedBox(height: 20),
-
-            FormTextField(
-              label: 'User Id',
-              hint: 'User Id',
-              controller: controller.userIdControllerCreateBooking,
-              prefixIcon: Icons.person_outline,
-              required: false,
-            ),
+            const SizedBox(height: 4),
             const SizedBox(height: 16),
             FormTextField(
               label: 'Patient Name',
@@ -126,15 +144,18 @@ class CreateBookingsView extends GetView<BookingsController> {
                   ),
                 );
               }
-              final languages = controller.languagesList
-                  .map((l) => l['name'] as String)
-                  .toList();
-              final opts = languages.isEmpty ? ['English'] : languages;
+              final opts = controller.languageNames;
+              if (opts.isEmpty) {
+                return Text(
+                  'Languages could not be loaded',
+                  style: TextStyle(fontSize: 13, color: AppColor.fontColorGrey),
+                );
+              }
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Preferred Language *',
+                    'Preferred Language',
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
@@ -184,20 +205,7 @@ class CreateBookingsView extends GetView<BookingsController> {
             }),
 
             const SizedBox(height: 16),
-            Obx(() => _buildDropdown<int>(
-              label: 'Service Address',
-              hint: 'Select address',
-              value: (controller.selectedAddressId.value == 1 ||
-                      controller.selectedAddressId.value == 2)
-                  ? controller.selectedAddressId.value
-                  : null,
-              items: const [
-                DropdownMenuItem(value: 1, child: Text('Home')),
-                DropdownMenuItem(value: 2, child: Text('Hospital')),
-              ],
-              onChanged: (v) => controller.selectedAddressId.value = v ?? 0,
-              required: true,
-            )),
+            _buildAddressSelector(),
             const SizedBox(height: 16),
 
             Text(
@@ -234,11 +242,15 @@ class CreateBookingsView extends GetView<BookingsController> {
             const SizedBox(height: 16),
 
             FormTextField(
-              label: 'Phone Number',
-              hint: '+1 (555) 000-0000',
-              controller: controller.phoneController,
+              label: 'Patient Phone Number',
+              hint: '10–15 digits',
+              controller: controller.patientPhoneController,
               keyboardType: TextInputType.phone,
               prefixIcon: Icons.phone_outlined,
+              inputFormatters: [
+                FilteringTextInputFormatter.digitsOnly,
+                LengthLimitingTextInputFormatter(15),
+              ],
             ),
 
             const SizedBox(height: 16),
@@ -292,7 +304,7 @@ class CreateBookingsView extends GetView<BookingsController> {
                     .map(
                       (branch) => DropdownMenuItem<int>(
                         value: branch.brId,
-                        child: Text(branch.brName ?? 'Unknown'),
+                        child: Text(branch.brName),
                       ),
                     )
                     .toList(),
@@ -331,7 +343,7 @@ class CreateBookingsView extends GetView<BookingsController> {
                     .map(
                       (category) => DropdownMenuItem<int>(
                         value: category.id,
-                        child: Text(category.catName ?? 'Unknown'),
+                        child: Text(category.catName),
                       ),
                     )
                     .toList(),
@@ -391,8 +403,9 @@ class CreateBookingsView extends GetView<BookingsController> {
                       label: 'Start Date',
                       hint: 'Select start date',
                       selectedDate: controller.startDate.value,
-                      onDateSelected: (date) =>
-                          controller.startDate.value = date,
+                      onDateSelected: (d) {
+                        if (d != null) controller.onCreateStartDateSelected(d);
+                      },
                       firstDate: DateTime.now(),
                       lastDate: DateTime(2100),
                     ),
@@ -405,8 +418,13 @@ class CreateBookingsView extends GetView<BookingsController> {
                       label: 'End Date',
                       hint: 'Select end date',
                       selectedDate: controller.endDate.value,
-                      onDateSelected: (date) => controller.endDate.value = date,
-                      firstDate: controller.startDate.value ?? DateTime.now(),
+                      onDateSelected: (d) {
+                        if (d != null) controller.onCreateEndDateSelected(d);
+                      },
+                      // Today rather than the start date: the shared picker
+                      // opens on today when no end date is set, which must
+                      // not precede firstDate.
+                      firstDate: DateTime.now(),
                       lastDate: DateTime(2100),
                     ),
                   ),
@@ -465,11 +483,10 @@ class CreateBookingsView extends GetView<BookingsController> {
             const SizedBox(height: 16),
             Obx(
               () => _buildTimePicker(
-                label: 'Preferred Time',
+                label: 'Preferred Time (Optional)',
                 hint: 'Select time',
                 selectedTime: controller.preferredTime.value,
                 onTap: () => controller.selectTime(context),
-                required: true,
               ),
             ),
 
@@ -526,6 +543,253 @@ class CreateBookingsView extends GetView<BookingsController> {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildClientLookup() {
+    return Obx(() {
+      final client = controller.selectedClient.value;
+      if (client != null) {
+        return Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            color: AppColor.whiteColor,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppColor.cPrimaryButtonColor.withValues(alpha: 0.4)),
+          ),
+          child: Row(
+            children: [
+              Icon(Icons.person, color: AppColor.cPrimaryButtonColor),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      (client['name'] as String).isEmpty
+                          ? 'Client #${client['id']}'
+                          : client['name'] as String,
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: AppColor.fontColorBlack,
+                      ),
+                    ),
+                    Text(
+                      'ID ${client['id']} · ${client['phone']}',
+                      style: TextStyle(fontSize: 13, color: AppColor.fontColorGrey),
+                    ),
+                  ],
+                ),
+              ),
+              TextButton(
+                onPressed: controller.clearSelectedClient,
+                child: const Text('Change'),
+              ),
+            ],
+          ),
+        );
+      }
+      return Row(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          Expanded(
+            child: FormTextField(
+              label: 'Client Phone Number',
+              hint: 'Registered mobile number',
+              controller: controller.clientLookupPhoneController,
+              keyboardType: TextInputType.phone,
+              prefixIcon: Icons.search,
+              required: true,
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+            ),
+          ),
+          const SizedBox(width: 12),
+          SizedBox(
+            height: 48,
+            child: ElevatedButton(
+              onPressed: controller.isClientLookupLoading.value
+                  ? null
+                  : controller.lookupClientByPhone,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColor.cPrimaryButtonColor,
+                foregroundColor: AppColor.buttonTextWhite,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              child: controller.isClientLookupLoading.value
+                  ? SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: AppColor.buttonTextWhite,
+                      ),
+                    )
+                  : const Text('Find'),
+            ),
+          ),
+        ],
+      );
+    });
+  }
+
+  Widget _buildAddressSelector() {
+    return Obx(() {
+      if (controller.selectedClientId <= 0) {
+        return _buildDisabledDropdown(
+          label: 'Service Address',
+          hint: 'Select the client first',
+        );
+      }
+      if (controller.isClientAddressesLoading.value) {
+        return const Center(
+          child: Padding(
+            padding: EdgeInsets.all(8.0),
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
+        );
+      }
+      final addresses = controller.clientAddresses;
+      final ids = addresses.map((a) => int.tryParse('${a['id']}') ?? 0).toSet();
+      final selected = controller.selectedAddressId.value;
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (addresses.isEmpty)
+            _buildDisabledDropdown(
+              label: 'Service Address',
+              hint: 'This client has no saved address',
+            )
+          else
+            _buildDropdown<int>(
+              label: 'Service Address',
+              hint: 'Select address',
+              value: ids.contains(selected) ? selected : null,
+              items: addresses
+                  .map((a) => DropdownMenuItem<int>(
+                        value: int.tryParse('${a['id']}') ?? 0,
+                        child: Text(
+                          BookingsController.addressLabel(a),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ))
+                  .toList(),
+              onChanged: (v) => controller.selectedAddressId.value = v ?? 0,
+              required: true,
+            ),
+          TextButton.icon(
+            onPressed: _showAddAddressDialog,
+            icon: const Icon(Icons.add_location_alt_outlined, size: 18),
+            label: const Text('Add new address'),
+          ),
+        ],
+      );
+    });
+  }
+
+  void _showAddAddressDialog() {
+    final tag = TextEditingController();
+    final line1 = TextEditingController();
+    final line2 = TextEditingController();
+    final locality = TextEditingController();
+    final landmark = TextEditingController();
+    final city = TextEditingController();
+    final state = TextEditingController();
+    final country = TextEditingController(text: 'India');
+    final pincode = TextEditingController();
+
+    Get.dialog(
+      Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 520),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildSectionTitle('Add Address'),
+                const SizedBox(height: 16),
+                FormTextField(label: 'Address Tag', hint: 'e.g. Home, Hospital', controller: tag, required: true),
+                const SizedBox(height: 12),
+                FormTextField(label: 'Address Line 1', hint: 'House no, street', controller: line1, required: true),
+                const SizedBox(height: 12),
+                FormTextField(label: 'Address Line 2', hint: 'Area, colony', controller: line2),
+                const SizedBox(height: 12),
+                Row(children: [
+                  Expanded(child: FormTextField(label: 'Locality', hint: 'Locality', controller: locality)),
+                  const SizedBox(width: 12),
+                  Expanded(child: FormTextField(label: 'Landmark', hint: 'Landmark', controller: landmark)),
+                ]),
+                const SizedBox(height: 12),
+                Row(children: [
+                  Expanded(child: FormTextField(label: 'City', hint: 'City', controller: city, required: true)),
+                  const SizedBox(width: 12),
+                  Expanded(child: FormTextField(label: 'State', hint: 'State', controller: state)),
+                ]),
+                const SizedBox(height: 12),
+                Row(children: [
+                  Expanded(child: FormTextField(label: 'Country', hint: 'Country', controller: country)),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: FormTextField(
+                      label: 'Pincode',
+                      hint: 'Pincode',
+                      controller: pincode,
+                      required: true,
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                    ),
+                  ),
+                ]),
+                const SizedBox(height: 20),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(onPressed: () => Get.back(), child: const Text('Cancel')),
+                    const SizedBox(width: 8),
+                    Obx(() => ElevatedButton(
+                          onPressed: controller.isAddAddressLoading.value
+                              ? null
+                              : () async {
+                                  if (tag.text.trim().isEmpty ||
+                                      line1.text.trim().isEmpty ||
+                                      city.text.trim().isEmpty ||
+                                      pincode.text.trim().isEmpty) {
+                                    Get.snackbar('Validation Error',
+                                        'Tag, address line 1, city and pincode are required');
+                                    return;
+                                  }
+                                  final ok = await controller.addClientAddress(
+                                    addressTagName: tag.text.trim(),
+                                    country: country.text.trim(),
+                                    state: state.text.trim(),
+                                    city: city.text.trim(),
+                                    addressLine1: line1.text.trim(),
+                                    addressLine2: line2.text.trim(),
+                                    landmark: landmark.text.trim(),
+                                    locality: locality.text.trim(),
+                                    pincode: pincode.text.trim(),
+                                  );
+                                  if (ok) Get.back();
+                                },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColor.cPrimaryButtonColor,
+                            foregroundColor: AppColor.buttonTextWhite,
+                          ),
+                          child: Text(controller.isAddAddressLoading.value
+                              ? 'Saving...'
+                              : 'Save Address'),
+                        )),
+                  ],
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );

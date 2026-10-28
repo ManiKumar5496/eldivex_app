@@ -5,25 +5,19 @@ import 'package:eldivex_app/app/core/values/text_style_constants.dart';
 import '../../controllers/outstanding_controller.dart';
 import '../../models/outstanding_balance_model.dart';
 import '../../models/transaction_entry_model.dart';
+import '../../models/parse_utils.dart';
+import '../../../../routes/app_pages.dart';
+import '../../../../widgets/helper_ui.dart';
+import '../accounts_format.dart';
 
 class BookingOutstandingDetail extends GetView<OutstandingController> {
   const BookingOutstandingDetail({super.key});
 
   // ─── helpers ───────────────────────────────────────────────────────────────
 
-  String _fmt(double v) => '₹${v.toStringAsFixed(2)}';
+  String _fmt(double v) => formatInr(v);
 
-  String _formatDate(String? raw) {
-    if (raw == null || raw.isEmpty) return '-';
-    try {
-      final dt = DateTime.parse(raw);
-      return '${dt.day.toString().padLeft(2, '0')}/'
-          '${dt.month.toString().padLeft(2, '0')}/'
-          '${dt.year}';
-    } catch (_) {
-      return raw;
-    }
-  }
+  String _formatDate(String? raw) => formatAccDate(raw, pattern: 'dd/MM/yyyy', empty: '-');
 
   Color _typeColor(String type) {
     switch (type.toUpperCase()) {
@@ -48,19 +42,31 @@ class BookingOutstandingDetail extends GetView<OutstandingController> {
 
   @override
   Widget build(BuildContext context) {
-    final args       = Get.arguments as Map<String, dynamic>? ?? {};
-    final bookingId  = (args['booking_id']  as num?)?.toInt() ?? 0;
-    final bookingRef = args['booking_ref']?.toString() ?? 'Bkg #$bookingId';
-    final service    = args['service']?.toString() ?? '';
+    // Arguments are lost on a browser refresh; ?booking_id= survives.
+    final args       = Get.arguments;
+    final bookingId  = toIntOrNull(field(args, 'booking_id')) ??
+        toInt(Get.parameters['booking_id']);
+    final bookingRef = toStrOrNull(field(args, 'booking_ref')) ?? 'Booking #$bookingId';
+    final service    = toStr(field(args, 'service'));
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      controller.selectedBookingId.value = bookingId;
-      controller.loadBookingOutstanding(bookingId);
-      controller.loadLedger();
-    });
+    if (bookingId > 0 && controller.lastBookingRequested != bookingId) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        // The ledger is booking-scoped here; client/date filters don't apply.
+        controller.selectedClientId.value = null;
+        controller.fromDateCtrl.clear();
+        controller.toDateCtrl.clear();
+        controller.selectedBookingId.value = bookingId;
+        controller.loadBookingOutstanding(bookingId);
+        controller.loadLedger();
+      });
+    }
 
     return Scaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => HelperUi.safeBack(Routes.MAIN),
+        ),
         title: Text('Booking Outstanding', style: AppTextStyles.semiBold18),
         centerTitle: false,
         backgroundColor: AppColor.whiteColor,
@@ -73,11 +79,16 @@ class BookingOutstandingDetail extends GetView<OutstandingController> {
       ),
       backgroundColor: AppColor.cAppBackgroundColor,
       body: Obx(() {
+        if (bookingId <= 0) {
+          return recordNotFound(
+              title: 'Booking', onBack: () => HelperUi.safeBack(Routes.MAIN));
+        }
         if (controller.isLoading.value) {
           return const Center(child: CircularProgressIndicator());
         }
 
-        final obs = controller.bookingOutstanding.value;
+        final loaded = controller.bookingOutstanding.value;
+        final obs = loaded?.bookingId == bookingId ? loaded : null;
 
         return SingleChildScrollView(
           padding: const EdgeInsets.all(20),

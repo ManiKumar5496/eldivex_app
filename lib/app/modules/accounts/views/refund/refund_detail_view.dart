@@ -2,10 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:eldivex_app/app/core/values/color_constants.dart';
 import 'package:eldivex_app/app/core/values/text_style_constants.dart';
+import '../../../../routes/app_pages.dart';
+import '../../../../widgets/helper_ui.dart';
 import '../../../../widgets/shimmer_loader.dart';
 import '../../../../widgets/common_textfield.dart';
 import '../../controllers/refund_controller.dart';
+import '../../models/parse_utils.dart';
 import '../../models/refund_model.dart';
+import '../accounts_format.dart';
 
 class RefundDetailView extends GetView<RefundController> {
   const RefundDetailView({super.key});
@@ -13,34 +17,14 @@ class RefundDetailView extends GetView<RefundController> {
   // ── Route argument ──────────────────────────────────────────────────────────
 
   int get _refundId {
-    final args = Get.arguments;
-    if (args is int) return args;
-    return int.tryParse(args?.toString() ?? '') ?? 0;
+    // Arguments are lost on a browser refresh; the ?id= query survives.
+    return toIntOrNull(Get.arguments) ?? toInt(Get.parameters['id']);
   }
 
   // ── Status helpers ──────────────────────────────────────────────────────────
 
-  Color _statusColor(String status) {
-    switch (status) {
-      case 'DRAFT':
-        return AppColor.fontColorGrey;
-      case 'PENDING_APPROVAL':
-        return Colors.orange;
-      case 'APPROVED':
-        return Colors.blue;
-      case 'PROCESSING':
-        return Colors.purple;
-      case 'COMPLETED':
-        return Colors.green;
-      case 'REJECTED':
-        return Colors.red;
-      default:
-        return AppColor.fontColorGrey;
-    }
-  }
-
   Widget _statusBadge(String status) {
-    final color = _statusColor(status);
+    final color = accountsStatusColor(status);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
       decoration: BoxDecoration(
@@ -61,9 +45,12 @@ class RefundDetailView extends GetView<RefundController> {
   @override
   Widget build(BuildContext context) {
     // Trigger load on first paint
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      controller.loadRefundById(_refundId);
-    });
+    final refundId = _refundId;
+    if (refundId > 0 && controller.lastRequestedRefundId != refundId) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        controller.loadRefundById(refundId);
+      });
+    }
 
     return Scaffold(
       backgroundColor: AppColor.cAppBackgroundColor,
@@ -72,7 +59,7 @@ class RefundDetailView extends GetView<RefundController> {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 18),
-          onPressed: () => Get.back(),
+          onPressed: () => HelperUi.safeBack(Routes.MAIN),
           color: AppColor.cPrimaryHeadingColor,
         ),
         title: Text(
@@ -89,11 +76,16 @@ class RefundDetailView extends GetView<RefundController> {
         ),
       ),
       body: Obx(() {
+        if (refundId <= 0) {
+          return recordNotFound(
+              title: 'Refund', onBack: () => HelperUi.safeBack(Routes.MAIN));
+        }
         if (controller.isLoading.value) {
           return const ShimmerLoader.table();
         }
 
-        final refund = controller.selectedRefund.value;
+        final loaded = controller.selectedRefund.value;
+        final refund = loaded?.id == refundId ? loaded : null;
         if (refund == null) {
           return Center(
             child: Column(
@@ -535,7 +527,7 @@ class RefundDetailView extends GetView<RefundController> {
                 icon: Icons.check_circle_outline_rounded,
                 color: Colors.green,
                 onTap: () =>
-                    _showActionDialog(context, r, action: 'APPROVED'),
+                    _showActionDialog(context, r, action: 'Approved'),
               ),
             ),
             const SizedBox(width: 12),
@@ -545,7 +537,7 @@ class RefundDetailView extends GetView<RefundController> {
                 icon: Icons.cancel_outlined,
                 color: Colors.red,
                 onTap: () =>
-                    _showActionDialog(context, r, action: 'REJECTED'),
+                    _showActionDialog(context, r, action: 'Rejected'),
               ),
             ),
           ],
@@ -557,8 +549,8 @@ class RefundDetailView extends GetView<RefundController> {
           icon: Icons.sync_rounded,
           color: Colors.purple,
           onTap: () async {
-            await controller.updateRefundStatus(r.id, 'PROCESSING');
-            controller.loadRefundById(r.id);
+            final ok = await controller.updateRefundStatus(r.id, 'Processing');
+            if (ok) controller.loadRefundById(r.id);
           },
         );
 
@@ -619,7 +611,7 @@ class RefundDetailView extends GetView<RefundController> {
     required String action,
   }) {
     controller.actionNotesCtrl.clear();
-    final isReject = action == 'REJECTED';
+    final isReject = action == 'Rejected';
 
     showDialog(
       context: context,
@@ -680,12 +672,12 @@ class RefundDetailView extends GetView<RefundController> {
                 return;
               }
               Navigator.of(ctx).pop();
-              await controller.updateRefundStatus(
+              final ok = await controller.updateRefundStatus(
                 r.id,
                 action,
                 notes: controller.actionNotesCtrl.text.trim(),
               );
-              controller.loadRefundById(r.id);
+              if (ok) controller.loadRefundById(r.id);
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: isReject ? Colors.red : Colors.green,
@@ -766,13 +758,13 @@ class RefundDetailView extends GetView<RefundController> {
               if (utr.isNotEmpty) dispatchDetails['utr_number'] = utr;
               if (date.isNotEmpty) dispatchDetails['dispatch_date'] = date;
 
-              await controller.updateRefundStatus(
+              final ok = await controller.updateRefundStatus(
                 r.id,
-                'COMPLETED',
+                'Completed',
                 dispatchDetails:
                     dispatchDetails.isNotEmpty ? dispatchDetails : null,
               );
-              controller.loadRefundById(r.id);
+              if (ok) controller.loadRefundById(r.id);
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.green.shade600,
@@ -877,18 +869,8 @@ class RefundDetailView extends GetView<RefundController> {
 
   // ── Helpers ─────────────────────────────────────────────────────────────────
 
-  String _formatDate(String raw) {
-    try {
-      final dt = DateTime.parse(raw);
-      const months = [
-        '', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-        'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
-      ];
-      return '${dt.day.toString().padLeft(2, '0')}-${months[dt.month]}-${dt.year}';
-    } catch (_) {
-      return raw;
-    }
-  }
+  String _formatDate(String raw) =>
+      formatAccDate(raw, pattern: 'dd-MMM-yyyy', empty: raw);
 }
 
 // ── Private data classes ──────────────────────────────────────────────────────

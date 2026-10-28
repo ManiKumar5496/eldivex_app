@@ -15,11 +15,11 @@ class UserRoleAccessModel {
 
   factory UserRoleAccessModel.fromJson(Map<String, dynamic>? json) {
     return UserRoleAccessModel(
-      id: json?['id'] ?? 0,
-      roleName: json?['role_name'] ?? "",
-      accessList: json?['access_list'] ?? "",
-      modules: json?['modules'] ?? "",
-      moduleIds: json?['module_ids'] ?? "",
+      id: int.tryParse('${json?['id'] ?? ''}') ?? 0,
+      roleName: (json?['role_name'] ?? "").toString(),
+      accessList: (json?['access_list'] ?? "").toString(),
+      modules: (json?['modules'] ?? "").toString(),
+      moduleIds: (json?['module_ids'] ?? "").toString(),
     );
   }
 

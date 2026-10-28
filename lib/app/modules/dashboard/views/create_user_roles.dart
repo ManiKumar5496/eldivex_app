@@ -5,6 +5,7 @@ import '../../../core/values/color_constants.dart';
 import '../../../core/values/size_configue.dart';
 import '../../../core/values/text_style_constants.dart';
 import '../../../widgets/common_textfield.dart';
+import '../../../routes/app_pages.dart';
 import '../../../widgets/helper_ui.dart';
 
 class CreateUserRoles extends GetView<DashboardController> {
@@ -13,7 +14,9 @@ class CreateUserRoles extends GetView<DashboardController> {
   @override
   Widget build(BuildContext context) {
     SizeConfig.init(context);
-    Get.put(DashboardController());
+    if (!Get.isRegistered<DashboardController>()) {
+      Get.put(DashboardController());
+    }
     return Scaffold(
       backgroundColor: AppColor.cAppBackgroundColor,
       body: Column(
@@ -50,7 +53,7 @@ class CreateUserRoles extends GetView<DashboardController> {
       child: Row(
         children: [
           IconButton(
-            onPressed: () => Get.back(),
+            onPressed: () => HelperUi.safeBack(Routes.MAIN),
             icon: Icon(
               Icons.arrow_back,
               size: SizeConfig.blockSizeHorizontal * 2,
@@ -193,7 +196,7 @@ class CreateUserRoles extends GetView<DashboardController> {
           SizedBox(height: SizeConfig.blockSizeVertical * 2),
           Obx(() {
             // Show loading indicator while fetching
-            if (controller.getMasterRolesLoading.value) {
+            if (controller.getMasterModuleListLoading.value) {
               return Center(
                 child: Padding(
                   padding:
@@ -218,7 +221,7 @@ class CreateUserRoles extends GetView<DashboardController> {
             }
 
             // Show message if no modules available
-            if (controller.getMasterRolesData.isEmpty) {
+            if (controller.getMasterModuleData.isEmpty) {
               return Center(
                 child: Padding(
                   padding:
@@ -240,7 +243,7 @@ class CreateUserRoles extends GetView<DashboardController> {
                       ),
                       SizedBox(height: SizeConfig.blockSizeVertical * 0.5),
                       TextButton.icon(
-                        onPressed: () => controller.getMasterRoles(),
+                        onPressed: () => controller.getMasterModulesApi(),
                         icon: Icon(Icons.refresh,
                             size: SizeConfig.blockSizeHorizontal * 1.2),
                         label: Text(
@@ -319,7 +322,7 @@ class CreateUserRoles extends GetView<DashboardController> {
         OutlinedButton(
           onPressed: () {
             controller.clearRoleForm();
-            Get.back();
+            HelperUi.safeBack(Routes.MAIN);
           },
           style: OutlinedButton.styleFrom(
             foregroundColor: AppColor.fontColorGrey,

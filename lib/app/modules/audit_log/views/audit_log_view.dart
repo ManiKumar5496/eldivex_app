@@ -119,6 +119,26 @@ class AuditLogView extends GetView<AuditLogController> {
       if (controller.loading.value) {
         return const Center(child: CircularProgressIndicator());
       }
+      if (controller.loadError.value.isNotEmpty) {
+        return Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.error_outline, size: 48, color: AppColor.fontColorGrey),
+              SizedBox(height: SizeConfig.spacingMD),
+              Text(controller.loadError.value,
+                textAlign: TextAlign.center,
+                style: TextStyle(color: AppColor.fontColorGrey, fontSize: SizeConfig.fontBody)),
+              SizedBox(height: SizeConfig.spacingMD),
+              OutlinedButton.icon(
+                onPressed: () => controller.fetchAuditLog(),
+                icon: const Icon(Icons.refresh),
+                label: const Text('Retry'),
+              ),
+            ],
+          ),
+        );
+      }
       if (controller.entries.isEmpty) {
         return Center(
           child: Column(

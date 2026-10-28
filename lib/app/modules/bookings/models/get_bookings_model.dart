@@ -89,6 +89,11 @@ class GetBookingsModel {
   final int? holdTicketOpen;
   final int? cancellationTicketOpen;
 
+  // Patient preferences (only present when getUserBookings selects them).
+  final String? patientLanguages;
+  final String? patientRelation;
+  final int? patientIsStayAlone;
+
   const GetBookingsModel({
     required this.id,
     this.serviceTypeId,
@@ -153,26 +158,29 @@ class GetBookingsModel {
     this.extensionStatus,
     this.holdTicketOpen,
     this.cancellationTicketOpen,
+    this.patientLanguages,
+    this.patientRelation,
+    this.patientIsStayAlone,
   });
 
   factory GetBookingsModel.fromJson(Map<String, dynamic> json) {
     return GetBookingsModel(
-      id: (json['id'] as num?)?.toInt() ?? 0,
-      serviceTypeId: (json['service_type_id'] as num?)?.toInt(),
-      branchId: (json['branch_id'] as num?)?.toInt() ?? 0,
-      userId: (json['user_id'] as num?)?.toInt() ?? 0,
-      patientId: (json['patient_id'] as num?)?.toInt() ?? 0,
-      hpManager: (json['hp_manager'] as num?)?.toInt(),
+      id: _toInt(json['id']) ?? 0,
+      serviceTypeId: _toInt(json['service_type_id']),
+      branchId: _toInt(json['branch_id']) ?? 0,
+      userId: _toInt(json['user_id']) ?? 0,
+      patientId: _toInt(json['patient_id']) ?? 0,
+      hpManager: _toInt(json['hp_manager']),
 
-      couponDiscountId: (json['coupon_discount_id'] as num?)?.toInt(),
+      couponDiscountId: _toInt(json['coupon_discount_id']),
       couponDiscountAppliedValue:
       json['coupon_discount_applied_value']?.toString(),
 
-      addressId: (json['address_id'] as num?)?.toInt() ?? 0,
+      addressId: _toInt(json['address_id']) ?? 0,
 
       patientConditionsOthers:
-      json['patient_conditions_others'] as String?,
-      splCareRequirements: json['spl_care_requirements'] as String?,
+      _str(json['patient_conditions_others']),
+      splCareRequirements: _str(json['spl_care_requirements']),
 
       originalBookingDate: _parseDate(json['original_booking_date']),
       updatedBookingDate: _parseDate(json['updated_booking_date']),
@@ -183,7 +191,7 @@ class GetBookingsModel {
       baseDiscountPercentage: _parseDouble(json['base_discount_percentage']),
       finalRate: _parseDouble(json['final_rate']),
 
-      quantity: (json['quantity'] as num?)?.toInt() ?? 0,
+      quantity: _toInt(json['quantity']) ?? 0,
 
       serviceStartDate: _parseDate(json['service_start_date']),
       serviceEndDate: _parseDate(json['service_end_date']),
@@ -191,63 +199,66 @@ class GetBookingsModel {
       serviceStartTime: json['service_start_time']?.toString() ?? '',
       serviceEndTime: json['service_end_time']?.toString() ?? '',
 
-      placementTime: json['placement_time'] as String?,
+      placementTime: _str(json['placement_time']),
 
       holdStartDate: _parseDate(json['hold_start_date']),
       holdEndDate: _parseDate(json['hold_end_date']),
 
-      splInstructions: json['spl_instructions'] as String?,
-      landmark: json['landmark'] as String?,
+      splInstructions: _str(json['spl_instructions']),
+      landmark: _str(json['landmark']),
 
-      pendingInternalAction: json['pending_internal_action'] as String?,
+      pendingInternalAction: _str(json['pending_internal_action']),
       leadPotential: json['lead_potential']?.toString(),
 
       followupDate: _parseDate(json['followup_date']),
 
       createdOn: _parseDate(json['created_on']),
-      createdBy: (json['created_by'] as num?)?.toInt() ?? 0,
+      createdBy: _toInt(json['created_by']) ?? 0,
 
       updatedOn: _parseDate(json['updated_on']),
-      updatedBy: (json['updated_by'] as num?)?.toInt() ?? 0,
+      updatedBy: _toInt(json['updated_by']) ?? 0,
 
       createdThroughNewWebApp: json['created_through_newwebapp'] == 1 ||
           json['created_through_newwebapp'] == true,
 
       status: json['status']?.toString(),
 
-      userName: json['user_name'] as String?,
-      userMobile: json['user_mobile'] as String?,
-      userEmail: json['user_email'] as String?,
+      userName: _str(json['user_name']),
+      userMobile: _str(json['user_mobile']),
+      userEmail: _str(json['user_email']),
 
       // Address fields
-      addressTagName: json['address_tag_name'] as String?,
-      city: json['city'] as String?,
-      state: json['state'] as String?,
-      country: json['country'] as String?,
-      addressLine1: json['address_line1'] as String?,
-      addressLine2: json['address_line2'] as String?,
-      locality: json['locality'] as String?,
+      addressTagName: _str(json['address_tag_name']),
+      city: _str(json['city']),
+      state: _str(json['state']),
+      country: _str(json['country']),
+      addressLine1: _str(json['address_line1']),
+      addressLine2: _str(json['address_line2']),
+      locality: _str(json['locality']),
       pincode: json['pincode']?.toString(),
 
-      patientName: json['patient_name'] as String?,
-      patientAge: (json['patient_age'] as num?)?.toInt(),
-      patientGender: (json['patient_gender'] as num?)?.toInt(),
+      patientName: _str(json['patient_name']),
+      patientAge: _toInt(json['patient_age']),
+      patientGender: _toInt(json['patient_gender']),
 
-      patientPhoneNumber: json['patient_phone_number'] as String?,
-      patientEmail: json['patient_email'] as String?,
-      patientYob: (json['patient_yob'] as num?)?.toInt(),
+      patientPhoneNumber: _str(json['patient_phone_number']),
+      patientEmail: _str(json['patient_email']),
+      patientYob: _toInt(json['patient_yob']),
       patientWeight: json['patient_weight']?.toString(),
 
-      careManagerName: json['caremanager_name'] as String?,
-      careManagerMobile: json['caremanager_mobile'] as String?,
+      careManagerName: _str(json['caremanager_name']),
+      careManagerMobile: _str(json['caremanager_mobile']),
 
-      branchName: json['branch_name'] as String?,
-      branchCity: json['branch_city'] as String?,
-      serviceName: json['service_name'] as String?,
-      serviceTypeName: json['service_type_name'] as String?,
-      extensionStatus: (json['extension_status'] as num?)?.toInt(),
-      holdTicketOpen: (json['hold_ticket_open'] as num?)?.toInt(),
-      cancellationTicketOpen: (json['cancellation_ticket_open'] as num?)?.toInt(),
+      branchName: _str(json['branch_name']),
+      branchCity: _str(json['branch_city']),
+      serviceName: _str(json['service_name']),
+      serviceTypeName: _str(json['service_type_name']),
+      extensionStatus: _toInt(json['extension_status']),
+      holdTicketOpen: _toInt(json['hold_ticket_open']),
+      cancellationTicketOpen: _toInt(json['cancellation_ticket_open']),
+      patientLanguages: _str(json['patient_languages']),
+      patientRelation: _str(json['patient_relation']),
+      patientIsStayAlone: _toInt(json['patient_is_stay_alone']),
     );
   }
 
@@ -316,6 +327,9 @@ class GetBookingsModel {
       'extension_status': extensionStatus,
       'hold_ticket_open': holdTicketOpen,
       'cancellation_ticket_open': cancellationTicketOpen,
+      'patient_languages': patientLanguages,
+      'patient_relation': patientRelation,
+      'patient_is_stay_alone': patientIsStayAlone,
     };
   }
 
@@ -326,14 +340,32 @@ class GetBookingsModel {
     return DateTime.tryParse(value.toString());
   }
 
+  /// Nullable string; the backend's 'NA' placeholder and blanks become null.
+  static String? _str(dynamic value) {
+    if (value == null) return null;
+    final s = value.toString();
+    final t = s.trim();
+    return (t.isEmpty || t == 'NA') ? null : s;
+  }
+
   static double? _parseDouble(dynamic value) {
     if (value == null) return null;
     return double.tryParse(value.toString());
   }
 
+  // Backend stores omitted numeric fields as the string 'NA' (and other
+  // loosely-typed values). A raw `value as num?` cast throws on those strings,
+  // crashing fromJson and blanking the entire list. Parse defensively instead.
+  static int? _toInt(dynamic value) {
+    if (value == null) return null;
+    if (value is num) return value.toInt();
+    return int.tryParse(value.toString());
+  }
+
   static List<GetBookingsModel> listFromJson(List<dynamic> jsonList) {
     return jsonList
-        .map((e) => GetBookingsModel.fromJson(e as Map<String, dynamic>))
+        .whereType<Map>()
+        .map((e) => GetBookingsModel.fromJson(Map<String, dynamic>.from(e)))
         .toList();
   }
 

@@ -27,12 +27,19 @@ class SaasSubscriptionModel {
         orgId:           json['org_id'] as int? ?? 0,
         planId:          json['plan_id'] as int? ?? 0,
         planName:        json['plan_name']?.toString() ?? '',
-        pricePerMonth:   (json['price_per_month'] as num?)?.toDouble() ?? 0,
+        pricePerMonth:   _toDouble(json['price_per_month']),
         status:          json['status']?.toString() ?? '',
         startedOn:       json['started_on']?.toString() ?? '',
         expiresOn:       json['expires_on']?.toString(),
         activatedByName: json['activated_by_name']?.toString(),
       );
+
+  /// Tolerates DECIMAL columns serialized as String (e.g. "999.00")
+  /// as well as numeric JSON values.
+  static double _toDouble(dynamic v) {
+    if (v is num) return v.toDouble();
+    return double.tryParse(v?.toString() ?? '') ?? 0;
+  }
 
   static List<SaasSubscriptionModel> listFromJson(List<dynamic> list) =>
       list.map((e) => SaasSubscriptionModel.fromJson(e as Map<String, dynamic>)).toList();

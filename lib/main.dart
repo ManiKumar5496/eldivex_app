@@ -6,6 +6,8 @@ import 'package:logger/logger.dart';
 import 'package:toastification/toastification.dart';
 import 'app/core/theme/app_themes.dart';
 import 'app/core/theme/theme_controller.dart';
+import 'app/core/utils/jwt_utils.dart';
+import 'app/core/utils/session_utils.dart';
 import 'app/initial_bindings/initial_bindings.dart';
 import 'app/modules/role/controllers/role_controller.dart';
 import 'app/middleware/auth_middleware.dart';
@@ -35,7 +37,11 @@ class EldivexAdmin extends StatelessWidget {
     // can resolve the organisation, then route into the portal.
     final frag = Uri.base.fragment; // e.g. "/hp?org_id=3"
     final loc = frag.isNotEmpty ? Uri.parse(frag) : Uri.base;
-    if (loc.path.startsWith('/hp')) {
+    // Match whole segments only: `/hp-payouts` and `/client-users` are admin
+    // pages and must not be mistaken for the portals on refresh.
+    bool isPortal(String prefix) =>
+        loc.path == prefix || loc.path.startsWith('$prefix/');
+    if (isPortal('/hp')) {
       final orgId = loc.queryParameters['org_id'];
       final orgSlug = loc.queryParameters['org'];
       if (orgId != null && orgId.isNotEmpty) {
@@ -45,12 +51,16 @@ class EldivexAdmin extends StatelessWidget {
       if (orgSlug != null && orgSlug.isNotEmpty) {
         box.write('hp_org_slug', orgSlug);
       }
-      final hpToken = box.read("hp_token") ?? "";
-      return hpToken.toString().isNotEmpty ? Routes.HP_HOME : Routes.HP_LOGIN;
+      // Mark this device as a caregiver-portal device so reopening the bare
+      // domain (no /#/hp fragment) still routes back to this portal.
+      box.write('last_portal', 'hp');
+      return isValidSessionToken(box.read("hp_token"))
+          ? Routes.HP_HOME
+          : Routes.HP_LOGIN;
     }
 
     // Client portal: shared link `…/#/client?org_id=<id>` (or `?org=<slug>`).
-    if (loc.path.startsWith('/client')) {
+    if (isPortal('/client')) {
       final orgId = loc.queryParameters['org_id'];
       final orgSlug = loc.queryParameters['org'];
       if (orgId != null && orgId.isNotEmpty) {
@@ -59,15 +69,37 @@ class EldivexAdmin extends StatelessWidget {
       if (orgSlug != null && orgSlug.isNotEmpty) {
         box.write('client_org_slug', orgSlug);
       }
-      final clientToken = box.read("client_token") ?? "";
-      return clientToken.toString().isNotEmpty ? Routes.CLIENT_HOME : Routes.CLIENT_LOGIN;
+      box.write('last_portal', 'client');
+      return isValidSessionToken(box.read("client_token"))
+          ? Routes.CLIENT_HOME
+          : Routes.CLIENT_LOGIN;
     }
 
-    final token = box.read("user_token") ?? "";
-    final roleId = box.read("role_id") ?? 0;
-    if (token.toString().isNotEmpty && roleId > 0) {
-      return Routes.MAIN;
+    // No portal path in the URL. Portal users routinely reopen the bare domain
+    // (typed URL, home-screen shortcut, history entry without the query), so
+    // restore whichever portal session is still alive before considering the
+    // admin flow.
+    final session = (box.read('active_session') ?? '').toString();
+    if (session == 'hp' && isValidSessionToken(box.read('hp_token'))) {
+      return Routes.HP_HOME;
     }
+    if (session == 'client' && isValidSessionToken(box.read('client_token'))) {
+      return Routes.CLIENT_HOME;
+    }
+
+    if (isAdminAuthenticated()) {
+      // Admin requests pick their token from active_session.
+      box.write('active_session', 'admin');
+      return adminTermsAccepted() ? Routes.MAIN : Routes.TERMS;
+    }
+
+    // No live session at all. If this device has only ever been used for a
+    // portal (opened a shared link before), send it to that portal's login —
+    // the login screen restores the remembered organisation — instead of
+    // stranding an end user on the admin login.
+    final lastPortal = (box.read('last_portal') ?? '').toString();
+    if (lastPortal == 'hp') return Routes.HP_LOGIN;
+    if (lastPortal == 'client') return Routes.CLIENT_LOGIN;
     return Routes.LOGIN;
   }
 

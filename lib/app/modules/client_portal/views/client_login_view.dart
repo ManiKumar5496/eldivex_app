@@ -11,9 +11,9 @@ class ClientLoginView extends GetView<ClientAuthController> {
 
   @override
   Widget build(BuildContext context) {
-    final phoneCtrl = TextEditingController();
-    final otpCtrl = TextEditingController();
-    final slugCtrl = TextEditingController();
+    final phoneCtrl = controller.phoneCtrl;
+    final otpCtrl = controller.otpCtrl;
+    final slugCtrl = controller.slugCtrl;
 
     return Scaffold(
       backgroundColor: AppColor.cAppBackgroundColor,
@@ -52,7 +52,7 @@ class ClientLoginView extends GetView<ClientAuthController> {
                       ),
                       const SizedBox(height: 12),
                       _btn('Continue', controller.resolvingOrg.value,
-                          () => controller.resolveOrg(slugCtrl.text)),
+                          () => controller.resolveManualEntry(slugCtrl.text)),
                     ] else if (!controller.otpSent.value) ...[
                       TextField(
                         controller: phoneCtrl,
@@ -66,6 +66,9 @@ class ClientLoginView extends GetView<ClientAuthController> {
                       const SizedBox(height: 16),
                       _btn('Send OTP', controller.sendingOtp.value,
                           () => controller.requestOtp(phoneCtrl.text)),
+                      TextButton(
+                          onPressed: controller.changeOrganisation,
+                          child: const Text('Not your organisation? Change')),
                     ] else ...[
                       Text('OTP sent to +91 ${controller.phone.value}',
                           textAlign: TextAlign.center,

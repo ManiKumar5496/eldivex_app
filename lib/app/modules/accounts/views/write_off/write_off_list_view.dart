@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:eldivex_app/app/core/values/color_constants.dart';
 import 'package:eldivex_app/app/core/values/text_style_constants.dart';
+import '../../../../routes/app_pages.dart';
 import '../../../../widgets/shimmer_loader.dart';
 import '../../controllers/write_off_controller.dart';
 import '../../models/write_off_model.dart';
+import '../accounts_format.dart';
 
 class WriteOffListView extends StatefulWidget {
   const WriteOffListView({super.key});
@@ -50,34 +52,6 @@ class _WriteOffListViewState extends State<WriteOffListView> {
     return list;
   }
 
-  Color _statusColor(String status) {
-    switch (status) {
-      case 'Approved':
-        return Colors.green;
-      case 'Rejected':
-        return Colors.red;
-      default:
-        return Colors.orange;
-    }
-  }
-
-  String _formatCurrency(double amount) {
-    return '₹${amount.toStringAsFixed(2)}';
-  }
-
-  String _formatDate(DateTime dt) {
-    return '${dt.day.toString().padLeft(2, '0')}-'
-        '${_monthAbbr(dt.month)}-${dt.year}';
-  }
-
-  String _monthAbbr(int m) {
-    const months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
-    ];
-    return months[m - 1];
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -97,7 +71,7 @@ class _WriteOffListViewState extends State<WriteOffListView> {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: ElevatedButton.icon(
-              onPressed: () => Get.toNamed('/create-write-off'),
+              onPressed: () => Get.toNamed(Routes.CREATE_WRITE_OFF),
               icon: Icon(Icons.add, size: 18, color: AppColor.buttonTextWhite),
               label: Text(
                 'New Write-off',
@@ -210,7 +184,7 @@ class _WriteOffListViewState extends State<WriteOffListView> {
             borderRadius: BorderRadius.circular(12),
             border: Border.all(color: AppColor.divColor),
           ),
-          child: DataTable(
+          child: horizontalTable(DataTable(
             headingRowColor: WidgetStateProperty.all(AppColor.fieldColorGrey),
             headingTextStyle: TextStyle(
               fontWeight: FontWeight.w600,
@@ -231,7 +205,7 @@ class _WriteOffListViewState extends State<WriteOffListView> {
               DataColumn(label: Text('Actions')),
             ],
             rows: rows.map((wo) {
-              final statusColor = _statusColor(wo.status);
+              final statusColor = accountsStatusColor(wo.status);
               return DataRow(cells: [
                 DataCell(Text(
                   '#${wo.id}',
@@ -257,20 +231,21 @@ class _WriteOffListViewState extends State<WriteOffListView> {
                 )),
                 DataCell(Text('#${wo.bookingId}')),
                 DataCell(Text(
-                  _formatCurrency(wo.writeOffAmount),
+                  formatInr(wo.writeOffAmount),
                   style: const TextStyle(
                     fontWeight: FontWeight.w600,
                     color: Colors.red,
                   ),
                 )),
-                DataCell(_typeBadge(wo.serviceName)),
+                DataCell(_typeBadge(wo.writeOffType.isNotEmpty ? humanizeStatus(wo.writeOffType) : '—')),
                 DataCell(_statusBadge(wo.status, statusColor)),
-                DataCell(Text(_formatDate(wo.writeOffDate))),
+                DataCell(Text(formatAccDate(wo.writeOffDate ?? wo.createdOn, pattern: 'dd-MMM-yyyy'))),
                 DataCell(
                   TextButton(
                     onPressed: () => Get.toNamed(
-                      '/write-off-detail',
-                      arguments: {'write_off_id': wo.id},
+                      Routes.WRITE_OFF_DETAIL,
+                      arguments: {'write_off_id': wo.id, 'write_off': wo},
+                      parameters: {'id': '${wo.id}'},
                     ),
                     style: TextButton.styleFrom(
                       foregroundColor: AppColor.cPrimaryButtonColor,
@@ -284,7 +259,7 @@ class _WriteOffListViewState extends State<WriteOffListView> {
                 ),
               ]);
             }).toList(),
-          ),
+          )),
         ),
       );
     });

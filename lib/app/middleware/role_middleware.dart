@@ -2,7 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../modules/role/controllers/role_controller.dart';
 import '../routes/app_pages.dart';
+import '../widgets/helper_ui.dart';
 
+/// Gates an admin route on an RBAC module key (`Billing`, `Settings`, ...).
+///
+/// Never fails open: when the access list is still loading (e.g. a browser
+/// refresh straight onto a guarded page) the page is held behind a spinner
+/// until the list arrives, then either shown or replaced by the dashboard.
 class RoleMiddleware extends GetMiddleware {
   final String requiredAccess;
 
@@ -11,53 +17,58 @@ class RoleMiddleware extends GetMiddleware {
   @override
   int? get priority => 1;
 
+  static void _deny(String module) {
+    debugPrint("🚫 Access denied for: $module");
+    Future.microtask(() => HelperUi.showToast(
+          message: "You do not have access to this page.",
+          backgroundColor: Colors.red,
+        ));
+  }
+
   @override
   RouteSettings? redirect(String? route) {
-    try {
-      // Try to find the RoleController
-      final roles = Get.find<RoleController>();
-
-      debugPrint("🛡️ RoleMiddleware - Checking access for: $requiredAccess");
-
-      // First check authentication
-      if (!roles.isAuthenticated()) {
-        debugPrint("❌ Not authenticated - redirecting to LOGIN");
-        return const RouteSettings(name: Routes.LOGIN);
-      }
-
-      // Check if access list is loaded
-      if (roles.accessList.isEmpty && roles.isRolesLoading.value) {
-        debugPrint("⏳ Access list still loading...");
-        // You might want to show a loading screen here
-        // For now, we'll allow and let the page handle it
-        return null;
-      }
-
-      // Check if user has required access
-      if (!roles.hasAccess(requiredAccess)) {
-        debugPrint("🚫 Access denied for: $requiredAccess");
-
-        // Option 1: Redirect to login
-        return const RouteSettings(name: Routes.LOGIN);
-
-        // Option 2: Redirect to dashboard with snackbar
-        // Get.snackbar(
-        //   'Access Denied',
-        //   'You do not have permission to access this page',
-        //   snackPosition: SnackPosition.TOP,
-        //   backgroundColor: Colors.red,
-        //   colorText: Colors.white,
-        // );
-        // return const RouteSettings(name: Routes.DASHBOARD);
-      }
-
-      debugPrint("✅ Access granted for: $requiredAccess");
-      return null;
-
-    } catch (e) {
-      // RoleController not found - user is definitely not authenticated
-      debugPrint("❌ RoleMiddleware Error: $e - redirecting to LOGIN");
+    if (!Get.isRegistered<RoleController>()) {
       return const RouteSettings(name: Routes.LOGIN);
     }
+    final roles = Get.find<RoleController>();
+
+    if (!roles.isAuthenticated()) {
+      debugPrint("❌ Not authenticated - redirecting to LOGIN");
+      return const RouteSettings(name: Routes.LOGIN);
+    }
+
+    // Not loaded yet: let the page through to onPageBuilt, which waits.
+    if (!roles.accessLoaded.value || roles.isRolesLoading.value) {
+      return null;
+    }
+
+    if (!roles.hasAccess(requiredAccess)) {
+      _deny(requiredAccess);
+      return const RouteSettings(name: Routes.MAIN);
+    }
+    return null;
+  }
+
+  @override
+  Widget onPageBuilt(Widget page) {
+    if (!Get.isRegistered<RoleController>()) return page;
+    final roles = Get.find<RoleController>();
+    if (roles.accessLoaded.value && !roles.isRolesLoading.value) return page;
+
+    if (!roles.isRolesLoading.value) roles.fetchRoleAndAccess();
+    var redirected = false;
+    return Obx(() {
+      if (!roles.accessLoaded.value || roles.isRolesLoading.value) {
+        return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      }
+      if (roles.hasAccess(requiredAccess)) return page;
+      if (!redirected) {
+        redirected = true;
+        _deny(requiredAccess);
+        WidgetsBinding.instance
+            .addPostFrameCallback((_) => Get.offAllNamed(Routes.MAIN));
+      }
+      return const Scaffold(body: SizedBox.shrink());
+    });
   }
 }

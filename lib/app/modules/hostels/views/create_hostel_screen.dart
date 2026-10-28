@@ -140,7 +140,7 @@ class CreateHostelScreen extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(bottom: 14),
       child: Obx(() => DropdownButtonFormField<String>(
-            initialValue: c.gender.value,
+            initialValue: HostelsController.normalizeGenderLabel(c.gender.value),
             decoration: InputDecoration(
               labelText: 'Gender *',
               filled: true,

@@ -10,12 +10,41 @@ import '../../../widgets/shimmer_loader.dart';
 
 class ViewBanners extends GetView<BannersController> {
   const ViewBanners({super.key});
+
+  @override
+  BannersController get controller => Get.isRegistered<BannersController>()
+      ? Get.find<BannersController>()
+      : Get.put(BannersController());
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColor.cAppBackgroundColor,
       body:  Obx(() {
-        if (controller.getAllBannersLoading.value) {
+        if (controller.getAllBannersLoading.value &&
+            controller.allBannersData.value.isEmpty) {
           return Center(child: HelperUi().loader());
+        }
+
+        if (controller.loadError.value.isNotEmpty &&
+            controller.allBannersData.value.isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.error_outline, size: 40, color: AppColor.fontColorGrey),
+                const SizedBox(height: 8),
+                Text(controller.loadError.value,
+                    style: TextStyle(color: AppColor.fontColorGrey)),
+                const SizedBox(height: 8),
+                OutlinedButton.icon(
+                  onPressed: controller.getBannersFromApi,
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('Retry'),
+                ),
+              ],
+            ),
+          );
         }
 
         if (controller.allBannersData.value.isEmpty) {
@@ -30,13 +59,12 @@ class ViewBanners extends GetView<BannersController> {
             ),
           );
         }
-        final banners = controller.allBannersData.value;
+        final banners = controller.filteredBanners;
         final rows = banners.map<DataRow>((banners) {
-          final userId = banners.bannerId.toString();
           return DataRow(
             cells: [
-              DataCell(Text("${banners.bannerName}")),
-              DataCell(Text("${banners.bannerDescription}")),
+              DataCell(Text(banners.bannerName ?? '—')),
+              DataCell(Text(banners.bannerDescription ?? '—')),
               DataCell(
                 InkWell(
                   onTap: () {
@@ -48,13 +76,14 @@ class ViewBanners extends GetView<BannersController> {
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Container(
-                            color: AppColor.cAppBackgroundColor,
+                            color: AppColor.whiteColor,
                             padding: const EdgeInsets.all(16),
                             width: 500,
                             height: 400,
                             child: Column(
                               children: [
-                                Image.network(
+                                Expanded(
+                                  child: Image.network(
                                   banners.bannerImage!,
                                   fit: BoxFit.contain,
                                   errorBuilder: (context, error, stackTrace) {
@@ -62,6 +91,7 @@ class ViewBanners extends GetView<BannersController> {
                                       child: Text("Failed to load image"),
                                     );
                                   },
+                                ),
                                 ),
                                 const SizedBox(height: 10),
                                 Text(
@@ -104,9 +134,11 @@ class ViewBanners extends GetView<BannersController> {
                             [Colors.green[800]!],
                             [Colors.red[800]!]
                           ],
-                          activeFgColor: AppColor.whiteColor,
+                          activeFgColor: AppColor.buttonTextWhite,
                           inactiveBgColor: AppColor.fontColorGrey,
-                          inactiveFgColor: AppColor.whiteColor,
+                          inactiveFgColor: AppColor.buttonTextWhite,
+                          changeOnTap: banners.bannerId != null &&
+                              controller.togglingBannerId.value == null,
                           initialLabelIndex:
                           banners.bannerStatus == 1 ? 0 : 1,
                           totalSwitches: 2,
@@ -114,13 +146,11 @@ class ViewBanners extends GetView<BannersController> {
                           radiusStyle:
                           true, // animate must be set to trut be set to true when using custom curve
                           onToggle: (index) {
-                            //print('switched to: $index');
-                            debugPrint(
-                                "banner ID: ${banners.bannerId}, Make it Visible: $index");
-                            controller.updateBannerStatus(
-                              index == 0 ? 1 : 0,
-                              banners.bannerId!,
-                            );
+                            final id = banners.bannerId;
+                            if (id == null || index == null) return;
+                            final newStatus = index == 0 ? 1 : 0;
+                            if (newStatus == (banners.bannerStatus == 1 ? 1 : 0)) return;
+                            controller.updateBannerStatus(newStatus, id);
                           },
                         ),
                       ),
@@ -128,30 +158,55 @@ class ViewBanners extends GetView<BannersController> {
                   ],
                 ),
               )),
-              //DataCell(Text(user.)),
             ],
           );
         }).toList();
         return Padding(
           padding: const EdgeInsets.all(20.0),
-          child: Obx(
-                () => controller.getAllBannersLoading.value? const ShimmerLoader.table():DataTable2(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                margin: const EdgeInsets.only(bottom: 12),
+                decoration: BoxDecoration(
+                  color: AppColor.whiteColor,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: AppColor.divColor),
+                ),
+                child: TextField(
+                  onChanged: controller.searchBanners,
+                  decoration: InputDecoration(
+                    hintText: 'Search banners by name or description...',
+                    prefixIcon: const Icon(Icons.search),
+                    border: InputBorder.none,
+                    contentPadding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                  ),
+                ),
+              ),
+              Expanded(
+          child: controller.getAllBannersLoading.value
+              ? const ShimmerLoader.table()
+              : DataTable2(
                 bottomMargin: 20,
                 checkboxHorizontalMargin: 12,
                 dividerThickness: 0.5,
                 dataRowHeight: 80,
-                fixedCornerColor: Colors.black,
                 headingTextStyle: TextStyle(
                   fontFamily: "poppins_regular",
                   fontSize: 14,
                   fontWeight: FontWeight.bold,
-                  color: Colors.black,
+                  color: AppColor.fontColorBlack,
+                ),
+                dataTextStyle: TextStyle(
+                  fontFamily: "poppins_regular",
+                  fontSize: 13,
+                  color: AppColor.fontColorBlack,
                 ),
                 showBottomBorder: true,
                 isVerticalScrollBarVisible: true,
                 headingRowColor:
-                WidgetStateProperty.all<Color>(Colors.black12),
-                //dataRowColor: MaterialStateProperty.all<Color>(),
+                WidgetStateProperty.all<Color>(AppColor.fieldColorGrey),
                 decoration: BoxDecoration(
                   color: AppColor.whiteColor,
                   borderRadius: BorderRadius.circular(8),
@@ -188,6 +243,8 @@ class ViewBanners extends GetView<BannersController> {
                   ),
                 ],
                 rows: rows),
+              ),
+            ],
           ),
         );
       }),

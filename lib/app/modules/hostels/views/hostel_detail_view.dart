@@ -47,6 +47,23 @@ class HostelDetailView extends StatelessWidget {
             const SizedBox(height: 8),
             if (c.loadingStays.value)
               const Center(child: Padding(padding: EdgeInsets.all(24), child: CircularProgressIndicator()))
+            else if (c.staysError.value.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(c.staysError.value,
+                          style: TextStyle(color: AppColor.calenderRed)),
+                    ),
+                    TextButton.icon(
+                      onPressed: () => c.fetchStays(h.id),
+                      icon: const Icon(Icons.refresh),
+                      label: const Text('Retry'),
+                    ),
+                  ],
+                ),
+              )
             else if (c.stays.isEmpty)
               Padding(
                 padding: const EdgeInsets.all(16),
@@ -73,7 +90,7 @@ class HostelDetailView extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Wrap(spacing: 24, runSpacing: 12, children: [
-            _kv('Gender', h.gender),
+            _kv('Gender', HostelsController.normalizeGenderLabel(h.gender)),
             _kv('Rate / day', '₹${h.ratePerDay.toStringAsFixed(0)}'),
             _kv('Capacity', h.capacity?.toString() ?? '—'),
             Obx(() => _kv('Occupied', '${c.activeOccupancy}'
@@ -143,8 +160,10 @@ class HostelDetailView extends StatelessWidget {
   // ── Assign CG dialog ─────────────────────────────────────────────────────────
   void _showAssignDialog(HostelsController c) {
     final h = c.selectedHostel.value!;
-    final eligible = c.eligibleCgs(h.gender);
+    final genderLabel = HostelsController.normalizeGenderLabel(h.gender);
     final Rxn<int> selectedCgId = Rxn<int>();
+    // Loads the HP list if empty and refreshes who already has an open stay.
+    c.loadCaregiverPicker();
     final checkInCtrl = TextEditingController(
         text: DateFormat('yyyy-MM-dd').format(DateTime.now()));
 
@@ -158,18 +177,29 @@ class HostelDetailView extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Only ${h.gender} caregivers are listed for this hostel.',
+              Text('Only $genderLabel caregivers without an ongoing hostel stay are listed.',
                   style: TextStyle(fontSize: 12, color: AppColor.fontColorGrey)),
               const SizedBox(height: 12),
-              if (eligible.isEmpty)
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  child: Text('No ${h.gender} caregivers available.',
-                      style: TextStyle(color: AppColor.calenderRed)),
-                )
-              else
-                Obx(() => DropdownButtonFormField<int>(
-                      initialValue: selectedCgId.value,
+              Obx(() {
+                if (c.loadingCgs.value) {
+                  return const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 12),
+                    child: Center(child: CircularProgressIndicator()),
+                  );
+                }
+                final eligible = c.eligibleCgs(h.gender);
+                if (eligible.isEmpty) {
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    child: Text('No $genderLabel caregivers available.',
+                        style: TextStyle(color: AppColor.calenderRed)),
+                  );
+                }
+                final current = eligible.any((cg) => cg.hpRegId == selectedCgId.value)
+                    ? selectedCgId.value
+                    : null;
+                return DropdownButtonFormField<int>(
+                      initialValue: current,
                       isExpanded: true,
                       decoration: const InputDecoration(
                           labelText: 'Caregiver', border: OutlineInputBorder()),
@@ -182,7 +212,8 @@ class HostelDetailView extends StatelessWidget {
                               ))
                           .toList(),
                       onChanged: (v) => selectedCgId.value = v,
-                    )),
+                    );
+              }),
               const SizedBox(height: 12),
               TextField(
                 controller: checkInCtrl,
@@ -237,7 +268,7 @@ class HostelDetailView extends StatelessWidget {
     Get.dialog(
       AlertDialog(
         backgroundColor: AppColor.whiteColor,
-        title: const Text('Check out caregiver'),
+        title: Text('Check out ${s.hpName.isEmpty ? 'caregiver' : s.hpName}?'),
         content: SizedBox(
           width: 360,
           child: TextField(
@@ -261,18 +292,28 @@ class HostelDetailView extends StatelessWidget {
           ),
         ),
         actions: [
-          TextButton(onPressed: Get.back, child: const Text('Cancel')),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColor.cAppPrimaryColor,
-              foregroundColor: AppColor.buttonTextWhite,
-            ),
-            onPressed: () {
-              Get.back();
-              c.closeStay(s, outCtrl.text);
-            },
-            child: const Text('Confirm'),
-          ),
+          Obx(() => TextButton(
+                onPressed: c.isSubmitting.value ? null : Get.back,
+                child: const Text('Cancel'),
+              )),
+          Obx(() => ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColor.cAppPrimaryColor,
+                  foregroundColor: AppColor.buttonTextWhite,
+                ),
+                // Close the dialog only after the server confirms.
+                onPressed: c.isSubmitting.value
+                    ? null
+                    : () async {
+                        final ok = await c.closeStay(s, outCtrl.text);
+                        if (ok && (Get.isDialogOpen ?? false)) Get.back();
+                      },
+                child: c.isSubmitting.value
+                    ? const SizedBox(
+                        width: 16, height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2))
+                    : const Text('Confirm check-out'),
+              )),
         ],
       ),
     );

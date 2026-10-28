@@ -26,13 +26,15 @@ class DashboardShimmer {
     );
   }
 
-  /// Shimmer for DashboardStatsSection (7 stat cards)
-  static Widget statsSection() {
+  /// Shimmer for DashboardStatsSection. [count] matches the number of cards the
+  /// current role will actually render so the placeholder doesn't jump.
+  static Widget statsSection({int count = 7}) {
+    if (count <= 0) return const SizedBox.shrink();
     return _shimmerBase(
       child: Wrap(
         spacing: 20,
         runSpacing: 20,
-        children: List.generate(7, (_) => _statCard()),
+        children: List.generate(count, (_) => _statCard()),
       ),
     );
   }

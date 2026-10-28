@@ -7,6 +7,7 @@ import 'package:eldivex_app/app/routes/app_pages.dart';
 import 'package:eldivex_app/app/modules/dashboard/views/dashboard_stats_widgets/service_distribution_widget.dart';
 import 'package:eldivex_app/app/modules/dashboard/views/dashboard_stats_widgets/top_performing_cities_widget.dart';
 import 'package:eldivex_app/app/modules/dashboard/views/dashboard_stats_widgets/weekly_bookings_widget.dart';
+import 'package:eldivex_app/app/modules/notifications/views/notification_panel.dart';
 import 'package:eldivex_app/app/modules/role/controllers/role_controller.dart';
 import 'package:eldivex_app/app/widgets/helper_ui.dart';
 import '../../../../main.dart';
@@ -37,6 +38,7 @@ class DashboardView extends GetView<DashboardController> {
         children: [
           _buildAppBar(userName, userImage),
           _buildFilterRow(context),
+          _buildErrorBanner(),
           Expanded(
             child: SingleChildScrollView(
               padding: SizeConfig.pagePadding,
@@ -46,62 +48,82 @@ class DashboardView extends GetView<DashboardController> {
                   const DashboardMiniStats(),
                   SizedBox(height: SizeConfig.spacingMD),
                   const DashboardStatsSection(),
-                  SizedBox(height: SizeConfig.spacingLG),
 
-                  /// Charts Section - Responsive Layout
-                  SizeConfig.adaptiveLayout(
-                    mobile: Column(
-                      children: [
-                        const WeeklyBookingsWidget(),
-                        SizedBox(height: SizeConfig.spacingLG),
-                        const ServiceDistributionWidget(),
-                      ],
-                    ),
-                    tablet: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Expanded(child: WeeklyBookingsWidget()),
-                        SizedBox(width: SizeConfig.spacingLG),
-                        const Expanded(child: ServiceDistributionWidget()),
-                      ],
-                    ),
-                  ),
-
-                  SizedBox(height: SizeConfig.spacingLG),
-
-                  /// Performance Section - Responsive Layout
-                  SizeConfig.adaptiveLayout(
-                    mobile: Column(
-                      children: [
-                        TopPerformingCgsWidget(
-                          onViewAll: () => Get.toNamed(Routes.REGISTER_CG),
-                        ),
-                        SizedBox(height: SizeConfig.spacingLG),
-                        const BookingStatusChartWidget(),
-                      ],
-                    ),
-                    tablet: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          child: TopPerformingCgsWidget(
-                            onViewAll: () => Get.toNamed(Routes.REGISTER_CG),
-                          ),
-                        ),
-                        SizedBox(width: SizeConfig.spacingLG),
-                        const Expanded(child: BookingStatusChartWidget()),
-                      ],
-                    ),
-                  ),
-
-                  SizedBox(height: SizeConfig.spacingLG),
-
-                  /// Cities Section
-                  const TopPerformingCitiesWidget(),
+                  /// Analytics (charts + performance + cities), gated per role.
+                  _buildAnalytics(),
                 ],
               ),
             ),
           ),
+        ],
+      ),
+    );
+  }
+
+  /// Charts, performance and cities, each gated by the role module it belongs
+  /// to. Hidden sections leave no gap, and a lone surviving widget in a pair
+  /// spans the full width instead of half.
+  Widget _buildAnalytics() {
+    final roles = Get.find<RoleController>();
+    return Obx(() {
+      roles.accessList.length; // rebuild once role access loads
+      final canBookings = roles.hasAccess('Bookings');
+      final canHp = roles.hasAccess('HP Modules');
+
+      final blocks = <Widget>[];
+
+      // Charts row — both are Bookings analytics.
+      if (canBookings) {
+        blocks.add(_pairLayout(const [
+          WeeklyBookingsWidget(),
+          ServiceDistributionWidget(),
+        ]));
+      }
+
+      // Performance row — Top CGs (HP Modules) + Booking status (Bookings).
+      final perf = <Widget>[
+        if (canHp)
+          TopPerformingCgsWidget(onViewAll: () => Get.toNamed(Routes.REGISTER_CG)),
+        if (canBookings) const BookingStatusChartWidget(),
+      ];
+      if (perf.isNotEmpty) blocks.add(_pairLayout(perf));
+
+      // Cities — Bookings analytics.
+      if (canBookings) blocks.add(const TopPerformingCitiesWidget());
+
+      if (blocks.isEmpty) return const SizedBox.shrink();
+
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          for (final block in blocks) ...[
+            SizedBox(height: SizeConfig.spacingLG),
+            block,
+          ],
+        ],
+      );
+    });
+  }
+
+  /// Lay out one or two analytics widgets responsively: a single widget spans
+  /// full width; a pair stacks on mobile and sits side-by-side on tablet+.
+  Widget _pairLayout(List<Widget> widgets) {
+    if (widgets.isEmpty) return const SizedBox.shrink();
+    if (widgets.length == 1) return widgets.first;
+    return SizeConfig.adaptiveLayout(
+      mobile: Column(
+        children: [
+          widgets[0],
+          SizedBox(height: SizeConfig.spacingLG),
+          widgets[1],
+        ],
+      ),
+      tablet: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(child: widgets[0]),
+          SizedBox(width: SizeConfig.spacingLG),
+          Expanded(child: widgets[1]),
         ],
       ),
     );
@@ -142,27 +164,7 @@ class DashboardView extends GetView<DashboardController> {
             mainAxisSize: MainAxisSize.min,
             children: [
               // Notifications
-              Stack(
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.notifications_none_outlined),
-                    iconSize: SizeConfig.iconMD,
-                    onPressed: () {},
-                  ),
-                  Positioned(
-                    right: 10,
-                    top: 10,
-                    child: Container(
-                      width: 8,
-                      height: 8,
-                      decoration: const BoxDecoration(
-                        color: Colors.green,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+              const NotificationBell(),
 
               // Dark mode toggle
               Builder(builder: (_) {
@@ -433,15 +435,7 @@ class DashboardView extends GetView<DashboardController> {
             SizedBox(
               height: 34,
               child: ElevatedButton(
-                onPressed: () => controller.fetchDashboardStats(
-                  from: controller.dashFrom.value.isEmpty
-                      ? null
-                      : controller.dashFrom.value,
-                  to: controller.dashTo.value.isEmpty
-                      ? null
-                      : controller.dashTo.value,
-                  branchId: controller.filterBranchId.value,
-                ),
+                onPressed: controller.applyCustomRange,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColor.cPrimaryButtonColor,
                   foregroundColor: AppColor.buttonTextWhite,
@@ -503,6 +497,45 @@ class DashboardView extends GetView<DashboardController> {
     ));
   }
 
+  /// Shown when the last stats fetch failed, so stale/zero numbers are not
+  /// mistaken for real data.
+  Widget _buildErrorBanner() {
+    return Obx(() {
+      final err = controller.dashboardError.value;
+      if (err.isEmpty) return const SizedBox.shrink();
+      return Container(
+        width: double.infinity,
+        margin: EdgeInsets.fromLTRB(
+            SizeConfig.spacingMD, SizeConfig.spacingSM, SizeConfig.spacingMD, 0),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: Colors.red.withValues(alpha: 0.08),
+          border: Border.all(color: Colors.red.withValues(alpha: 0.4)),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.error_outline, color: Colors.red, size: 18),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                err,
+                style: TextStyle(
+                  fontSize: SizeConfig.fontCaption,
+                  color: AppColor.fontColorBlack,
+                ),
+              ),
+            ),
+            TextButton(
+              onPressed: () => controller.refreshDashboard(),
+              child: const Text('Retry'),
+            ),
+          ],
+        ),
+      );
+    });
+  }
+
   // ── Quick-range preset chip ─────────────────────────────────────────────────
   Widget _presetChip(String label, String preset) {
     final isActive = controller.activePreset.value == preset;
@@ -554,7 +587,8 @@ class DashboardView extends GetView<DashboardController> {
           lastDate: now,
           builder: (ctx, child) => Theme(
             data: Theme.of(ctx).copyWith(
-              colorScheme: ColorScheme.light(
+              // Keep the ambient (light/dark) scheme; only brand the accent.
+              colorScheme: Theme.of(ctx).colorScheme.copyWith(
                 primary: AppColor.cPrimaryButtonColor,
                 onPrimary: AppColor.buttonTextWhite,
               ),

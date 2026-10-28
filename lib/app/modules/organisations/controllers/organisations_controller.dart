@@ -47,6 +47,10 @@ class OrganisationsController extends GetxController {
   final ApiService _api = ApiService();
 
   final RxList<OrgModel> orgs   = <OrgModel>[].obs;
+  // Owner/super-admin screen: this list legitimately spans ALL orgs, so it is
+  // intentionally NOT org-scoped. The view renders `filteredOrgs`.
+  final RxList<OrgModel> filteredOrgs = <OrgModel>[].obs;
+  final RxString searchQuery    = ''.obs;
   final RxBool loading          = false.obs;
   final RxBool saving           = false.obs;
 
@@ -85,11 +89,31 @@ class OrganisationsController extends GetxController {
         (json) => OrgModel.fromJson(json),
       );
       orgs.value = resp ?? [];
+      _applyOrgFilters();
     } catch (e) {
       HelperUi.showToast(message: 'Failed to load organisations: $e');
     } finally {
       loading.value = false;
     }
+  }
+
+  void searchOrganisations(String query) {
+    searchQuery.value = query;
+    _applyOrgFilters();
+  }
+
+  void _applyOrgFilters() {
+    final q = searchQuery.value.toLowerCase().trim();
+    if (q.isEmpty) {
+      filteredOrgs.value = List.from(orgs);
+      return;
+    }
+    filteredOrgs.value = orgs.where((o) {
+      return o.name.toLowerCase().contains(q) ||
+          o.slug.toLowerCase().contains(q) ||
+          o.email.toLowerCase().contains(q) ||
+          o.publicId.toLowerCase().contains(q);
+    }).toList();
   }
 
   Future<void> createOrganisation() async {

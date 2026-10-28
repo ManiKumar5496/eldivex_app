@@ -75,6 +75,7 @@ class AddUsersView extends GetView<UsersController> {
                       child: CommonTextField(
                         label: 'First Name',
                         hint: 'Enter first name',
+                        isMandatory: true,
                         prefixIcon: Icons.person_outline,
                         controller: controller.firstNameController,
                       ),
@@ -97,6 +98,7 @@ class AddUsersView extends GetView<UsersController> {
                       child: CommonTextField(
                         label: 'Email Address',
                         hint: 'user@example.com',
+                        isMandatory: true,
                         prefixIcon: Icons.email_outlined,
                         controller: controller.emailController,
                         keyboardType: TextInputType.emailAddress,
@@ -106,7 +108,8 @@ class AddUsersView extends GetView<UsersController> {
                     Expanded(
                       child: CommonTextField(
                         label: 'Phone Number',
-                        hint: '+1 (555) 000-0000',
+                        hint: '10-digit mobile, e.g. 9876543210',
+                        isMandatory: true,
                         prefixIcon: Icons.phone_outlined,
                         controller: controller.phoneController,
                         keyboardType: TextInputType.phone,
@@ -115,42 +118,43 @@ class AddUsersView extends GetView<UsersController> {
                   ],
                 ),
                 const SizedBox(height: 20),
-                Row(
-                  children: [
-                    Expanded(
-                      child: CommonTextField(
-                        label: 'User Password',
-                        hint: 'password',
-                        prefixIcon: Icons.person_outline,
-                        controller: controller.userPasswordController.value,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 20),
+                // Password is only set at creation; edits keep the existing one.
+                if (!isEditMode) ...[
+                  CommonTextField(
+                    label: 'User Password',
+                    hint: 'Minimum 8 characters',
+                    prefixIcon: Icons.lock_outline,
+                    isMandatory: true,
+                    controller: controller.userPasswordController.value,
+                  ),
+                  const SizedBox(height: 20),
+                ],
                 Row(
                   children: [
                     Expanded(
                       child: Obx(() {
-                        final roles = controller
-                            .dashboardController
-                            .getMasterRolesData
-                            .value;
+                        final roles =
+                            controller.dashboardController.getMasterRolesData;
+                        final names = roles
+                            .map((e) => e.roleName)
+                            .where((n) => n.isNotEmpty)
+                            .toSet()
+                            .toList();
+                        final current = controller.selectedRole.value;
 
                         return CommonDropdown(
                           label: 'User Role',
                           hint: 'Select Role',
-                          value: controller.selectedRole.value.isEmpty
-                              ? null
-                              : controller.selectedRole.value,
-                          items: roles.map((e) => e.roleName ?? "").toList(),
+                          isMandatory: true,
+                          value: names.contains(current) ? current : null,
+                          items: names,
                           onChanged: (value) {
-                            controller.selectedRole.value = value!;
-                            final matchedRole = roles.firstWhere(
-                              (e) => e.roleName == value,
-                            );
+                            if (value == null) return;
+                            controller.selectedRole.value = value;
+                            final matchedRole = roles
+                                .firstWhereOrNull((e) => e.roleName == value);
                             controller.selectedRoleId.value =
-                                matchedRole.id.toString();
+                                matchedRole?.id.toString() ?? '';
                           },
                         );
                       }),
@@ -181,15 +185,19 @@ class AddUsersView extends GetView<UsersController> {
                 Row(
                   children: [
                     Expanded(
-                      child: Obx(() => CommonDropdown(
+                      child: Obx(() {
+                        final branches = controller
+                            .dashboardController.getAllBranches
+                            .map((e) => e.brName)
+                            .where((n) => n.isNotEmpty)
+                            .toSet()
+                            .toList();
+                        final current = controller.selectedCity.value;
+                        return CommonDropdown(
                         label: 'Branch',
                         hint: 'Select Branch',
-                        value: controller.selectedCity.value.isEmpty
-                            ? null
-                            : controller.selectedCity.value,
-                        items: controller.dashboardController.getAllBranches
-                            .map((e) => e.brName)
-                            .toList(),
+                        value: branches.contains(current) ? current : null,
+                        items: branches,
                         onChanged: (value) {
                           controller.selectedCity.value = value ?? '';
                           final branch = controller.dashboardController
@@ -198,16 +206,10 @@ class AddUsersView extends GetView<UsersController> {
                           controller.selectedBranchIdForUser.value =
                               branch?.brId ?? 0;
                         },
-                      )),
+                      );
+                      }),
                     ),
                   ],
-                ),
-                const SizedBox(height: 20),
-                CommonTextField(
-                  label: 'Bio',
-                  hint: 'Tell us about yourself...',
-                  controller: controller.bioController,
-                  maxLines: 4,
                 ),
 
                 const SizedBox(height: 32),
@@ -233,7 +235,10 @@ class AddUsersView extends GetView<UsersController> {
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
                     OutlinedButton(
-                      onPressed: () => HelperUi.safeBack(Routes.MAIN),
+                      onPressed: () {
+                        controller.clearFilters();
+                        HelperUi.safeBack(Routes.MAIN);
+                      },
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 24,
@@ -245,6 +250,10 @@ class AddUsersView extends GetView<UsersController> {
                     const SizedBox(width: 12),
                     ElevatedButton(
                       onPressed: () {
+                        if (controller.isCreateLoading.value ||
+                            controller.isUpdateLoading.value) {
+                          return;
+                        }
                         if (isEditMode) {
                           controller.updateUser();
                         } else {

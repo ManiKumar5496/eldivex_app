@@ -7,7 +7,6 @@ import 'package:eldivex_app/app/core/values/text_style_constants.dart';
 import 'package:eldivex_app/app/widgets/common_textfield.dart';
 import 'package:eldivex_app/app/widgets/date_picker_common.dart';
 import '../../../widgets/dropdown_common.dart';
-import '../../settings/controllers/settings_controller.dart';
 import '../../settings/models/get_discount_models.dart';
 import '../controllers/bookings_controller.dart';
 import '../../support/views/create_support_ticket.dart';
@@ -30,10 +29,9 @@ class _ManageBookingViewState extends State<ManageBookingView> {
   @override
   void initState() {
     super.initState();
-    if (!Get.isRegistered<BookingsController>()) {
-      Get.put(BookingsController());
-    }
-    controller = Get.find<BookingsController>();
+    controller = Get.isRegistered<BookingsController>()
+        ? Get.find<BookingsController>()
+        : Get.put(BookingsController());
     WidgetsBinding.instance.addPostFrameCallback((_) {
       controller.getBookingsFromApiByBkId(widget.bookingId);
       controller.getHealthProffApi(widget.bookingId);
@@ -294,7 +292,7 @@ class _ManageBookingViewState extends State<ManageBookingView> {
                   ),
                 ),
               ),
-              _buildStatusBadge(booking.status!),
+              _buildStatusBadge(BookingsController.statusLabel(booking.status)),
             ],
           ),
           SizedBox(height: isMobile ? 16 : SizeConfig.blockSizeVertical * 2),
@@ -340,7 +338,7 @@ class _ManageBookingViewState extends State<ManageBookingView> {
                   spacing: 8,
                   runSpacing: 8,
                   children: [
-                    _actionButton('View History', Icons.history, null, AppColor.fontColorGrey, BorderSide(color: AppColor.divColor), () {}),
+                    _actionButton('Rate History', Icons.history, null, AppColor.fontColorGrey, BorderSide(color: AppColor.divColor), _showRateHistoryDialog),
                     Obx(() {
                       if (controller.bookingsByBookingId.value.isEmpty) return const SizedBox.shrink();
                       final bk = controller.bookingsByBookingId.value.first;
@@ -378,9 +376,9 @@ class _ManageBookingViewState extends State<ManageBookingView> {
               : Row(
                   children: [
                     OutlinedButton.icon(
-                      onPressed: () {},
+                      onPressed: _showRateHistoryDialog,
                       icon: Icon(Icons.history, size: SizeConfig.blockSizeHorizontal * 1.4),
-                      label: Text('View History', style: TextStyle(fontSize: SizeConfig.blockSizeHorizontal * 1.1)),
+                      label: Text('Rate History', style: TextStyle(fontSize: SizeConfig.blockSizeHorizontal * 1.1)),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: AppColor.fontColorGrey,
                         side: BorderSide(color: AppColor.divColor),
@@ -710,8 +708,6 @@ class _ManageBookingViewState extends State<ManageBookingView> {
                 },
                 itemBuilder: (_) => [
                   _popupItem('view', Icons.visibility_outlined, 'View', AppColor.fontColorBlack),
-                  _popupItem('edit', Icons.edit_outlined, 'Edit', AppColor.fontColorBlack),
-                  _popupItem('delete', Icons.delete_outline, 'Delete', Colors.red.shade400),
                   _popupItem('release', Icons.logout_outlined, 'Release HP', Colors.orange.shade700),
                 ],
               ),
@@ -853,8 +849,6 @@ class _ManageBookingViewState extends State<ManageBookingView> {
               },
               itemBuilder: (_) => [
                 _popupItem('view', Icons.visibility_outlined, 'View', AppColor.fontColorBlack),
-                _popupItem('edit', Icons.edit_outlined, 'Edit', AppColor.fontColorBlack),
-                _popupItem('delete', Icons.delete_outline, 'Delete', Colors.red.shade400),
                 _popupItem('release', Icons.logout_outlined, 'Release HP', Colors.orange.shade700),
               ],
             ),
@@ -930,90 +924,80 @@ class _ManageBookingViewState extends State<ManageBookingView> {
   }
 
   Widget _buildHPPagination() {
-    final count = controller.currentTabHPs.length;
-    final isMobile = SizeConfig.isMobile;
-
-    if (isMobile) {
-      return Column(
-        children: [
-          Text(
-            'Showing $count of $count health professionals',
-            style: TextStyle(fontSize: 13, color: AppColor.fontColorGrey),
-          ),
-          const SizedBox(height: 10),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              _paginationButton('Previous', () {}),
-              const SizedBox(width: 6),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                decoration: BoxDecoration(color: Colors.blue.shade600, borderRadius: BorderRadius.circular(8)),
-                child: Text('1', style: TextStyle(fontSize: 13, color: AppColor.buttonTextWhite, fontWeight: FontWeight.w600)),
-              ),
-              const SizedBox(width: 6),
-              _paginationButton('Next', () {}),
-            ],
-          ),
-        ],
+    return Obx(() {
+      final count = controller.currentTabHPs.length;
+      return Text(
+        'Showing $count health professional${count == 1 ? '' : 's'}',
+        style: TextStyle(
+          fontSize: SizeConfig.isMobile ? 13 : SizeConfig.blockSizeHorizontal * 1.1,
+          color: AppColor.fontColorGrey,
+        ),
       );
+    });
+  }
+
+  // ─────────────────────────────────────────────
+  // Rate History
+  // ─────────────────────────────────────────────
+  Future<void> _showRateHistoryDialog() async {
+    final isMobile = SizeConfig.isMobile;
+    final rows = await controller.fetchRateHistory(widget.bookingId);
+    if (rows == null || !mounted) return;
+    String fmtDate(dynamic v) {
+      final d = DateTime.tryParse('${v ?? ''}');
+      return d == null ? '-' : DateFormat('dd MMM yyyy').format(d);
     }
 
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          'Showing $count of $count health professionals',
-          style: TextStyle(
-            fontSize: SizeConfig.blockSizeHorizontal * 1.1,
-            color: AppColor.fontColorGrey,
+    Get.dialog(
+      Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: Container(
+          width: isMobile ? double.infinity : SizeConfig.blockSizeHorizontal * 45,
+          constraints: BoxConstraints(maxHeight: Get.height * 0.7),
+          padding: EdgeInsets.all(isMobile ? 16 : SizeConfig.blockSizeHorizontal * 2),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _dialogHeader('Rate History', Icons.history, Colors.blueGrey.shade600),
+              const SizedBox(height: 12),
+              if (rows.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 24),
+                  child: Center(
+                    child: Text('No rate changes recorded for this booking',
+                        style: TextStyle(color: AppColor.fontColorGrey)),
+                  ),
+                )
+              else
+                Flexible(
+                  child: ListView.separated(
+                    shrinkWrap: true,
+                    itemCount: rows.length,
+                    separatorBuilder: (_, __) => Divider(height: 1, color: AppColor.divColor),
+                    itemBuilder: (_, i) {
+                      final r = rows[i];
+                      final by = '${r['changed_by_name'] ?? ''}'.trim();
+                      final reason = '${r['reason'] ?? ''}'.trim();
+                      return ListTile(
+                        dense: true,
+                        contentPadding: EdgeInsets.zero,
+                        title: Text('${r['old_rate'] ?? '-'}  →  ${r['new_rate'] ?? '-'}',
+                            style: const TextStyle(fontWeight: FontWeight.w600)),
+                        subtitle: Text([
+                          'Effective ${fmtDate(r['effective_date'])}',
+                          if (by.isNotEmpty) 'by $by',
+                          if (reason.isNotEmpty && reason != 'NA') reason,
+                        ].join(' · ')),
+                        trailing: Text(fmtDate(r['changed_on']),
+                            style: TextStyle(fontSize: 12, color: AppColor.fontColorGrey)),
+                      );
+                    },
+                  ),
+                ),
+            ],
           ),
         ),
-        Row(
-          children: [
-            _paginationButton('Previous', () {}),
-            SizedBox(width: SizeConfig.blockSizeHorizontal * 0.5),
-            Container(
-              padding: EdgeInsets.symmetric(
-                horizontal: SizeConfig.blockSizeHorizontal * 1.5,
-                vertical: SizeConfig.blockSizeVertical * 1,
-              ),
-              decoration: BoxDecoration(
-                color: Colors.blue.shade600,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(
-                '1',
-                style: TextStyle(
-                  fontSize: SizeConfig.blockSizeHorizontal * 1.1,
-                  color: AppColor.buttonTextWhite,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-            SizedBox(width: SizeConfig.blockSizeHorizontal * 0.5),
-            _paginationButton('Next', () {}),
-          ],
-        ),
-      ],
-    );
-  }
-  Widget _paginationButton(String label, VoidCallback onPressed) {
-    final isMobile = SizeConfig.isMobile;
-    return OutlinedButton(
-      onPressed: onPressed,
-      style: OutlinedButton.styleFrom(
-        foregroundColor: AppColor.fontColorGrey,
-        side: BorderSide(color: AppColor.divColor),
-        padding: EdgeInsets.symmetric(
-          horizontal: isMobile ? 14 : SizeConfig.blockSizeHorizontal * 1.5,
-          vertical: isMobile ? 8 : SizeConfig.blockSizeVertical * 1,
-        ),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(fontSize: isMobile ? 13 : SizeConfig.blockSizeHorizontal * 1.1),
       ),
     );
   }
@@ -1083,8 +1067,7 @@ class _ManageBookingViewState extends State<ManageBookingView> {
           SizedBox(height: isMobile ? 12 : SizeConfig.blockSizeVertical * 2),
 
           Obx(() {
-            final settingsController = Get.find<SettingsController>();
-            final coupons = settingsController.getAllCuponsData.value;
+            final coupons = controller.settingsController.getAllCuponsData.value;
             final selected = controller.selectedCoupon.value;
 
             if (isMobile) {
@@ -1255,8 +1238,12 @@ class _ManageBookingViewState extends State<ManageBookingView> {
                         _showError('Please select new service end date');
                         return;
                       }
-                      final bk = controller.bookingsByBookingId.value.first;
-                      if (bk.serviceEndDate != null &&
+                      if (newEndDate.value!.isBefore(newStartDate.value!)) {
+                        _showError('New end date cannot be before the new start date');
+                        return;
+                      }
+                      final bk = controller.bookingsByBookingId.value.firstOrNull;
+                      if (bk != null && bk.serviceEndDate != null &&
                           newEndDate.value!.isBefore(bk.serviceEndDate!)) {
                         _showError(
                           'New end date must be after current end date',
@@ -1561,7 +1548,7 @@ class _ManageBookingViewState extends State<ManageBookingView> {
               items: managers
                   .map((user) => DropdownMenuItem<int>(
                         value: user.id,
-                        child: Text(user.userName ?? ""),
+                        child: Text(user.userName),
                       ))
                   .toList(),
               onChanged: (value) {

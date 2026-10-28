@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:eldivex_app/app/core/values/color_constants.dart';
 import 'package:get/get.dart';
@@ -28,23 +30,43 @@ class AuditLogEntry {
     required this.createdOn,
   });
 
-  factory AuditLogEntry.fromJson(Map<String, dynamic> json) {
-    Map<String, dynamic>? parseJson(dynamic v) {
-      if (v == null) return null;
-      if (v is Map<String, dynamic>) return v;
-      return null;
-    }
+  static int? _toInt(dynamic v) {
+    if (v == null) return null;
+    if (v is int) return v;
+    if (v is num) return v.toInt();
+    return int.tryParse(v.toString());
+  }
 
+  static String? _toStr(dynamic v) {
+    if (v == null) return null;
+    final s = v.toString();
+    return (s.isEmpty || s == 'NA') ? null : s;
+  }
+
+  /// old_values / new_values arrive as a JSON object or a JSON-encoded string.
+  static Map<String, dynamic>? _toMap(dynamic v) {
+    if (v == null) return null;
+    if (v is Map) return Map<String, dynamic>.from(v);
+    if (v is String && v.trim().startsWith('{')) {
+      try {
+        final decoded = jsonDecode(v);
+        if (decoded is Map) return Map<String, dynamic>.from(decoded);
+      } catch (_) {}
+    }
+    return null;
+  }
+
+  factory AuditLogEntry.fromJson(Map<String, dynamic> json) {
     return AuditLogEntry(
-      id:            (json['id']         as num? ?? 0).toInt(),
-      entityType:     json['entity_type'] as String? ?? '',
-      entityId:      (json['entity_id']  as num?)?.toInt(),
-      action:         json['action']      as String? ?? '',
-      changedBy:     (json['changed_by'] as num?)?.toInt(),
-      changedByName:  json['changed_by_name'] as String?,
-      oldValues:      parseJson(json['old_values']),
-      newValues:      parseJson(json['new_values']),
-      createdOn:      json['created_on'] as String? ?? '',
+      id:            _toInt(json['id']) ?? 0,
+      entityType:    _toStr(json['entity_type']) ?? '',
+      entityId:      _toInt(json['entity_id']),
+      action:        _toStr(json['action']) ?? '',
+      changedBy:     _toInt(json['changed_by']),
+      changedByName: _toStr(json['changed_by_name']),
+      oldValues:     _toMap(json['old_values']),
+      newValues:     _toMap(json['new_values']),
+      createdOn:     _toStr(json['created_on']) ?? '',
     );
   }
 }
@@ -53,6 +75,10 @@ class AuditLogController extends GetxController {
   final ApiService _api = ApiService();
 
   final RxBool  loading          = false.obs;
+  final RxString loadError       = ''.obs;
+  // Incremented per request; a response is applied only if it belongs to the
+  // latest request, so fast paging/filtering never shows stale rows.
+  int _requestSeq = 0;
   final RxList<AuditLogEntry> entries = <AuditLogEntry>[].obs;
 
   // Pagination
@@ -63,12 +89,19 @@ class AuditLogController extends GetxController {
   // Filters
   final RxString filterEntityType = ''.obs;  // '' = All
 
+  // Every entity_type the backend writes via logAudit().
   final List<String> entityTypes = const [
     'BOOKING',
     'HP',
     'SUPPORT_TICKET',
     'SERVICE',
     'BRANCH',
+    'HOSTEL',
+    'HOSTEL_STAY',
+    'HOSTEL_SETTLEMENT',
+    'ORGANISATION',
+    'PLAN',
+    'SAAS_INVOICE',
   ];
 
   @override
@@ -79,29 +112,42 @@ class AuditLogController extends GetxController {
 
   Future<void> fetchAuditLog({bool reset = false}) async {
     if (reset) currentPage.value = 1;
+    final seq = ++_requestSeq;
     loading.value = true;
+    loadError.value = '';
     try {
       final url = ApiConstants.getAuditTrail(
         entityType: filterEntityType.value.isEmpty ? null : filterEntityType.value,
         page:       currentPage.value,
       );
       final response = await _api.getRaw(url);
-      if (response == null || response.statusCode != 200) {
-        debugPrint('[audit_log] fetchAuditLog → ${response?.statusCode}');
+      if (seq != _requestSeq) return; // a newer request superseded this one
+      if (!ApiService.isOk(response) || response!.data is! Map) {
+        loadError.value =
+            ApiService.lastError ?? 'Failed to load the audit log.';
         return;
       }
 
-      final data = response.data as Map<String, dynamic>;
-      totalCount.value = (data['total'] as num? ?? 0).toInt();
+      final data = response.data as Map;
+      totalCount.value = AuditLogEntry._toInt(data['total']) ?? 0;
 
-      final list = data['data'] as List? ?? [];
-      entries.value = list
-          .map((e) => AuditLogEntry.fromJson(e as Map<String, dynamic>))
-          .toList();
+      final list = data['data'] is List ? data['data'] as List : const [];
+      final parsed = <AuditLogEntry>[];
+      for (final e in list) {
+        if (e is! Map) continue;
+        try {
+          parsed.add(AuditLogEntry.fromJson(Map<String, dynamic>.from(e)));
+        } catch (err) {
+          debugPrint('[audit_log] skipped bad row: $err');
+        }
+      }
+      entries.value = parsed;
     } catch (e, st) {
+      if (seq != _requestSeq) return;
       debugPrint('[audit_log] fetchAuditLog error: $e\n$st');
+      loadError.value = 'Failed to load the audit log.';
     } finally {
-      loading.value = false;
+      if (seq == _requestSeq) loading.value = false;
     }
   }
 

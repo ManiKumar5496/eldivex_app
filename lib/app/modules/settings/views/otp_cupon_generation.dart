@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:get_storage/get_storage.dart';
-import 'package:eldivex_app/app/widgets/helper_ui.dart';
 import '../../../core/values/color_constants.dart';
 import '../../../core/values/size_configue.dart';
 import '../../../core/values/text_style_constants.dart';
@@ -10,24 +8,21 @@ import '../controllers/settings_controller.dart';
 class OtpCouponGeneration extends GetView<SettingsController> {
   const OtpCouponGeneration({super.key});
 
+  // Registered once on first access; the form controllers live in the
+  // controller so typed input survives rebuilds.
+  @override
+  SettingsController get controller => Get.isRegistered<SettingsController>()
+      ? Get.find<SettingsController>()
+      : Get.put(SettingsController());
+
   @override
   Widget build(BuildContext context) {
-    final controller = Get.put(SettingsController());
     SizeConfig.init(context);
-
-    final bookingIdController = TextEditingController();
-    final healthWorkerIdController = TextEditingController();
-    final couponNameController = TextEditingController();
-    final discountController = TextEditingController();
-    final maxAmountController = TextEditingController();
-    final basePriceController = TextEditingController();
-    final discountAmountController = TextEditingController();
-    // final finalPriceController = TextEditingController();
 
     return Scaffold(
       backgroundColor: AppColor.cAppBackgroundColor,
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
+        padding: EdgeInsets.all(SizeConfig.isMobile ? 12 : 24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -36,29 +31,12 @@ class OtpCouponGeneration extends GetView<SettingsController> {
             const SizedBox(height: 32),
 
             // Get OTP Section
-            _buildOtpSection(bookingIdController, healthWorkerIdController),
+            _buildOtpSection(),
             const SizedBox(height: 32),
 
             // Create Coupon Section
-            _buildCouponSection(
-              couponNameController,
-              discountController,
-              maxAmountController,
-              basePriceController,
-              discountAmountController,
-            ),
-
-            /// Base Price
+            _buildCouponSection(),
             const SizedBox(height: 20),
-
-            // /// Final Price
-            // _buildInputField(
-            //   label: 'Final Price:',
-            //   controller: finalPriceController,
-            //   hintText: 'Auto Calculated',
-            //   icon: Icons.price_check,
-            //   readOnly: true,
-            // ),
           ],
         ),
       ),
@@ -83,10 +61,9 @@ class OtpCouponGeneration extends GetView<SettingsController> {
     );
   }
 
-  Widget _buildOtpSection(
-    TextEditingController bookingIdController,
-    TextEditingController healthWorkerIdController,
-  ) {
+  Widget _buildOtpSection() {
+    final bookingIdController = controller.bookingIdController;
+    final healthWorkerIdController = controller.hpUniqueIdController;
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -95,7 +72,7 @@ class OtpCouponGeneration extends GetView<SettingsController> {
         border: Border.all(color: AppColor.divColor),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -174,7 +151,9 @@ class OtpCouponGeneration extends GetView<SettingsController> {
             ),
           ),
           const SizedBox(height: 20),
-          Row(
+          Wrap(
+            spacing: 16,
+            runSpacing: 12,
             children: [
               Obx(
                 () => controller.getOtpLoading.value
@@ -185,19 +164,10 @@ class OtpCouponGeneration extends GetView<SettingsController> {
                             bkngId: bookingIdController.text,
                             hpUniqueId: healthWorkerIdController.text,
                           );
-
-                          if (controller.getOtpData.value?.data == null) {
-                            HelperUi.showToast(
-                              message:
-                                  "Failed to generate OTP. Please check the details and try again.",
-                            );
-                          } else {
-                            final otp = controller.getOtpData.value!.data!.otp;
-                            _showOtpDialog(
-                              bookingIdController.text,
-                              healthWorkerIdController.text,
-                              otp.toString(),
-                            );
+                          // getOtpForBooking already toasts once on failure.
+                          final otp = controller.getOtpData.value?.data?.otp;
+                          if (otp != null) {
+                            _showOtpDialog(bookingIdController.text.trim(), otp);
                           }
                         },
                         style: ElevatedButton.styleFrom(
@@ -212,6 +182,7 @@ class OtpCouponGeneration extends GetView<SettingsController> {
                           elevation: 2,
                         ),
                         child: Row(
+                          mainAxisSize: MainAxisSize.min,
                           children: [
                             Icon(
                               Icons.send,
@@ -230,12 +201,8 @@ class OtpCouponGeneration extends GetView<SettingsController> {
                         ),
                       ),
               ),
-              const SizedBox(width: 16),
               OutlinedButton(
-                onPressed: () {
-                  bookingIdController.clear();
-                  healthWorkerIdController.clear();
-                },
+                onPressed: controller.clearOtpForm,
                 style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 32,
@@ -247,6 +214,7 @@ class OtpCouponGeneration extends GetView<SettingsController> {
                   ),
                 ),
                 child: Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(
                       Icons.clear,
@@ -270,13 +238,12 @@ class OtpCouponGeneration extends GetView<SettingsController> {
     );
   }
 
-  Widget _buildCouponSection(
-    TextEditingController couponNameController,
-    TextEditingController discountController,
-    TextEditingController maxAmountController,
-    TextEditingController basePriceController,
-    TextEditingController discountAmountController,
-  ) {
+  Widget _buildCouponSection() {
+    final couponNameController = controller.couponNameController;
+    final discountController = controller.discountPercentController;
+    final maxAmountController = controller.maxDiscountController;
+    final basePriceController = controller.basePriceController;
+    final discountAmountController = controller.discountAmountController;
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -285,7 +252,7 @@ class OtpCouponGeneration extends GetView<SettingsController> {
         border: Border.all(color: AppColor.divColor),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -366,20 +333,28 @@ class OtpCouponGeneration extends GetView<SettingsController> {
             },
           ),
 
-          // const SizedBox(height: 20),
-          //
-          // // Maximum Amount
-          // _buildInputField(
-          //   label: 'Maximum amount:',
-          //   controller: maxAmountController,
-          //   hintText: 'Enter Maximum amount',
-          //   icon: Icons.attach_money,
-          //   keyboardType: TextInputType.number,
-          // ),
+          const SizedBox(height: 20),
+
+          // Maximum discount (sent as discount_upper_limit_value)
+          _buildInputField(
+            label: 'Maximum discount (₹):',
+            controller: maxAmountController,
+            hintText: 'Cap on the discount per booking',
+            icon: Icons.currency_rupee,
+            keyboardType: TextInputType.number,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Base price and discount amount only help you work out the %; '
+            'the coupon stores the % and the maximum discount.',
+            style: AppTextStyles.regular14Gre,
+          ),
           const SizedBox(height: 24),
 
           // Action Buttons
-          Row(
+          Wrap(
+            spacing: 16,
+            runSpacing: 12,
             children: [
               Obx(
                 () => ElevatedButton(
@@ -389,7 +364,7 @@ class OtpCouponGeneration extends GetView<SettingsController> {
                           controller.createDiscountCoupen(
                             couponNameController.text,
                             discountController.text,
-                            discountAmountController.text,
+                            maxAmountController.text,
                           );
                         },
                   style: ElevatedButton.styleFrom(
@@ -412,6 +387,7 @@ class OtpCouponGeneration extends GetView<SettingsController> {
                           ),
                         )
                       : Row(
+                          mainAxisSize: MainAxisSize.min,
                           children: [
                             Icon(
                               Icons.add_circle,
@@ -431,13 +407,8 @@ class OtpCouponGeneration extends GetView<SettingsController> {
                 ),
               ),
 
-              const SizedBox(width: 16),
               OutlinedButton(
-                onPressed: () {
-                  couponNameController.clear();
-                  discountController.clear();
-                  maxAmountController.clear();
-                },
+                onPressed: controller.clearCouponForm,
                 style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 32,
@@ -449,6 +420,7 @@ class OtpCouponGeneration extends GetView<SettingsController> {
                   ),
                 ),
                 child: Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(
                       Icons.clear,
@@ -457,7 +429,7 @@ class OtpCouponGeneration extends GetView<SettingsController> {
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      'clear',
+                      'Clear',
                       style: AppTextStyles.regular16blue.copyWith(
                         fontWeight: FontWeight.w600,
                       ),
@@ -465,7 +437,6 @@ class OtpCouponGeneration extends GetView<SettingsController> {
                   ],
                 ),
               ),
-              const SizedBox(width: 16),
               ElevatedButton(
                 onPressed: () => _showCouponsDialog(),
                 style: ElevatedButton.styleFrom(
@@ -480,6 +451,7 @@ class OtpCouponGeneration extends GetView<SettingsController> {
                   elevation: 2,
                 ),
                 child: Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(Icons.list_alt, color: AppColor.buttonTextWhite, size: 20),
                     const SizedBox(width: 8),
@@ -509,20 +481,14 @@ class OtpCouponGeneration extends GetView<SettingsController> {
     bool readOnly = false,
     Function(String)? onChanged,
   }) {
-    return Row(
-      children: [
-        SizedBox(
-          width: 200,
-          child: Text(
-            label,
-            style: AppTextStyles.regular16blue.copyWith(
-              color: AppColor.blackColor,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ),
-        Expanded(
-          child: TextField(
+    final labelWidget = Text(
+      label,
+      style: AppTextStyles.regular16blue.copyWith(
+        color: AppColor.fontColorBlack,
+        fontWeight: FontWeight.w500,
+      ),
+    );
+    final field = TextField(
             controller: controller,
             keyboardType: keyboardType,
             readOnly: readOnly,
@@ -537,21 +503,23 @@ class OtpCouponGeneration extends GetView<SettingsController> {
                 borderSide: BorderSide(color: AppColor.divColor),
               ),
             ),
-          ),
-        ),
+          );
+    // Label beside the field on wide screens, above it on phones.
+    if (SizeConfig.isMobile) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [labelWidget, const SizedBox(height: 6), field],
+      );
+    }
+    return Row(
+      children: [
+        SizedBox(width: 200, child: labelWidget),
+        Expanded(child: field),
       ],
     );
   }
 
-  void _showOtpDialog(String bookingId, String healthWorkerId, String otpData) {
-    if (bookingId.isEmpty || healthWorkerId.isEmpty) {
-      HelperUi.showToast(message: "Please enter below details");
-      return;
-    }
-
-    // Generate mock OTP
-    final otp = otpData;
-
+  void _showOtpDialog(String bookingId, String otp) {
     Get.dialog(
       Dialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
@@ -568,7 +536,7 @@ class OtpCouponGeneration extends GetView<SettingsController> {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: AppColor.lightGreen.withOpacity(0.1),
+                  color: AppColor.lightGreen.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
@@ -618,8 +586,8 @@ class OtpCouponGeneration extends GetView<SettingsController> {
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: [
-                      AppColor.cPrimaryButtonColor.withOpacity(0.1),
-                      AppColor.cPrimaryButtonColor.withOpacity(0.2),
+                      AppColor.cPrimaryButtonColor.withValues(alpha: 0.1),
+                      AppColor.cPrimaryButtonColor.withValues(alpha: 0.2),
                     ],
                   ),
                   borderRadius: BorderRadius.circular(12),
@@ -645,32 +613,6 @@ class OtpCouponGeneration extends GetView<SettingsController> {
               ),
               const SizedBox(height: 24),
 
-              // Validity Info
-              // Container(
-              //   padding: const EdgeInsets.all(12),
-              //   decoration: BoxDecoration(
-              //     color: Colors.orange.withOpacity(0.1),
-              //     borderRadius: BorderRadius.circular(8),
-              //     border: Border.all(color: Colors.orange.withOpacity(0.3)),
-              //   ),
-              //   child: Row(
-              //     mainAxisSize: MainAxisSize.min,
-              //     children: [
-              //       const Icon(
-              //         Icons.access_time,
-              //         color: Colors.orange,
-              //         size: 20,
-              //       ),
-              //       const SizedBox(width: 8),
-              //       Text(
-              //         'Valid for 10 minutes',
-              //         style: AppTextStyles.regular14black.copyWith(
-              //           color: Colors.orange[800],
-              //         ),
-              //       ),
-              //     ],
-              //   ),
-              // ),
               const SizedBox(height: 32),
 
               // Close Button
@@ -701,30 +643,17 @@ class OtpCouponGeneration extends GetView<SettingsController> {
     );
   }
 
-  Widget _buildCouponDetail(String label, String value) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(label, style: AppTextStyles.regular14Gre),
-        Text(
-          value,
-          style: AppTextStyles.regular16blue.copyWith(
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-      ],
-    );
-  }
-
   void _showCouponsDialog() {
-    final searchController = TextEditingController();
+    final searchController = controller.couponSearchController;
+    searchController.clear();
+    controller.filterCoupons('');
 
     Get.dialog(
       Dialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         child: Container(
           padding: const EdgeInsets.all(24),
-          width: 600,
+          width: SizeConfig.isMobile ? double.infinity : 600,
           decoration: BoxDecoration(
             color: AppColor.whiteColor,
             borderRadius: BorderRadius.circular(20),

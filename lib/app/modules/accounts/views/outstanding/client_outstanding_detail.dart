@@ -4,28 +4,46 @@ import 'package:eldivex_app/app/core/values/color_constants.dart';
 import 'package:eldivex_app/app/core/values/text_style_constants.dart';
 import '../../controllers/outstanding_controller.dart';
 import '../../models/outstanding_balance_model.dart';
+import '../../models/parse_utils.dart';
+import '../../models/active_booking_client_model.dart';
+import '../../../../routes/app_pages.dart';
+import '../../../../widgets/helper_ui.dart';
+import '../accounts_format.dart';
 
 class ClientOutstandingDetail extends GetView<OutstandingController> {
   const ClientOutstandingDetail({super.key});
 
   // ─── helpers ───────────────────────────────────────────────────────────────
 
-  String _fmt(double v) => '₹${v.toStringAsFixed(2)}';
+  String _fmt(double v) => formatInr(v);
 
   // ─── build ─────────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
-    final args       = Get.arguments as Map<String, dynamic>? ?? {};
-    final clientId   = (args['client_id'] as num?)?.toInt() ?? 0;
-    final clientName = args['client_name']?.toString() ?? 'Client';
+    // Arguments are lost on a browser refresh; ?client_id= survives.
+    final args       = Get.arguments;
+    final clientId   = toIntOrNull(field(args, 'client_id')) ??
+        toInt(Get.parameters['client_id']);
+    final clientName = toStrOrNull(field(args, 'client_name')) ?? 'Client #$clientId';
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      controller.loadClientOutstanding(clientId);
-    });
+    if (clientId > 0) {
+      if (controller.activeClients.isEmpty && !controller.isLoading.value) {
+        WidgetsBinding.instance.addPostFrameCallback((_) => controller.loadActiveClients());
+      }
+      if (controller.lastClientRequested != clientId) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          controller.loadClientOutstanding(clientId);
+        });
+      }
+    }
 
     return Scaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => HelperUi.safeBack(Routes.MAIN),
+        ),
         title: Text('Client Outstanding', style: AppTextStyles.semiBold18),
         centerTitle: false,
         backgroundColor: AppColor.whiteColor,
@@ -38,11 +56,17 @@ class ClientOutstandingDetail extends GetView<OutstandingController> {
       ),
       backgroundColor: AppColor.cAppBackgroundColor,
       body: Obx(() {
+        if (clientId <= 0) {
+          return recordNotFound(
+              title: 'Client', onBack: () => HelperUi.safeBack(Routes.MAIN));
+        }
         if (controller.isLoading.value) {
           return const Center(child: CircularProgressIndicator());
         }
 
-        final obs = controller.clientOutstanding.value;
+        final loaded = controller.clientOutstanding.value;
+        final obs = loaded?.clientId == clientId ? loaded : null;
+        final bookings = bookingRowsForUser(controller.activeClients, clientId);
 
         return SingleChildScrollView(
           padding: const EdgeInsets.all(20),
@@ -57,7 +81,7 @@ class ClientOutstandingDetail extends GetView<OutstandingController> {
               ],
               _buildQuickActions(clientId, clientName),
               const SizedBox(height: 24),
-              _buildBookingTable(obs),
+              _buildBookingTable(bookings),
             ],
           ),
         );
@@ -215,7 +239,7 @@ class ClientOutstandingDetail extends GetView<OutstandingController> {
           children: [
             OutlinedButton.icon(
               onPressed: () => Get.toNamed(
-                '/accounts/credit-notes/create',
+                Routes.CREATE_CREDIT_NOTE,
                 arguments: {'client_id': clientId, 'client_name': clientName},
               ),
               icon: const Icon(Icons.note_add_outlined, size: 18),
@@ -229,7 +253,7 @@ class ClientOutstandingDetail extends GetView<OutstandingController> {
             ),
             OutlinedButton.icon(
               onPressed: () => Get.toNamed(
-                '/accounts/write-offs/create',
+                Routes.CREATE_WRITE_OFF,
                 arguments: {'client_id': clientId, 'client_name': clientName},
               ),
               icon: const Icon(Icons.edit_off_outlined, size: 18),
@@ -243,7 +267,7 @@ class ClientOutstandingDetail extends GetView<OutstandingController> {
             ),
             OutlinedButton.icon(
               onPressed: () => Get.toNamed(
-                '/accounts/refunds/create',
+                Routes.CREATE_REFUND,
                 arguments: {'client_id': clientId, 'client_name': clientName},
               ),
               icon: const Icon(Icons.currency_exchange_outlined, size: 18),
@@ -263,12 +287,9 @@ class ClientOutstandingDetail extends GetView<OutstandingController> {
 
   // ─── booking breakdown table ────────────────────────────────────────────────
 
-  Widget _buildBookingTable(OutstandingBalanceModel? obs) {
-    // The active clients list is used to derive per-booking rows when a
-    // client-level model is loaded. In practice the backend may embed bookings
-    // inside the response; here we show placeholders based on available data.
-    final bookings = obs == null ? <Map<String, dynamic>>[] : _extractBookings(obs);
-
+  /// Per-booking rows for this client from getActiveClients
+  /// (invoice totals vs approved receipts).
+  Widget _buildBookingTable(List<dynamic> bookings) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -294,9 +315,7 @@ class ClientOutstandingDetail extends GetView<OutstandingController> {
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: AppColor.divColor),
             ),
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: DataTable(
+            child: horizontalTable(DataTable(
                 headingRowColor: WidgetStateProperty.all(AppColor.fieldColorGrey),
                 headingTextStyle: TextStyle(
                   fontWeight: FontWeight.w600,
@@ -314,20 +333,22 @@ class ClientOutstandingDetail extends GetView<OutstandingController> {
                   DataColumn(label: Text('Outstanding'), numeric: true),
                 ],
                 rows: bookings.map((b) {
-                  final ref         = b['ref']?.toString() ?? '-';
-                  final service     = b['service']?.toString() ?? '-';
-                  final billed      = (b['billed']       as num?)?.toDouble() ?? 0.0;
-                  final paid        = (b['paid']         as num?)?.toDouble() ?? 0.0;
-                  final outstanding = (b['outstanding']  as num?)?.toDouble() ?? (billed - paid);
+                  final bookingId   = toInt(field(b, 'booking_id'), toInt(field(b, 'id')));
+                  final ref         = 'Booking #$bookingId';
+                  final service     = toStr(field(b, 'service_name'), '-');
+                  final billed      = toDouble(field(b, 'total_billed'));
+                  final paid        = toDouble(field(b, 'total_paid'));
+                  final outstanding = toDoubleOrNull(field(b, 'outstanding_amount')) ?? (billed - paid);
 
                   return DataRow(
                     onSelectChanged: (_) => Get.toNamed(
-                      '/accounts/outstanding/booking',
+                      Routes.BOOKING_OUTSTANDING,
                       arguments: {
-                        'booking_id':  b['booking_id'],
+                        'booking_id':  bookingId,
                         'booking_ref': ref,
                         'service':     service,
                       },
+                      parameters: {'booking_id': '$bookingId'},
                     ),
                     cells: [
                       DataCell(Text(ref,
@@ -349,31 +370,10 @@ class ClientOutstandingDetail extends GetView<OutstandingController> {
                     ],
                   );
                 }).toList(),
-              ),
-            ),
+              )),
           ),
       ],
     );
   }
 
-  /// Extracts a flat list of booking maps from the model's embedded data.
-  /// The backend may return `bookings` as a list inside the JSON; here we
-  /// defensively check the raw activeClients list (already loaded) matching
-  /// the client. Extend once the API contract is confirmed.
-  List<Map<String, dynamic>> _extractBookings(OutstandingBalanceModel obs) {
-    // If booking_id is set the model represents a single booking — wrap it.
-    if (obs.bookingId != null) {
-      return [
-        {
-          'booking_id': obs.bookingId,
-          'ref':        'Bkg #${obs.bookingId}',
-          'service':    '-',
-          'billed':     obs.totalBilled,
-          'paid':       obs.totalPaid,
-          'outstanding': obs.outstandingAmount,
-        }
-      ];
-    }
-    return [];
-  }
 }

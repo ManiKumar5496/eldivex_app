@@ -1,3 +1,5 @@
+import 'parse_utils.dart';
+
 class ClientStatement {
   final int id;
   final int userId;
@@ -29,35 +31,30 @@ class ClientStatement {
 
   factory ClientStatement.fromJson(Map<String, dynamic> json) {
     return ClientStatement(
-      id: (json['id'] as num?)?.toInt() ?? 0,
-      userId: (json['user_id'] as num?)?.toInt() ?? 0,
-      bookingId: (json['booking_id'] as num?)?.toInt() ?? 0,
-      clientName: json['client_name']?.toString() ?? '',
-      clientMobile: json['client_mobile']?.toString() ?? '',
-      patientName: json['patient_name']?.toString() ?? '',
-      serviceName: json['service_name']?.toString() ?? '',
-      transactions: (json['transactions'] as List<dynamic>?)
-              ?.map((e) => StatementTransaction.fromJson(e as Map<String, dynamic>))
-              .toList() ??
-          [],
-      totalBilled: double.tryParse(json['total_billed']?.toString() ?? '0') ?? 0,
-      totalReceived: double.tryParse(json['total_received']?.toString() ?? '0') ?? 0,
-      totalWriteOff: double.tryParse(json['total_write_off']?.toString() ?? '0') ?? 0,
-      closingBalance: double.tryParse(json['closing_balance']?.toString() ?? '0') ?? 0,
+      id: toInt(json['id']),
+      userId: toInt(json['user_id']),
+      bookingId: toInt(json['booking_id']),
+      clientName: toStr(json['client_name']),
+      clientMobile: toStr(json['client_mobile']),
+      patientName: toStr(json['patient_name']),
+      serviceName: toStr(json['service_name']),
+      transactions: parseList(json['transactions'], StatementTransaction.fromJson),
+      totalBilled: toDouble(json['total_billed']),
+      totalReceived: toDouble(json['total_received']),
+      totalWriteOff: toDouble(json['total_write_off']),
+      closingBalance: toDouble(json['closing_balance']),
     );
   }
 
   static List<ClientStatement> listFromJson(List<dynamic> jsonList) {
-    return jsonList
-        .map((e) => ClientStatement.fromJson(e as Map<String, dynamic>))
-        .toList();
+    return parseList(jsonList, ClientStatement.fromJson);
   }
 }
 
 class StatementTransaction {
   final int id;
   final int bookingId;
-  final DateTime date;
+  final DateTime? date;
   final String description;
   final String type;
   final double debit;
@@ -68,7 +65,7 @@ class StatementTransaction {
   const StatementTransaction({
     required this.id,
     required this.bookingId,
-    required this.date,
+    this.date,
     required this.description,
     required this.type,
     required this.debit,
@@ -79,15 +76,15 @@ class StatementTransaction {
 
   factory StatementTransaction.fromJson(Map<String, dynamic> json) {
     return StatementTransaction(
-      id:              (json['id'] as num?)?.toInt() ?? 0,
-      bookingId:       (json['booking_id'] as num?)?.toInt() ?? 0,
-      date:            DateTime.tryParse(json['date']?.toString() ?? '') ?? DateTime.now(),
-      description:     json['description']?.toString() ?? '',
-      type:            json['type']?.toString() ?? '',
-      debit:           double.tryParse(json['debit']?.toString() ?? '0') ?? 0,
-      credit:          double.tryParse(json['credit']?.toString() ?? '0') ?? 0,
-      balance:         double.tryParse(json['balance']?.toString() ?? '0') ?? 0,
-      referenceNumber: json['reference_number'] as String?,
+      id:              toInt(json['id']),
+      bookingId:       toInt(json['booking_id']),
+      date:            toDate(json['date']),
+      description:     toStr(json['description']),
+      type:            toStr(json['type']),
+      debit:           toDouble(json['debit']),
+      credit:          toDouble(json['credit']),
+      balance:         toDouble(json['balance']),
+      referenceNumber: toStrOrNull(json['reference_number']),
     );
   }
 }

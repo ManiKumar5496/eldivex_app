@@ -5,6 +5,8 @@ import '../../../data/base_api_services.dart';
 import '../../../widgets/helper_ui.dart';
 import '../models/internal_transfer_model.dart';
 import '../models/outstanding_balance_model.dart';
+import '../models/parse_utils.dart';
+import 'accounts_feedback.dart';
 
 class InternalTransferController extends GetxController {
   // ─────────────────────────────────────────────
@@ -76,7 +78,7 @@ class InternalTransferController extends GetxController {
           transfers.value = [];
         }
       } else {
-        HelperUi.showToast(message: 'Failed to load internal transfers.');
+        toastApiError(response, 'Failed to load internal transfers.');
       }
     } catch (e) {
       HelperUi.showToast(message: 'Error loading transfers: $e');
@@ -93,7 +95,7 @@ class InternalTransferController extends GetxController {
         final data = response.data;
         activeClients.value = data is List ? data : [];
       } else {
-        HelperUi.showToast(message: 'Failed to load clients.');
+        toastApiError(response, 'Failed to load clients.');
       }
     } catch (e) {
       HelperUi.showToast(message: 'Error loading clients: $e');
@@ -121,7 +123,7 @@ class InternalTransferController extends GetxController {
         }
       }
       clientBookings.value = all
-          .where((c) => (c['user_id'] as num?)?.toInt() == clientId)
+          .where((c) => toInt(field(c, 'user_id')) == clientId)
           .toList();
     } catch (e) {
       HelperUi.showToast(message: 'Error loading bookings: $e');
@@ -146,7 +148,7 @@ class InternalTransferController extends GetxController {
           }
         }
       } else {
-        HelperUi.showToast(message: 'Failed to load booking outstanding.');
+        toastApiError(response, 'Failed to load booking outstanding.');
       }
     } catch (e) {
       HelperUi.showToast(message: 'Error loading outstanding: $e');
@@ -176,8 +178,10 @@ class InternalTransferController extends GetxController {
   // ─────────────────────────────────────────────
 
   /// POST /api/createInternalTransfer
-  Future<void> createTransfer() async {
-    if (!_validateCreateForm()) return;
+  /// { client_id (= user_id), source_booking_id, target_booking_id,
+  ///   transfer_amount, transfer_type, reason, notes? }. Returns true on success.
+  Future<bool> createTransfer() async {
+    if (!_validateCreateForm()) return false;
 
     isSubmitting.value = true;
     try {
@@ -194,33 +198,28 @@ class InternalTransferController extends GetxController {
 
       final response = await _api.postRaw(ApiConstants.createInternalTransfer, body);
 
-      if (response != null &&
-          (response.statusCode == 200 || response.statusCode == 201)) {
+      if (isOkResponse(response)) {
         clearForm();
         await loadTransfers();
-        HelperUi.showToast(
-          message: 'Internal transfer created successfully.',
-          backgroundColor: Colors.green,
-        );
-      } else {
-        final msg = response?.data['message'] ??
-            'Failed to create internal transfer. Please try again.';
-        HelperUi.showToast(message: msg);
+        toastSuccess('Internal transfer created and sent for approval.');
+        return true;
       }
+      toastApiError(response, 'Failed to create internal transfer. Please try again.');
     } catch (e) {
       HelperUi.showToast(message: 'Error creating transfer: $e');
     } finally {
       isSubmitting.value = false;
     }
+    return false;
   }
 
   // ─────────────────────────────────────────────
   // Approve / Reject Transfer
   // ─────────────────────────────────────────────
 
-  /// PATCH /api/approveInternalTransfer
-  /// [action] should be 'APPROVE' or 'REJECT'.
-  Future<void> approveTransfer(
+  /// PATCH /api/approveInternalTransfer { transfer_id, action, notes }.
+  /// [action] is 'Approved' or 'Rejected'. Approval completes the transfer.
+  Future<bool> approveTransfer(
     int transferId,
     String action,
     String notes,
@@ -228,32 +227,27 @@ class InternalTransferController extends GetxController {
     isSubmitting.value = true;
     try {
       final body = <String, dynamic>{
-        'transfer_id':    transferId,
-        'action':         action,
-        'approval_notes': notes,
+        'transfer_id': transferId,
+        'action':      action,
+        if (notes.isNotEmpty) 'notes': notes,
       };
 
       final response =
           await _api.patchRaw(ApiConstants.approveInternalTransfer, body);
 
-      if (response != null && response.statusCode == 200) {
+      if (isOkResponse(response)) {
         await loadTransfers();
         approvalNotesCtrl.clear();
-        HelperUi.showToast(
-          message: 'Transfer ${action.toLowerCase()}d successfully.',
-          backgroundColor:
-              action == 'APPROVE' ? Colors.green : Colors.orange,
-        );
-      } else {
-        final msg = response?.data['message'] ??
-            'Failed to ${action.toLowerCase()} transfer.';
-        HelperUi.showToast(message: msg);
+        toastSuccess('Transfer ${action.toLowerCase()} successfully.');
+        return true;
       }
+      toastApiError(response, 'Failed to update transfer.');
     } catch (e) {
-      HelperUi.showToast(message: 'Error: $e');
+      toastValidation('Error: $e');
     } finally {
       isSubmitting.value = false;
     }
+    return false;
   }
 
   // ─────────────────────────────────────────────

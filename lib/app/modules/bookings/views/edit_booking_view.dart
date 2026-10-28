@@ -9,7 +9,7 @@ import '../../../widgets/dropdown_common.dart';
 import '../../../widgets/shimmer_loader.dart';
 import '../controllers/bookings_controller.dart';
 
-class EditBookingView extends GetView<BookingsController> {
+class EditBookingView extends StatefulWidget {
   final int bookingId;
 
   const EditBookingView({
@@ -18,15 +18,29 @@ class EditBookingView extends GetView<BookingsController> {
   });
 
   @override
-  Widget build(BuildContext context) {
-    if (!Get.isRegistered<BookingsController>()) {
-      Get.put(BookingsController());
-    }
-    SizeConfig.init(context);
+  State<EditBookingView> createState() => _EditBookingViewState();
+}
 
+class _EditBookingViewState extends State<EditBookingView> {
+  late final BookingsController controller;
+
+  int get bookingId => widget.bookingId;
+
+  @override
+  void initState() {
+    super.initState();
+    controller = Get.isRegistered<BookingsController>()
+        ? Get.find<BookingsController>()
+        : Get.put(BookingsController());
+    // Fill the form once for this booking, not on every frame.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       controller.loadBookingForEdit(bookingId);
     });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    SizeConfig.init(context);
 
     return Scaffold(
       backgroundColor: AppColor.cAppBackgroundColor,
@@ -245,8 +259,12 @@ class EditBookingView extends GetView<BookingsController> {
               _showEditServiceDialog),
           SizedBox(height: isMobile ? 16 : SizeConfig.blockSizeVertical * 2),
           _responsiveFieldRow([
-            Obx(() => _buildReadonlyDropdown(label: 'Service City', value: controller.selectedBranch.value)),
-            Obx(() => _buildReadonlyDropdown(label: 'Service', value: controller.selectedService.value)),
+            Obx(() => _buildReadonlyDropdown(
+                label: 'Service City',
+                value: controller.bookingsByBookingId.value.firstOrNull?.branchName ?? '')),
+            Obx(() => _buildReadonlyDropdown(
+                label: 'Service',
+                value: controller.bookingsByBookingId.value.firstOrNull?.serviceName ?? '')),
           ]),
           SizedBox(height: isMobile ? 12 : SizeConfig.blockSizeVertical * 1.5),
           _responsiveFieldRow([
@@ -289,8 +307,8 @@ class EditBookingView extends GetView<BookingsController> {
   // ─────────────────────────────────────────────
 
   void _showEditUserDialog() {
-    if (controller.bookingsByBookingId.value.isEmpty) return;
-    final booking = controller.bookingsByBookingId.value.first;
+    final booking = controller.bookingsByBookingId.value.firstOrNull;
+    if (booking == null) return;
     final isMobile = SizeConfig.isMobile;
 
     final nameCtrl = TextEditingController(text: controller.detailUserNameController.text);
@@ -386,8 +404,8 @@ class EditBookingView extends GetView<BookingsController> {
   }
 
   void _showEditPatientDialog() {
-    if (controller.bookingsByBookingId.value.isEmpty) return;
-    final booking = controller.bookingsByBookingId.value.first;
+    final booking = controller.bookingsByBookingId.value.firstOrNull;
+    if (booking == null) return;
     final isMobile = SizeConfig.isMobile;
 
     final nameCtrl = TextEditingController(text: controller.detailPatientNameController.text);
@@ -399,6 +417,8 @@ class EditBookingView extends GetView<BookingsController> {
     final RxString tempGender = RxString(controller.selectedGender.value);
     final RxList<String> tempLanguages = RxList<String>.from(controller.selectedLanguages);
     final RxString tempRelation = RxString(controller.selectedRelation.value);
+    final Rx<bool?> tempStaysAlone = Rx<bool?>(controller.patientStaysAlone.value);
+    if (controller.languagesList.isEmpty) controller.fetchLanguages();
 
     Get.dialog(
       Dialog(
@@ -439,14 +459,17 @@ class EditBookingView extends GetView<BookingsController> {
                       Obx(() => Wrap(
                         spacing: 6,
                         runSpacing: 6,
-                        children: ['English', 'Telugu', 'Hindi', 'Tamil'].map((lang) {
+                        children: controller.languageNames.map((lang) {
                           final selected = tempLanguages.contains(lang);
                           return FilterChip(
                             label: Text(lang, style: TextStyle(fontSize: 12, color: selected ? Colors.blue.shade700 : AppColor.fontColorBlack)),
                             selected: selected,
                             onSelected: (v) {
-                              if (v) tempLanguages.add(lang);
-                              else tempLanguages.remove(lang);
+                              if (v) {
+                                tempLanguages.add(lang);
+                              } else {
+                                tempLanguages.remove(lang);
+                              }
                             },
                             selectedColor: Colors.blue.shade100,
                             checkmarkColor: Colors.blue.shade700,
@@ -463,8 +486,26 @@ class EditBookingView extends GetView<BookingsController> {
                 Obx(() => _buildEditableDropdown(
                   label: 'Relation',
                   value: tempRelation.value,
-                  items: ['Self', 'Son', 'Daughter', 'Spouse', 'Other'],
+                  items: {'Self', 'Son', 'Daughter', 'Spouse', 'Other', tempRelation.value}.toList(),
                   onChanged: (v) => tempRelation.value = v ?? 'Self',
+                )),
+                SizedBox(height: isMobile ? 12 : SizeConfig.blockSizeVertical * 1.5),
+                Text('Patient stays alone?', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColor.fontColorBlack)),
+                const SizedBox(height: 6),
+                Obx(() => Wrap(
+                  spacing: 8,
+                  children: [
+                    ChoiceChip(
+                      label: const Text('Yes'),
+                      selected: tempStaysAlone.value == true,
+                      onSelected: (_) => tempStaysAlone.value = true,
+                    ),
+                    ChoiceChip(
+                      label: const Text('No'),
+                      selected: tempStaysAlone.value == false,
+                      onSelected: (_) => tempStaysAlone.value = false,
+                    ),
+                  ],
                 )),
                 SizedBox(height: isMobile ? 20 : SizeConfig.blockSizeVertical * 2.5),
                 Row(
@@ -480,7 +521,16 @@ class EditBookingView extends GetView<BookingsController> {
                           _showError('Name is required');
                           return;
                         }
-                        // FIX: calls actual API
+                        // updatePatient overwrites every column, so the
+                        // languages and stays-alone flag must be real values.
+                        if (tempLanguages.isEmpty) {
+                          _showError('Select at least one language');
+                          return;
+                        }
+                        if (tempStaysAlone.value == null) {
+                          _showError('Select whether the patient stays alone');
+                          return;
+                        }
                         controller.updatePatient(
                           patientId: booking.patientId,
                           patientName: nameCtrl.text.trim(),
@@ -490,9 +540,9 @@ class EditBookingView extends GetView<BookingsController> {
                           yob: yobCtrl.text.trim(),
                           weight: weightCtrl.text.trim(),
                           gender: tempGender.value,
-                          language: tempLanguages.join(','),
+                          languages: tempLanguages.toList(),
                           relation: tempRelation.value,
-                          isStayAlone: '0',
+                          isStayAlone: tempStaysAlone.value!,
                         );
                       },
                       style: ElevatedButton.styleFrom(
@@ -657,9 +707,14 @@ class EditBookingView extends GetView<BookingsController> {
                           _showError('Pincode is required');
                           return;
                         }
-                        // FIX: calls proper controller method
+                        final bk = controller.bookingsByBookingId.value.firstOrNull;
+                        if (bk == null || bk.userId <= 0) {
+                          _showError('Booking client could not be determined');
+                          return;
+                        }
                         controller.updateAddress(
                           bookingId: bookingId,
+                          clientUserId: bk.userId,
                           addressTagName: tagCtrl.text.trim(),
                           country: countryCtrl.text.trim(),
                           state: stateCtrl.text.trim(),
@@ -741,6 +796,10 @@ class EditBookingView extends GetView<BookingsController> {
                           : () {
                         if (tempStart.value == null || tempEnd.value == null) {
                           _showError('Please select both start and end dates');
+                          return;
+                        }
+                        if (tempEnd.value!.isBefore(tempStart.value!)) {
+                          _showError('End date cannot be before the start date');
                           return;
                         }
                         if (tempStartTime.value == null || tempEndTime.value == null) {

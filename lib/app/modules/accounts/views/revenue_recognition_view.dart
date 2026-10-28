@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:intl/intl.dart';
 import 'package:eldivex_app/app/core/values/color_constants.dart';
 import 'package:eldivex_app/app/core/values/text_style_constants.dart';
 import 'package:eldivex_app/app/core/values/size_configue.dart';
 import '../controllers/accounts_controller.dart';
+import 'accounts_format.dart';
 
 class RevenueRecognitionView extends GetView<AccountsController> {
   const RevenueRecognitionView({super.key});
@@ -16,11 +16,14 @@ class RevenueRecognitionView extends GetView<AccountsController> {
       Get.put(AccountsController());
     }
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (controller.mrr.value == 0 && !controller.isLoadingRevenue.value) {
+    // Auto-fetch once; later loads come from the Refresh buttons. (Checking
+    // mrr == 0 here refetched on every rebuild for orgs with no revenue.)
+    if (!controller.revenueRequested) {
+      controller.revenueRequested = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
         controller.fetchRevenueRecognition();
-      }
-    });
+      });
+    }
 
     return Scaffold(
       backgroundColor: AppColor.fieldColorGrey,
@@ -579,10 +582,7 @@ class RevenueRecognitionView extends GetView<AccountsController> {
     );
   }
 
-  String _fmt(double v) {
-    final f = NumberFormat.currency(locale: 'en_IN', symbol: '₹');
-    return f.format(v);
-  }
+  String _fmt(double v) => formatInr(v);
 
   String _fmtShort(double v) {
     if (v >= 10000000) return '₹${(v / 10000000).toStringAsFixed(1)}Cr';

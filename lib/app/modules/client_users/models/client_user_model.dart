@@ -45,31 +45,49 @@ class ClientUserModel {
 
   factory ClientUserModel.fromJson(Map<String, dynamic> json) {
     return ClientUserModel(
-      id: json['id'] as int?,
-      deviceId: json['device_id'] as String?,
-      userToken: json['user_token'] as String?,
-      userImage: json['user_image'] as String?,
-      phoneNumber: json['phone_number'] as String?,
-      status: json['status'] as int?,
-      createdOn: json['created_on'] != null
-          ? DateTime.tryParse(json['created_on'])
-          : null,
-      createdBy: json['created_by'] as int?,
-      updatedOn: json['updated_on'] != null
-          ? DateTime.tryParse(json['updated_on'])
-          : null,
-      updatedBy: json['updated_by'] as int?,
-      userName: json['user_name'] as String?,
-      userLocation: json['user_location'] as String?,
-      userEmail: json['user_email'] as String?,
-      userGender: json['user_gender'] as int?,
-      isNewUserFlag: json['is_new_user_flag'] as int?,
-      userServiceCity: json['user_service_city'] as int?,
-      userSource: json['user_source'] as int?,
-      enquiredFor: json['enquired_for'] as int?,
-      leadPotential: json['lead_potential'] as int?,
-      enquiredForOther: json['enquired_for_other'] as String?,
+      id: _toIntOrNull(json['id']),
+      deviceId: _toStrOrNull(json['device_id']),
+      userToken: _toStrOrNull(json['user_token']),
+      userImage: _toStrOrNull(json['user_image']),
+      phoneNumber: _toStrOrNull(json['phone_number']),
+      status: _toIntOrNull(json['status']),
+      createdOn: _toDate(json['created_on']),
+      createdBy: _toIntOrNull(json['created_by']),
+      updatedOn: _toDate(json['updated_on']),
+      updatedBy: _toIntOrNull(json['updated_by']),
+      userName: _toStrOrNull(json['user_name']),
+      userLocation: _toStrOrNull(json['user_location']),
+      userEmail: _toStrOrNull(json['user_email']),
+      userGender: _toIntOrNull(json['user_gender']),
+      isNewUserFlag: _toIntOrNull(json['is_new_user_flag']),
+      userServiceCity: _toIntOrNull(json['user_service_city']),
+      userSource: _toIntOrNull(json['user_source']),
+      enquiredFor: _toIntOrNull(json['enquired_for']),
+      leadPotential: _toIntOrNull(json['lead_potential']),
+      enquiredForOther: _toStrOrNull(json['enquired_for_other']),
     );
+  }
+
+  /// Backend columns are loosely typed — numeric fields (user_gender,
+  /// user_service_city, user_source, enquired_for, lead_potential, status…)
+  /// are varchar in the DB and come back as numeric strings ("1") or the
+  /// literal "NA". A hard `as int?` cast throws on those, which made
+  /// fromJson throw and getList swallow the error → the whole client list
+  /// silently rendered empty. Parse defensively so one odd value never
+  /// blanks the list.
+  static int? _toIntOrNull(dynamic v) {
+    if (v == null) return null;
+    if (v is int) return v;
+    if (v is num) return v.toInt();
+    if (v is String) return int.tryParse(v);
+    return null;
+  }
+
+  static String? _toStrOrNull(dynamic v) => v?.toString();
+
+  static DateTime? _toDate(dynamic v) {
+    if (v == null) return null;
+    return DateTime.tryParse(v.toString());
   }
 
   Map<String, dynamic> toJson() {

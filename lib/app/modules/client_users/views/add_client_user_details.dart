@@ -6,28 +6,61 @@ import 'package:eldivex_app/app/routes/app_pages.dart';
 import '../../../core/values/color_constants.dart';
 import '../../../core/values/size_configue.dart';
 import '../../../widgets/dropdown_common.dart';
+import '../../../widgets/helper_ui.dart';
 import '../controllers/client_users_controller.dart';
 
-class AddClientUserDetails extends GetView<ClientUsersController> {
+class AddClientUserDetails extends StatefulWidget {
   const AddClientUserDetails({super.key});
+
+  @override
+  State<AddClientUserDetails> createState() => _AddClientUserDetailsState();
+}
+
+class _AddClientUserDetailsState extends State<AddClientUserDetails> {
+  ClientUsersController get controller =>
+      Get.isRegistered<ClientUsersController>()
+          ? Get.find<ClientUsersController>()
+          : Get.put(ClientUsersController());
+
+  int userId = 0;
+  bool isNewUser = true;
+
+  @override
+  void initState() {
+    super.initState();
+    // ── Arguments from addUserClient() / editClient():
+    // {userId, isNewUser, phoneNumber, countryCode?, isEdit?}
+    // Read once here (not in build) so typing is never overwritten.
+    final raw = Get.arguments;
+    final args = raw is Map ? Map<String, dynamic>.from(raw) : <String, dynamic>{};
+    userId = int.tryParse(args['userId']?.toString() ?? '') ?? 0;
+    final flag = args['isNewUser'];
+    isNewUser = flag is bool ? flag : flag?.toString() != '0' && flag?.toString() != 'false';
+    controller.openDetailsForm(args);
+  }
 
   @override
   Widget build(BuildContext context) {
     SizeConfig.init(context);
-    Get.put(ClientUsersController());
 
-    // ── Read arguments passed from CreateClientUser → addUserClient()
-    // Sent as: Get.toNamed(Routes.addClientDetails,
-    //           arguments: {"userId": userId, "isNewUser": isNewUser})
-    final args = Get.arguments as Map<String, dynamic>? ?? {};
-    final int userId = args['userId'] ?? 0;
-    final bool isNewUser = args['isNewUser'] ?? true;
-    final String phoneNumber = args['phoneNumber'] ?? '';
-
-    // Set phone number from previous screen and fetch user details
-    if (phoneNumber.isNotEmpty) {
-      controller.clientPhoneController.text = phoneNumber.replaceAll('+91', '');
-      controller.fetchUserDetailsByPhone(phoneNumber.replaceAll('+91', ''));
+    if (userId == 0) {
+      return Scaffold(
+        backgroundColor: AppColor.cAppBackgroundColor,
+        body: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('No client selected',
+                  style: TextStyle(color: AppColor.fontColorGrey)),
+              const SizedBox(height: 12),
+              OutlinedButton(
+                onPressed: () => HelperUi.safeBack(Routes.MAIN),
+                child: const Text('Back'),
+              ),
+            ],
+          ),
+        ),
+      );
     }
 
     return Scaffold(
@@ -41,12 +74,14 @@ class AddClientUserDetails extends GetView<ClientUsersController> {
             Row(
               children: [
                 IconButton(
-                  onPressed: () => Get.offAllNamed(Routes.MAIN),
-                  icon: const Icon(Icons.arrow_back_ios),
+                  onPressed: () => HelperUi.safeBack(Routes.MAIN),
+                  icon: Icon(Icons.arrow_back_ios, color: AppColor.fontColorBlack),
                 ),
                 SizedBox(width: SizeConfig.spacingXS),
                 Text(
-                  'Add Client Details',
+                  controller.isEditMode.value
+                      ? 'Edit Client Details'
+                      : 'Add Client Details',
                   style: TextStyle(
                     fontSize: SizeConfig.fontH1,
                     fontWeight: FontWeight.bold,
@@ -89,8 +124,7 @@ class AddClientUserDetails extends GetView<ClientUsersController> {
                     SizedBox(height: SizeConfig.spacingXS),
                     _buildPhoneField(),
                     SizedBox(height: SizeConfig.spacingMD),
-                    _buildLabel('Email',
-                        hint: 'Multiple emails separated by commas, no spaces.'),
+                    _buildLabel('Email', hint: 'optional, single address'),
                     SizedBox(height: SizeConfig.spacingXS),
                     _buildTextField(
                       ctrl: controller.clientEmailController,
@@ -117,8 +151,7 @@ class AddClientUserDetails extends GetView<ClientUsersController> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          _buildLabel('Email',
-                              hint: 'Multiple emails separated by commas, no spaces.'),
+                          _buildLabel('Email', hint: 'optional, single address'),
                           SizedBox(height: SizeConfig.spacingXS),
                           _buildTextField(
                             ctrl: controller.clientEmailController,
@@ -232,7 +265,7 @@ class AddClientUserDetails extends GetView<ClientUsersController> {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColor.cPrimaryButtonColor,
                         disabledBackgroundColor:
-                        AppColor.cPrimaryButtonColor.withOpacity(0.6),
+                        AppColor.cPrimaryButtonColor.withValues(alpha: 0.6),
                         padding: EdgeInsets.symmetric(
                           horizontal: SizeConfig.isMobile
                               ? SizeConfig.spacingXL
@@ -295,7 +328,7 @@ class AddClientUserDetails extends GetView<ClientUsersController> {
         border: Border.all(color: AppColor.divColor),
         boxShadow: [
           BoxShadow(
-              color: Colors.black.withOpacity(0.04),
+              color: Colors.black.withValues(alpha: 0.04),
               blurRadius: 8,
               offset: const Offset(0, 2)),
         ],
@@ -380,26 +413,6 @@ class AddClientUserDetails extends GetView<ClientUsersController> {
     );
   }
 
-  static const List<Map<String, String>> _countryCodes = [
-    {'code': '+91', 'flag': '🇮🇳'},
-    {'code': '+1', 'flag': '🇺🇸'},
-    {'code': '+44', 'flag': '🇬🇧'},
-    {'code': '+971', 'flag': '🇦🇪'},
-    {'code': '+65', 'flag': '🇸🇬'},
-    {'code': '+61', 'flag': '🇦🇺'},
-    {'code': '+49', 'flag': '🇩🇪'},
-    {'code': '+33', 'flag': '🇫🇷'},
-    {'code': '+81', 'flag': '🇯🇵'},
-    {'code': '+86', 'flag': '🇨🇳'},
-    {'code': '+966', 'flag': '🇸🇦'},
-    {'code': '+974', 'flag': '🇶🇦'},
-    {'code': '+968', 'flag': '🇴🇲'},
-    {'code': '+60', 'flag': '🇲🇾'},
-    {'code': '+977', 'flag': '🇳🇵'},
-    {'code': '+94', 'flag': '🇱🇰'},
-    {'code': '+880', 'flag': '🇧🇩'},
-  ];
-
   Widget _buildPhoneField() {
     return Row(
       children: [
@@ -416,7 +429,7 @@ class AddClientUserDetails extends GetView<ClientUsersController> {
           ),
           child: DropdownButtonHideUnderline(
             child: DropdownButton<String>(
-              value: controller.selectedCountryCode.value,
+              value: controller.detailsCountryCode.value,
               icon: Icon(Icons.arrow_drop_down,
                   size: SizeConfig.iconSM, color: AppColor.fontColorGrey),
               style: TextStyle(
@@ -424,7 +437,7 @@ class AddClientUserDetails extends GetView<ClientUsersController> {
                   fontWeight: FontWeight.w600,
                   color: AppColor.fontColorBlack,
                   fontFamily: "poppins_regular"),
-              items: _countryCodes
+              items: ClientUsersController.countryCodes
                   .map((cc) => DropdownMenuItem<String>(
                         value: cc['code'],
                         child: Text('${cc['flag']} ${cc['code']}',
@@ -434,7 +447,7 @@ class AddClientUserDetails extends GetView<ClientUsersController> {
                       ))
                   .toList(),
               onChanged: (v) {
-                if (v != null) controller.selectedCountryCode.value = v;
+                if (v != null) controller.detailsCountryCode.value = v;
               },
             ),
           ),
@@ -451,7 +464,7 @@ class AddClientUserDetails extends GetView<ClientUsersController> {
             style: TextStyle(
                 fontSize: SizeConfig.fontBody, fontFamily: "poppins_regular"),
             decoration: InputDecoration(
-              hintText: 'Enter phone number',
+              hintText: 'e.g. 9876543210',
               hintStyle: TextStyle(
                   fontSize: SizeConfig.fontBody, color: AppColor.lightGrey),
               filled: true,

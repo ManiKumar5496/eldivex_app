@@ -1,3 +1,5 @@
+import 'parse_utils.dart';
+
 /// InsuranceClaimModel — TPA/insurance claim linked to a booking.
 class InsuranceClaimModel {
   final int id;
@@ -38,25 +40,25 @@ class InsuranceClaimModel {
 
   factory InsuranceClaimModel.fromJson(Map<String, dynamic> json) {
     return InsuranceClaimModel(
-      id:             (json['id'] as num?)?.toInt() ?? 0,
-      bookingId:      (json['booking_id'] as num?)?.toInt() ?? 0,
-      userId:         json['user_id'],
-      tpaName:        json['tpa_name'],
-      policyNumber:   json['policy_number'],
-      preAuthNumber:  json['pre_auth_number'],
-      claimAmount:    json['claim_amount'] != null ? double.tryParse(json['claim_amount'].toString()) : null,
-      settledAmount:  json['settled_amount'] != null ? double.tryParse(json['settled_amount'].toString()) : null,
-      status:         json['status'] ?? 'Pending',
-      remarks:        json['remarks'],
-      submittedDate:  json['submitted_date'],
-      settledDate:    json['settled_date'],
-      clientName:     json['client_name'],
-      clientMobile:   json['client_mobile'],
-      patientName:    json['patient_name'],
-      createdOn:      json['created_on'],
+      id:             toInt(json['id']),
+      bookingId:      toInt(json['booking_id']),
+      userId:         toIntOrNull(json['user_id']),
+      tpaName:        toStrOrNull(json['tpa_name']),
+      policyNumber:   toStrOrNull(json['policy_number']),
+      preAuthNumber:  toStrOrNull(json['pre_auth_number']),
+      claimAmount:    toDoubleOrNull(json['claim_amount']),
+      settledAmount:  toDoubleOrNull(json['settled_amount']),
+      status:         toStr(json['status'], 'Pending'),
+      remarks:        toStrOrNull(json['remarks']),
+      submittedDate:  toStrOrNull(json['submitted_date']),
+      settledDate:    toStrOrNull(json['settled_date']),
+      clientName:     toStrOrNull(json['client_name']),
+      clientMobile:   toStrOrNull(json['client_mobile']),
+      patientName:    toStrOrNull(json['patient_name']),
+      createdOn:      toStrOrNull(json['created_on']),
     );
   }
 
   static List<InsuranceClaimModel> listFromJson(List<dynamic> list) =>
-      list.map((e) => InsuranceClaimModel.fromJson(e as Map<String, dynamic>)).toList();
+      parseList(list, InsuranceClaimModel.fromJson);
 }

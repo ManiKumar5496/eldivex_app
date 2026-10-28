@@ -3,17 +3,30 @@ import 'package:get/get.dart';
 
 import '../../../core/values/color_constants.dart';
 import '../../../core/values/text_style_constants.dart';
+import '../../../widgets/helper_ui.dart';
 import '../controllers/settings_controller.dart';
 
-class BranchManagementView extends GetView<SettingsController> {
+class BranchManagementView extends StatefulWidget {
   const BranchManagementView({super.key});
 
   @override
+  State<BranchManagementView> createState() => _BranchManagementViewState();
+}
+
+class _BranchManagementViewState extends State<BranchManagementView> {
+  SettingsController get controller => Get.isRegistered<SettingsController>()
+      ? Get.find<SettingsController>()
+      : Get.put(SettingsController());
+
+  @override
+  void initState() {
+    super.initState();
+    // Fetch once per visit (not from build, which re-runs on every rebuild).
+    if (!controller.branchesLoaded) controller.fetchBranches();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    Get.put(SettingsController());
-    if (controller.branchesList.isEmpty) {
-      controller.fetchBranches();
-    }
 
     return Scaffold(
       backgroundColor: AppColor.cAppBackgroundColor,
@@ -126,6 +139,25 @@ class _BranchesList extends StatelessWidget {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Search
+          Container(
+            margin: const EdgeInsets.only(bottom: 12),
+            decoration: BoxDecoration(
+              color: AppColor.whiteColor,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: AppColor.divColor),
+            ),
+            child: TextField(
+              onChanged: controller.searchBranches,
+              decoration: const InputDecoration(
+                hintText: 'Search branches by name, city, state...',
+                prefixIcon: Icon(Icons.search),
+                border: InputBorder.none,
+                contentPadding:
+                    EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+              ),
+            ),
+          ),
           // Column headers
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -178,10 +210,10 @@ class _BranchesList extends StatelessWidget {
           const SizedBox(height: 8),
           Expanded(
             child: ListView.separated(
-              itemCount: controller.branchesList.length,
+              itemCount: controller.filteredBranches.length,
               separatorBuilder: (_, __) => const SizedBox(height: 8),
               itemBuilder: (context, index) {
-                final branch = controller.branchesList[index];
+                final branch = controller.filteredBranches[index];
                 return _BranchRow(
                   branch: branch,
                   controller: controller,
@@ -210,12 +242,12 @@ class _BranchRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final id = branch['br_id'] as int? ?? 0;
+    final id = SettingsController.toInt(branch['br_id'], fallback: 0);
     final name = branch['br_name']?.toString() ?? '—';
     final city = branch['br_city']?.toString() ?? '';
     final state = branch['br_state']?.toString() ?? '';
     final address = branch['br_address']?.toString() ?? '—';
-    final status = (branch['br_status'] as int?) ?? 0;
+    final status = SettingsController.toInt(branch['br_status'], fallback: 0);
     final isActive = status == 1;
 
     return Container(
@@ -296,6 +328,16 @@ void _showBranchDialog(
   final addressCtrl = TextEditingController(
     text: isEdit ? existing['br_address']?.toString() : '',
   );
+  String clean(dynamic v) {
+    final s = v?.toString() ?? '';
+    return s == 'NA' ? '' : s;
+  }
+  final phoneCtrl = TextEditingController(
+    text: isEdit ? clean(existing['br_phone']) : '',
+  );
+  final emailCtrl = TextEditingController(
+    text: isEdit ? clean(existing['br_email']) : '',
+  );
 
   showDialog<void>(
     context: context,
@@ -351,6 +393,40 @@ void _showBranchDialog(
                 ],
               ),
               const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Phone', style: AppTextStyles.fieldsHeading16),
+                        const SizedBox(height: 6),
+                        TextField(
+                          controller: phoneCtrl,
+                          keyboardType: TextInputType.phone,
+                          decoration: _inputDecoration('e.g. 9876543210'),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Email', style: AppTextStyles.fieldsHeading16),
+                        const SizedBox(height: 6),
+                        TextField(
+                          controller: emailCtrl,
+                          keyboardType: TextInputType.emailAddress,
+                          decoration: _inputDecoration('branch@example.com'),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
               Text('Full Address', style: AppTextStyles.fieldsHeading16),
               const SizedBox(height: 6),
               TextField(
@@ -375,17 +451,37 @@ void _showBranchDialog(
                       final name = nameCtrl.text.trim();
                       final city = cityCtrl.text.trim();
                       final state = stateCtrl.text.trim();
+                      final phone = phoneCtrl.text.trim();
+                      final email = emailCtrl.text.trim();
                       if (name.isEmpty || city.isEmpty || state.isEmpty) {
+                        HelperUi.showToast(
+                            message: 'Branch name, city and state are required.',
+                            backgroundColor: Colors.red);
+                        return;
+                      }
+                      if (phone.isNotEmpty &&
+                          !RegExp(r'^[0-9+\- ]{7,15}$').hasMatch(phone)) {
+                        HelperUi.showToast(
+                            message: 'Enter a valid phone number.',
+                            backgroundColor: Colors.red);
+                        return;
+                      }
+                      if (email.isNotEmpty && !GetUtils.isEmail(email)) {
+                        HelperUi.showToast(
+                            message: 'Enter a valid email address.',
+                            backgroundColor: Colors.red);
                         return;
                       }
                       bool ok;
                       if (isEdit) {
                         ok = await controller.updateBranch(
-                          id: existing['br_id'] as int,
+                          id: SettingsController.toInt(existing['br_id']),
                           name: name,
                           city: city,
                           state: state,
                           address: addressCtrl.text.trim(),
+                          phone: phone,
+                          email: email,
                         );
                       } else {
                         ok = await controller.createBranch(
@@ -393,6 +489,8 @@ void _showBranchDialog(
                           city: city,
                           state: state,
                           address: addressCtrl.text.trim(),
+                          phone: phone,
+                          email: email,
                         );
                       }
                       if (ok && ctx.mounted) Navigator.of(ctx).pop();

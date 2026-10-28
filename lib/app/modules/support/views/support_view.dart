@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:intl/intl.dart';
 import 'package:eldivex_app/app/modules/support/models/get_all_support_tickets.dart';
 
 import '../../../core/values/color_constants.dart';
@@ -11,9 +12,14 @@ import '../controllers/support_controller.dart';
 class SupportView extends GetView<SupportController> {
   const SupportView({super.key});
 
+  // Registered once on first access (shell page has no route binding).
+  @override
+  SupportController get controller => Get.isRegistered<SupportController>()
+      ? Get.find<SupportController>()
+      : Get.put(SupportController());
+
   @override
   Widget build(BuildContext context) {
-    Get.put(SupportController());
     SizeConfig.init(context);
 
     return Scaffold(
@@ -56,9 +62,11 @@ class SupportView extends GetView<SupportController> {
           style: AppTextStyles.regular14Gre,
         ),
         const SizedBox(height: 16),
-        Obx(() => controller.isLoading.value ? const SizedBox() : _summaryCardsMobile()),
+        Obx(() => controller.isStatsLoading.value ? const SizedBox() : _summaryCardsMobile()),
         const SizedBox(height: 16),
         Text('Recent Tickets', style: AppTextStyles.semiBold18),
+        const SizedBox(height: 12),
+        _ticketSearchBar(),
         const SizedBox(height: 12),
         _ticketsListMobile(),
       ],
@@ -76,10 +84,12 @@ class SupportView extends GetView<SupportController> {
           style: AppTextStyles.regular14Gre,
         ),
         const SizedBox(height: 24),
-        Obx(() => controller.isLoading.value ? SizedBox() : _summaryCards()),
+        Obx(() => controller.isStatsLoading.value ? const SizedBox() : _summaryCards()),
         const SizedBox(height: 24),
         Text('Recent Tickets', style: AppTextStyles.semiBold18),
         const SizedBox(height: 16),
+        _ticketSearchBar(),
+        const SizedBox(height: 12),
         Expanded(child: _ticketsList()),
       ],
     );
@@ -93,8 +103,14 @@ class SupportView extends GetView<SupportController> {
         _summaryCardMobile('Open Tickets', controller.openTickets.value,
             Icons.chat_bubble_outline, Colors.blue),
         const SizedBox(height: 8),
+        _summaryCardMobile('In Progress', controller.inProgressTickets.value,
+            Icons.autorenew, Colors.orange),
+        const SizedBox(height: 8),
         _summaryCardMobile('Resolved Today', controller.resolvedToday.value,
             Icons.check_circle, Colors.green),
+        const SizedBox(height: 8),
+        _summaryCardMobile('Avg Response', controller.avgResponseTime.value,
+            Icons.timer_outlined, Colors.purple, isText: true),
       ],
     );
   }
@@ -111,7 +127,7 @@ class SupportView extends GetView<SupportController> {
       child: Row(
         children: [
           CircleAvatar(
-            backgroundColor: color.withOpacity(0.15),
+            backgroundColor: color.withValues(alpha: 0.15),
             child: Icon(icon, color: color),
           ),
           const SizedBox(width: 12),
@@ -121,7 +137,7 @@ class SupportView extends GetView<SupportController> {
               Text(title, style: AppTextStyles.regular14Gre),
               const SizedBox(height: 4),
               Text(
-                isText ? value : value.toString(),
+                value.toString(),
                 style: AppTextStyles.bold20,
               ),
             ],
@@ -136,8 +152,12 @@ class SupportView extends GetView<SupportController> {
       children: [
         _summaryCard('Open Tickets', controller.openTickets.value,
             Icons.chat_bubble_outline, Colors.blue),
+        _summaryCard('In Progress', controller.inProgressTickets.value,
+            Icons.autorenew, Colors.orange),
         _summaryCard('Resolved Today', controller.resolvedToday.value,
             Icons.check_circle, Colors.green),
+        _summaryCard('Avg Response', controller.avgResponseTime.value,
+            Icons.timer_outlined, Colors.purple, isText: true),
       ],
     );
   }
@@ -156,20 +176,24 @@ class SupportView extends GetView<SupportController> {
         child: Row(
           children: [
             CircleAvatar(
-              backgroundColor: color.withOpacity(0.15),
+              backgroundColor: color.withValues(alpha: 0.15),
               child: Icon(icon, color: color),
             ),
             const SizedBox(width: 12),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title, style: AppTextStyles.regular14Gre),
-                const SizedBox(height: 4),
-                Text(
-                  isText ? value : value.toString(),
-                  style: AppTextStyles.bold20,
-                ),
-              ],
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title,
+                      style: AppTextStyles.regular14Gre,
+                      overflow: TextOverflow.ellipsis),
+                  const SizedBox(height: 4),
+                  Text(
+                    value.toString(),
+                    style: AppTextStyles.bold20,
+                  ),
+                ],
+              ),
             )
           ],
         ),
@@ -179,13 +203,67 @@ class SupportView extends GetView<SupportController> {
 
   // ================= TICKETS =================
 
+  Widget _ticketSearchBar() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          decoration: BoxDecoration(
+            color: AppColor.whiteColor,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppColor.divColor),
+          ),
+          child: TextField(
+            onChanged: controller.searchTickets,
+            decoration: const InputDecoration(
+              hintText: 'Search by title, booking, user, or ticket #...',
+              prefixIcon: Icon(Icons.search),
+              border: InputBorder.none,
+              contentPadding:
+                  EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Obx(() => Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                _ticketStatusChip('All', -1),
+                for (final s in const [
+                  SupportController.statusOpen,
+                  SupportController.statusInProgress,
+                  SupportController.statusResolved,
+                  SupportController.statusClosed,
+                ])
+                  _ticketStatusChip(SupportController.statusLabel(s), s),
+              ],
+            )),
+      ],
+    );
+  }
+
+  Widget _ticketStatusChip(String label, int value) {
+    final selected = controller.ticketStatusFilter.value == value;
+    return ChoiceChip(
+      label: Text(label),
+      selected: selected,
+      onSelected: (_) => controller.setTicketStatusFilter(value),
+    );
+  }
+
   Widget _ticketsListMobile() {
     return Obx(() {
       if (controller.isLoading.value) {
         return const ShimmerLoader.cardList();
       }
 
-      if (controller.getAllSupportTicketsData.isEmpty) {
+      if (controller.loadError.value.isNotEmpty &&
+          controller.getAllSupportTicketsData.isEmpty) {
+        return _errorState();
+      }
+
+      if (controller.filteredSupportTickets.isEmpty) {
         return Center(
           child: Text(
             'No tickets found',
@@ -195,7 +273,7 @@ class SupportView extends GetView<SupportController> {
       }
 
       return Column(
-        children: controller.getAllSupportTicketsData.map((ticket) {
+        children: controller.filteredSupportTickets.map((ticket) {
           return Padding(
             padding: const EdgeInsets.only(bottom: 12),
             child: _ticketCard(ticket),
@@ -211,7 +289,12 @@ class SupportView extends GetView<SupportController> {
         return const ShimmerLoader.cardList();
       }
 
-      if (controller.getAllSupportTicketsData.isEmpty) {
+      if (controller.loadError.value.isNotEmpty &&
+          controller.getAllSupportTicketsData.isEmpty) {
+        return _errorState();
+      }
+
+      if (controller.filteredSupportTickets.isEmpty) {
         return Center(
           child: Text(
             'No tickets found',
@@ -221,16 +304,46 @@ class SupportView extends GetView<SupportController> {
       }
 
       return ListView.separated(
-        itemCount: controller.getAllSupportTicketsData.length,
+        itemCount: controller.filteredSupportTickets.length,
         separatorBuilder: (_, __) => const SizedBox(height: 16),
         itemBuilder: (context, index) {
           final GetAllSupportTickets ticket =
-          controller.getAllSupportTicketsData[index];
+          controller.filteredSupportTickets[index];
           return _ticketCard(ticket);
         },
       );
     });
   }
+
+  Widget _errorState() {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.error_outline, size: 40, color: AppColor.fontColorGrey),
+          const SizedBox(height: 8),
+          Text(controller.loadError.value,
+              textAlign: TextAlign.center, style: AppTextStyles.regular14Gre),
+          const SizedBox(height: 8),
+          OutlinedButton.icon(
+            onPressed: () {
+              controller.getAllSupportTicketsApi();
+              controller.getSupportStatsApi();
+            },
+            icon: const Icon(Icons.refresh),
+            label: const Text('Retry'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _formatDate(DateTime? d) =>
+      d == null ? '—' : DateFormat('dd MMM yyyy, hh:mm a').format(d.toLocal());
+
+  bool _canChangeStatus(int status) =>
+      status == SupportController.statusOpen ||
+      status == SupportController.statusInProgress;
 
   Widget _ticketCard(GetAllSupportTickets ticket) {
     return Container(
@@ -249,15 +362,15 @@ class SupportView extends GetView<SupportController> {
               Expanded(
                 child: Text(ticket.title, style: AppTextStyles.semiBold16),
               ),
-              // Show action button only if ticket is open (status == 1)
-              if (ticket.status == 1)
+              // Status can change only while the ticket is Open / In Progress
+              if (_canChangeStatus(ticket.status))
                 ElevatedButton.icon(
                   onPressed: () => _showCloseTicketDialog(ticket),
-                  icon: const Icon(Icons.close, size: 16),
-                  label: const Text('Close Ticket'),
+                  icon: const Icon(Icons.edit_note, size: 16),
+                  label: const Text('Update Status'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColor.cPrimaryButtonColor,
-                    foregroundColor: AppColor.whiteColor,
+                    foregroundColor: AppColor.buttonTextWhite,
                     padding: const EdgeInsets.symmetric(
                         horizontal: 12, vertical: 8),
                   ),
@@ -266,13 +379,14 @@ class SupportView extends GetView<SupportController> {
           ),
           const SizedBox(height: 4),
           Text(
-            'Ticket ${ticket.id} · ${ticket.supportTypeId}',
+            'Ticket #${ticket.id} · ${controller.categoryName(ticket.supportTypeId)}'
+            '${ticket.bookingDetails.isNotEmpty && ticket.bookingDetails != 'NA' ? ' · Booking ${ticket.bookingDetails}' : ''}',
             style: AppTextStyles.regular14Gre,
           ),
           const SizedBox(height: 12),
           Row(
             children: [
-              _statusChip(ticket.status == 1 ? "Open" : "Closed"),
+              _statusChip(ticket.status),
               const SizedBox(width: 8),
             ],
           ),
@@ -281,13 +395,16 @@ class SupportView extends GetView<SupportController> {
             children: [
               const Icon(Icons.person, size: 16),
               const SizedBox(width: 6),
-              Text(ticket.userId.toString(), style: AppTextStyles.regular14Gre),
+              Text('User ${ticket.userId}', style: AppTextStyles.regular14Gre),
               const Spacer(),
               const Icon(Icons.access_time, size: 16),
               const SizedBox(width: 6),
-              Text(
-                '${ticket.createdOn}',
-                style: AppTextStyles.regular14Gre,
+              Flexible(
+                child: Text(
+                  _formatDate(ticket.createdOn),
+                  style: AppTextStyles.regular14Gre,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
             ],
           ),
@@ -301,6 +418,12 @@ class SupportView extends GetView<SupportController> {
   void _showCloseTicketDialog(GetAllSupportTickets ticket) {
     final isMobile = SizeConfig.isMobile;
     controller.supportCommentsController.clear();
+    final targets = [
+      SupportController.statusInProgress,
+      SupportController.statusResolved,
+      SupportController.statusClosed,
+    ].where((s) => s != ticket.status).toList();
+    final RxInt target = SupportController.statusClosed.obs;
 
     Get.dialog(
       Dialog(
@@ -319,11 +442,13 @@ class SupportView extends GetView<SupportController> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    'Close Support Ticket',
+                    'Update Ticket Status',
                     style: AppTextStyles.semiBold18,
                   ),
                   IconButton(
-                    onPressed: () => Get.back(),
+                    onPressed: () {
+                      if (!controller.updateSupportStatusLoading.value) Get.back();
+                    },
                     icon: const Icon(Icons.close),
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(),
@@ -337,17 +462,38 @@ class SupportView extends GetView<SupportController> {
               const SizedBox(height: 12),
               _detailRow('Title:', ticket.title),
               const SizedBox(height: 12),
-              _detailRow('Support Type:', ticket.supportTypeId.toString()),
+              _detailRow('Support Type:', controller.categoryName(ticket.supportTypeId)),
+              const SizedBox(height: 12),
+              _detailRow('Status:', SupportController.statusLabel(ticket.status)),
               const SizedBox(height: 12),
               _detailRow('User ID:', ticket.userId.toString()),
               const SizedBox(height: 12),
-              _detailRow('Created On:', ticket.createdOn.toString()),
+              _detailRow('Created On:', _formatDate(ticket.createdOn)),
               const SizedBox(height: 12),
-              _detailRow('Description:', ticket.description ?? 'N/A'),
+              _detailRow('Description:',
+                  ticket.description.isEmpty ? 'N/A' : ticket.description),
+              if (ticket.comments.isNotEmpty && ticket.comments != 'NA') ...[
+                const SizedBox(height: 12),
+                _detailRow('Comments:', ticket.comments),
+              ],
 
               const SizedBox(height: 24),
               const Divider(),
               const SizedBox(height: 24),
+
+              Text('New Status', style: AppTextStyles.medium16),
+              const SizedBox(height: 8),
+              Obx(() => Wrap(
+                    spacing: 8,
+                    children: targets
+                        .map((s) => ChoiceChip(
+                              label: Text(SupportController.statusLabel(s)),
+                              selected: target.value == s,
+                              onSelected: (_) => target.value = s,
+                            ))
+                        .toList(),
+                  )),
+              const SizedBox(height: 16),
 
               // Comments Field
               Text('Comments', style: AppTextStyles.medium16),
@@ -356,7 +502,7 @@ class SupportView extends GetView<SupportController> {
                 controller: controller.supportCommentsController,
                 maxLines: 4,
                 decoration: InputDecoration(
-                  hintText: 'Enter closing comments...',
+                  hintText: 'Enter comments (optional)...',
                   hintStyle: AppTextStyles.regular14Gre,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
@@ -373,7 +519,9 @@ class SupportView extends GetView<SupportController> {
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   TextButton(
-                    onPressed: () => Get.back(),
+                    onPressed: () {
+                      if (!controller.updateSupportStatusLoading.value) Get.back();
+                    },
                     child: Text(
                       'Cancel',
                       style: AppTextStyles.medium16.copyWith(
@@ -385,13 +533,14 @@ class SupportView extends GetView<SupportController> {
                   Obx(() => ElevatedButton(
                     onPressed: controller.updateSupportStatusLoading.value
                         ? null
-                        : () {
-                      controller.updateSupportStatus(0, ticket.id);
-                      Get.back();
+                        : () async {
+                      final ok = await controller.updateSupportStatus(
+                          target.value, ticket.id);
+                      if (ok && (Get.isDialogOpen ?? false)) Get.back();
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColor.cPrimaryButtonColor,
-                      foregroundColor: AppColor.whiteColor,
+                      foregroundColor: AppColor.buttonTextWhite,
                       padding: const EdgeInsets.symmetric(
                           horizontal: 24, vertical: 12),
                     ),
@@ -405,7 +554,7 @@ class SupportView extends GetView<SupportController> {
                             AppColor.buttonTextWhite),
                       ),
                     )
-                        : const Text('Close Ticket'),
+                        : const Text('Update'),
                   )),
                 ],
               ),
@@ -532,11 +681,13 @@ class SupportView extends GetView<SupportController> {
     );
   }
 
-  Widget _statusChip(String status) {
-    return Chip(label: Text(status));
-  }
-
-  Widget _priorityChip(String priority) {
-    return Chip(label: Text(priority));
+  Widget _statusChip(int status) {
+    final color = SupportController.statusColor(status);
+    return Chip(
+      label: Text(SupportController.statusLabel(status)),
+      labelStyle: TextStyle(color: color, fontWeight: FontWeight.w600),
+      backgroundColor: color.withValues(alpha: 0.12),
+      side: BorderSide.none,
+    );
   }
 }

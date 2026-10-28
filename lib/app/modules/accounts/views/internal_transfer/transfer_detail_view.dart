@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:eldivex_app/app/core/values/color_constants.dart';
-import 'package:eldivex_app/app/core/values/text_style_constants.dart';
 import '../../controllers/internal_transfer_controller.dart';
 import '../../models/internal_transfer_model.dart';
+import '../../models/parse_utils.dart';
+import '../../../../routes/app_pages.dart';
+import '../../../../widgets/helper_ui.dart';
+import '../accounts_format.dart';
 
 class TransferDetailView extends StatefulWidget {
   const TransferDetailView({super.key});
@@ -29,8 +32,9 @@ class _TransferDetailViewState extends State<TransferDetailView> {
   }
 
   void _resolveTransfer() {
-    final arg = Get.arguments;
-    final transferId = arg is int ? arg : int.tryParse(arg?.toString() ?? '');
+    // Arguments are lost on a browser refresh; the ?id= query survives.
+    final transferId =
+        toIntOrNull(Get.arguments) ?? toIntOrNull(Get.parameters['id']);
 
     if (transferId == null) {
       setState(() => _loading = false);
@@ -62,41 +66,13 @@ class _TransferDetailViewState extends State<TransferDetailView> {
   // Helpers
   // ─────────────────────────────────────────────
 
-  Color _statusColor(String status) {
-    switch (status.toUpperCase()) {
-      case 'APPROVED':
-        return Colors.green;
-      case 'REJECTED':
-        return Colors.red;
-      case 'REVERSED':
-        return Colors.purple;
-      case 'PENDING_APPROVAL':
-        return Colors.orange;
-      default:
-        return AppColor.fontColorGrey;
-    }
-  }
+  Color _statusColor(String status) => accountsStatusColor(status);
 
   String _formatType(String type) => type.replaceAll('_', ' ');
 
-  String _formatDate(String? s) {
-    if (s == null || s.isEmpty) return '-';
-    try {
-      final dt = DateTime.parse(s);
-      const months = [
-        'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-        'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
-      ];
-      return '${dt.day.toString().padLeft(2, '0')} ${months[dt.month - 1]} ${dt.year}';
-    } catch (_) {
-      return s;
-    }
-  }
+  String _formatDate(String? s) => formatAccDate(s, empty: '-');
 
-  String _formatCurrency(double? v) {
-    if (v == null) return '₹0.00';
-    return '₹${v.toStringAsFixed(2).replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+\.)'), (m) => '${m[1]},')}';
-  }
+  String _formatCurrency(double? v) => formatInr(v ?? 0);
 
   // ─────────────────────────────────────────────
   // Build
@@ -112,7 +88,7 @@ class _TransferDetailViewState extends State<TransferDetailView> {
         leading: IconButton(
           icon: Icon(Icons.arrow_back_ios_new,
               size: 18, color: AppColor.cPrimaryHeadingColor),
-          onPressed: () => Get.back(),
+          onPressed: () => HelperUi.safeBack(Routes.MAIN),
         ),
         title: Text(
           _transfer != null ? 'Transfer #IT-${_transfer!.id}' : 'Transfer Detail',
@@ -161,16 +137,8 @@ class _TransferDetailViewState extends State<TransferDetailView> {
   // ─────────────────────────────────────────────
 
   Widget _buildNotFound() {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.search_off_rounded, size: 64, color: AppColor.lightGrey),
-          const SizedBox(height: 12),
-          Text('Transfer not found', style: AppTextStyles.regular16Gre),
-        ],
-      ),
-    );
+    return recordNotFound(
+        title: 'Transfer', onBack: () => HelperUi.safeBack(Routes.MAIN));
   }
 
   // ─────────────────────────────────────────────
@@ -559,7 +527,7 @@ class _TransferDetailViewState extends State<TransferDetailView> {
         date: '',
         done: false,
       ));
-    } else if (status == 'APPROVED') {
+    } else if (status == 'APPROVED' || status == 'COMPLETED') {
       steps.add(_TimelineStep(
         icon: Icons.check_circle_outline,
         color: Colors.green,
@@ -776,7 +744,7 @@ class _TransferDetailViewState extends State<TransferDetailView> {
                           ? null
                           : () => _showActionDialog(
                                 transfer: t,
-                                action: 'REJECT',
+                                action: 'Rejected',
                               ),
                       icon: const Icon(Icons.close, size: 18,
                           color: Colors.red),
@@ -798,7 +766,7 @@ class _TransferDetailViewState extends State<TransferDetailView> {
                           ? null
                           : () => _showActionDialog(
                                 transfer: t,
-                                action: 'APPROVE',
+                                action: 'Approved',
                               ),
                       icon: ctrl.isSubmitting.value
                           ? SizedBox(
@@ -834,7 +802,7 @@ class _TransferDetailViewState extends State<TransferDetailView> {
     required String action,
   }) {
     final notesCtrl = TextEditingController();
-    final isApprove = action == 'APPROVE';
+    final isApprove = action == 'Approved';
 
     Get.dialog(
       AlertDialog(

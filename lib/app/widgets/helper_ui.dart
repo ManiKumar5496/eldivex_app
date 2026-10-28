@@ -21,22 +21,26 @@ class HelperUi {
     final ToastificationType type;
     final Color primary;
     final Color bg;
-    if (backgroundColor == Colors.green) {
-      type = ToastificationType.success;
-      primary = const Color(0xFF1B6B3A);
-      bg = const Color(0xFFE6F4EC);
-    } else if (backgroundColor == Colors.red) {
-      type = ToastificationType.error;
-      primary = const Color(0xFFC0392B);
-      bg = const Color(0xFFFDECEA);
-    } else if (backgroundColor == Colors.orange) {
-      type = ToastificationType.warning;
-      primary = const Color(0xFFD4AC0D);
-      bg = const Color(0xFFFEF9E7);
-    } else {
-      type = ToastificationType.info;
-      primary = const Color(0xFF1A5276);
-      bg = const Color(0xFFEAF4FB);
+    switch (_toastKind(backgroundColor)) {
+      case ToastificationType.success:
+        type = ToastificationType.success;
+        primary = const Color(0xFF1B6B3A);
+        bg = const Color(0xFFE6F4EC);
+        break;
+      case ToastificationType.error:
+        type = ToastificationType.error;
+        primary = const Color(0xFFC0392B);
+        bg = const Color(0xFFFDECEA);
+        break;
+      case ToastificationType.warning:
+        type = ToastificationType.warning;
+        primary = const Color(0xFFD4AC0D);
+        bg = const Color(0xFFFEF9E7);
+        break;
+      default:
+        type = ToastificationType.info;
+        primary = const Color(0xFF1A5276);
+        bg = const Color(0xFFEAF4FB);
     }
 
     toastification.show(
@@ -79,6 +83,24 @@ class HelperUi {
       dragToClose: true,
       applyBlurEffect: false,
     );
+  }
+
+  /// Maps the colour a caller passes to a toast kind. Callers use plain
+  /// Material colours (`Colors.red`, `Colors.green.shade600`, ...) as well as
+  /// theme colours (`colorScheme.error` for failures, `colorScheme.primary`
+  /// for success), so match the theme first and then fall back to the hue.
+  static ToastificationType _toastKind(Color? c) {
+    if (c == null) return ToastificationType.info;
+    final scheme = Get.theme.colorScheme;
+    if (c == scheme.error) return ToastificationType.error;
+    if (c == scheme.primary) return ToastificationType.success;
+    final hsv = HSVColor.fromColor(c);
+    if (hsv.saturation < 0.25 || hsv.value < 0.2) return ToastificationType.info;
+    final h = hsv.hue;
+    if (h < 15 || h >= 330) return ToastificationType.error;
+    if (h < 60) return ToastificationType.warning;
+    if (h >= 75 && h < 180) return ToastificationType.success;
+    return ToastificationType.info;
   }
 
   /// Navigates back safely on Flutter web. After a browser refresh the GetX

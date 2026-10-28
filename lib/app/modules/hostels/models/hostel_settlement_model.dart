@@ -74,8 +74,9 @@ class HostelSettlementModel {
       totalAmount: HostelSettlementLine._toDouble(json['total_amount']),
       totalNights: HostelSettlementLine._toInt(json['total_nights']),
       cgCount: HostelSettlementLine._toInt(json['cg_count']),
-      lines: ((json['lines'] as List?) ?? [])
-          .map((e) => HostelSettlementLine.fromJson(e as Map<String, dynamic>))
+      lines: (json['lines'] is List ? json['lines'] as List : const [])
+          .whereType<Map>()
+          .map((e) => HostelSettlementLine.fromJson(Map<String, dynamic>.from(e)))
           .toList(),
     );
   }

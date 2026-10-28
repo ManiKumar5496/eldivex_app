@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 
@@ -21,10 +23,24 @@ class HpAuthController extends GetxController {
   final RxString orgSlug = ''.obs;
   final RxString phone = ''.obs;
 
+  // Form fields live here (not in the view's build) so typed input survives
+  // rebuilds.
+  final TextEditingController phoneCtrl = TextEditingController();
+  final TextEditingController otpCtrl = TextEditingController();
+  final TextEditingController slugCtrl = TextEditingController();
+
   @override
   void onInit() {
     super.onInit();
-    // Prefer org_id from the shared link (no slug lookup needed); else slug.
+    // Restore the last resolved org instantly so a returning caregiver never
+    // sees the org-code screen because of a slow/failed lookup.
+    final cachedId = int.tryParse('${box.read('hp_last_org_id') ?? ''}');
+    if (cachedId != null && cachedId > 0) {
+      orgId.value = cachedId;
+      orgName.value = (box.read('hp_last_org_name') ?? '').toString();
+    }
+    // Then refresh from the link params in the background (also covers a new
+    // link pointing at a different organisation).
     final orgIdParam = (box.read('hp_org_id_param') ?? '').toString();
     final slug = (box.read('hp_org_slug') ?? '').toString();
     if (orgIdParam.isNotEmpty) {
@@ -32,6 +48,50 @@ class HpAuthController extends GetxController {
     } else if (slug.isNotEmpty) {
       resolveOrg(slug);
     }
+  }
+
+  @override
+  void onClose() {
+    phoneCtrl.dispose();
+    otpCtrl.dispose();
+    slugCtrl.dispose();
+    super.onClose();
+  }
+
+  void _cacheOrg() {
+    if (orgId.value == null) return;
+    box.write('hp_last_org_id', orgId.value);
+    box.write('hp_last_org_name', orgName.value);
+  }
+
+  /// Manual fallback when no link params exist: accepts an org code
+  /// (SUN-482913), a legacy numeric id, or a slug.
+  Future<void> resolveManualEntry(String input) async {
+    final ref = input.trim();
+    if (ref.isEmpty) return;
+    if (RegExp(r'^(\d+|[A-Za-z]{3}-\d{6})$').hasMatch(ref)) {
+      box.write('hp_org_id_param', ref.toUpperCase());
+      await resolveOrgByRef(ref.toUpperCase());
+    } else {
+      await resolveOrg(ref);
+    }
+  }
+
+  /// "Not your organisation?" — forget the remembered org and show the
+  /// org-code entry again.
+  void changeOrganisation() {
+    for (final k in [
+      'hp_org_id_param',
+      'hp_org_slug',
+      'hp_last_org_id',
+      'hp_last_org_name',
+    ]) {
+      box.remove(k);
+    }
+    orgId.value = null;
+    orgName.value = '';
+    orgSlug.value = '';
+    otpSent.value = false;
   }
 
   /// Resolve the organisation from the org_id carried in the link — either a
@@ -44,9 +104,10 @@ class HpAuthController extends GetxController {
       orgId.value = int.tryParse(ref);
       final res = await _api.getRaw(HpApi.orgById(ref));
       if (res?.statusCode == 200 && res?.data is Map) {
-        orgId.value = res!.data['org_id'];
+        orgId.value = int.tryParse('${res!.data['org_id']}') ?? orgId.value;
         orgName.value = (res.data['org_name'] ?? '').toString();
         orgSlug.value = (res.data['slug'] ?? '').toString();
+        _cacheOrg();
       } else if (orgId.value == null) {
         HelperUi.showToast(
           message: 'Organisation not found. Please use the link shared with you.',
@@ -65,12 +126,14 @@ class HpAuthController extends GetxController {
     try {
       final res = await _api.getRaw(HpApi.orgBySlug(slug.trim().toLowerCase()));
       if (res?.statusCode == 200 && res?.data is Map) {
-        orgId.value = res!.data['org_id'];
+        orgId.value = int.tryParse('${res!.data['org_id']}') ?? orgId.value;
         orgName.value = (res.data['org_name'] ?? '').toString();
         orgSlug.value = (res.data['slug'] ?? slug).toString();
         box.write('hp_org_slug', orgSlug.value);
-      } else {
-        orgId.value = null;
+        _cacheOrg();
+      } else if (orgId.value == null) {
+        // Only complain when we have no org at all — a failed background
+        // refresh must not wipe the remembered org.
         HelperUi.showToast(
           message: 'Organisation not found. Please use the link shared with you.',
           backgroundColor: Get.theme.colorScheme.error,
@@ -91,7 +154,10 @@ class HpAuthController extends GetxController {
       return;
     }
     if (phoneInput.trim().length < 10) {
-      HelperUi.showToast(message: 'Enter a valid 10-digit phone number.');
+      HelperUi.showToast(
+        message: 'Enter a valid 10-digit phone number.',
+        backgroundColor: Colors.orange,
+      );
       return;
     }
     sendingOtp.value = true;
@@ -103,14 +169,16 @@ class HpAuthController extends GetxController {
       });
       if (res?.statusCode == 200) {
         otpSent.value = true;
-        final devOtp = res?.data is Map ? res!.data['dev_otp'] : null;
+        // Only surfaced in debug builds; the backend sends it only in dev mode.
+        final devOtp =
+            kDebugMode && res?.data is Map ? res!.data['dev_otp'] : null;
         HelperUi.showToast(
           message: devOtp != null ? 'OTP sent (dev: $devOtp)' : 'OTP sent to your phone.',
           backgroundColor: Get.theme.colorScheme.primary,
         );
       } else {
         HelperUi.showToast(
-          message: (res?.data is Map ? res!.data['message'] : null) ?? 'Could not send OTP.',
+          message: (res?.data is Map ? (res!.data['message'] ?? res.data['error'])?.toString() : null) ?? 'Could not send OTP.',
           backgroundColor: Get.theme.colorScheme.error,
         );
       }
@@ -122,7 +190,10 @@ class HpAuthController extends GetxController {
   /// Step 2 — verify the OTP and persist the caregiver session.
   Future<void> verifyOtp(String otp) async {
     if (otp.trim().length < 4) {
-      HelperUi.showToast(message: 'Enter the OTP you received.');
+      HelperUi.showToast(
+        message: 'Enter the OTP you received.',
+        backgroundColor: Colors.orange,
+      );
       return;
     }
     verifying.value = true;
@@ -137,9 +208,14 @@ class HpAuthController extends GetxController {
         // session so ApiService attaches the caregiver token from now on.
         box.write('hp_token', res.data['token']);
         box.write('hp_id', res.data['hp_id']);
-        box.write('hp_org_id', res.data['org_id']);
+        box.write('hp_org_id', int.tryParse('${res.data['org_id']}'));
         box.write('hp_name', res.data['hp_name']);
         box.write('active_session', 'hp');
+        box.write('last_portal', 'hp');
+        // Remember the org independently of the session so the next login
+        // (after expiry/logout) is pre-scoped to it.
+        box.write('hp_last_org_id', int.tryParse('${res.data['org_id']}'));
+        box.write('hp_last_org_name', orgName.value);
         Get.offAllNamed(Routes.HP_HOME);
       } else if (res == null) {
         // Connection failed entirely — distinguish from a wrong OTP so the user
@@ -150,7 +226,7 @@ class HpAuthController extends GetxController {
         );
       } else {
         HelperUi.showToast(
-          message: (res.data is Map ? res.data['message'] : null) ?? 'Incorrect OTP.',
+          message: (res.data is Map ? (res.data['message'] ?? res.data['error'])?.toString() : null) ?? 'Incorrect OTP.',
           backgroundColor: Get.theme.colorScheme.error,
         );
       }

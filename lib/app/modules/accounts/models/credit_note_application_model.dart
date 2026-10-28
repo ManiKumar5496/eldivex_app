@@ -1,16 +1,4 @@
-double? _toDouble(dynamic v) {
-  if (v == null) return null;
-  if (v is num) return v.toDouble();
-  if (v is String) return double.tryParse(v);
-  return null;
-}
-
-int? _toInt(dynamic v) {
-  if (v == null) return null;
-  if (v is num) return v.toInt();
-  if (v is String) return int.tryParse(v);
-  return null;
-}
+import 'parse_utils.dart';
 
 class CreditNoteApplicationModel {
   final int id;
@@ -53,23 +41,23 @@ class CreditNoteApplicationModel {
 
   factory CreditNoteApplicationModel.fromJson(Map<String, dynamic> json) {
     return CreditNoteApplicationModel(
-      id:               _toInt(json['id']) ?? 0,
-      orgId:            _toInt(json['org_id']) ?? 0,
-      creditNoteId:     _toInt(json['credit_note_id']) ?? 0,
-      targetBookingId:  _toInt(json['target_booking_id']) ?? 0,
-      targetInvoiceId:  _toInt(json['target_invoice_id']) ?? 0,
-      amountApplied:    _toDouble(json['amount_applied']) ?? 0.0,
+      id:               toIntOrNull(json['id']) ?? 0,
+      orgId:            toIntOrNull(json['org_id']) ?? 0,
+      creditNoteId:     toIntOrNull(json['credit_note_id']) ?? 0,
+      targetBookingId:  toIntOrNull(json['target_booking_id']) ?? 0,
+      targetInvoiceId:  toIntOrNull(json['target_invoice_id']) ?? 0,
+      amountApplied:    toDoubleOrNull(json['amount_applied']) ?? 0.0,
       status:           json['status']?.toString() ?? '',
-      appliedBy:        _toInt(json['applied_by']),
-      reversedBy:       _toInt(json['reversed_by']),
-      ledgerEntryId:    _toInt(json['ledger_entry_id']),
-      appliedAt:        json['applied_at'] as String?,
-      notes:            json['notes'] as String?,
-      reversedAt:       json['reversed_at'] as String?,
-      reversalReason:   json['reversal_reason'] as String?,
-      appliedByName:    json['applied_by_name'] as String?,
-      targetBookingRef: json['target_booking_ref'] as String?,
-      targetInvoiceRef: json['target_invoice_ref'] as String?,
+      appliedBy:        toIntOrNull(json['applied_by']),
+      reversedBy:       toIntOrNull(json['reversed_by']),
+      ledgerEntryId:    toIntOrNull(json['ledger_entry_id']),
+      appliedAt:        toStrOrNull(json['applied_at']),
+      notes:            toStrOrNull(json['notes']),
+      reversedAt:       toStrOrNull(json['reversed_at']),
+      reversalReason:   toStrOrNull(json['reversal_reason']),
+      appliedByName:    toStrOrNull(json['applied_by_name']),
+      targetBookingRef: toStrOrNull(json['target_booking_ref']),
+      targetInvoiceRef: toStrOrNull(json['target_invoice_ref']),
     );
   }
 
@@ -94,5 +82,5 @@ class CreditNoteApplicationModel {
   };
 
   static List<CreditNoteApplicationModel> fromJsonList(List list) =>
-      list.map((e) => CreditNoteApplicationModel.fromJson(e as Map<String, dynamic>)).toList();
+      parseList(list, CreditNoteApplicationModel.fromJson);
 }

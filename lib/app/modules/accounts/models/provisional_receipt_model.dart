@@ -1,3 +1,5 @@
+import 'parse_utils.dart';
+
 class ProvisionalReceipt {
   final int id;
   final String receiptNumber;
@@ -15,7 +17,7 @@ class ProvisionalReceipt {
   final String paymentMode;
   final String? transactionId;
   final String? remarks;
-  final DateTime receiptDate;
+  final DateTime? receiptDate;
   final String periodFrom;
   final String periodTo;
   final String status;
@@ -39,7 +41,7 @@ class ProvisionalReceipt {
     required this.paymentMode,
     this.transactionId,
     this.remarks,
-    required this.receiptDate,
+    this.receiptDate,
     required this.periodFrom,
     required this.periodTo,
     required this.status,
@@ -49,34 +51,32 @@ class ProvisionalReceipt {
 
   factory ProvisionalReceipt.fromJson(Map<String, dynamic> json) {
     return ProvisionalReceipt(
-      id: (json['id'] as num?)?.toInt() ?? 0,
-      receiptNumber: json['receipt_number']?.toString() ?? '',
-      bookingId: (json['booking_id'] as num?)?.toInt() ?? 0,
-      invoiceDbId: (json['invoice_db_id'] as num?)?.toInt(),
-      invoiceId: json['invoice_id']?.toString(),
-      userId: (json['user_id'] as num?)?.toInt() ?? 0,
-      clientName: json['client_name']?.toString() ?? '',
-      clientMobile: json['client_mobile']?.toString() ?? '',
-      patientName: json['patient_name']?.toString() ?? '',
-      serviceName: json['service_name']?.toString() ?? '',
-      amount: double.tryParse(json['amount']?.toString() ?? '0') ?? 0,
-      taxAmount: double.tryParse(json['tax_amount']?.toString() ?? '0') ?? 0,
-      totalAmount: double.tryParse(json['total_amount']?.toString() ?? '0') ?? 0,
-      paymentMode: json['payment_mode']?.toString() ?? '',
-      transactionId: json['transaction_id'] as String?,
-      remarks: json['remarks'] as String?,
-      receiptDate: DateTime.tryParse(json['receipt_date']?.toString() ?? '') ?? DateTime.now(),
-      periodFrom: json['period_from']?.toString() ?? '',
-      periodTo: json['period_to']?.toString() ?? '',
-      status: json['status']?.toString() ?? 'Pending',
-      createdOn: DateTime.tryParse(json['created_on']?.toString() ?? ''),
-      createdBy: (json['created_by'] as num?)?.toInt(),
+      id: toInt(json['id']),
+      receiptNumber: toStr(json['receipt_number']),
+      bookingId: toInt(json['booking_id']),
+      invoiceDbId: toIntOrNull(json['invoice_db_id']),
+      invoiceId: toStrOrNull(json['invoice_id']),
+      userId: toInt(json['user_id']),
+      clientName: toStr(json['client_name']),
+      clientMobile: toStr(json['client_mobile']),
+      patientName: toStr(json['patient_name']),
+      serviceName: toStr(json['service_name']),
+      amount: toDouble(json['amount']),
+      taxAmount: toDouble(json['tax_amount']),
+      totalAmount: toDouble(json['total_amount']),
+      paymentMode: toStr(json['payment_mode']),
+      transactionId: toStrOrNull(json['transaction_id']),
+      remarks: toStrOrNull(json['remarks']),
+      receiptDate: toDate(json['receipt_date']),
+      periodFrom: toStr(json['period_from']),
+      periodTo: toStr(json['period_to']),
+      status: toStr(json['status'], 'Pending'),
+      createdOn: toDate(json['created_on']),
+      createdBy: toIntOrNull(json['created_by']),
     );
   }
 
   static List<ProvisionalReceipt> listFromJson(List<dynamic> jsonList) {
-    return jsonList
-        .map((e) => ProvisionalReceipt.fromJson(e as Map<String, dynamic>))
-        .toList();
+    return parseList(jsonList, ProvisionalReceipt.fromJson);
   }
 }

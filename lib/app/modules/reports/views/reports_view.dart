@@ -1,4 +1,3 @@
-import 'package:web/web.dart' as web;
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:eldivex_app/app/core/values/color_constants.dart';
@@ -12,10 +11,6 @@ class ReportsView extends GetView<ReportsController> {
   @override
   Widget build(BuildContext context) {
     SizeConfig.init(context);
-    // Pre-load schedule config on first render
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      controller.loadScheduleConfig();
-    });
 
     return Scaffold(
       backgroundColor: AppColor.cAppBackgroundColor,
@@ -164,10 +159,12 @@ class ReportsView extends GetView<ReportsController> {
               Obx(() => SizedBox(
                 height: 40,
                 child: OutlinedButton.icon(
-                  onPressed: controller.reportData.isEmpty
+                  onPressed: controller.reportData.isEmpty || controller.downloading.value
                       ? null
-                      : () => _downloadCsv(),
-                  icon: const Icon(Icons.download, size: 18),
+                      : controller.downloadCsv,
+                  icon: controller.downloading.value
+                      ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                      : const Icon(Icons.download, size: 18),
                   label: const Text('Download CSV'),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: AppColor.cPrimaryButtonColor,
@@ -186,7 +183,7 @@ class ReportsView extends GetView<ReportsController> {
   List<Widget> _buildFilterWidgets(BuildContext context) {
     return [
       // Report type selector
-      _buildDropdownField<String>(
+      Obx(() => _buildDropdownField<String>(
         label: 'Report Type',
         value: controller.reportType.value,
         items: ReportsController.reportTypes
@@ -199,7 +196,7 @@ class ReportsView extends GetView<ReportsController> {
           if (v != null) controller.reportType.value = v;
         },
         width: 180,
-      ),
+      )),
 
       // Branch dropdown
       Obx(() {
@@ -294,7 +291,7 @@ class ReportsView extends GetView<ReportsController> {
           lastDate: now,
           builder: (ctx, child) => Theme(
             data: Theme.of(ctx).copyWith(
-              colorScheme: ColorScheme.light(
+              colorScheme: Theme.of(ctx).colorScheme.copyWith(
                 primary: AppColor.cPrimaryButtonColor,
                 onPrimary: AppColor.buttonTextWhite,
               ),
@@ -347,7 +344,7 @@ class ReportsView extends GetView<ReportsController> {
   Widget _buildPreviewCard() {
     return Obx(() {
       if (!controller.loading.value && controller.reportData.isEmpty) {
-        return const SizedBox.shrink();
+        return _buildMessageCard();
       }
 
       return Container(
@@ -371,7 +368,7 @@ class ReportsView extends GetView<ReportsController> {
               child: Row(
                 children: [
                   Text(
-                    'Preview (first ${controller.reportData.length} rows)',
+                    'Preview (first ${controller.reportData.length < 50 ? controller.reportData.length : 50} rows)',
                     style: TextStyle(
                       fontSize: SizeConfig.fontBodyLarge,
                       fontWeight: FontWeight.w600,
@@ -453,13 +450,39 @@ class ReportsView extends GetView<ReportsController> {
     );
   }
 
-  // ── CSV download ──────────────────────────────────────────────────────────
-
-  void _downloadCsv() {
-    final url = controller.csvDownloadUrl();
-    final a   = web.document.createElement('a') as web.HTMLAnchorElement;
-    a.href     = url;
-    a.download = '${controller.reportType.value}_report.csv';
-    a.click();
+  /// Empty / error / plan-upgrade state shown instead of the preview table.
+  Widget _buildMessageCard() {
+    final err = controller.reportError.value;
+    if (err.isEmpty) return const SizedBox.shrink();
+    final upgrade = controller.planBlocked.value;
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(SizeConfig.spacingLG),
+      decoration: BoxDecoration(
+        color: AppColor.whiteColor,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: upgrade ? Colors.orange.withValues(alpha: 0.5) : AppColor.divColor,
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            upgrade ? Icons.workspace_premium_outlined : Icons.info_outline,
+            color: upgrade ? Colors.orange : AppColor.fontColorGrey,
+          ),
+          SizedBox(width: SizeConfig.spacingSM),
+          Expanded(
+            child: Text(
+              err,
+              style: TextStyle(
+                fontSize: SizeConfig.fontBody,
+                color: AppColor.fontColorBlack,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

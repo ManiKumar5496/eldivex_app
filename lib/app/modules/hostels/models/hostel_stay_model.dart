@@ -49,7 +49,7 @@ class HostelStayModel {
       hostelId: _toInt(json['hostel_id']),
       hpId: _toInt(json['hp_id']),
       checkInDate: json['check_in_date']?.toString() ?? '',
-      checkOutDate: json['check_out_date']?.toString(),
+      checkOutDate: _optStr(json['check_out_date']),
       ratePerDay: _toDouble(json['rate_per_day']),
       status: json['status']?.toString() ?? 'active',
       hostelName: json['hostel_name']?.toString() ?? '',
@@ -58,6 +58,11 @@ class HostelStayModel {
       hpPhone: json['hp_reg_phone_number']?.toString(),
       hpGender: json['hp_reg_gender']?.toString(),
     );
+  }
+
+  static String? _optStr(dynamic v) {
+    final s = v?.toString().trim();
+    return (s == null || s.isEmpty || s == 'NA' || s == 'null') ? null : s;
   }
 
   static int _toInt(dynamic v, {int fallback = 0}) {
@@ -70,6 +75,8 @@ class HostelStayModel {
     return double.tryParse(v?.toString() ?? '') ?? 0.0;
   }
 
-  static List<HostelStayModel> listFromJson(List<dynamic> list) =>
-      list.map((e) => HostelStayModel.fromJson(e as Map<String, dynamic>)).toList();
+  static List<HostelStayModel> listFromJson(List<dynamic> list) => list
+      .whereType<Map>()
+      .map((e) => HostelStayModel.fromJson(Map<String, dynamic>.from(e)))
+      .toList();
 }

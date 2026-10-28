@@ -49,13 +49,33 @@ class OrganisationsView extends GetView<OrganisationsController> {
               ),
               const SizedBox(height: 24),
 
+              // ── Search ───────────────────────────────────────────────────────
+              Container(
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
+                  color: AppColor.whiteColor,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: AppColor.divColor),
+                ),
+                child: TextField(
+                  onChanged: controller.searchOrganisations,
+                  decoration: const InputDecoration(
+                    hintText: 'Search by org ID, name, slug, or email...',
+                    prefixIcon: Icon(Icons.search),
+                    border: InputBorder.none,
+                    contentPadding:
+                        EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                  ),
+                ),
+              ),
+
               // ── Table ────────────────────────────────────────────────────────
               Expanded(
                 child: Obx(() {
                   if (controller.loading.value) {
                     return const Center(child: CircularProgressIndicator());
                   }
-                  if (controller.orgs.isEmpty) {
+                  if (controller.filteredOrgs.isEmpty) {
                     return const Center(child: Text('No organisations found.'));
                   }
                   return _buildTable(context);
@@ -73,9 +93,9 @@ class OrganisationsView extends GetView<OrganisationsController> {
 
     if (isMobile) {
       return ListView.separated(
-        itemCount: controller.orgs.length,
+        itemCount: controller.filteredOrgs.length,
         separatorBuilder: (_, __) => const SizedBox(height: 12),
-        itemBuilder: (_, i) => _buildOrgCard(context, controller.orgs[i]),
+        itemBuilder: (_, i) => _buildOrgCard(context, controller.filteredOrgs[i]),
       );
     }
 
@@ -94,7 +114,7 @@ class OrganisationsView extends GetView<OrganisationsController> {
             DataColumn(label: Text('Status')),
             DataColumn(label: Text('Actions')),
           ],
-          rows: controller.orgs.map((org) {
+          rows: controller.filteredOrgs.map((org) {
             return DataRow(cells: [
               DataCell(Text(org.publicId)),
               DataCell(Text(org.name)),

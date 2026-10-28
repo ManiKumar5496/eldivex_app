@@ -5,6 +5,9 @@ import 'package:eldivex_app/app/core/values/text_style_constants.dart';
 import '../../../../widgets/shimmer_loader.dart';
 import '../../controllers/internal_transfer_controller.dart';
 import '../../models/internal_transfer_model.dart';
+import '../../models/active_booking_client_model.dart';
+import '../../../../routes/app_pages.dart';
+import '../accounts_format.dart';
 
 class TransferListView extends StatefulWidget {
   const TransferListView({super.key});
@@ -23,7 +26,7 @@ class _TransferListViewState extends State<TransferListView> {
   final List<String> _statusOptions = [
     'All',
     'PENDING_APPROVAL',
-    'APPROVED',
+    'COMPLETED',
     'REJECTED',
     'REVERSED',
   ];
@@ -41,21 +44,6 @@ class _TransferListViewState extends State<TransferListView> {
   // ─────────────────────────────────────────────
   // Helpers
   // ─────────────────────────────────────────────
-
-  Color _statusColor(String status) {
-    switch (status.toUpperCase()) {
-      case 'APPROVED':
-        return Colors.green;
-      case 'REJECTED':
-        return Colors.red;
-      case 'REVERSED':
-        return Colors.purple;
-      case 'PENDING_APPROVAL':
-        return Colors.orange;
-      default:
-        return AppColor.fontColorGrey;
-    }
-  }
 
   Color _typeColor(String type) {
     switch (type.toUpperCase()) {
@@ -75,23 +63,6 @@ class _TransferListViewState extends State<TransferListView> {
   String _formatType(String type) {
     return type.replaceAll('_', ' ');
   }
-
-  String _formatDate(String? s) {
-    if (s == null || s.isEmpty) return '-';
-    try {
-      final dt = DateTime.parse(s);
-      const months = [
-        'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-        'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
-      ];
-      return '${dt.day.toString().padLeft(2, '0')}-${months[dt.month - 1]}-${dt.year}';
-    } catch (_) {
-      return s;
-    }
-  }
-
-  String _formatCurrency(double v) =>
-      '₹${v.toStringAsFixed(2).replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+\.)'), (m) => '${m[1]},')}';
 
   void _applyFilters() {
     ctrl.loadTransfers(
@@ -122,15 +93,20 @@ class _TransferListViewState extends State<TransferListView> {
   Widget _buildFilterBar() {
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
+      child: Wrap(
+        spacing: 12,
+        runSpacing: 10,
+        crossAxisAlignment: WrapCrossAlignment.center,
         children: [
-          // Client dropdown
+          // Client dropdown — getActiveClients is per booking, so dedupe by user_id.
           Obx(() {
-            final clients = ctrl.activeClients;
+            final clients = ClientOption.fromBookingRows(ctrl.activeClients);
+            final selected = clients.any((c) => c.userId == _selectedClientId)
+                ? _selectedClientId
+                : null;
             return Container(
               height: 44,
-              constraints: const BoxConstraints(minWidth: 220),
+              width: 240,
               padding: const EdgeInsets.symmetric(horizontal: 12),
               decoration: BoxDecoration(
                 color: AppColor.whiteColor,
@@ -140,7 +116,7 @@ class _TransferListViewState extends State<TransferListView> {
               child: DropdownButtonHideUnderline(
                 child: DropdownButton<int?>(
                   isExpanded: true,
-                  value: _selectedClientId,
+                  value: selected,
                   hint: Text(
                     'All Clients',
                     style: TextStyle(color: AppColor.fontColorGrey, fontSize: 14),
@@ -152,11 +128,11 @@ class _TransferListViewState extends State<TransferListView> {
                           style: TextStyle(fontSize: 14, color: AppColor.fontColorGrey)),
                     ),
                     ...clients.map((c) {
-                      final id = (c['user_id'] as num?)?.toInt();
-                      final name = c['client_name']?.toString() ?? c['name']?.toString() ?? 'Client $id';
                       return DropdownMenuItem<int?>(
-                        value: id,
-                        child: Text(name, style: const TextStyle(fontSize: 14)),
+                        value: c.userId,
+                        child: Text(c.label,
+                            style: const TextStyle(fontSize: 14),
+                            overflow: TextOverflow.ellipsis),
                       );
                     }),
                   ],
@@ -168,11 +144,8 @@ class _TransferListViewState extends State<TransferListView> {
               ),
             );
           }),
-          const SizedBox(width: 12),
-
           // Status filter chips
-          Expanded(
-            child: SingleChildScrollView(
+          SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: Row(
                 children: _statusOptions.map((s) {
@@ -207,9 +180,7 @@ class _TransferListViewState extends State<TransferListView> {
                   );
                 }).toList(),
               ),
-            ),
           ),
-          const SizedBox(width: 12),
 
           // Refresh
           Tooltip(
@@ -229,11 +200,9 @@ class _TransferListViewState extends State<TransferListView> {
               ),
             ),
           ),
-          const SizedBox(width: 12),
-
           // New Transfer button
           ElevatedButton.icon(
-            onPressed: () => Get.toNamed('/accounts/internal-transfer/create'),
+            onPressed: () => Get.toNamed(Routes.CREATE_TRANSFER),
             icon: Icon(Icons.add, color: AppColor.buttonTextWhite, size: 18),
             label: Text(
               'New Transfer',
@@ -287,7 +256,7 @@ class _TransferListViewState extends State<TransferListView> {
             borderRadius: BorderRadius.circular(12),
             border: Border.all(color: AppColor.divColor),
           ),
-          child: DataTable(
+          child: horizontalTable(DataTable(
             headingRowColor: WidgetStateProperty.all(AppColor.fieldColorGrey),
             headingTextStyle: TextStyle(
               fontWeight: FontWeight.w600,
@@ -309,14 +278,14 @@ class _TransferListViewState extends State<TransferListView> {
               DataColumn(label: Text('Actions')),
             ],
             rows: ctrl.transfers.map((t) => _buildRow(t)).toList(),
-          ),
+          )),
         ),
       );
     });
   }
 
   DataRow _buildRow(InternalTransferModel t) {
-    final statusColor = _statusColor(t.status);
+    final statusColor = accountsStatusColor(t.status);
     final typeColor = _typeColor(t.transferType);
 
     return DataRow(cells: [
@@ -346,7 +315,7 @@ class _TransferListViewState extends State<TransferListView> {
 
       // Amount
       DataCell(Text(
-        _formatCurrency(t.transferAmount),
+        formatInr(t.transferAmount),
         style: const TextStyle(
             fontWeight: FontWeight.w600, color: Colors.teal, fontSize: 13),
       )),
@@ -382,7 +351,7 @@ class _TransferListViewState extends State<TransferListView> {
 
       // Date
       DataCell(Text(
-        _formatDate(t.createdOn),
+        formatAccDate(t.createdOn, pattern: 'dd-MMM-yyyy', empty: '-'),
         style: const TextStyle(fontSize: 12),
       )),
 
@@ -394,8 +363,9 @@ class _TransferListViewState extends State<TransferListView> {
             message: 'View Details',
             child: InkWell(
               onTap: () => Get.toNamed(
-                '/accounts/internal-transfer/detail',
+                Routes.TRANSFER_DETAIL,
                 arguments: t.id,
+                parameters: {'id': '${t.id}'},
               ),
               borderRadius: BorderRadius.circular(6),
               child: Container(

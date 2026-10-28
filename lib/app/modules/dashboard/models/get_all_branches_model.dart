@@ -17,11 +17,11 @@ class GetAllBranchesModel {
     json ??= {};
 
     return GetAllBranchesModel(
-      brId: json["br_id"] ?? 0,
-      brName: json["br_name"] ?? "",
-      brPhone: json["br_phone"] ?? "",
-      brEmail: json["br_email"] ?? "",
-      brAddress: json["br_address"] ?? "",
+      brId: _toInt(json["br_id"]),
+      brName: _toStr(json["br_name"]),
+      brPhone: _toStr(json["br_phone"]),
+      brEmail: _toStr(json["br_email"]),
+      brAddress: _toStr(json["br_address"]),
     );
   }
 
@@ -33,3 +33,7 @@ class GetAllBranchesModel {
     "br_address": brAddress,
   };
 }
+
+int _toInt(dynamic v) => v is int ? v : int.tryParse('${v ?? ''}') ?? 0;
+
+String _toStr(dynamic v) => v == null ? '' : v.toString();

@@ -1,16 +1,4 @@
-double? _toDouble(dynamic v) {
-  if (v == null) return null;
-  if (v is num) return v.toDouble();
-  if (v is String) return double.tryParse(v);
-  return null;
-}
-
-int? _toInt(dynamic v) {
-  if (v == null) return null;
-  if (v is num) return v.toInt();
-  if (v is String) return int.tryParse(v);
-  return null;
-}
+import 'parse_utils.dart';
 
 class AgingBucket {
   final String label;
@@ -26,8 +14,8 @@ class AgingBucket {
   factory AgingBucket.fromJson(Map<String, dynamic> json) {
     return AgingBucket(
       label:  json['label']?.toString() ?? '',
-      amount: _toDouble(json['amount']) ?? 0.0,
-      count:  _toInt(json['count']) ?? 0,
+      amount: toDoubleOrNull(json['amount']) ?? 0.0,
+      count:  toIntOrNull(json['count']) ?? 0,
     );
   }
 
@@ -70,26 +58,27 @@ class OutstandingBalanceModel {
   });
 
   factory OutstandingBalanceModel.fromJson(Map<String, dynamic> json) {
-    List<AgingBucket>? buckets;
-    if (json['aging_buckets'] is List) {
-      buckets = (json['aging_buckets'] as List)
-          .map((e) => AgingBucket.fromJson(e as Map<String, dynamic>))
-          .toList();
-    }
+    final buckets = json['aging_buckets'] is List
+        ? parseList(json['aging_buckets'], AgingBucket.fromJson)
+        : null;
+    // getClientOutstanding / getBookingOutstanding answer in camelCase
+    // (totalBilled, outstandingAmount, …); older payloads used snake_case.
+    double amt(String snake, String camel) =>
+        toDoubleOrNull(json[camel]) ?? toDoubleOrNull(json[snake]) ?? 0.0;
 
     return OutstandingBalanceModel(
-      clientId:                  _toInt(json['client_id']),
-      bookingId:                 _toInt(json['booking_id']),
-      totalBilled:               _toDouble(json['total_billed']) ?? 0.0,
-      totalPaid:                 _toDouble(json['total_paid']) ?? 0.0,
-      totalWriteOff:             _toDouble(json['total_write_off']) ?? 0.0,
-      totalCreditNoteIssued:     _toDouble(json['total_credit_note_issued']) ?? 0.0,
-      totalCreditNoteApplied:    _toDouble(json['total_credit_note_applied']) ?? 0.0,
-      totalRefunded:             _toDouble(json['total_refunded']) ?? 0.0,
-      totalInternalTransferIn:   _toDouble(json['total_internal_transfer_in']) ?? 0.0,
-      totalInternalTransferOut:  _toDouble(json['total_internal_transfer_out']) ?? 0.0,
-      outstandingAmount:         _toDouble(json['outstanding_amount']) ?? 0.0,
-      lastUpdated:               json['last_updated'] as String?,
+      clientId:                  toIntOrNull(json['clientId'] ?? json['client_id']),
+      bookingId:                 toIntOrNull(json['bookingId'] ?? json['booking_id']),
+      totalBilled:               amt('total_billed', 'totalBilled'),
+      totalPaid:                 amt('total_paid', 'totalPaid'),
+      totalWriteOff:             amt('total_write_off', 'totalWriteOff'),
+      totalCreditNoteIssued:     amt('total_credit_note_issued', 'totalCreditNoteIssued'),
+      totalCreditNoteApplied:    amt('total_credit_note_applied', 'totalCreditNoteApplied'),
+      totalRefunded:             amt('total_refunded', 'totalRefunded'),
+      totalInternalTransferIn:   amt('total_internal_transfer_in', 'totalInternalTransferIn'),
+      totalInternalTransferOut:  amt('total_internal_transfer_out', 'totalInternalTransferOut'),
+      outstandingAmount:         amt('outstanding_amount', 'outstandingAmount'),
+      lastUpdated:               toStrOrNull(json['last_updated']),
       agingBuckets:              buckets,
     );
   }

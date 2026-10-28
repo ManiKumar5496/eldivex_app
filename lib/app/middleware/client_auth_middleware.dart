@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
+import '../core/utils/jwt_utils.dart';
 import '../routes/app_pages.dart';
 
 bool clientIsAuthenticated() {
   final box = GetStorage();
-  final token = box.read("client_token") ?? "";
-  return token.toString().isNotEmpty;
+  return isValidSessionToken(box.read("client_token"));
 }
 
 /// Guards the client portal (/client, /client/...). Kept separate from the
@@ -21,6 +21,7 @@ class ClientAuthMiddleware extends GetMiddleware {
       debugPrint("ClientAuthMiddleware: no client session, redirecting to CLIENT_LOGIN");
       return const RouteSettings(name: Routes.CLIENT_LOGIN);
     }
+    GetStorage().write('active_session', 'client');
     return null;
   }
 }

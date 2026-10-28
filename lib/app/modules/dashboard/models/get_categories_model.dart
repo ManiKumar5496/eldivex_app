@@ -11,12 +11,13 @@ class CategoryModel {
     required this.status,
   });
 
-  factory CategoryModel.fromJson(Map<String, dynamic> json) {
+  factory CategoryModel.fromJson(Map<String, dynamic>? json) {
+    json ??= {};
     return CategoryModel(
-      id: json['id'] ?? 0,
-      catName: json['cat_name'] ?? '',
-      catIcon: json['cat_icon'] ?? '',
-      status: json['status'] ?? 0,
+      id: _toInt(json['id']),
+      catName: _toStr(json['cat_name']),
+      catIcon: _toStr(json['cat_icon']),
+      status: _toInt(json['status']),
     );
   }
 
@@ -29,3 +30,7 @@ class CategoryModel {
     };
   }
 }
+
+int _toInt(dynamic v) => v is int ? v : int.tryParse('${v ?? ''}') ?? 0;
+
+String _toStr(dynamic v) => v == null ? '' : v.toString();

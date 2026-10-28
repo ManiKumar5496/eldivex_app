@@ -3,25 +3,17 @@ import 'package:get/get.dart';
 import 'package:eldivex_app/app/core/values/color_constants.dart';
 import 'package:eldivex_app/app/core/values/text_style_constants.dart';
 import '../../controllers/credit_note_controller.dart';
+import '../../models/active_booking_client_model.dart';
+import '../../models/parse_utils.dart';
+import '../../../../routes/app_pages.dart';
+import '../../../../widgets/helper_ui.dart';
+import '../accounts_format.dart';
 
 class CreateCreditNoteView extends GetView<CreditNoteController> {
   const CreateCreditNoteView({super.key});
 
-  static const _creditNoteTypes = [
-    'SERVICE_ADJUSTMENT',
-    'BILLING_ERROR',
-    'GOODWILL',
-    'ADVANCE_CREDIT',
-    'CANCELLATION',
-  ];
-
-  static const _typeLabels = {
-    'SERVICE_ADJUSTMENT': 'Service Adjustment',
-    'BILLING_ERROR': 'Billing Error',
-    'GOODWILL': 'Goodwill',
-    'ADVANCE_CREDIT': 'Advance Credit',
-    'CANCELLATION': 'Cancellation',
-  };
+  /// edx_credit_notes.credit_type values (backend default: Hold).
+  static const _creditTypes = ['Hold', 'Cancellation', 'Overpayment', 'Other'];
 
   @override
   Widget build(BuildContext context) {
@@ -36,7 +28,7 @@ class CreateCreditNoteView extends GetView<CreditNoteController> {
         leading: IconButton(
           icon: Icon(Icons.arrow_back_ios_new,
               size: 18, color: AppColor.cPrimaryHeadingColor),
-          onPressed: () => Get.back(),
+          onPressed: () => HelperUi.safeBack(Routes.MAIN),
         ),
         title: Text(
           'Create Credit Note',
@@ -94,35 +86,58 @@ class CreateCreditNoteView extends GetView<CreditNoteController> {
           Divider(color: AppColor.divColor),
           const SizedBox(height: 20),
 
-          // ── Booking selector ──────────────────────────────────────
-          _buildLabel('Client / Booking', required: true),
+          // ── Client selector (getActiveClients is per booking → dedupe) ──
+          _buildLabel('Client', required: true),
           const SizedBox(height: 8),
           Obx(() {
-            final clients = controller.activeClients;
+            final clients = ClientOption.fromBookingRows(controller.activeClients);
+            final selected = clients.any((c) => c.userId == controller.selectedClientId.value)
+                ? controller.selectedClientId.value
+                : null;
             return _buildDropdownField<int>(
-              hint: 'Select a booking',
+              hint: 'Select a client',
+              value: selected,
+              items: clients
+                  .map((c) => DropdownMenuItem<int>(
+                        value: c.userId,
+                        child: Text(c.label, overflow: TextOverflow.ellipsis),
+                      ))
+                  .toList(),
+              onChanged: (val) {
+                controller.selectedClientId.value = val;
+                controller.selectedBookingId.value = null;
+                controller.selectedInvoiceId.value = null;
+                controller.targetInvoices.clear();
+              },
+            );
+          }),
+          const SizedBox(height: 18),
+
+          // ── Booking selector ──────────────────────────────────────
+          _buildLabel('Booking', required: true),
+          const SizedBox(height: 8),
+          Obx(() {
+            final bookings = bookingRowsForUser(
+                controller.activeClients, controller.selectedClientId.value);
+            return _buildDropdownField<int>(
+              hint: controller.selectedClientId.value == null
+                  ? 'Select a client first'
+                  : 'Select a booking',
               value: controller.selectedBookingId.value,
-              items: clients.map<DropdownMenuItem<int>>((c) {
-                final id = (c['id'] as num?)?.toInt() ?? 0;
-                final name = c['client_name']?.toString() ??
-                    c['name']?.toString() ??
-                    'Booking #$id';
-                final ref = c['booking_ref']?.toString() ?? '';
+              items: bookings.map<DropdownMenuItem<int>>((b) {
+                final id = toInt(field(b, 'booking_id'), toInt(field(b, 'id')));
                 return DropdownMenuItem<int>(
                   value: id,
-                  child: Text(
-                    ref.isNotEmpty ? '$name — $ref' : name,
-                    overflow: TextOverflow.ellipsis,
-                  ),
+                  child: Text(bookingRowLabel(b), overflow: TextOverflow.ellipsis),
                 );
               }).toList(),
-              onChanged: (val) {
-                controller.selectedBookingId.value = val;
-                controller.selectedInvoiceId.value = null;
-                if (val != null) {
-                  controller.loadTargetInvoices(val);
-                }
-              },
+              onChanged: bookings.isEmpty
+                  ? null
+                  : (val) {
+                      controller.selectedBookingId.value = val;
+                      controller.selectedInvoiceId.value = null;
+                      if (val != null) controller.loadTargetInvoices(val);
+                    },
             );
           }),
           const SizedBox(height: 18),
@@ -139,15 +154,14 @@ class CreateCreditNoteView extends GetView<CreditNoteController> {
                   : 'Select a booking first',
               value: controller.selectedInvoiceId.value,
               items: invoices.map<DropdownMenuItem<int>>((inv) {
-                final id = (inv['id'] as num?)?.toInt() ?? 0;
-                final ref = inv['invoice_ref']?.toString() ??
-                    inv['invoice_number']?.toString() ??
-                    '#$id';
-                final amt = (inv['outstanding_amount'] as num?)?.toDouble() ?? 0;
+                // getInvoices: invoice_db_id = PK, invoice_id = 'INV-<id>'.
+                final id = toInt(field(inv, 'invoice_db_id'));
+                final ref = toStr(field(inv, 'invoice_id'), '#$id');
+                final amt = toDouble(field(inv, 'balance_due'));
                 return DropdownMenuItem<int>(
                   value: id,
                   child: Text(
-                    '$ref — Outstanding: ₹${amt.toStringAsFixed(0)}',
+                    '$ref — Balance: ${formatInr(amt)}',
                     overflow: TextOverflow.ellipsis,
                   ),
                 );
@@ -159,20 +173,19 @@ class CreateCreditNoteView extends GetView<CreditNoteController> {
           }),
           const SizedBox(height: 18),
 
-          // ── Credit Note Type ──────────────────────────────────────
-          _buildLabel('Credit Note Type', required: true),
+          // ── Credit Type ───────────────────────────────────────────
+          _buildLabel('Credit Type', required: true),
           const SizedBox(height: 8),
           Obx(() => _buildDropdownField<String>(
                 hint: 'Select type',
-                value: controller.creditNoteType.value,
-                items: _creditNoteTypes.map((t) {
-                  return DropdownMenuItem<String>(
-                    value: t,
-                    child: Text(_typeLabels[t] ?? t),
-                  );
-                }).toList(),
+                value: _creditTypes.contains(controller.creditType.value)
+                    ? controller.creditType.value
+                    : null,
+                items: _creditTypes
+                    .map((t) => DropdownMenuItem<String>(value: t, child: Text(t)))
+                    .toList(),
                 onChanged: (val) {
-                  if (val != null) controller.creditNoteType.value = val;
+                  if (val != null) controller.creditType.value = val;
                 },
               )),
           const SizedBox(height: 18),
@@ -190,8 +203,8 @@ class CreateCreditNoteView extends GetView<CreditNoteController> {
           ),
           const SizedBox(height: 18),
 
-          // ── Expiry Date ───────────────────────────────────────────
-          _buildLabel('Expiry Date'),
+          // ── Credit Date ───────────────────────────────────────────
+          _buildLabel('Credit Date'),
           const SizedBox(height: 8),
           _buildDatePickerField(context),
           const SizedBox(height: 18),
@@ -206,16 +219,6 @@ class CreateCreditNoteView extends GetView<CreditNoteController> {
           ),
           const SizedBox(height: 18),
 
-          // ── Notes ────────────────────────────────────────────────
-          _buildLabel('Notes (Optional)'),
-          const SizedBox(height: 8),
-          _buildTextField(
-            controller: controller.notesCtrl,
-            hint: 'Any additional notes...',
-            maxLines: 2,
-          ),
-          const SizedBox(height: 28),
-
           // ── Submit ───────────────────────────────────────────────
           Obx(() => SizedBox(
                 width: double.infinity,
@@ -223,7 +226,10 @@ class CreateCreditNoteView extends GetView<CreditNoteController> {
                 child: ElevatedButton(
                   onPressed: controller.isSubmitting.value
                       ? null
-                      : () => controller.createCreditNote(),
+                      : () async {
+                          final ok = await controller.createCreditNote();
+                          if (ok) HelperUi.safeBack(Routes.MAIN);
+                        },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColor.cPrimaryButtonColor,
                     disabledBackgroundColor:
@@ -259,16 +265,18 @@ class CreateCreditNoteView extends GetView<CreditNoteController> {
   // Date picker button
   // ─────────────────────────────────────────────
   Widget _buildDatePickerField(BuildContext context) {
-    return Obx(() {
-      final dateText = controller.expiryDateCtrl.text.trim();
+    return ValueListenableBuilder<TextEditingValue>(
+        valueListenable: controller.creditDateCtrl,
+        builder: (context, value, _) {
+      final dateText = value.text.trim();
       final hasDate = dateText.isNotEmpty;
       return InkWell(
         onTap: () async {
           final picked = await showDatePicker(
             context: context,
-            initialDate: DateTime.now().add(const Duration(days: 90)),
-            firstDate: DateTime.now(),
-            lastDate: DateTime.now().add(const Duration(days: 365 * 3)),
+            initialDate: DateTime.now(),
+            firstDate: DateTime(DateTime.now().year - 2),
+            lastDate: DateTime.now(),
             builder: (ctx, child) => Theme(
               data: Theme.of(ctx).copyWith(
                 colorScheme: ColorScheme.light(
@@ -279,7 +287,7 @@ class CreateCreditNoteView extends GetView<CreditNoteController> {
             ),
           );
           if (picked != null) {
-            controller.expiryDateCtrl.text =
+            controller.creditDateCtrl.text =
                 '${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}';
           }
         },
@@ -301,7 +309,7 @@ class CreateCreditNoteView extends GetView<CreditNoteController> {
                       : AppColor.fontColorGrey),
               const SizedBox(width: 10),
               Text(
-                hasDate ? _formatDate(dateText) : 'No expiry',
+                hasDate ? _formatDate(dateText) : 'Today',
                 style: TextStyle(
                   fontSize: 14,
                   color: hasDate
@@ -312,7 +320,7 @@ class CreateCreditNoteView extends GetView<CreditNoteController> {
               const Spacer(),
               if (hasDate)
                 GestureDetector(
-                  onTap: () => controller.expiryDateCtrl.clear(),
+                  onTap: () => controller.creditDateCtrl.clear(),
                   child: Icon(Icons.close,
                       size: 16, color: AppColor.fontColorGrey),
                 ),
@@ -320,7 +328,7 @@ class CreateCreditNoteView extends GetView<CreditNoteController> {
           ),
         ),
       );
-    });
+        });
   }
 
   // ─────────────────────────────────────────────
@@ -409,16 +417,5 @@ class CreateCreditNoteView extends GetView<CreditNoteController> {
     );
   }
 
-  String _formatDate(String iso) {
-    try {
-      final dt = DateTime.parse(iso);
-      const months = [
-        'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-        'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
-      ];
-      return '${dt.day.toString().padLeft(2, '0')} ${months[dt.month - 1]} ${dt.year}';
-    } catch (_) {
-      return iso;
-    }
-  }
+  String _formatDate(String iso) => formatAccDate(iso, empty: iso);
 }

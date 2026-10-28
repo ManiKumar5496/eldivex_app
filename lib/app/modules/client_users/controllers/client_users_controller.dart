@@ -1,6 +1,5 @@
 import 'package:get/get.dart';
 import 'package:flutter/material.dart';
-import 'package:get_storage/get_storage.dart';
 import '../../../data/api_constant_url.dart';
 import '../../../data/base_api_services.dart';
 import '../../../routes/app_pages.dart';
@@ -10,13 +9,40 @@ import '../../dashboard/controllers/dashboard_controller.dart';
 import 'package:dio/dio.dart' as dio;
 
 class ClientUsersController extends GetxController {
-  final DashboardController dashboardController = Get.put(DashboardController());
+  // Resolved on each access so a disposed DashboardController (after logout)
+  // is never held on to.
+  DashboardController get dashboardController =>
+      Get.isRegistered<DashboardController>()
+          ? Get.find<DashboardController>()
+          : Get.put(DashboardController());
+
+  static const String defaultCountryCode = '+91';
+
+  static const List<Map<String, String>> countryCodes = [
+    {'code': '+91', 'flag': '🇮🇳'},
+    {'code': '+1', 'flag': '🇺🇸'},
+    {'code': '+44', 'flag': '🇬🇧'},
+    {'code': '+971', 'flag': '🇦🇪'},
+    {'code': '+65', 'flag': '🇸🇬'},
+    {'code': '+61', 'flag': '🇦🇺'},
+    {'code': '+49', 'flag': '🇩🇪'},
+    {'code': '+33', 'flag': '🇫🇷'},
+    {'code': '+81', 'flag': '🇯🇵'},
+    {'code': '+86', 'flag': '🇨🇳'},
+    {'code': '+966', 'flag': '🇸🇦'},
+    {'code': '+974', 'flag': '🇶🇦'},
+    {'code': '+968', 'flag': '🇴🇲'},
+    {'code': '+60', 'flag': '🇲🇾'},
+    {'code': '+977', 'flag': '🇳🇵'},
+    {'code': '+94', 'flag': '🇱🇰'},
+    {'code': '+880', 'flag': '🇧🇩'},
+  ];
 
   // Step 1 - CreateClientUser screen
   final TextEditingController phoneNumberControllerClient =
-      TextEditingController(text: "+91");
+      TextEditingController();
   final RxBool isSearchUserLoading = false.obs;
-  final RxString selectedCountryCode = '+91'.obs;
+  final RxString selectedCountryCode = defaultCountryCode.obs;
 
   // Step 2 - AddClientUserDetails screen
   final TextEditingController fullNameController = TextEditingController();
@@ -24,26 +50,33 @@ class ClientUsersController extends GetxController {
   final TextEditingController clientEmailController = TextEditingController();
   final TextEditingController internalRemarksController =
       TextEditingController();
+  final RxString detailsCountryCode = defaultCountryCode.obs;
   final RxString selectedCity = ''.obs;
   final RxString selectedLeadSource = ''.obs;
   final RxString selectedLeadType = ''.obs;
   final RxString selectedEnquiredFor = ''.obs;
-  final RxBool clientDetailsUpdateLoading = false.obs;
-
-  // Manage-list screen fields (separate from Step 2 fields)
-  final TextEditingController nameController = TextEditingController();
-  final TextEditingController phoneController = TextEditingController();
-  final TextEditingController emailController = TextEditingController();
-  final RxBool isLoadingClientUsers = false.obs;
-  final RxBool showFilters = false.obs;
-  final RxString selectedGender = ''.obs;
   final RxString selectedServiceCityId = ''.obs;
+  final RxBool clientDetailsUpdateLoading = false.obs;
+  final RxBool isEditMode = false.obs;
+  // Phone as stored on the server when the details form was opened; only a
+  // changed number is sent back on save.
+  String _loadedPhone = '';
+
+  // Manage-list screen
+  final TextEditingController searchController = TextEditingController();
+  final RxString searchQuery = ''.obs;
+  final RxString filterLeadType = ''.obs;
+  final RxString filterLeadSource = ''.obs;
+  final RxBool isLoadingClientUsers = false.obs;
+  final RxString loadError = ''.obs;
+  final RxBool showFilters = false.obs;
   final RxList<ClientUserModel> clientUsers = <ClientUserModel>[].obs;
-  final RxBool isLoading = false.obs;
+  final RxList<ClientUserModel> filteredClients = <ClientUserModel>[].obs;
   final ApiService apiService = ApiService();
-  final RxInt currentPage = 0.obs;
+  final RxInt currentPage = 0.obs; // 0-based
   final RxInt rowsPerPage = 10.obs;
-  // Dropdown data
+
+  // Dropdown data — the 1-based position is the id stored by the backend.
   final List<String> leadSourceList = [
     'IVR',
     'Website',
@@ -59,98 +92,213 @@ class ClientUsersController extends GetxController {
     'Cold',
     'Lost',
   ];
-  // enquiredFor now fetched from masterServices via dashboardController.categoriesList
+  // enquiredFor is fetched from masterServices via dashboardController.categoriesList
 
-  // STEP 1 - Search/add user by phone, navigate with userId + isNewUser
+  String _errorText(dio.Response? r, String fallback) {
+    final data = r?.data;
+    if (data is Map) {
+      final msg = data['error'] ?? data['message'];
+      if (msg != null && msg.toString().isNotEmpty) return msg.toString();
+    }
+    return ApiService.lastError ?? fallback;
+  }
+
+  static int _toInt(dynamic v) {
+    if (v is int) return v;
+    if (v is num) return v.toInt();
+    if (v is String) return int.tryParse(v) ?? 0;
+    return 0;
+  }
+
+  static bool _toBool(dynamic v, {bool fallback = false}) {
+    if (v is bool) return v;
+    if (v is num) return v != 0;
+    if (v is String) return v == '1' || v.toLowerCase() == 'true';
+    return fallback;
+  }
+
+  /// Split a stored phone ("+919876543210" or "9876543210") into
+  /// (country code, local digits) using the known codes, longest first.
+  static (String, String) splitPhone(String stored) {
+    final s = stored.trim();
+    if (s.startsWith('+')) {
+      final codes = countryCodes.map((c) => c['code']!).toList()
+        ..sort((a, b) => b.length.compareTo(a.length));
+      for (final code in codes) {
+        if (s.startsWith(code)) {
+          return (code, s.substring(code.length).replaceAll(RegExp(r'\D'), ''));
+        }
+      }
+    }
+    return (defaultCountryCode, s.replaceAll(RegExp(r'\D'), ''));
+  }
+
+  String? _phoneError(String digits, String countryCode) {
+    if (countryCode == '+91') {
+      return RegExp(r'^[6-9][0-9]{9}$').hasMatch(digits)
+          ? null
+          : 'Please enter a valid 10-digit Indian mobile number';
+    }
+    return RegExp(r'^[0-9]{6,15}$').hasMatch(digits)
+        ? null
+        : 'Please enter a valid phone number';
+  }
+
+  // STEP 1 - Find or create the client by phone (POST /createClientUser).
+  // org comes from the JWT; this call issues no token.
   Future<void> addUserClient() async {
-    // Strip country-code prefix so the API receives the bare number (e.g. "9876543210")
-    final rawPhone = phoneNumberControllerClient.text
-        .replaceFirst(selectedCountryCode.value, '')
-        .trim();
-
-    if (rawPhone.isEmpty || rawPhone.length < 10) {
-      HelperUi.showToast(message: "Please enter a valid 10-digit phone number");
+    final digits =
+        phoneNumberControllerClient.text.replaceAll(RegExp(r'\D'), '');
+    final err = _phoneError(digits, selectedCountryCode.value);
+    if (err != null) {
+      HelperUi.showToast(message: err, backgroundColor: Colors.red);
       return;
     }
 
     try {
       isSearchUserLoading.value = true;
-      final box = GetStorage();
-      final orgId = box.read("org_id") ?? 1;
-      final response = await apiService.postRaw(ApiConstants.addClientUser, {
-        "phone_number": rawPhone,
+      final response = await apiService.postRaw(ApiConstants.createClientUser, {
+        "phone_number": digits,
         "country_code": selectedCountryCode.value,
-        "org_id": orgId,
       });
-      if (response != null && response.statusCode == 200) {
-        final data = response.data as Map<String, dynamic>;
-        final int userId = data['userId'] ?? 0;
-        final bool isNewUser = data['isNewUser'] ?? true;
-        if (userId != 0) {
-          Get.toNamed(
-            Routes.addClientDetails,
-            arguments: {
-              "userId": userId,
-              "isNewUser": isNewUser,
-              "phoneNumber": phoneNumberControllerClient.text,
-            },
-          );
+      if (ApiService.isOk(response) && response!.data is Map) {
+        final data = response.data as Map;
+        final int userId = _toInt(data['userId']);
+        final bool isNewUser = _toBool(data['isNewUser'], fallback: true);
+        if (userId == 0) {
+          HelperUi.showToast(
+              message: "Could not resolve the client. Please try again.",
+              backgroundColor: Colors.red);
+          return;
         }
-        HelperUi.showToast(message: "User fetched successfully");
-      } else if (response?.statusCode == 401) {
-        HelperUi.showToast(message: "Invalid details. Please try again.");
+        final countryCode = selectedCountryCode.value;
+        phoneNumberControllerClient.clear();
+        HelperUi.showToast(
+          message: _errorText(response,
+              isNewUser ? "Client created" : "Client found"),
+          backgroundColor: Colors.green,
+        );
+        Get.toNamed(
+          Routes.addClientDetails,
+          arguments: {
+            "userId": userId,
+            "isNewUser": isNewUser,
+            "phoneNumber": digits,
+            "countryCode": countryCode,
+          },
+        );
       } else {
-        HelperUi.showToast(message: "Something went wrong. Please try again.");
+        HelperUi.showToast(
+          message: _errorText(response, "Something went wrong. Please try again."),
+          backgroundColor: Colors.red,
+        );
       }
     } catch (error) {
-      HelperUi.showToast(message: "An error occurred: $error");
+      debugPrint("createClientUser error: $error");
+      HelperUi.showToast(
+          message: "Something went wrong. Please try again.",
+          backgroundColor: Colors.red);
     } finally {
       isSearchUserLoading.value = false;
     }
   }
 
-  // STEP 2 - Fetch existing user details by phone number
+  // STEP 2 - Prepare the details form once per visit (called from initState,
+  // never from build).
   final RxBool isFetchingUserDetails = false.obs;
 
-  Future<void> fetchUserDetailsByPhone(String phoneNumber) async {
+  void openDetailsForm(Map<String, dynamic> args) {
+    _resetDetailsForm();
+    isEditMode.value = _toBool(args['isEdit']);
+    final phone = args['phoneNumber']?.toString() ?? '';
+    final cc = args['countryCode']?.toString();
+    if (cc != null && cc.isNotEmpty) {
+      detailsCountryCode.value = cc;
+      clientPhoneController.text = phone.replaceAll(RegExp(r'\D'), '');
+    } else if (phone.isNotEmpty) {
+      final (code, digits) = splitPhone(phone);
+      detailsCountryCode.value = code;
+      clientPhoneController.text = digits;
+    }
+    _loadedPhone = '';
+    final userId = _toInt(args['userId']);
+    if (userId > 0) fetchUserDetailsById(userId);
+    if (dashboardController.getAllBranches.isEmpty) {
+      dashboardController.getAllBranchesApi();
+    }
+    if (dashboardController.categoriesList.isEmpty) {
+      dashboardController.getCategoriesList();
+    }
+  }
+
+  void _resetDetailsForm() {
+    fullNameController.clear();
+    clientPhoneController.clear();
+    clientEmailController.clear();
+    internalRemarksController.clear();
+    detailsCountryCode.value = defaultCountryCode;
+    selectedCity.value = '';
+    selectedServiceCityId.value = '';
+    selectedLeadSource.value = '';
+    selectedLeadType.value = '';
+    selectedEnquiredFor.value = '';
+  }
+
+  String _clean(String? v) =>
+      (v == null || v.trim().isEmpty || v.trim() == 'NA') ? '' : v.trim();
+
+  Future<void> fetchUserDetailsById(int userId) async {
     try {
       isFetchingUserDetails.value = true;
-      // Use Uri to safely encode the phone number in the query string
       final uri = Uri.parse(ApiConstants.getClientUserDetails)
-          .replace(queryParameters: {'phone_number': phoneNumber});
+          .replace(queryParameters: {'user_id': userId.toString()});
       final response = await apiService.getRaw(uri.toString());
-      if (response != null && response.statusCode == 200) {
-        final data = response.data;
-        Map<String, dynamic>? userData;
-        if (data is List && data.isNotEmpty) {
-          userData = data[0] as Map<String, dynamic>;
-        } else if (data is Map<String, dynamic>) {
-          userData = data;
-        }
-        if (userData != null) {
-          final user = ClientUserModel.fromJson(userData);
-          if (user.userName != null && user.userName!.isNotEmpty) {
-            fullNameController.text = user.userName!;
-          }
-          if (user.userEmail != null && user.userEmail!.isNotEmpty) {
-            clientEmailController.text = user.userEmail!;
-          }
-          if (user.userServiceCity != null) {
-            selectedServiceCityId.value = user.userServiceCity.toString();
-            // Also set city name from branch list if available
-            final branch = dashboardController.getAllBranches.firstWhereOrNull(
-                (b) => b.brId == user.userServiceCity);
-            if (branch != null) {
-              selectedCity.value = branch.brName;
-            }
-          } else if (user.userLocation != null && user.userLocation!.isNotEmpty) {
-            selectedCity.value = user.userLocation!;
-          }
-          if (user.enquiredForOther != null && user.enquiredForOther!.isNotEmpty) {
-            internalRemarksController.text = user.enquiredForOther!;
-          }
-        }
+      if (!ApiService.isOk(response)) return;
+      final data = response!.data;
+      Map<String, dynamic>? userData;
+      if (data is List && data.isNotEmpty && data.first is Map) {
+        userData = Map<String, dynamic>.from(data.first as Map);
+      } else if (data is Map) {
+        userData = Map<String, dynamic>.from(data);
       }
+      if (userData == null) return;
+
+      final user = ClientUserModel.fromJson(userData);
+      final name = _clean(user.userName);
+      if (name.isNotEmpty) fullNameController.text = name;
+      final email = _clean(user.userEmail);
+      if (email.isNotEmpty) clientEmailController.text = email;
+
+      final storedPhone = _clean(user.phoneNumber);
+      if (storedPhone.isNotEmpty) {
+        _loadedPhone = storedPhone;
+        final (code, digits) = splitPhone(storedPhone);
+        detailsCountryCode.value = code;
+        clientPhoneController.text = digits;
+      }
+
+      if (user.userServiceCity != null && user.userServiceCity! > 0) {
+        selectedServiceCityId.value = user.userServiceCity.toString();
+        final branch = dashboardController.getAllBranches
+            .firstWhereOrNull((b) => b.brId == user.userServiceCity);
+        selectedCity.value = branch?.brName ?? _clean(user.userLocation);
+      } else {
+        selectedCity.value = _clean(user.userLocation);
+      }
+
+      final src = user.userSource ?? 0;
+      if (src >= 1 && src <= leadSourceList.length) {
+        selectedLeadSource.value = leadSourceList[src - 1];
+      }
+      final lead = user.leadPotential ?? 0;
+      if (lead >= 1 && lead <= leadTypeList.length) {
+        selectedLeadType.value = leadTypeList[lead - 1];
+      }
+      if (user.enquiredFor != null && user.enquiredFor! > 0) {
+        selectedEnquiredFor.value = user.enquiredFor.toString();
+      }
+      final remarks = _clean(user.enquiredForOther);
+      if (remarks.isNotEmpty) internalRemarksController.text = remarks;
     } catch (e) {
       debugPrint("Fetch user details error: $e");
     } finally {
@@ -158,43 +306,45 @@ class ClientUsersController extends GetxController {
     }
   }
 
-  // STEP 2 - Validate details form then navigate to bookings
+  // STEP 2 - Validate details form then save
   // userId & isNewUser come from Get.arguments read in AddClientUserDetails
   void validateAndNext(int userId, bool isNewUser) {
     if (fullNameController.text.trim().isEmpty) {
-      HelperUi.showToast(message: "Please enter full name");
+      HelperUi.showToast(message: "Please enter full name", backgroundColor: Colors.red);
       return;
     }
 
-    if (clientPhoneController.text.trim().isEmpty ||
-        clientPhoneController.text.trim().length < 10) {
-      HelperUi.showToast(message: "Please enter valid phone number");
+    final phoneErr = _phoneError(
+        clientPhoneController.text.trim(), detailsCountryCode.value);
+    if (phoneErr != null) {
+      HelperUi.showToast(message: phoneErr, backgroundColor: Colors.red);
       return;
     }
 
-    if (clientEmailController.text.trim().isEmpty ||
-        !GetUtils.isEmail(clientEmailController.text.trim())) {
-      HelperUi.showToast(message: "Please enter valid email");
+    // Email is optional, but must be a single valid address when given.
+    final email = clientEmailController.text.trim();
+    if (email.isNotEmpty && !GetUtils.isEmail(email)) {
+      HelperUi.showToast(message: "Please enter a valid email address", backgroundColor: Colors.red);
       return;
     }
 
     if (selectedServiceCityId.value.isEmpty) {
-      HelperUi.showToast(message: "Please select service city");
+      HelperUi.showToast(message: "Please select service city", backgroundColor: Colors.red);
       return;
     }
 
     if (selectedLeadSource.value.isEmpty) {
-      HelperUi.showToast(message: "Please select lead source");
+      HelperUi.showToast(message: "Please select lead source", backgroundColor: Colors.red);
       return;
     }
 
     if (selectedLeadType.value.isEmpty) {
-      HelperUi.showToast(message: "Please select lead type");
+      HelperUi.showToast(message: "Please select lead type", backgroundColor: Colors.red);
       return;
     }
 
     if (selectedEnquiredFor.value.isEmpty) {
-      HelperUi.showToast(message: "Please select enquired for");
+      HelperUi.showToast(message: "Please select enquired for", backgroundColor: Colors.red);
       return;
     }
 
@@ -208,47 +358,60 @@ class ClientUsersController extends GetxController {
     try {
       clientDetailsUpdateLoading.value = true;
 
-      final body = dio.FormData.fromMap({
+      final fields = <String, dynamic>{
         "id": userId.toString(),
         "user_name": fullNameController.text.trim(),
         "user_email": clientEmailController.text.trim(),
         "user_location": selectedCity.value,
-        //"user_gender": selectedGender.value,
-        "is_new_user_flag": isNewUser ? "1" : "0",
         "user_service_city": selectedServiceCityId.value,
         "user_source": _leadSourceId(selectedLeadSource.value).toString(),
         "lead_potential": _leadTypeId(selectedLeadType.value).toString(),
         "enquired_for": selectedEnquiredFor.value,
         "enquired_for_other": internalRemarksController.text.trim(),
-      });
+      };
+      // Send the phone only when it was actually changed, in the same
+      // "<code><digits>" form /createClientUser stores.
+      final newPhone =
+          '${detailsCountryCode.value}${clientPhoneController.text.trim()}';
+      if (_loadedPhone.isNotEmpty &&
+          splitPhone(_loadedPhone).$2 != clientPhoneController.text.trim()) {
+        fields["phone_number"] = newPhone;
+      }
 
       final response = await apiService.putForm(
         ApiConstants.putClientUserDetails,
-        body,
+        dio.FormData.fromMap(fields),
       );
 
-      if (response != null && response.statusCode == 200) {
+      if (ApiService.isOk(response)) {
         HelperUi.showToast(
           message: "User details updated successfully",
+          backgroundColor: Colors.green,
         );
+        fetchClientUsers();
 
-        // Navigate only after success
-        Get.offNamed(
-          Routes.BOOKINGS,
-          arguments: {
-            "userId": userId,
-            "isNewUser": isNewUser,
-          },
-        );
+        if (isEditMode.value) {
+          HelperUi.safeBack(Routes.MAIN);
+        } else {
+          // New/located client → continue to booking for them
+          Get.offNamed(
+            Routes.BOOKINGS,
+            arguments: {
+              "userId": userId,
+              "isNewUser": isNewUser,
+            },
+          );
+        }
       } else {
         HelperUi.showToast(
-          message: "Failed to update user. Please try again.",
+          message: _errorText(response, "Failed to update user. Please try again."),
           backgroundColor: Colors.red,
         );
       }
     } catch (e) {
+      debugPrint("saveUser error: $e");
       HelperUi.showToast(
-        message: "Error: $e",
+        message: "Something went wrong. Please try again.",
         backgroundColor: Colors.red,
       );
     } finally {
@@ -256,37 +419,86 @@ class ClientUsersController extends GetxController {
     }
   }
 
+  // ── Manage list: search / filters / pagination (client-side over the
+  // org-scoped list the API returns) ─────────────────────────────────────────
+
   void toggleFilters() => showFilters.toggle();
 
+  void onSearchChanged(String q) {
+    searchQuery.value = q;
+    applyClientFilters();
+  }
+
+  void applyClientFilters() {
+    final q = searchQuery.value.trim().toLowerCase();
+    final qDigits = q.replaceAll(RegExp(r'\D'), '');
+    final type = filterLeadType.value;
+    final source = filterLeadSource.value;
+    filteredClients.value = clientUsers.where((u) {
+      final matchesSearch = q.isEmpty ||
+          (u.userName ?? '').toLowerCase().contains(q) ||
+          (u.userEmail ?? '').toLowerCase().contains(q) ||
+          (qDigits.isNotEmpty && (u.phoneNumber ?? '').contains(qDigits)) ||
+          (u.id?.toString() ?? '') == q;
+      final matchesType = type.isEmpty || u.leadPotentialLabel == type;
+      final matchesSource = source.isEmpty || u.userSourceLabel == source;
+      return matchesSearch && matchesType && matchesSource;
+    }).toList();
+    currentPage.value = 0;
+  }
+
   void clearFilters() {
-    nameController.clear();
-    phoneController.clear();
-    emailController.clear();
+    searchController.clear();
+    searchQuery.value = '';
+    filterLeadType.value = '';
+    filterLeadSource.value = '';
+    applyClientFilters();
+  }
+
+  int get totalPages {
+    final n = filteredClients.length;
+    final per = rowsPerPage.value;
+    return n == 0 ? 1 : ((n + per - 1) ~/ per);
+  }
+
+  void goToPage(int page) {
+    currentPage.value = page.clamp(0, totalPages - 1);
+  }
+
+  List<ClientUserModel> get pagedClients {
+    final per = rowsPerPage.value;
+    final page = currentPage.value.clamp(0, totalPages - 1);
+    final start = page * per;
+    if (start >= filteredClients.length) return const [];
+    final end = (start + per).clamp(0, filteredClients.length);
+    return filteredClients.sublist(start, end);
   }
 
   void fetchClients() {
     fetchClientUsers();
   }
 
-  // Fetch all client users from API
+  // Fetch all client users (org scoped by the JWT on the server)
   Future<void> fetchClientUsers() async {
     try {
       isLoadingClientUsers.value = true;
-      final orgId = GetStorage().read("org_id") ?? 1;
+      loadError.value = '';
 
       final result = await apiService.getList<ClientUserModel>(
-        '${ApiConstants.getClientUserDetails}?org_id=$orgId',
-            (json) => ClientUserModel.fromJson(json),
+        ApiConstants.getClientUserDetails,
+        (json) => ClientUserModel.fromJson(json),
       );
 
       if (result != null) {
         clientUsers.value = result;
+      } else {
+        loadError.value =
+            ApiService.lastError ?? 'Could not load clients. Please try again.';
       }
+      applyClientFilters();
     } catch (e) {
-      HelperUi.showToast(
-        message: "Failed to load clients: $e",
-        backgroundColor: Colors.red,
-      );
+      debugPrint("fetchClientUsers error: $e");
+      loadError.value = 'Could not load clients. Please try again.';
     } finally {
       isLoadingClientUsers.value = false;
     }
@@ -300,11 +512,15 @@ class ClientUsersController extends GetxController {
     );
   }
 
-  void editClient(int userId, bool isNewUser) {
-    // Navigate to edit user details
+  void editClient(ClientUserModel user) {
     Get.toNamed(
       Routes.addClientDetails,
-      arguments: {"userId": userId, "isNewUser": isNewUser},
+      arguments: {
+        "userId": user.id ?? 0,
+        "isNewUser": user.isNewUser,
+        "phoneNumber": user.phoneNumber ?? '',
+        "isEdit": true,
+      },
     );
   }
 
@@ -327,9 +543,7 @@ class ClientUsersController extends GetxController {
     clientPhoneController.dispose();
     clientEmailController.dispose();
     internalRemarksController.dispose();
-    nameController.dispose();
-    phoneController.dispose();
-    emailController.dispose();
+    searchController.dispose();
     super.onClose();
   }
 }

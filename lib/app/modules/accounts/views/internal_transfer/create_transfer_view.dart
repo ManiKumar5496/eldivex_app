@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:eldivex_app/app/core/values/color_constants.dart';
 import '../../controllers/internal_transfer_controller.dart';
+import '../../models/parse_utils.dart';
+import '../../../../routes/app_pages.dart';
+import '../../../../widgets/helper_ui.dart';
+import '../accounts_format.dart';
 
 class CreateTransferView extends StatefulWidget {
   const CreateTransferView({super.key});
@@ -35,8 +39,7 @@ class _CreateTransferViewState extends State<CreateTransferView> {
   // Helpers
   // ─────────────────────────────────────────────
 
-  String _formatCurrency(double v) =>
-      '₹${v.toStringAsFixed(2).replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+\.)'), (m) => '${m[1]},')}';
+  String _formatCurrency(double v) => formatInr(v);
 
   Widget _fieldLabel(String label, {bool required = false}) {
     return Padding(
@@ -78,7 +81,7 @@ class _CreateTransferViewState extends State<CreateTransferView> {
         leading: IconButton(
           icon: Icon(Icons.arrow_back_ios_new,
               size: 18, color: AppColor.cPrimaryHeadingColor),
-          onPressed: () => Get.back(),
+          onPressed: () => HelperUi.safeBack(Routes.MAIN),
         ),
         title: Text(
           'Create Internal Transfer',
@@ -226,7 +229,7 @@ class _CreateTransferViewState extends State<CreateTransferView> {
           // Deduplicate by user_id so we show one entry per client
           final seen = <int>{};
           final unique = clients.where((c) {
-            final id = (c['user_id'] as num?)?.toInt() ?? 0;
+            final id = toInt(field(c, 'user_id'));
             return seen.add(id);
           }).toList();
 
@@ -242,7 +245,7 @@ class _CreateTransferViewState extends State<CreateTransferView> {
                     style: TextStyle(
                         color: AppColor.fontColorGrey, fontSize: 14)),
                 items: unique.map((c) {
-                  final id = (c['user_id'] as num?)?.toInt() ?? 0;
+                  final id = toInt(field(c, 'user_id'));
                   final name = c['client_name']?.toString() ??
                       c['name']?.toString() ??
                       'Client $id';
@@ -297,13 +300,13 @@ class _CreateTransferViewState extends State<CreateTransferView> {
                     ),
                     items: bookings
                         .where((b) {
-                          final id = (b['booking_id'] as num?)?.toInt() ?? 0;
+                          final id = toInt(field(b, 'booking_id'));
                           return id != targetId;
                         })
                         .map((b) {
-                          final id = (b['booking_id'] as num?)?.toInt() ?? 0;
+                          final id = toInt(field(b, 'booking_id'));
                           final ref = b['booking_ref']?.toString() ?? '#$id';
-                          final balance = (b['outstanding_amount'] as num?)?.toDouble() ?? 0.0;
+                          final balance = toDouble(field(b, 'outstanding_amount'));
                           final credit = balance < 0;
                           return DropdownMenuItem<int>(
                             value: id,
@@ -417,11 +420,11 @@ class _CreateTransferViewState extends State<CreateTransferView> {
                     ),
                     items: bookings
                         .where((b) {
-                          final id = (b['booking_id'] as num?)?.toInt() ?? 0;
+                          final id = toInt(field(b, 'booking_id'));
                           return id != sourceId;
                         })
                         .map((b) {
-                          final id = (b['booking_id'] as num?)?.toInt() ?? 0;
+                          final id = toInt(field(b, 'booking_id'));
                           final ref = b['booking_ref']?.toString() ?? '#$id';
                           return DropdownMenuItem<int>(
                             value: id,
@@ -805,9 +808,10 @@ class _CreateTransferViewState extends State<CreateTransferView> {
           child: ElevatedButton.icon(
             onPressed: ctrl.isSubmitting.value
                 ? null
-                : () {
+                : () async {
                     if (_formKey.currentState?.validate() ?? false) {
-                      ctrl.createTransfer();
+                      final ok = await ctrl.createTransfer();
+                      if (ok) HelperUi.safeBack(Routes.MAIN);
                     }
                   },
             icon: ctrl.isSubmitting.value

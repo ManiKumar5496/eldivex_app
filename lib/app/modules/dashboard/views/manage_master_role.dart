@@ -7,7 +7,6 @@ import '../../../core/values/size_configue.dart';
 import '../../../core/values/text_style_constants.dart';
 import '../../../routes/app_pages.dart';
 import '../../../widgets/helper_ui.dart';
-import '../models/get_master_roles.dart';
 
 class ManageMasterRoles extends GetView<DashboardController> {
   const ManageMasterRoles({super.key});
@@ -15,7 +14,9 @@ class ManageMasterRoles extends GetView<DashboardController> {
   @override
   Widget build(BuildContext context) {
     SizeConfig.init(context);
-    Get.put(DashboardController());
+    if (!Get.isRegistered<DashboardController>()) {
+      Get.put(DashboardController());
+    }
     return Scaffold(
       backgroundColor: AppColor.cAppBackgroundColor,
       body: Column(
@@ -32,8 +33,6 @@ class ManageMasterRoles extends GetView<DashboardController> {
                   child: Column(
                     children: [
                       _buildRolesTable(),
-                      SizedBox(height: SizeConfig.isMobile ? 16 : SizeConfig.blockSizeVertical * 2),
-                      _buildPagination(),
                     ],
                   ),
                 ),
@@ -169,16 +168,6 @@ class ManageMasterRoles extends GetView<DashboardController> {
                     ),
                   ),
 
-                  DataColumn(
-                    label: Text(
-                      'Actions',
-                      style: TextStyle(
-                        fontSize: isMobile ? 13 : SizeConfig.blockSizeHorizontal * 1.1,
-                        fontWeight: FontWeight.w600,
-                        color: AppColor.fontColorGrey,
-                      ),
-                    ),
-                  ),
                 ],
                 rows: controller.getMasterRolesData.map((role) {
                   return DataRow(
@@ -189,10 +178,10 @@ class ManageMasterRoles extends GetView<DashboardController> {
                             CircleAvatar(
                               radius: isMobile ? 14 : SizeConfig.blockSizeHorizontal * 1.4,
                               backgroundColor: _getAvatarColor(
-                                role.roleName ?? '',
+                                role.roleName,
                               ),
                               child: Text(
-                                _getInitials(role.id.toString()),
+                                _getInitials(role.roleName),
                                 style: TextStyle(
                                   color: AppColor.buttonTextWhite,
                                   fontSize: isMobile ? 12 : SizeConfig.blockSizeHorizontal * 1.1,
@@ -214,7 +203,7 @@ class ManageMasterRoles extends GetView<DashboardController> {
                       ),
                       DataCell(
                         Text(
-                          role.roleName ?? 'N/A',
+                          role.roleName.isEmpty ? 'N/A' : role.roleName,
                           style: TextStyle(
                             fontSize: isMobile ? 13 : SizeConfig.blockSizeHorizontal * 1.1,
                             color: AppColor.fontColorBlack,
@@ -227,7 +216,7 @@ class ManageMasterRoles extends GetView<DashboardController> {
                             maxWidth: isMobile ? 200 : SizeConfig.blockSizeHorizontal * 30,
                           ),
                           child: Text(
-                            role.modules ?? 'No access list',
+                            role.modules.isEmpty ? 'No access list' : role.modules,
                             style: TextStyle(
                               fontSize: isMobile ? 12 : SizeConfig.blockSizeHorizontal * 1,
                               color: AppColor.fontColorGrey,
@@ -238,40 +227,6 @@ class ManageMasterRoles extends GetView<DashboardController> {
                         ),
                       ),
 
-                      DataCell(
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            IconButton(
-                              icon: Icon(
-                                Icons.edit_outlined,
-                                size: isMobile ? 18 : SizeConfig.blockSizeHorizontal * 1.4,
-                                color: AppColor.fontColorGrey,
-                              ),
-                              onPressed: () {
-                                // Handle edit action
-                              },
-                              padding: EdgeInsets.zero,
-                              constraints: const BoxConstraints(),
-                            ),
-                            SizedBox(
-                              width: isMobile ? 8 : SizeConfig.blockSizeHorizontal * 0.8,
-                            ),
-                            IconButton(
-                              icon: Icon(
-                                Icons.delete_outline,
-                                size: isMobile ? 18 : SizeConfig.blockSizeHorizontal * 1.4,
-                                color: Colors.red.shade400,
-                              ),
-                              onPressed: () {
-                                // Handle delete action
-                              },
-                              padding: EdgeInsets.zero,
-                              constraints: const BoxConstraints(),
-                            ),
-                          ],
-                        ),
-                      ),
                     ],
                   );
                 }).toList(),
@@ -306,59 +261,14 @@ class ManageMasterRoles extends GetView<DashboardController> {
     );
   }
 
-  Widget _buildPagination() {
-    final isMobile = SizeConfig.isMobile;
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.end,
-      children: [
-        OutlinedButton(
-          onPressed: () {},
-          style: OutlinedButton.styleFrom(
-            foregroundColor: AppColor.fontColorGrey,
-            side: BorderSide(color: AppColor.divColor),
-            padding: EdgeInsets.symmetric(
-              horizontal: isMobile ? 16 : SizeConfig.blockSizeHorizontal * 2,
-              vertical: isMobile ? 10 : SizeConfig.blockSizeVertical * 1.2,
-            ),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
-          ),
-          child: Text(
-            'Previous',
-            style: TextStyle(fontSize: isMobile ? 13 : SizeConfig.blockSizeHorizontal * 1.2),
-          ),
-        ),
-        SizedBox(width: isMobile ? 8 : SizeConfig.blockSizeHorizontal * 1),
-        ElevatedButton(
-          onPressed: () {},
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppColor.cPrimaryButtonColor,
-            foregroundColor: AppColor.buttonTextWhite,
-            padding: EdgeInsets.symmetric(
-              horizontal: isMobile ? 16 : SizeConfig.blockSizeHorizontal * 2,
-              vertical: isMobile ? 10 : SizeConfig.blockSizeVertical * 1.2,
-            ),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
-            elevation: 0,
-          ),
-          child: Text(
-            'Next',
-            style: TextStyle(fontSize: isMobile ? 13 : SizeConfig.blockSizeHorizontal * 1.2),
-          ),
-        ),
-      ],
-    );
-  }
-
   String _getInitials(String name) {
-    List<String> names = name.split(' ');
+    // Split on any whitespace and drop empties so double spaces or a
+    // trailing space can't index into an empty string.
+    final names = name.trim().split(RegExp(r'\s+')).where((n) => n.isNotEmpty).toList();
     if (names.length >= 2) {
       return '${names[0][0]}${names[1][0]}'.toUpperCase();
     }
-    return name.isNotEmpty ? name[0].toUpperCase() : 'U';
+    return names.isNotEmpty ? names[0][0].toUpperCase() : 'U';
   }
 
   Color _getAvatarColor(String name) {
@@ -372,20 +282,5 @@ class ManageMasterRoles extends GetView<DashboardController> {
       Colors.cyan.shade400,
     ];
     return colors[name.length % colors.length];
-  }
-
-  String _getStatusText(int? status) {
-    switch (status) {
-      case 1:
-        return 'Active';
-      case 0:
-        return 'Inactive';
-      case 2:
-        return 'Pending';
-      case 3:
-        return 'Suspended';
-      default:
-        return 'Inactive';
-    }
   }
 }

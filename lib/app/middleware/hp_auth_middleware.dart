@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
+import '../core/utils/jwt_utils.dart';
 import '../routes/app_pages.dart';
 
-/// A caregiver is logged in once a non-empty `hp_token` is stored.
+/// A caregiver is logged in once a non-empty, unexpired `hp_token` is stored.
 bool hpIsAuthenticated() {
   final box = GetStorage();
-  final token = box.read("hp_token") ?? "";
-  return token.toString().isNotEmpty;
+  return isValidSessionToken(box.read("hp_token"));
 }
 
 /// Guards the caregiver portal pages (/hp, /hp/...). Unauthenticated caregivers
@@ -23,6 +23,7 @@ class HpAuthMiddleware extends GetMiddleware {
       debugPrint("HpAuthMiddleware: no caregiver session, redirecting to HP_LOGIN");
       return const RouteSettings(name: Routes.HP_LOGIN);
     }
+    GetStorage().write('active_session', 'hp');
     return null;
   }
 }

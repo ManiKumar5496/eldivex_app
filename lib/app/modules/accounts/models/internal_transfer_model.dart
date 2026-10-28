@@ -1,16 +1,4 @@
-double? _toDouble(dynamic v) {
-  if (v == null) return null;
-  if (v is num) return v.toDouble();
-  if (v is String) return double.tryParse(v);
-  return null;
-}
-
-int? _toInt(dynamic v) {
-  if (v == null) return null;
-  if (v is num) return v.toInt();
-  if (v is String) return int.tryParse(v);
-  return null;
-}
+import 'parse_utils.dart';
 
 class InternalTransferModel {
   final int id;
@@ -73,33 +61,33 @@ class InternalTransferModel {
 
   factory InternalTransferModel.fromJson(Map<String, dynamic> json) {
     return InternalTransferModel(
-      id:                         _toInt(json['id']) ?? 0,
-      orgId:                      _toInt(json['org_id']) ?? 0,
-      clientId:                   _toInt(json['client_id']) ?? 0,
-      sourceBookingId:            _toInt(json['source_booking_id']) ?? 0,
-      targetBookingId:            _toInt(json['target_booking_id']) ?? 0,
-      transferAmount:             _toDouble(json['transfer_amount']) ?? 0.0,
+      id:                         toIntOrNull(json['id']) ?? 0,
+      orgId:                      toIntOrNull(json['org_id']) ?? 0,
+      clientId:                   toIntOrNull(json['client_id']) ?? 0,
+      sourceBookingId:            toIntOrNull(json['source_booking_id']) ?? 0,
+      targetBookingId:            toIntOrNull(json['target_booking_id']) ?? 0,
+      transferAmount:             toDoubleOrNull(json['transfer_amount']) ?? 0.0,
       transferType:               json['transfer_type']?.toString() ?? '',
       reason:                     json['reason']?.toString() ?? '',
       status:                     json['status']?.toString() ?? '',
-      notes:                      json['notes'] as String?,
-      approvedAt:                 json['approved_at'] as String?,
-      createdOn:                  json['created_on'] as String?,
-      updatedOn:                  json['updated_on'] as String?,
-      reversedAt:                 json['reversed_at'] as String?,
-      reversalReason:             json['reversal_reason'] as String?,
-      sourceTransactionEntryId:   _toInt(json['source_transaction_entry_id']),
-      targetTransactionEntryId:   _toInt(json['target_transaction_entry_id']),
-      requestedBy:                _toInt(json['requested_by']),
-      approvedBy:                 _toInt(json['approved_by']),
-      reversedBy:                 _toInt(json['reversed_by']),
-      requestedByName:            json['requested_by_name'] as String?,
-      approvedByName:             json['approved_by_name'] as String?,
-      sourceBookingRef:           json['source_booking_ref'] as String?,
-      targetBookingRef:           json['target_booking_ref'] as String?,
-      clientName:                 json['client_name'] as String?,
-      sourceBookingBalance:       _toDouble(json['source_booking_balance']),
-      targetBookingBalance:       _toDouble(json['target_booking_balance']),
+      notes:                      toStrOrNull(json['notes']),
+      approvedAt:                 toStrOrNull(json['approved_at']),
+      createdOn:                  toStrOrNull(json['created_on']),
+      updatedOn:                  toStrOrNull(json['updated_on']),
+      reversedAt:                 toStrOrNull(json['reversed_at']),
+      reversalReason:             toStrOrNull(json['reversal_reason']),
+      sourceTransactionEntryId:   toIntOrNull(json['source_transaction_entry_id']),
+      targetTransactionEntryId:   toIntOrNull(json['target_transaction_entry_id']),
+      requestedBy:                toIntOrNull(json['requested_by']),
+      approvedBy:                 toIntOrNull(json['approved_by']),
+      reversedBy:                 toIntOrNull(json['reversed_by']),
+      requestedByName:            toStrOrNull(json['requested_by_name']),
+      approvedByName:             toStrOrNull(json['approved_by_name']),
+      sourceBookingRef:           toStrOrNull(json['source_booking_ref']),
+      targetBookingRef:           toStrOrNull(json['target_booking_ref']),
+      clientName:                 toStrOrNull(json['client_name']),
+      sourceBookingBalance:       toDoubleOrNull(json['source_booking_balance']),
+      targetBookingBalance:       toDoubleOrNull(json['target_booking_balance']),
     );
   }
 
@@ -134,5 +122,5 @@ class InternalTransferModel {
   };
 
   static List<InternalTransferModel> fromJsonList(List list) =>
-      list.map((e) => InternalTransferModel.fromJson(e as Map<String, dynamic>)).toList();
+      parseList(list, InternalTransferModel.fromJson);
 }

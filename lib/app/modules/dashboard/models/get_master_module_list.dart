@@ -11,8 +11,8 @@ class MasterModuleList {
     json ??= {};
 
     return MasterModuleList(
-      id: json["id"] ?? 0,
-      moduleName: json["module_name"] ?? "",
+      id: _toInt(json["id"]),
+      moduleName: _toStr(json["module_name"]),
     );
   }
 
@@ -31,3 +31,7 @@ class MasterModuleList {
     return moduleName.split(',').map((e) => e.trim()).toList();
   }
 }
+
+int _toInt(dynamic v) => v is int ? v : int.tryParse('${v ?? ''}') ?? 0;
+
+String _toStr(dynamic v) => v == null ? '' : v.toString();

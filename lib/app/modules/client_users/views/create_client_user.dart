@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 
 import '../../../core/values/color_constants.dart';
@@ -7,15 +8,34 @@ import '../../../widgets/common_text_form_field.dart';
 import '../controllers/client_users_controller.dart';
 
 class CreateClientUser extends GetView<ClientUsersController> {
-  const CreateClientUser({super.key});
+  /// True when pushed on top of the shell (from Manage Users), so the page
+  /// needs its own back button.
+  final bool showBackButton;
+
+  const CreateClientUser({super.key, this.showBackButton = false});
+
+  // Registered once on first access (shell page has no route binding).
+  @override
+  ClientUsersController get controller =>
+      Get.isRegistered<ClientUsersController>()
+          ? Get.find<ClientUsersController>()
+          : Get.put(ClientUsersController());
 
   @override
   Widget build(BuildContext context) {
     SizeConfig.init(context);
-    Get.put(ClientUsersController());
 
     return Scaffold(
       backgroundColor: AppColor.cAppBackgroundColor,
+      appBar: showBackButton
+          ? AppBar(
+              backgroundColor: AppColor.whiteColor,
+              elevation: 0,
+              iconTheme: IconThemeData(color: AppColor.fontColorBlack),
+              title: Text('Add Client',
+                  style: TextStyle(color: AppColor.fontColorBlack)),
+            )
+          : null,
       body: Padding(
         padding: SizeConfig.pagePadding,
         child: Column(
@@ -43,13 +63,58 @@ class CreateClientUser extends GetView<ClientUsersController> {
             SizedBox(height: SizeConfig.spacingLG),
 
             // ── Phone Field ──────────────────────────────────────
-            FormTextField(
-              label: 'Phone Number',
-              hint: 'e.g. +919876543210',
-              controller: controller.phoneNumberControllerClient,
-              prefixIcon: Icons.phone,
-              required: true,
-              keyboardType: TextInputType.phone,
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Obx(() => Container(
+                      height: 50,
+                      margin: const EdgeInsets.only(bottom: 2),
+                      padding:
+                          EdgeInsets.symmetric(horizontal: SizeConfig.spacingSM),
+                      decoration: BoxDecoration(
+                        color: AppColor.whiteColor,
+                        borderRadius:
+                            BorderRadius.circular(SizeConfig.radiusSM),
+                        border: Border.all(color: AppColor.divColor),
+                      ),
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<String>(
+                          value: controller.selectedCountryCode.value,
+                          dropdownColor: AppColor.whiteColor,
+                          style: TextStyle(
+                            fontSize: SizeConfig.fontBody,
+                            color: AppColor.fontColorBlack,
+                          ),
+                          items: ClientUsersController.countryCodes
+                              .map((cc) => DropdownMenuItem<String>(
+                                    value: cc['code'],
+                                    child: Text('${cc['flag']} ${cc['code']}'),
+                                  ))
+                              .toList(),
+                          onChanged: (v) {
+                            if (v != null) {
+                              controller.selectedCountryCode.value = v;
+                            }
+                          },
+                        ),
+                      ),
+                    )),
+                SizedBox(width: SizeConfig.spacingSM),
+                Expanded(
+                  child: FormTextField(
+                    label: 'Phone Number',
+                    hint: 'e.g. 9876543210',
+                    controller: controller.phoneNumberControllerClient,
+                    prefixIcon: Icons.phone,
+                    required: true,
+                    keyboardType: TextInputType.phone,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.digitsOnly,
+                      LengthLimitingTextInputFormatter(15),
+                    ],
+                  ),
+                ),
+              ],
             ),
 
             SizedBox(height: SizeConfig.spacingLG),
@@ -71,7 +136,7 @@ class CreateClientUser extends GetView<ClientUsersController> {
                       borderRadius: BorderRadius.circular(SizeConfig.radiusSM),
                     ),
                     disabledBackgroundColor:
-                    AppColor.cPrimaryButtonColor.withOpacity(0.6),
+                    AppColor.cPrimaryButtonColor.withValues(alpha: 0.6),
                   ),
                   child: controller.isSearchUserLoading.value
                       ? SizedBox(

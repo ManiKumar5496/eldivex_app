@@ -20,7 +20,6 @@ class AccountsView extends GetView<AccountsController> {
 
   @override
   Widget build(BuildContext context) {
-    Get.put(AccountsController());
     if (!Get.isRegistered<AccountsController>()) {
       Get.put(AccountsController());
     }
@@ -1151,6 +1150,19 @@ class AccountsView extends GetView<AccountsController> {
   }
 
   Widget _buildClientActions(ActiveBookingClient client) {
+    return Builder(builder: (ctx) => _clientActionsMenu(ctx, client));
+  }
+
+  /// Switches to [index] in the surrounding AccountsView tab bar. Returns
+  /// false when the widget is not hosted inside the tabs.
+  bool _goToTab(BuildContext ctx, int index) {
+    final tabs = DefaultTabController.maybeOf(ctx);
+    if (tabs == null) return false;
+    tabs.animateTo(index);
+    return true;
+  }
+
+  Widget _clientActionsMenu(BuildContext ctx, ActiveBookingClient client) {
     return PopupMenuButton<String>(
       icon: Icon(Icons.more_vert,
           color: AppColor.fontColorGrey, size: SizeConfig.iconMD),
@@ -1158,20 +1170,22 @@ class AccountsView extends GetView<AccountsController> {
       onSelected: (value) {
         switch (value) {
           case 'receipt':
-            controller.selectClientForReceipt(client);
-            DefaultTabController.of(Get.context!).animateTo(2);
+            if (!_goToTab(ctx, 2)) return;
+            controller.selectInvoiceForBooking(client.bookingId);
+            ManageRecieptsView.openRecordSheet(ctx,
+                invoice: controller.selectedInvoiceForPayment.value);
             break;
           case 'statement':
             controller.viewStatementForClient(client);
-            DefaultTabController.of(Get.context!).animateTo(3);
+            _goToTab(ctx, 3);
             break;
           case 'writeoff':
             controller.selectClientForWriteOff(client);
-            DefaultTabController.of(Get.context!).animateTo(4);
+            _goToTab(ctx, 4);
             break;
           case 'claim':
             controller.selectedClientForClaim.value = client;
-            DefaultTabController.of(Get.context!).animateTo(6);
+            _goToTab(ctx, 6);
             break;
         }
       },

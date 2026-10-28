@@ -1,3 +1,5 @@
+import 'parse_utils.dart';
+
 class ActiveBookingClient {
   final int id;
   final int bookingId;
@@ -41,30 +43,88 @@ class ActiveBookingClient {
 
   factory ActiveBookingClient.fromJson(Map<String, dynamic> json) {
     return ActiveBookingClient(
-      id: (json['id'] as num?)?.toInt() ?? 0,
-      bookingId: (json['booking_id'] as num?)?.toInt() ?? 0,
-      userId: (json['user_id'] as num?)?.toInt() ?? 0,
-      clientName: json['client_name']?.toString() ?? '',
-      clientMobile: json['client_mobile']?.toString() ?? '',
-      clientEmail: json['client_email'] as String?,
-      patientName: json['patient_name']?.toString() ?? '',
-      serviceName: json['service_name']?.toString() ?? '',
-      serviceTypeName: json['service_type_name'] as String?,
-      city: json['city']?.toString() ?? '',
-      branchName: json['branch_name']?.toString() ?? '',
-      serviceStartDate: DateTime.tryParse(json['service_start_date']?.toString() ?? ''),
-      serviceEndDate: DateTime.tryParse(json['service_end_date']?.toString() ?? ''),
-      baseRate: double.tryParse(json['base_rate']?.toString() ?? '0') ?? 0,
-      totalBilled: double.tryParse(json['total_billed']?.toString() ?? '0') ?? 0,
-      totalPaid: double.tryParse(json['total_paid']?.toString() ?? '0') ?? 0,
-      outstandingAmount: double.tryParse(json['outstanding_amount']?.toString() ?? '0') ?? 0,
-      status: json['status']?.toString() ?? 'Active',
+      id: toInt(json['id']),
+      bookingId: toInt(json['booking_id']),
+      userId: toInt(json['user_id']),
+      clientName: toStr(json['client_name']),
+      clientMobile: toStr(json['client_mobile']),
+      clientEmail: toStrOrNull(json['client_email']),
+      patientName: toStr(json['patient_name']),
+      serviceName: toStr(json['service_name']),
+      serviceTypeName: toStrOrNull(json['service_type_name']),
+      city: toStr(json['city']),
+      branchName: toStr(json['branch_name']),
+      serviceStartDate: toDate(json['service_start_date']),
+      serviceEndDate: toDate(json['service_end_date']),
+      baseRate: toDouble(json['base_rate']),
+      totalBilled: toDouble(json['total_billed']),
+      totalPaid: toDouble(json['total_paid']),
+      outstandingAmount: toDouble(json['outstanding_amount']),
+      status: toStr(json['status'], 'Active'),
     );
   }
 
   static List<ActiveBookingClient> listFromJson(List<dynamic> jsonList) {
-    return jsonList
-        .map((e) => ActiveBookingClient.fromJson(e as Map<String, dynamic>))
-        .toList();
+    return parseList(jsonList, ActiveBookingClient.fromJson);
   }
+}
+
+/// One client (edx_client_app_users) derived from getActiveClients, which
+/// returns one row per booking (`id` = booking id, `user_id` = client id).
+class ClientOption {
+  final int userId;
+  final String name;
+  final String mobile;
+  final int bookingCount;
+  final double outstanding;
+
+  const ClientOption({
+    required this.userId,
+    required this.name,
+    required this.mobile,
+    required this.bookingCount,
+    required this.outstanding,
+  });
+
+  String get label {
+    final n = name.isNotEmpty ? name : 'Client #$userId';
+    return mobile.isNotEmpty ? '$n ($mobile)' : n;
+  }
+
+  /// Dedupes booking rows by `user_id`, summing outstanding per client.
+  static List<ClientOption> fromBookingRows(Iterable<dynamic> rows) {
+    final byUser = <int, ClientOption>{};
+    for (final r in rows) {
+      final uid = toInt(field(r, 'user_id'));
+      if (uid <= 0) continue;
+      final prev = byUser[uid];
+      byUser[uid] = ClientOption(
+        userId: uid,
+        name: prev?.name.isNotEmpty == true ? prev!.name : toStr(field(r, 'client_name')),
+        mobile: prev?.mobile.isNotEmpty == true ? prev!.mobile : toStr(field(r, 'client_mobile')),
+        bookingCount: (prev?.bookingCount ?? 0) + 1,
+        outstanding: (prev?.outstanding ?? 0) + toDouble(field(r, 'outstanding_amount')),
+      );
+    }
+    final list = byUser.values.toList()
+      ..sort((a, b) => a.label.toLowerCase().compareTo(b.label.toLowerCase()));
+    return list;
+  }
+}
+
+/// Booking rows (from getActiveClients) that belong to client [userId].
+List<dynamic> bookingRowsForUser(Iterable<dynamic> rows, int? userId) {
+  if (userId == null) return const [];
+  return rows.where((r) => toInt(field(r, 'user_id')) == userId).toList();
+}
+
+/// "BK #12 · Patient · Service" label for a getActiveClients booking row.
+String bookingRowLabel(dynamic r) {
+  final id = toInt(field(r, 'booking_id'), toInt(field(r, 'id')));
+  final parts = <String>['Booking #$id'];
+  final patient = toStr(field(r, 'patient_name'));
+  final service = toStr(field(r, 'service_name'));
+  if (patient.isNotEmpty) parts.add(patient);
+  if (service.isNotEmpty) parts.add(service);
+  return parts.join(' · ');
 }

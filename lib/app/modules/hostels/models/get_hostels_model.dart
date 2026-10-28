@@ -65,6 +65,8 @@ class GetHostelsModel {
     return double.tryParse(v?.toString() ?? '') ?? 0.0;
   }
 
-  static List<GetHostelsModel> listFromJson(List<dynamic> list) =>
-      list.map((e) => GetHostelsModel.fromJson(e as Map<String, dynamic>)).toList();
+  static List<GetHostelsModel> listFromJson(List<dynamic> list) => list
+      .whereType<Map>()
+      .map((e) => GetHostelsModel.fromJson(Map<String, dynamic>.from(e)))
+      .toList();
 }

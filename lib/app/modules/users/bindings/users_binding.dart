@@ -6,7 +6,7 @@ class UsersBinding extends Bindings {
   @override
   void dependencies() {
     if (!Get.isRegistered<UsersController>()) {
-      Get.put<UsersController>(UsersController(), permanent: true);
+      Get.put<UsersController>(UsersController());
     }
   }
 }

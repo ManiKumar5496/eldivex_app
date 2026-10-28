@@ -2,8 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:eldivex_app/app/core/values/color_constants.dart';
 import 'package:eldivex_app/app/core/values/text_style_constants.dart';
+import '../../../../routes/app_pages.dart';
 import '../../../../widgets/common_textfield.dart';
+import '../../../../widgets/helper_ui.dart';
 import '../../controllers/write_off_controller.dart';
+import '../../models/active_booking_client_model.dart';
+import '../../models/parse_utils.dart';
+import '../accounts_format.dart';
 
 class CreateWriteOffView extends StatefulWidget {
   const CreateWriteOffView({super.key});
@@ -29,17 +34,18 @@ class _CreateWriteOffViewState extends State<CreateWriteOffView> {
     ctrl = Get.find<WriteOffController>();
   }
 
+  // Mirrors the backend's _determineApprovalLevel (≤500 L1, ≤5000 L2, else L3).
   String _approvalLevelLabel(double? amount) {
     if (amount == null || amount <= 0) return '';
-    if (amount <= 1000) return 'L1 — Auto Approved';
-    if (amount <= 10000) return 'L2 — Finance Head Required';
-    return 'L3 — Director Required';
+    if (amount <= 500) return 'L1';
+    if (amount <= 5000) return 'L2';
+    return 'L3';
   }
 
   Color _approvalLevelColor(double? amount) {
     if (amount == null || amount <= 0) return AppColor.fontColorGrey;
-    if (amount <= 1000) return Colors.green;
-    if (amount <= 10000) return Colors.orange;
+    if (amount <= 500) return Colors.green;
+    if (amount <= 5000) return Colors.orange;
     return Colors.red;
   }
 
@@ -52,7 +58,7 @@ class _CreateWriteOffViewState extends State<CreateWriteOffView> {
         elevation: 0,
         leading: IconButton(
           icon: Icon(Icons.arrow_back_ios_new, size: 18, color: AppColor.cPrimaryHeadingColor),
-          onPressed: () => Get.back(),
+          onPressed: () => HelperUi.safeBack(Routes.MAIN),
         ),
         title: Text(
           'Create Write-off',
@@ -151,7 +157,10 @@ class _CreateWriteOffViewState extends State<CreateWriteOffView> {
         _fieldLabel('Client', required: true),
         const SizedBox(height: 8),
         Obx(() {
-          final clients = ctrl.activeClients;
+          final clients = ClientOption.fromBookingRows(ctrl.activeClients);
+          final selected = clients.any((c) => c.userId == ctrl.selectedClientId.value)
+              ? ctrl.selectedClientId.value
+              : null;
           return Container(
             padding: const EdgeInsets.symmetric(horizontal: 12),
             decoration: BoxDecoration(
@@ -162,17 +171,17 @@ class _CreateWriteOffViewState extends State<CreateWriteOffView> {
             child: DropdownButtonHideUnderline(
               child: DropdownButton<int>(
                 isExpanded: true,
-                value: ctrl.selectedClientId.value,
+                value: selected,
                 hint: Text(
                   'Select active client',
                   style: TextStyle(color: AppColor.fontColorGrey, fontSize: 14),
                 ),
                 items: clients.map((c) {
-                  final id = c['id'] as int? ?? c['user_id'] as int? ?? 0;
-                  final name = c['client_name']?.toString() ?? c['name']?.toString() ?? '';
                   return DropdownMenuItem<int>(
-                    value: id,
-                    child: Text(name, style: const TextStyle(fontSize: 14)),
+                    value: c.userId,
+                    child: Text(c.label,
+                        style: const TextStyle(fontSize: 14),
+                        overflow: TextOverflow.ellipsis),
                   );
                 }).toList(),
                 onChanged: (id) {
@@ -201,17 +210,8 @@ class _CreateWriteOffViewState extends State<CreateWriteOffView> {
           final clientId = ctrl.selectedClientId.value;
           final clients = ctrl.activeClients;
 
-          // Collect bookings for the selected client
-          final List<dynamic> bookings = clientId == null
-              ? []
-              : clients.where((c) {
-                  final id = c['id'] as int? ?? c['user_id'] as int? ?? 0;
-                  return id == clientId;
-                }).expand((c) {
-                  final b = c['bookings'];
-                  if (b is List) return b;
-                  return <dynamic>[];
-                }).toList();
+          // getActiveClients returns one row per booking for the client.
+          final bookings = bookingRowsForUser(clients, clientId);
 
           return Container(
             padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -229,11 +229,13 @@ class _CreateWriteOffViewState extends State<CreateWriteOffView> {
                   style: TextStyle(color: AppColor.fontColorGrey, fontSize: 14),
                 ),
                 items: bookings.map((b) {
-                  final bid = (b['id'] as num?)?.toInt() ?? 0;
-                  final label = b['booking_id']?.toString() ?? '#$bid';
+                  final bid = toInt(field(b, 'booking_id'), toInt(field(b, 'id')));
+                  final due = toDouble(field(b, 'outstanding_amount'));
                   return DropdownMenuItem<int>(
                     value: bid,
-                    child: Text(label, style: const TextStyle(fontSize: 14)),
+                    child: Text('${bookingRowLabel(b)} · Due ${formatInr(due)}',
+                        style: const TextStyle(fontSize: 14),
+                        overflow: TextOverflow.ellipsis),
                   );
                 }).toList(),
                 onChanged: clientId == null
@@ -264,11 +266,12 @@ class _CreateWriteOffViewState extends State<CreateWriteOffView> {
       }
       return Column(
         children: invoices.map((inv) {
-          final id = (inv['id'] as num?)?.toInt() ?? 0;
-          final invoiceId = inv['invoice_id']?.toString() ?? '#$id';
-          final period = '${inv['period_from'] ?? ''} – ${inv['period_to'] ?? ''}';
-          final total = (inv['total_amount'] as num?)?.toDouble() ?? 0.0;
-          final balance = (inv['balance_due'] as num?)?.toDouble() ?? 0.0;
+          // getInvoices: invoice_db_id = numeric PK, invoice_id = 'INV-<id>'.
+          final id = toInt(field(inv, 'invoice_db_id'));
+          final invoiceId = toStr(field(inv, 'invoice_id'), '#$id');
+          final period = '${formatAccDate(field(inv, 'period_from'))} – ${formatAccDate(field(inv, 'period_to'))}';
+          final total = toDouble(field(inv, 'total_amount'));
+          final balance = toDouble(field(inv, 'balance_due'));
           final isSelected = ctrl.selectedInvoiceIds.contains(id);
           return Container(
             margin: const EdgeInsets.only(bottom: 8),
@@ -299,9 +302,9 @@ class _CreateWriteOffViewState extends State<CreateWriteOffView> {
                   const SizedBox(height: 4),
                   Row(
                     children: [
-                      _miniChip('Total', '₹${total.toStringAsFixed(0)}', Colors.blue),
+                      _miniChip('Total', formatInr(total), Colors.blue),
                       const SizedBox(width: 8),
-                      _miniChip('Balance', '₹${balance.toStringAsFixed(0)}', Colors.red),
+                      _miniChip('Balance', formatInr(balance), Colors.red),
                     ],
                   ),
                 ],
@@ -349,9 +352,10 @@ class _CreateWriteOffViewState extends State<CreateWriteOffView> {
   // ── Section 3: Approval Level Badge ─────────────────────────────────────────
 
   Widget _buildApprovalLevelBadge() {
-    return Obx(() {
-      final text = ctrl.writeOffAmountCtrl.text;
-      final amount = double.tryParse(text);
+    return ValueListenableBuilder<TextEditingValue>(
+        valueListenable: ctrl.writeOffAmountCtrl,
+        builder: (context, value, _) {
+      final amount = double.tryParse(value.text.trim());
       if (amount == null || amount <= 0) return const SizedBox.shrink();
       final label = _approvalLevelLabel(amount);
       final color = _approvalLevelColor(amount);
@@ -367,7 +371,7 @@ class _CreateWriteOffViewState extends State<CreateWriteOffView> {
             Icon(Icons.verified_user_outlined, size: 16, color: color),
             const SizedBox(width: 8),
             Text(
-              'Approval Level: $label',
+              'Approval Level: $label (approver required)',
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w500,
@@ -377,7 +381,7 @@ class _CreateWriteOffViewState extends State<CreateWriteOffView> {
           ],
         ),
       );
-    });
+        });
   }
 
   // ── Submit Button ────────────────────────────────────────────────────────────
@@ -389,9 +393,10 @@ class _CreateWriteOffViewState extends State<CreateWriteOffView> {
           child: ElevatedButton.icon(
             onPressed: ctrl.isSubmitting.value
                 ? null
-                : () {
+                : () async {
                     if (_formKey.currentState?.validate() ?? false) {
-                      ctrl.createWriteOff();
+                      final ok = await ctrl.createWriteOff();
+                      if (ok) HelperUi.safeBack(Routes.MAIN);
                     }
                   },
             icon: ctrl.isSubmitting.value

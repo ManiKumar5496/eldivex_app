@@ -1,5 +1,7 @@
-import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:dio/dio.dart' as dio;
+import '../../../../main.dart';
 import 'package:eldivex_app/app/modules/support/models/get_all_support_tickets.dart';
 import '../../../data/api_constant_url.dart';
 import '../../../data/base_api_services.dart';
@@ -15,6 +17,58 @@ class SupportController extends GetxController {
   final ApiService baseApi = ApiService();
   RxList<GetAllSupportTickets> getAllSupportTicketsData =
       <GetAllSupportTickets>[].obs;
+  // What the ticket list renders: the org-scoped tickets narrowed by the
+  // search box and the status chip filter.
+  RxList<GetAllSupportTickets> filteredSupportTickets =
+      <GetAllSupportTickets>[].obs;
+  final RxString ticketSearchQuery = ''.obs;
+  // -1 = All, otherwise one of the edx_support_requests.status values below.
+  final RxInt ticketStatusFilter = (-1).obs;
+  final RxString loadError = ''.obs;
+
+  // edx_support_requests.status: 1 = Open, 2 = In Progress, 3 = Resolved,
+  // 0 = Closed (see getSupportStats / updateSupportStatus on the backend).
+  static const int statusClosed = 0;
+  static const int statusOpen = 1;
+  static const int statusInProgress = 2;
+  static const int statusResolved = 3;
+
+  static String statusLabel(int status) {
+    switch (status) {
+      case statusOpen:
+        return 'Open';
+      case statusInProgress:
+        return 'In Progress';
+      case statusResolved:
+        return 'Resolved';
+      case statusClosed:
+        return 'Closed';
+      default:
+        return 'Unknown';
+    }
+  }
+
+  static Color statusColor(int status) {
+    switch (status) {
+      case statusOpen:
+        return Colors.blue;
+      case statusInProgress:
+        return Colors.orange;
+      case statusResolved:
+        return Colors.green;
+      default:
+        return Colors.grey;
+    }
+  }
+
+  /// Category name for a ticket's support_type_id (falls back to the raw id).
+  String categoryName(String supportTypeId) {
+    final id = int.tryParse(supportTypeId);
+    final match = getSupportCategoriesData.firstWhereOrNull((c) => c.id == id);
+    final name = match?.name ?? '';
+    if (name.isNotEmpty) return name;
+    return (supportTypeId.isEmpty || supportTypeId == 'NA') ? '—' : 'Type $supportTypeId';
+  }
   RxList<SupportCategory> getSupportCategoriesData =
       <SupportCategory>[].obs;
   RxInt openTickets = 0.obs;
@@ -35,6 +89,11 @@ class SupportController extends GetxController {
   RxString priority = ''.obs;
   RxString subject = ''.obs;
   RxString description = ''.obs;
+  final TextEditingController subjectTextController = TextEditingController();
+  final TextEditingController descriptionTextController = TextEditingController();
+  final TextEditingController reasonTextController = TextEditingController();
+  // Route arguments already applied, so a rebuild never re-applies them.
+  Object? _appliedPrefillArgs;
 
   // Dynamic fields based on ticket type
   Rx<DateTime?> holdStartDate = Rx<DateTime?>(null);
@@ -57,12 +116,36 @@ class SupportController extends GetxController {
     supportCommentsController.dispose();
     bookingIdTextController.dispose();
     clientUserIdTextController.dispose();
+    subjectTextController.dispose();
+    descriptionTextController.dispose();
+    reasonTextController.dispose();
     super.onClose();
   }
 
   // ── Pre-fill from bookings navigation ─────────────────────────────────────
   /// Called by [CreateSupportTicket] when opened via Get.to() with arguments.
   /// [typeId] is the edx_support_category.id to auto-select (4=Hold, 5=Cancel).
+  static int? _toIntOrNull(dynamic v) {
+    if (v is int) return v;
+    if (v is num) return v.toInt();
+    if (v is String) return int.tryParse(v);
+    return null;
+  }
+
+  /// Apply {bookingId, userId, typeId} route arguments once per navigation.
+  void applyPrefillArgs(Object? args) {
+    if (args is! Map || identical(args, _appliedPrefillArgs)) return;
+    _appliedPrefillArgs = args;
+    final bookingId = _toIntOrNull(args['bookingId']);
+    final userId = _toIntOrNull(args['userId']);
+    if (bookingId == null || userId == null) return;
+    prefillFromBooking(
+      bookingId: bookingId,
+      userId: userId,
+      typeId: _toIntOrNull(args['typeId']),
+    );
+  }
+
   void prefillFromBooking({
     required int bookingId,
     required int userId,
@@ -96,6 +179,7 @@ class SupportController extends GetxController {
     lastServiceDate.value = null;
     cancellationReason.value = '';
     replacementReason.value = '';
+    reasonTextController.clear();
   }
 
   // Check if current ticket type requires specific fields
@@ -110,6 +194,7 @@ class SupportController extends GetxController {
 
   Future<void> getAllSupportTicketsApi() async {
     isLoading.value = true;
+    loadError.value = '';
 
     try {
       final result = await baseApi.getList<GetAllSupportTickets>(
@@ -117,15 +202,48 @@ class SupportController extends GetxController {
             (json) => GetAllSupportTickets.fromJson(json),
       );
 
-      getAllSupportTicketsData.value = result ?? [];
-      debugPrint("Support tickets loaded: ${getAllSupportTicketsData.length}");
+      if (result == null) {
+        loadError.value =
+            ApiService.lastError ?? 'Failed to fetch support tickets.';
+      } else {
+        // Newest first
+        result.sort((a, b) => b.id.compareTo(a.id));
+        getAllSupportTicketsData.value = result;
+      }
+      applyTicketFilters();
     } catch (e, stack) {
       debugPrint("Error fetching support tickets: $e");
       debugPrint("Stack trace: $stack");
-      HelperUi.showToast(message: "Failed to fetch support tickets.");
+      loadError.value = 'Failed to fetch support tickets.';
     } finally {
       isLoading.value = false;
     }
+  }
+
+  void searchTickets(String query) {
+    ticketSearchQuery.value = query;
+    applyTicketFilters();
+  }
+
+  void setTicketStatusFilter(int status) {
+    ticketStatusFilter.value = status;
+    applyTicketFilters();
+  }
+
+  void applyTicketFilters() {
+    final q = ticketSearchQuery.value.toLowerCase().trim();
+    final status = ticketStatusFilter.value;
+    filteredSupportTickets.value = getAllSupportTicketsData.where((t) {
+      final matchesSearch = q.isEmpty ||
+          t.title.toLowerCase().contains(q) ||
+          t.description.toLowerCase().contains(q) ||
+          t.bookingDetails.toLowerCase().contains(q) ||
+          t.userId.toLowerCase().contains(q) ||
+          categoryName(t.supportTypeId).toLowerCase().contains(q) ||
+          t.id.toString().contains(q);
+      final matchesStatus = status == -1 || t.status == status;
+      return matchesSearch && matchesStatus;
+    }).toList();
   }
 
   Future<void> getAllSupportCategoriesApi() async {
@@ -137,7 +255,15 @@ class SupportController extends GetxController {
             (json) => SupportCategory.fromJson(json),
       );
       getSupportCategoriesData.value = result ?? [];
+      // Keep the selection pointing at an item of the new list (dropdown
+      // values must be one of its items).
+      final sel = selectedTicketType.value;
+      if (sel != null) {
+        selectedTicketType.value =
+            getSupportCategoriesData.firstWhereOrNull((c) => c.id == sel.id);
+      }
       _applyPrefillType(); // auto-select type if prefill was requested before load
+      applyTicketFilters(); // category names feed the search
 
       debugPrint("Support categories loaded: ${getSupportCategoriesData.length}");
     } catch (e, stack) {
@@ -153,16 +279,13 @@ class SupportController extends GetxController {
     isStatsLoading.value = true;
     try {
       final response = await baseApi.getRaw(ApiConstants.getSupportStats);
-      if (response != null && response.statusCode == 200) {
-        final data = response.data as Map<String, dynamic>;
-        openTickets.value        = (data['open_tickets']        as num?)?.toInt() ?? 0;
-        inProgressTickets.value  = (data['in_progress_tickets'] as num?)?.toInt() ?? 0;
-        resolvedToday.value      = (data['resolved_today']      as num?)?.toInt() ?? 0;
-        avgResponseTime.value    = data['avg_response_hours']?.toString() ?? '—';
-        debugPrint("Support stats loaded: open=${openTickets.value}, "
-            "inProgress=${inProgressTickets.value}, "
-            "resolvedToday=${resolvedToday.value}, "
-            "avg=${avgResponseTime.value}");
+      if (ApiService.isOk(response) && response!.data is Map) {
+        final data = response.data as Map;
+        openTickets.value        = _toIntOrNull(data['open_tickets']) ?? 0;
+        inProgressTickets.value  = _toIntOrNull(data['in_progress_tickets']) ?? 0;
+        resolvedToday.value      = _toIntOrNull(data['resolved_today']) ?? 0;
+        final avg = data['avg_response_hours']?.toString() ?? '';
+        avgResponseTime.value    = (avg.isEmpty || avg == 'N/A') ? '—' : avg;
       }
     } catch (e, stack) {
       debugPrint("Error fetching support stats: $e");
@@ -172,113 +295,141 @@ class SupportController extends GetxController {
     }
   }
 
+  void _fail(String message) =>
+      HelperUi.showToast(message: message, backgroundColor: Colors.red);
+
   bool validateFields() {
-    if (clientUserId.value.isEmpty) {
-      HelperUi.showToast(message: "Please enter User ID");
+    if (int.tryParse(clientUserId.value.trim()) == null) {
+      _fail("Please enter a valid numeric User ID");
       return false;
     }
-    if (bookingId.value.isEmpty) {
-      HelperUi.showToast(message: "Please enter Booking ID");
+    if (bookingId.value.trim().isEmpty) {
+      _fail("Please enter Booking ID");
       return false;
     }
     if (selectedTicketType.value == null) {
-      HelperUi.showToast(message: "Please select Ticket Type");
+      _fail("Please select Ticket Type");
       return false;
     }
     if (priority.value.isEmpty) {
-      HelperUi.showToast(message: "Please select Priority");
+      _fail("Please select Priority");
       return false;
     }
-    if (subject.value.isEmpty) {
-      HelperUi.showToast(message: "Please enter Subject");
+    if (subject.value.trim().length < 3) {
+      _fail("Subject must be at least 3 characters");
       return false;
     }
-    if (description.value.isEmpty) {
-      HelperUi.showToast(message: "Please enter Description");
+    if (description.value.trim().length < 5) {
+      _fail("Description must be at least 5 characters");
       return false;
     }
 
     // Validate dynamic fields
     if (requiresHoldDates) {
       if (holdStartDate.value == null) {
-        HelperUi.showToast(message: "Please select Hold Start Date");
+        _fail("Please select Hold Start Date");
         return false;
       }
       if (holdEndDate.value == null) {
-        HelperUi.showToast(message: "Please select Hold End Date");
+        _fail("Please select Hold End Date");
         return false;
       }
       if (holdEndDate.value!.isBefore(holdStartDate.value!)) {
-        HelperUi.showToast(message: "Hold End Date must be after Start Date");
+        _fail("Hold End Date must be after Start Date");
         return false;
       }
     }
 
     if (requiresReplacementDate && replacementPlannedDate.value == null) {
-      HelperUi.showToast(message: "Please select Replacement Planned Date");
+      _fail("Please select Replacement Planned Date");
       return false;
     }
 
     if (requiresCancellationDate && lastServiceDate.value == null) {
-      HelperUi.showToast(message: "Please select Last Service Date");
+      _fail("Please select Last Service Date");
       return false;
     }
 
     return true;
   }
 
-  Future<void> createSupportTicket() async {
-    if (!validateFields()) return;
+  String _errorText(dio.Response? r, String fallback) {
+    final data = r?.data;
+    if (data is Map) {
+      final details = data['details'];
+      if (details is List && details.isNotEmpty && details.first is Map) {
+        final msg = (details.first as Map)['message'];
+        if (msg != null) return msg.toString();
+      }
+      final msg = data['error'] ?? data['message'];
+      if (msg != null && msg.toString().isNotEmpty) return msg.toString();
+    }
+    return ApiService.lastError ?? fallback;
+  }
 
-    debugPrint('Creating ticket:');
-    debugPrint('Booking ID: ${bookingId.value}');
-    debugPrint('Type: ${selectedTicketType.value?.name}');
-    debugPrint('Priority: ${priority.value}');
-    debugPrint('Subject: ${subject.value}');
-    debugPrint('Description: ${description.value}');
+  String _isoDate(DateTime d) =>
+      "${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}";
+
+  /// Returns true when the ticket was created.
+  Future<bool> createSupportTicket() async {
+    if (!validateFields()) return false;
+    if (isCreateSupportLoading.value) return false;
 
     try {
       isCreateSupportLoading.value = true;
 
-      Map<String, dynamic> requestBody = {
-        "user_id": clientUserId.value,
-        "support_type_id": selectedTicketType.value!.id.toString(),
-        "due_date": "2025-12-20",
-        "title": subject.value,
-        "description": description.value,
+      // org_id comes from the JWT. The backend has no due_date / priority
+      // columns, so priority travels in the comments; hold dates map to the
+      // stored start_date / end_date.
+      final requestBody = <String, dynamic>{
+        "user_id": int.parse(clientUserId.value.trim()),
+        "support_type_id": selectedTicketType.value!.id,
+        "title": subject.value.trim(),
+        "description": description.value.trim(),
         "comments": buildCommentsFromDynamicFields(),
-        "conversionlog_details": "conversionlog_details",
-        "created_by_employee": "1",
-        "booking_details": bookingId.value,
+        "booking_details": bookingId.value.trim(),
       };
+      final employeeId = box.read("userId")?.toString();
+      if (employeeId != null && employeeId.isNotEmpty) {
+        requestBody["created_by_employee"] = employeeId;
+      }
+      if (requiresHoldDates &&
+          holdStartDate.value != null &&
+          holdEndDate.value != null) {
+        requestBody["start_date"] = _isoDate(holdStartDate.value!);
+        requestBody["end_date"] = _isoDate(holdEndDate.value!);
+      }
 
       final response = await baseApi.postRaw(
         ApiConstants.createSupportTicket,
         requestBody,
       );
 
-      isCreateSupportLoading.value = false;
-
-      if (response != null && response.statusCode == 201) {
-        final data = response.data;
-        debugPrint("support ticket data $data");
-        HelperUi.showToast(message: "Ticket Created Successfully");
+      if (ApiService.isOk(response)) {
+        HelperUi.showToast(
+            message: "Ticket Created Successfully", backgroundColor: Colors.green);
         clearForm();
-        Get.back();
-        await getAllSupportTicketsApi();
-      } else if (response != null && response.statusCode == 401) {
-        HelperUi.showToast(message: "Ticket Creation Failed. Please Try Again!");
-      } else {
-        HelperUi.showToast(message: "Something went Wrong");
+        getAllSupportTicketsApi();
+        getSupportStatsApi();
+        return true;
       }
+      _fail(_errorText(response, "Ticket creation failed. Please try again."));
+      return false;
     } catch (error) {
+      debugPrint("createSupportTicket error: $error");
+      _fail("Something went wrong. Please try again.");
+      return false;
+    } finally {
       isCreateSupportLoading.value = false;
-      HelperUi.showToast(message: "An error occurred: $error");
     }
   }
 
   String buildCommentsFromDynamicFields() {
     List<String> comments = [];
+
+    if (priority.value.isNotEmpty) {
+      comments.add("Priority: ${priority.value}");
+    }
 
     if (requiresHoldDates) {
       comments.add("Hold Start Date: ${_formatDate(holdStartDate.value)}");
@@ -299,7 +450,7 @@ class SupportController extends GetxController {
       }
     }
 
-    return comments.isEmpty ? "No additional comments" : comments.join(" | ");
+    return comments.join(" | ");
   }
 
   String _formatDate(DateTime? date) {
@@ -316,44 +467,46 @@ class SupportController extends GetxController {
     priority.value = '';
     subject.value = '';
     description.value = '';
+    subjectTextController.clear();
+    descriptionTextController.clear();
     _pendingPrefillTypeId = null;
     resetDynamicFields();
   }
 
-  void updateSupportStatus(int status, int userId) {
+  /// PATCH /updateSupportStatus?id=<ticketId>&status=<s>&comments=<c>.
+  /// Returns true on success; the caller closes its dialog only then.
+  Future<bool> updateSupportStatus(int status, int ticketId) async {
+    if (updateSupportStatusLoading.value) return false;
     updateSupportStatusLoading.value = true;
-
-    baseApi
-        .patchApi("${ApiConstants.updateSupportTicketStatus}?id=$userId&status=$status&comments=${supportCommentsController.text}")
-        .then((response) {
-      updateSupportStatusLoading.value = false;
-
-      if (response == null) {
-        HelperUi.showToast(message: "No response from server.");
-        return;
-      }
-
-      Map<String, dynamic> responseData = response.data ?? {};
-      var statusMessage = responseData['message'] ?? "No message provided.";
-      debugPrint("Response from updateUserVisible: $responseData");
-
-      if (response.statusCode == 200) {
-        if (statusMessage == 'Updated successfully.') {
-          HelperUi.showToast(message: "Support ticket status updated successfully.");
-        } else {
-          HelperUi.showToast(message: statusMessage);
-        }
-        onInit();
-      } else if (response.statusCode == 401) {
+    try {
+      final comments = supportCommentsController.text.trim();
+      // Uri encodes the free-text comments (&, #, spaces, etc.).
+      final uri = Uri.parse(ApiConstants.updateSupportTicketStatus).replace(
+        queryParameters: {
+          'id': ticketId.toString(),
+          'status': status.toString(),
+          if (comments.isNotEmpty) 'comments': comments,
+        },
+      );
+      final response = await baseApi.patchApi(uri.toString());
+      if (ApiService.isOk(response)) {
         HelperUi.showToast(
-            message: "Unauthorized access. Please log in again.");
-      } else {
-        HelperUi.showToast(
-            message: "Failed to update status. Status: ${response.statusCode}");
+          message: "Ticket marked ${statusLabel(status)}.",
+          backgroundColor: Colors.green,
+        );
+        supportCommentsController.clear();
+        getAllSupportTicketsApi();
+        getSupportStatsApi();
+        return true;
       }
-    }).catchError((error) {
+      _fail(_errorText(response, "Failed to update ticket status."));
+      return false;
+    } catch (error) {
+      debugPrint("updateSupportStatus error: $error");
+      _fail("Failed to update ticket status.");
+      return false;
+    } finally {
       updateSupportStatusLoading.value = false;
-      HelperUi.showToast(message: "Error updating status: $error");
-    });
+    }
   }
 }

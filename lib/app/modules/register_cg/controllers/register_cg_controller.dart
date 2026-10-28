@@ -247,6 +247,9 @@ class RegisterCgController extends GetxController {
       );
       if (result != null) {
         for (final hp in result) {
+          // The backend ignores ?status=4, so keep only active (status 4)
+          // rows here. `status` is parsed defensively by the model.
+          if (hp.status != 4) continue;
           final regId = hp.hpRegId;
           if (regId == null || regId == 0) continue;
           // Only map HPs with a real booking id. Attendance is FK-bound to a
@@ -398,7 +401,6 @@ class RegisterCgController extends GetxController {
         "monthly_livein_pay": monthlyLiveInPayController.text.trim(),
         "monthly_liveout_pay": monthlyLiveOutPayController.text.trim(),
         "hp_effect_date": DateTime.now().toIso8601String(),
-        "org_id": box.read("org_id") ?? 1,
       });
 
       if (hpUploadedDocuments.isNotEmpty) {

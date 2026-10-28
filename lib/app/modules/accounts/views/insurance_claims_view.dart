@@ -7,23 +7,13 @@ import '../../../widgets/common_textfield.dart';
 import '../../../widgets/shimmer_loader.dart';
 import '../controllers/accounts_controller.dart';
 import '../models/insurance_claim_model.dart';
+import 'accounts_format.dart';
 
 class InsuranceClaimsView extends GetView<AccountsController> {
   const InsuranceClaimsView({super.key});
 
-  Color _statusColor(String status) {
-    switch (status.toLowerCase()) {
-      case 'approved':
-      case 'settled':
-        return Colors.green;
-      case 'submitted':
-        return Colors.blue;
-      case 'rejected':
-        return Colors.red;
-      default:
-        return Colors.orange;
-    }
-  }
+  Color _statusColor(String status) => accountsStatusColor(status);
+
 
   List<String> _nextStatuses(String current) {
     switch (current.toLowerCase()) {

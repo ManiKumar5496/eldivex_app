@@ -1,3 +1,5 @@
+import 'parse_utils.dart';
+
 class ApprovalHistoryModel {
   final int id;
   final int orgId;
@@ -25,16 +27,16 @@ class ApprovalHistoryModel {
 
   factory ApprovalHistoryModel.fromJson(Map<String, dynamic> json) {
     return ApprovalHistoryModel(
-      id:            (json['id'] as num?)?.toInt() ?? 0,
-      orgId:         (json['org_id'] as num?)?.toInt() ?? 0,
-      referenceId:   (json['reference_id'] as num?)?.toInt() ?? 0,
-      actionBy:      (json['action_by'] as num?)?.toInt() ?? 0,
-      referenceType: json['reference_type']?.toString() ?? '',
-      action:        json['action']?.toString() ?? '',
-      notes:         json['notes'] as String?,
-      actionOn:      json['action_on'] as String?,
-      actionByName:  json['action_by_name'] as String?,
-      approvalLevel: (json['approval_level'] as num?)?.toInt(),
+      id:            toInt(json['id']),
+      orgId:         toInt(json['org_id']),
+      referenceId:   toInt(json['reference_id']),
+      actionBy:      toInt(json['action_by']),
+      referenceType: toStr(json['reference_type']),
+      action:        toStr(json['action']),
+      notes:         toStrOrNull(json['notes']),
+      actionOn:      toStrOrNull(json['action_on']),
+      actionByName:  toStrOrNull(json['action_by_name']),
+      approvalLevel: toIntOrNull(json['approval_level']),
     );
   }
 
@@ -52,5 +54,5 @@ class ApprovalHistoryModel {
   };
 
   static List<ApprovalHistoryModel> fromJsonList(List list) =>
-      list.map((e) => ApprovalHistoryModel.fromJson(e as Map<String, dynamic>)).toList();
+      parseList(list, ApprovalHistoryModel.fromJson);
 }

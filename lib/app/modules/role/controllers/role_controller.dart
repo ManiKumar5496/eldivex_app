@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:get_storage/get_storage.dart';
+import '../../../core/utils/session_utils.dart';
 import '../../../data/api_constant_url.dart';
 import '../../../data/base_api_services.dart';
 import '../../auth/models/user_role_acess_model.dart';
@@ -11,14 +11,18 @@ class RoleController extends GetxController {
   final RxList<UserRoleAccessModel> allAccessRoles = <UserRoleAccessModel>[].obs;
   final RxList<String> accessList = <String>[].obs;
   final RxBool isRolesLoading = false.obs;
-  int roleId = box.read("role_id") ?? 0;
-  int orgId  = box.read("org_id")  ?? 1;
-  String token = box.read("user_token") ?? "";
+  /// True once a fetch for the current session has finished (success or not),
+  /// so route guards can tell "not loaded yet" from "no access".
+  final RxBool accessLoaded = false.obs;
+  int roleId = adminRoleId();
+  int orgId  = adminOrgId();
+  String token = (box.read("user_token") ?? "").toString();
+  Future<bool>? _inflight;
 
   @override
   void onInit() {
-    token = box.read("user_token") ?? "";
-    roleId = box.read("role_id") ?? 0;
+    token = (box.read("user_token") ?? "").toString();
+    roleId = adminRoleId();
 
     // Only fetch if user is authenticated
     if (isAuthenticated()) {
@@ -30,24 +34,25 @@ class RoleController extends GetxController {
   /// Check if user is authenticated
   bool isAuthenticated() {
     // Re-read from storage to get latest value
-    final currentToken = box.read("user_token") ?? "";
-    final currentRoleId = box.read("role_id") ?? 0;
-
-    debugPrint("🔐 Auth Check - Token: ${currentToken.isNotEmpty}, RoleId: $currentRoleId");
-
-    return currentToken.isNotEmpty && currentRoleId > 0;
+    return isAdminAuthenticated();
   }
 
-  Future<bool> fetchRoleAndAccess() async {
-    roleId = box.read("role_id")   ?? 0;
-    orgId  = box.read("org_id")    ?? 1;
-    token  = box.read("user_token") ?? "";
+  /// Concurrent callers (login, route guards) share one in-flight request.
+  Future<bool> fetchRoleAndAccess() {
+    return _inflight ??= _fetchRoleAndAccess().whenComplete(() => _inflight = null);
+  }
+
+  Future<bool> _fetchRoleAndAccess() async {
+    roleId = adminRoleId();
+    orgId  = adminOrgId();
+    token  = (box.read("user_token") ?? "").toString();
 
     debugPrint("⭐ Fetching role and access for role_id: $roleId");
 
     if (roleId == 0) {
       debugPrint("❌ No role_id found in storage");
       accessList.clear(); // Clear access list if no role
+      accessLoaded.value = true;
       return false;
     }
 
@@ -83,6 +88,7 @@ class RoleController extends GetxController {
       return false;
     } finally {
       isRolesLoading.value = false;
+      accessLoaded.value = true;
     }
   }
 
@@ -114,9 +120,10 @@ class RoleController extends GetxController {
     box.remove("selected_page_index");
     accessList.clear();
     allAccessRoles.clear();
+    accessLoaded.value = false;
     token  = "";
     roleId = 0;
-    orgId  = 1;
+    orgId  = 0;
     debugPrint("🚪 User logged out - all data cleared");
   }
 }

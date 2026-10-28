@@ -19,22 +19,38 @@ class SupportCategory {
     this.status,
   });
 
+  /// Backend columns are loosely typed (numeric strings, 'NA'), so every
+  /// field is parsed defensively instead of cast.
+  static int? _toInt(dynamic v) {
+    if (v == null) return null;
+    if (v is int) return v;
+    if (v is num) return v.toInt();
+    return int.tryParse(v.toString());
+  }
+
+  static String? _toStr(dynamic v) {
+    if (v == null) return null;
+    final s = v.toString();
+    return s == 'NA' ? null : s;
+  }
+
+  static DateTime? _toDate(dynamic v) {
+    if (v == null) return null;
+    return DateTime.tryParse(v.toString());
+  }
+
   factory SupportCategory.fromJson(Map<String, dynamic>? json) {
     if (json == null) return SupportCategory();
 
     return SupportCategory(
-      id: json['id'] as int?,
-      name: json['name'] as String?,
-      appType: json['app_type'] as String?,
-      createdOn: json['created_on'] != null
-          ? DateTime.tryParse(json['created_on'])
-          : null,
-      createdBy: json['created_by'] as int?,
-      updatedOn: json['updated_on'] != null
-          ? DateTime.tryParse(json['updated_on'])
-          : null,
-      updatedBy: json['updated_by'] as int?,
-      status: json['status'] as int?,
+      id: _toInt(json['id']),
+      name: _toStr(json['name']),
+      appType: _toStr(json['app_type']),
+      createdOn: _toDate(json['created_on']),
+      createdBy: _toInt(json['created_by']),
+      updatedOn: _toDate(json['updated_on']),
+      updatedBy: _toInt(json['updated_by']),
+      status: _toInt(json['status']),
     );
   }
 
@@ -51,6 +67,14 @@ class SupportCategory {
     };
   }
 
-  /// ✅ Null-safe support category name
+  /// Null-safe support category name
   String get supportCategoryNames => name ?? '';
+
+  // Equality by id so a dropdown selection survives a category reload.
+  @override
+  bool operator ==(Object other) =>
+      other is SupportCategory && other.id != null && other.id == id;
+
+  @override
+  int get hashCode => id.hashCode;
 }

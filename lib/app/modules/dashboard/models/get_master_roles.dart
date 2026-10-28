@@ -17,11 +17,11 @@ class GetMasterRoles {
     json ??= {};
 
     return GetMasterRoles(
-      id: json["id"] ?? 0,
-      roleName: json["role_name"] ?? "",
-      accessList: json["access_list"] ?? "",
-      modules: json["modules"] ?? "",
-      moduleIds: json["module_ids"] ?? "",
+      id: _toInt(json["id"]),
+      roleName: _toStr(json["role_name"]),
+      accessList: _toStr(json["access_list"]),
+      modules: _toStr(json["modules"]),
+      moduleIds: _toStr(json["module_ids"]),
     );
   }
 
@@ -34,3 +34,6 @@ class GetMasterRoles {
   };
 }
 
+int _toInt(dynamic v) => v is int ? v : int.tryParse('${v ?? ''}') ?? 0;
+
+String _toStr(dynamic v) => v == null ? '' : v.toString();

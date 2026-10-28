@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:eldivex_app/app/core/values/color_constants.dart';
 import 'package:eldivex_app/app/core/values/text_style_constants.dart';
+import '../../../../routes/app_pages.dart';
 import '../../../../widgets/shimmer_loader.dart';
 import '../../controllers/refund_controller.dart';
 import '../../models/refund_model.dart';
+import '../accounts_format.dart';
 
 class RefundListView extends GetView<RefundController> {
   const RefundListView({super.key});
@@ -13,7 +15,6 @@ class RefundListView extends GetView<RefundController> {
 
   static const List<String> _statusOptions = [
     'ALL',
-    'DRAFT',
     'PENDING_APPROVAL',
     'APPROVED',
     'PROCESSING',
@@ -21,27 +22,8 @@ class RefundListView extends GetView<RefundController> {
     'REJECTED',
   ];
 
-  Color _statusColor(String status) {
-    switch (status) {
-      case 'DRAFT':
-        return AppColor.fontColorGrey;
-      case 'PENDING_APPROVAL':
-        return Colors.orange;
-      case 'APPROVED':
-        return Colors.blue;
-      case 'PROCESSING':
-        return Colors.purple;
-      case 'COMPLETED':
-        return Colors.green;
-      case 'REJECTED':
-        return Colors.red;
-      default:
-        return AppColor.fontColorGrey;
-    }
-  }
-
   Widget _statusBadge(String status) {
-    final color = _statusColor(status);
+    final color = accountsStatusColor(status);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
@@ -60,23 +42,20 @@ class RefundListView extends GetView<RefundController> {
     );
   }
 
-  String _formatCurrency(double amount) {
-    return '₹${amount.toStringAsFixed(2)}';
-  }
 
   // ── Local filter state ──────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
-    // Local reactive state for filters
-    final RxString filterStatus = 'ALL'.obs;
-    final TextEditingController dateFromCtrl = TextEditingController();
-    final TextEditingController dateToCtrl = TextEditingController();
+    // Filter state lives on the controller so it survives rebuilds.
+    final filterStatus = controller.listStatusFilter;
+    final dateFromCtrl = controller.listFromDateCtrl;
+    final dateToCtrl = controller.listToDateCtrl;
 
     return Scaffold(
       backgroundColor: Colors.transparent,
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => Get.toNamed('/create-refund'),
+        onPressed: () => Get.toNamed(Routes.CREATE_REFUND),
         backgroundColor: AppColor.cPrimaryButtonColor,
         icon: Icon(Icons.add, color: AppColor.buttonTextWhite),
         label: Text(
@@ -99,12 +78,8 @@ class RefundListView extends GetView<RefundController> {
                 return const ShimmerLoader.table();
               }
 
-              final filtered = _applyFilters(
-                controller.refunds,
-                filterStatus.value,
-                dateFromCtrl.text,
-                dateToCtrl.text,
-              );
+              // Status and dates are filtered server-side (getRefunds).
+              final filtered = controller.refunds.toList();
 
               if (filtered.isEmpty) {
                 return Center(
@@ -129,7 +104,7 @@ class RefundListView extends GetView<RefundController> {
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(color: AppColor.divColor),
                   ),
-                  child: DataTable(
+                  child: horizontalTable(DataTable(
                     headingRowColor:
                         WidgetStateProperty.all(AppColor.fieldColorGrey),
                     headingTextStyle: TextStyle(
@@ -151,7 +126,7 @@ class RefundListView extends GetView<RefundController> {
                       DataColumn(label: Text('Actions')),
                     ],
                     rows: filtered.map((r) => _buildRow(r)).toList(),
-                  ),
+                  )),
                 ),
               );
             }),
@@ -171,7 +146,10 @@ class RefundListView extends GetView<RefundController> {
   ) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
-      child: Row(
+      child: Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        crossAxisAlignment: WrapCrossAlignment.center,
         children: [
           // Status dropdown
           Obx(() => Container(
@@ -287,11 +265,7 @@ class RefundListView extends GetView<RefundController> {
           const SizedBox(width: 8),
           // Apply / clear
           OutlinedButton.icon(
-            onPressed: () {
-              controller.loadRefunds(
-                status: filterStatus.value == 'ALL' ? null : filterStatus.value,
-              );
-            },
+            onPressed: () => controller.loadRefunds(),
             icon: const Icon(Icons.search, size: 16),
             label: const Text('Apply'),
             style: OutlinedButton.styleFrom(
@@ -314,7 +288,6 @@ class RefundListView extends GetView<RefundController> {
             child: Text('Clear',
                 style: TextStyle(color: AppColor.fontColorGrey, fontSize: 13)),
           ),
-          const Spacer(),
           // Refresh
           Obx(() => controller.isLoading.value
               ? const SizedBox(
@@ -323,7 +296,7 @@ class RefundListView extends GetView<RefundController> {
                   child: CircularProgressIndicator(strokeWidth: 2))
               : IconButton(
                   tooltip: 'Refresh',
-                  onPressed: controller.loadRefunds,
+                  onPressed: () => controller.loadRefunds(),
                   icon: const Icon(Icons.refresh_rounded),
                   color: AppColor.fontColorGrey,
                 )),
@@ -345,18 +318,19 @@ class RefundListView extends GetView<RefundController> {
           style: const TextStyle(fontWeight: FontWeight.w500))),
       DataCell(Text(r.bookingRef ?? 'BK-${r.bookingId}')),
       DataCell(Text(
-        _formatCurrency(r.refundAmount),
+        formatInr(r.refundAmount),
         style:
             const TextStyle(fontWeight: FontWeight.w600, color: Colors.red),
       )),
       DataCell(_channelChip(r.refundChannel)),
       DataCell(_statusBadge(r.status)),
       DataCell(Text(
-        r.createdOn != null ? _formatDate(r.createdOn!) : '—',
+        formatAccDate(r.createdOn, pattern: 'dd-MMM-yyyy'),
         style: TextStyle(fontSize: 12, color: AppColor.fontColorGrey),
       )),
       DataCell(InkWell(
-        onTap: () => Get.toNamed('/refund-detail', arguments: r.id),
+        onTap: () => Get.toNamed(Routes.REFUND_DETAIL,
+            arguments: r.id, parameters: {'id': '${r.id}'}),
         borderRadius: BorderRadius.circular(6),
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -393,44 +367,5 @@ class RefundListView extends GetView<RefundController> {
             fontWeight: FontWeight.w500),
       ),
     );
-  }
-
-  // ── Helpers ─────────────────────────────────────────────────────────────────
-
-  List<RefundModel> _applyFilters(
-    List<RefundModel> list,
-    String status,
-    String dateFrom,
-    String dateTo,
-  ) {
-    return list.where((r) {
-      final matchStatus = status == 'ALL' || r.status == status;
-      bool matchFrom = true;
-      bool matchTo = true;
-      if (dateFrom.isNotEmpty && r.createdOn != null) {
-        matchFrom = r.createdOn!.compareTo(dateFrom) >= 0;
-      }
-      if (dateTo.isNotEmpty && r.createdOn != null) {
-        matchTo = r.createdOn!.compareTo(dateTo) <= 0;
-      }
-      return matchStatus && matchFrom && matchTo;
-    }).toList();
-  }
-
-  String _formatDate(String raw) {
-    try {
-      final dt = DateTime.parse(raw);
-      return '${dt.day.toString().padLeft(2, '0')}-${_monthName(dt.month)}-${dt.year}';
-    } catch (_) {
-      return raw;
-    }
-  }
-
-  String _monthName(int m) {
-    const months = [
-      '', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
-    ];
-    return months[m];
   }
 }

@@ -4,6 +4,7 @@ import '../../../data/api_constant_url.dart';
 import '../../../data/base_api_services.dart';
 import '../../../widgets/helper_ui.dart';
 import '../models/refund_model.dart';
+import 'accounts_feedback.dart';
 
 class RefundController extends GetxController {
   // ─────────────────────────────────────────────
@@ -20,6 +21,11 @@ class RefundController extends GetxController {
   var selectedBookingId = Rxn<int>();
   var refundChannel    = 'CASH'.obs;
   var refundReason     = 'OVERPAYMENT'.obs;
+
+  // List filters (status + created_on range, applied server-side)
+  final listStatusFilter = 'ALL'.obs;
+  final TextEditingController listFromDateCtrl = TextEditingController();
+  final TextEditingController listToDateCtrl   = TextEditingController();
 
   // ─────────────────────────────────────────────
   // Text Editing Controllers
@@ -62,6 +68,8 @@ class RefundController extends GetxController {
 
   @override
   void onClose() {
+    listFromDateCtrl.dispose();
+    listToDateCtrl.dispose();
     refundAmountCtrl.dispose();
     notesCtrl.dispose();
     actionNotesCtrl.dispose();
@@ -81,21 +89,25 @@ class RefundController extends GetxController {
   // API Methods
   // ─────────────────────────────────────────────
 
-  /// GET /api/getRefunds
+  /// GET /api/getRefunds?status=&from_date=&to_date= (list filters by default).
   Future<void> loadRefunds({String? bookingId, String? status}) async {
     isLoading.value = true;
     try {
-      final url = ApiConstants.getRefunds('', bookingId: bookingId, status: status);
+      final st = status ??
+          (listStatusFilter.value == 'ALL' ? null : listStatusFilter.value);
+      final url = ApiConstants.getRefunds(
+        '',
+        bookingId: bookingId,
+        status: st,
+        fromDate: listFromDateCtrl.text.trim(),
+        toDate: listToDateCtrl.text.trim(),
+      );
       final response = await _api.getRaw(url);
-      if (response != null && response.statusCode == 200) {
-        final data = response.data;
-        if (data is List) {
-          refunds.value = RefundModel.fromJsonList(data);
-        } else {
-          refunds.value = [];
-        }
+      if (isOkResponse(response)) {
+        final data = response!.data;
+        refunds.value = data is List ? RefundModel.fromJsonList(data) : [];
       } else {
-        HelperUi.showToast(message: 'Failed to load refunds.');
+        toastApiError(response, 'Failed to load refunds.');
       }
     } catch (e) {
       HelperUi.showToast(message: 'Error loading refunds: $e');
@@ -104,19 +116,23 @@ class RefundController extends GetxController {
     }
   }
 
+  /// Id most recently requested by [loadRefundById]; lets the detail view
+  /// fetch once per refund instead of on every rebuild.
+  int? lastRequestedRefundId;
+
   /// GET /api/getRefundById/:id — sets [selectedRefund]
   Future<void> loadRefundById(int id) async {
+    lastRequestedRefundId = id;
     isLoading.value = true;
     try {
       final url = ApiConstants.getRefundById(id);
       final response = await _api.getRaw(url);
-      if (response != null && response.statusCode == 200) {
-        final data = response.data;
-        if (data is Map<String, dynamic>) {
-          selectedRefund.value = RefundModel.fromJson(data);
-        }
+      if (isOkResponse(response) && response!.data is Map) {
+        selectedRefund.value =
+            RefundModel.fromJson(Map<String, dynamic>.from(response.data as Map));
       } else {
-        HelperUi.showToast(message: 'Failed to load refund details.');
+        selectedRefund.value = null;
+        toastApiError(response, 'Failed to load refund details.');
       }
     } catch (e) {
       HelperUi.showToast(message: 'Error loading refund: $e');
@@ -142,10 +158,11 @@ class RefundController extends GetxController {
     }
   }
 
-  /// GET /api/getReceipts?booking_id=X
+  /// GET /api/getReceipts?booking_id=X&status=Approved — only approved
+  /// receipts count towards the refundable balance on the backend.
   Future<void> loadClientReceipts(int bookingId) async {
     try {
-      final url = ApiConstants.getReceipts(bookingId: bookingId);
+      final url = ApiConstants.getReceipts(bookingId: bookingId, status: 'Approved');
       final response = await _api.getRaw(url);
       if (response != null && response.statusCode == 200) {
         final data = response.data;
@@ -155,7 +172,7 @@ class RefundController extends GetxController {
           clientReceipts.value = [];
         }
       } else {
-        HelperUi.showToast(message: 'Failed to load receipts for booking.');
+        toastApiError(response, 'Failed to load receipts for booking.');
       }
     } catch (e) {
       HelperUi.showToast(message: 'Error loading receipts: $e');
@@ -163,21 +180,21 @@ class RefundController extends GetxController {
   }
 
   /// POST /api/createRefund
-  Future<void> createRefund() async {
+  /// { client_id (= user_id), booking_id, refund_amount, refund_channel,
+  ///   refund_reason, notes, receipt_ids, channel_details }. Returns true on success.
+  Future<bool> createRefund() async {
     if (selectedClientId.value == null) {
-      HelperUi.showToast(
-          message: 'Please select a client', backgroundColor: Colors.red);
-      return;
+      toastValidation('Please select a client');
+      return false;
     }
     if (selectedBookingId.value == null) {
-      HelperUi.showToast(
-          message: 'Please select a booking', backgroundColor: Colors.red);
-      return;
+      toastValidation('Please select a booking');
+      return false;
     }
-    if (refundAmountCtrl.text.trim().isEmpty) {
-      HelperUi.showToast(
-          message: 'Please enter refund amount', backgroundColor: Colors.red);
-      return;
+    final amount = double.tryParse(refundAmountCtrl.text.trim()) ?? 0;
+    if (amount <= 0) {
+      toastValidation('Please enter a valid refund amount');
+      return false;
     }
 
     isSubmitting.value = true;
@@ -185,7 +202,7 @@ class RefundController extends GetxController {
       final body = <String, dynamic>{
         'client_id':       selectedClientId.value,
         'booking_id':      selectedBookingId.value,
-        'refund_amount':   double.tryParse(refundAmountCtrl.text.trim()) ?? 0,
+        'refund_amount':   amount,
         'refund_channel':  refundChannel.value,
         'refund_reason':   refundReason.value,
         'notes':           notesCtrl.text.trim(),
@@ -194,27 +211,25 @@ class RefundController extends GetxController {
       };
 
       final response = await _api.postRaw(ApiConstants.createRefund, body);
-      if (response != null &&
-          (response.statusCode == 200 || response.statusCode == 201)) {
+      if (isOkResponse(response)) {
         clearForm();
         await loadRefunds();
-        HelperUi.showToast(
-          message: 'Refund request created successfully.',
-          backgroundColor: Colors.green,
-        );
-      } else {
-        final msg = response?.data['message'] ?? 'Failed to create refund.';
-        HelperUi.showToast(message: msg);
+        toastSuccess('Refund request created successfully.');
+        return true;
       }
+      toastApiError(response, 'Failed to create refund.');
     } catch (e) {
-      HelperUi.showToast(message: 'Error creating refund: $e');
+      toastValidation('Error creating refund: $e');
     } finally {
       isSubmitting.value = false;
     }
+    return false;
   }
 
-  /// PATCH /api/approveRefund
-  Future<void> updateRefundStatus(
+  /// PATCH /api/approveRefund { refund_id, action, notes?, dispatch_details? }.
+  /// [action] is one of 'Approved' | 'Rejected' (from PENDING_APPROVAL),
+  /// 'Processing' (from APPROVED) or 'Completed' (from PROCESSING).
+  Future<bool> updateRefundStatus(
     int refundId,
     String action, {
     String? notes,
@@ -223,28 +238,25 @@ class RefundController extends GetxController {
     isSubmitting.value = true;
     try {
       final body = <String, dynamic>{
-        'id':     refundId,
-        'action': action,
+        'refund_id': refundId,
+        'action':    action,
         if (notes != null && notes.isNotEmpty) 'notes': notes,
         if (dispatchDetails != null) 'dispatch_details': dispatchDetails,
       };
 
       final response = await _api.patchRaw(ApiConstants.approveRefund, body);
-      if (response != null && response.statusCode == 200) {
+      if (isOkResponse(response)) {
         await loadRefunds();
-        HelperUi.showToast(
-          message: 'Refund status updated to $action.',
-          backgroundColor: Colors.green,
-        );
-      } else {
-        final msg = response?.data['message'] ?? 'Failed to update refund status.';
-        HelperUi.showToast(message: msg);
+        toastSuccess('Refund marked ${action.toLowerCase()}.');
+        return true;
       }
+      toastApiError(response, 'Failed to update refund status.');
     } catch (e) {
-      HelperUi.showToast(message: 'Error updating refund: $e');
+      toastValidation('Error updating refund: $e');
     } finally {
       isSubmitting.value = false;
     }
+    return false;
   }
 
   // ─────────────────────────────────────────────

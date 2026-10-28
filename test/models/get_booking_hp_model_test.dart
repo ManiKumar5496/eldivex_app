@@ -75,11 +75,6 @@ void main() {
       expect(m.updatedBy, 0);
     });
 
-    test('parses otp as int', () {
-      final m = GetBookingHpModel.fromJson(validJson());
-      expect(m.otp, 482910);
-    });
-
     test('parses in_time and out_time as strings', () {
       final m = GetBookingHpModel.fromJson(validJson());
       expect(m.inTime, '08:00');
@@ -210,16 +205,6 @@ void main() {
       expect(GetBookingHpModel.fromJson(json).status, 3);
     });
 
-    test('otp from String parses to int', () {
-      final json = validJson()..['otp'] = '482910';
-      expect(GetBookingHpModel.fromJson(json).otp, 482910);
-    });
-
-    test('otp as null returns null', () {
-      final json = validJson()..['otp'] = null;
-      expect(GetBookingHpModel.fromJson(json).otp, isNull);
-    });
-
     test('hp_reg_experience from String parses to int', () {
       final json = validJson()..['hp_reg_experience'] = '3';
       expect(GetBookingHpModel.fromJson(json).hpRegExperience, 3);
@@ -279,7 +264,6 @@ void main() {
       expect(m.hpRegCity, isNull);
       expect(m.hpRegExperience, isNull);
       expect(m.interviewDate, isNull);
-      expect(m.otp, isNull);
     });
   });
 
@@ -292,7 +276,6 @@ void main() {
       expect(json.containsKey('bkng_id'), isTrue);
       expect(json.containsKey('hp_unique_id'), isTrue);
       expect(json.containsKey('status'), isTrue);
-      expect(json.containsKey('otp'), isTrue);
       expect(json.containsKey('hp_reg_first_name'), isTrue);
       expect(json.containsKey('hp_reg_experience'), isTrue);
     });
@@ -308,9 +291,9 @@ void main() {
       expect(json['status'], 2);
     });
 
-    test('toJson preserves otp', () {
+    test('toJson never carries the booking otp', () {
       final json = GetBookingHpModel.fromJson(validJson()).toJson();
-      expect(json['otp'], 482910);
+      expect(json.containsKey('otp'), isFalse);
     });
 
     test('interviewDate in toJson is ISO8601 string', () {

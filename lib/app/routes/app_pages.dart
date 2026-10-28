@@ -20,6 +20,8 @@ import '../modules/dashboard/views/dashboard_view.dart';
 import '../modules/dashboard/views/side_menu_widget_view.dart';
 import '../modules/login/bindings/login_binding.dart';
 import '../modules/login/views/login_view.dart';
+import '../modules/terms/bindings/terms_binding.dart';
+import '../modules/terms/views/terms_view.dart';
 import '../modules/register_cg/bindings/register_cg_binding.dart';
 import '../modules/register_cg/views/register_cg_view.dart';
 import '../modules/role/bindings/role_binding.dart';
@@ -99,23 +101,31 @@ class AppPages {
     ),
 
     GetPage(
+      name: Routes.TERMS,
+      page: () => const TermsView(),
+      binding: TermsBinding(),
+      middlewares: [AuthMiddleware()],
+    ),
+
+    GetPage(
       name: Routes.AUTH,
       page: () => const AuthView(),
       binding: AuthBinding(),
+      middlewares: [AuthMiddleware()],
     ),
 
     GetPage(
       name: Routes.DASHBOARD,
       page: () => const DashboardView(),
       binding: DashboardBinding(),
-      middlewares: [RoleMiddleware("Home")],
+      middlewares: [AuthMiddleware(), RoleMiddleware("Home")],
     ),
 
     GetPage(
       name: Routes.USERS,
       page: () => const UsersView(),
       binding: UsersBinding(),
-      middlewares: [RoleMiddleware("Settings")],
+      middlewares: [AuthMiddleware(), RoleMiddleware("Settings")],
     ),
 
     // ----------------------------
@@ -125,7 +135,7 @@ class AppPages {
       name: Routes.BOOKINGS,
       page: () =>  BookingsView(),
       binding: BookingsBinding(),
-      middlewares: [RoleMiddleware("Bookings")],
+      middlewares: [AuthMiddleware(), RoleMiddleware("Bookings")],
     ),
 
     // ----------------------------
@@ -135,7 +145,7 @@ class AppPages {
       name: Routes.REGISTER_CG,
       page: () => const RegisterCgView(),
       binding: RegisterCgBinding(),
-      middlewares: [RoleMiddleware("HP Modules")],
+      middlewares: [AuthMiddleware(), RoleMiddleware("HP Modules")],
     ),
 
     // ----------------------------
@@ -145,7 +155,7 @@ class AppPages {
       name: Routes.ROLE,
       page: () => const RoleView(),
       binding: RoleBinding(),
-      middlewares: [RoleMiddleware("role")],
+      middlewares: [AuthMiddleware(), RoleMiddleware("Settings")],
     ),
     GetPage(
       name: Routes.MAIN,
@@ -157,51 +167,55 @@ class AppPages {
       name: _Paths.SUPPORT,
       page: () => const SupportView(),
       binding: SupportBinding(),
-      middlewares: [RoleMiddleware("Support Ticket")],
+      middlewares: [AuthMiddleware(), RoleMiddleware("Support Ticket")],
     ),
     GetPage(
       name: _Paths.AddUser,
       page: () => const AddUsersView(),
       binding: UsersBinding(),
+      middlewares: [AuthMiddleware(), RoleMiddleware("Settings")],
     ),
     GetPage(
       name: _Paths.AddMasterRoles,
       page: () => const CreateUserRoles(),
       binding: UsersBinding(),
+      middlewares: [AuthMiddleware(), RoleMiddleware("Settings")],
     ),
     GetPage(
       name: _Paths.createBookings,
       page: () => const CreateBookingsView(),
       binding: BookingsBinding(),
+      middlewares: [AuthMiddleware(), RoleMiddleware("Bookings")],
     ),
     GetPage(
       name: _Paths.SETTINGS,
       page: () => const SettingsView(),
       binding: SettingsBinding(),
+      middlewares: [AuthMiddleware(), RoleMiddleware("Settings")],
     ),
     GetPage(
       name: _Paths.BANNERS,
       page: () => const ManageBannersView(),
       binding: BannersBinding(),
-      middlewares: [RoleMiddleware("Settings")],
+      middlewares: [AuthMiddleware(), RoleMiddleware("Settings")],
     ),
     GetPage(
       name: _Paths.ACCOUNTS,
       page: () => const AccountsView(),
       binding: AccountsBinding(),
-      middlewares: [RoleMiddleware("Billing")],
+      middlewares: [AuthMiddleware(), RoleMiddleware("Billing")],
     ),
     GetPage(
       name: _Paths.CLIENT_USERS,
       page: () => const ClientUsersView(),
       binding: ClientUsersBinding(),
-      middlewares: [RoleMiddleware("Bookings")],
+      middlewares: [AuthMiddleware(), RoleMiddleware("Users")],
     ),
     GetPage(
       name: _Paths.addClientDetails,
       page: () => const AddClientUserDetails(),
       binding: ClientUsersBinding(),
-      middlewares: [RoleMiddleware("Bookings")],
+      middlewares: [AuthMiddleware(), RoleMiddleware("Users")],
     ),
     GetPage(
       name: _Paths.forgotPassword,
@@ -214,6 +228,7 @@ class AppPages {
       name: _Paths.servicesManagement,
       page: () => const ServicesManagementView(),
       binding: SettingsBinding(),
+      middlewares: [AuthMiddleware(), RoleMiddleware("Settings")],
     ),
 
     // ── Phase 2.6 — Branch Management ──────────────────────────────────────
@@ -221,6 +236,7 @@ class AppPages {
       name: _Paths.branchManagement,
       page: () => const BranchManagementView(),
       binding: SettingsBinding(),
+      middlewares: [AuthMiddleware(), RoleMiddleware("Settings")],
     ),
 
     // ── Phase 2.5/2.6 — OTP & Coupon (named route from settings hub) ───────
@@ -228,6 +244,7 @@ class AppPages {
       name: _Paths.settingsOtpCoupon,
       page: () => const OtpCouponGeneration(),
       binding: SettingsBinding(),
+      middlewares: [AuthMiddleware(), RoleMiddleware("Settings")],
     ),
 
     // ── Phase 2.7 — HP Payouts ──────────────────────────────────────────────
@@ -235,6 +252,7 @@ class AppPages {
       name: _Paths.hpPayouts,
       page: () => const HpPayoutsView(),
       binding: HpPayoutsBinding(),
+      middlewares: [AuthMiddleware(), RoleMiddleware("HP Modules")],
     ),
 
     // ── Appearance (theme + brand color) ─────────────────────────────────────
@@ -242,6 +260,7 @@ class AppPages {
       name: _Paths.appearance,
       page: () => const AppearanceView(),
       binding: AppearanceBinding(),
+      middlewares: [AuthMiddleware()],
     ),
 
     // ── Financial Module — Write-Offs ────────────────────────────────────────
@@ -249,16 +268,19 @@ class AppPages {
       name: Routes.WRITE_OFF_LIST,
       page: () => const WriteOffListView(),
       binding: WriteOffBinding(),
+      middlewares: [AuthMiddleware(), RoleMiddleware("Billing")],
     ),
     GetPage(
       name: Routes.CREATE_WRITE_OFF,
       page: () => const CreateWriteOffView(),
       binding: WriteOffBinding(),
+      middlewares: [AuthMiddleware(), RoleMiddleware("Billing")],
     ),
     GetPage(
       name: Routes.WRITE_OFF_DETAIL,
       page: () => const WriteOffDetailView(),
       binding: WriteOffBinding(),
+      middlewares: [AuthMiddleware(), RoleMiddleware("Billing")],
     ),
 
     // ── Financial Module — Refunds ───────────────────────────────────────────
@@ -266,16 +288,19 @@ class AppPages {
       name: Routes.REFUND_LIST,
       page: () => const RefundListView(),
       binding: RefundBinding(),
+      middlewares: [AuthMiddleware(), RoleMiddleware("Billing")],
     ),
     GetPage(
       name: Routes.CREATE_REFUND,
       page: () => const CreateRefundView(),
       binding: RefundBinding(),
+      middlewares: [AuthMiddleware(), RoleMiddleware("Billing")],
     ),
     GetPage(
       name: Routes.REFUND_DETAIL,
       page: () => const RefundDetailView(),
       binding: RefundBinding(),
+      middlewares: [AuthMiddleware(), RoleMiddleware("Billing")],
     ),
 
     // ── Financial Module — Credit Notes ──────────────────────────────────────
@@ -283,21 +308,25 @@ class AppPages {
       name: Routes.CREDIT_NOTE_LIST,
       page: () => const CreditNoteListView(),
       binding: CreditNoteBinding(),
+      middlewares: [AuthMiddleware(), RoleMiddleware("Billing")],
     ),
     GetPage(
       name: Routes.CREATE_CREDIT_NOTE,
       page: () => const CreateCreditNoteView(),
       binding: CreditNoteBinding(),
+      middlewares: [AuthMiddleware(), RoleMiddleware("Billing")],
     ),
     GetPage(
       name: Routes.CREDIT_NOTE_DETAIL,
       page: () => const CreditNoteDetailView(),
       binding: CreditNoteBinding(),
+      middlewares: [AuthMiddleware(), RoleMiddleware("Billing")],
     ),
     GetPage(
       name: Routes.APPLY_CREDIT_NOTE,
       page: () => const ApplyCreditNoteView(),
       binding: CreditNoteBinding(),
+      middlewares: [AuthMiddleware(), RoleMiddleware("Billing")],
     ),
 
     // ── Financial Module — Internal Transfers ────────────────────────────────
@@ -305,16 +334,19 @@ class AppPages {
       name: Routes.TRANSFER_LIST,
       page: () => const TransferListView(),
       binding: InternalTransferBinding(),
+      middlewares: [AuthMiddleware(), RoleMiddleware("Billing")],
     ),
     GetPage(
       name: Routes.CREATE_TRANSFER,
       page: () => const CreateTransferView(),
       binding: InternalTransferBinding(),
+      middlewares: [AuthMiddleware(), RoleMiddleware("Billing")],
     ),
     GetPage(
       name: Routes.TRANSFER_DETAIL,
       page: () => const TransferDetailView(),
       binding: InternalTransferBinding(),
+      middlewares: [AuthMiddleware(), RoleMiddleware("Billing")],
     ),
 
     // ── Financial Module — Outstanding ───────────────────────────────────────
@@ -322,16 +354,19 @@ class AppPages {
       name: Routes.OUTSTANDING_DASHBOARD,
       page: () => const OutstandingDashboardView(),
       binding: OutstandingBinding(),
+      middlewares: [AuthMiddleware(), RoleMiddleware("Billing")],
     ),
     GetPage(
       name: Routes.CLIENT_OUTSTANDING,
       page: () => const ClientOutstandingDetail(),
       binding: OutstandingBinding(),
+      middlewares: [AuthMiddleware(), RoleMiddleware("Billing")],
     ),
     GetPage(
       name: Routes.BOOKING_OUTSTANDING,
       page: () => const BookingOutstandingDetail(),
       binding: OutstandingBinding(),
+      middlewares: [AuthMiddleware(), RoleMiddleware("Billing")],
     ),
 
     // ── Caregiver (Health Professional) self-service portal ──────────────────

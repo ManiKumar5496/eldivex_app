@@ -1,16 +1,4 @@
-double? _toDouble(dynamic v) {
-  if (v == null) return null;
-  if (v is num) return v.toDouble();
-  if (v is String) return double.tryParse(v);
-  return null;
-}
-
-int? _toInt(dynamic v) {
-  if (v == null) return null;
-  if (v is num) return v.toInt();
-  if (v is String) return int.tryParse(v);
-  return null;
-}
+import 'parse_utils.dart';
 
 class TransactionEntryModel {
   final int id;
@@ -59,26 +47,26 @@ class TransactionEntryModel {
 
   factory TransactionEntryModel.fromJson(Map<String, dynamic> json) {
     return TransactionEntryModel(
-      id:                     _toInt(json['id']) ?? 0,
-      orgId:                  _toInt(json['org_id']) ?? 0,
-      clientId:               _toInt(json['client_id']) ?? 0,
-      bookingId:              _toInt(json['booking_id']),
-      invoiceId:              _toInt(json['invoice_id']),
+      id:                     toIntOrNull(json['id']) ?? 0,
+      orgId:                  toIntOrNull(json['org_id']) ?? 0,
+      clientId:               toIntOrNull(json['client_id']) ?? 0,
+      bookingId:              toIntOrNull(json['booking_id']),
+      invoiceId:              toIntOrNull(json['invoice_id']),
       transactionType:        json['transaction_type']?.toString() ?? '',
       direction:              json['direction']?.toString() ?? '',
       status:                 json['status']?.toString() ?? '',
-      amount:                 _toDouble(json['amount']) ?? 0.0,
-      referenceId:            _toInt(json['reference_id']),
-      referenceType:          json['reference_type'] as String?,
-      description:            json['description'] as String?,
-      notes:                  json['notes'] as String?,
-      createdOn:              json['created_on'] as String?,
-      reversedAt:             json['reversed_at'] as String?,
-      reversalReason:         json['reversal_reason'] as String?,
-      runningBalanceClient:   _toDouble(json['running_balance_client']),
-      runningBalanceBooking:  _toDouble(json['running_balance_booking']),
-      createdBy:              _toInt(json['created_by']),
-      reversedBy:             _toInt(json['reversed_by']),
+      amount:                 toDoubleOrNull(json['amount']) ?? 0.0,
+      referenceId:            toIntOrNull(json['reference_id']),
+      referenceType:          toStrOrNull(json['reference_type']),
+      description:            toStrOrNull(json['description']),
+      notes:                  toStrOrNull(json['notes']),
+      createdOn:              toStrOrNull(json['created_on']),
+      reversedAt:             toStrOrNull(json['reversed_at']),
+      reversalReason:         toStrOrNull(json['reversal_reason']),
+      runningBalanceClient:   toDoubleOrNull(json['running_balance_client']),
+      runningBalanceBooking:  toDoubleOrNull(json['running_balance_booking']),
+      createdBy:              toIntOrNull(json['created_by']),
+      reversedBy:             toIntOrNull(json['reversed_by']),
     );
   }
 
@@ -106,5 +94,5 @@ class TransactionEntryModel {
   };
 
   static List<TransactionEntryModel> fromJsonList(List list) =>
-      list.map((e) => TransactionEntryModel.fromJson(e as Map<String, dynamic>)).toList();
+      parseList(list, TransactionEntryModel.fromJson);
 }

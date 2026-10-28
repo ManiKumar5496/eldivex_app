@@ -8,10 +8,16 @@ import '../../../widgets/common_text_form_field.dart';
 
 class CreateBanners extends GetView<BannersController> {
   const CreateBanners({super.key});
+
+  @override
+  BannersController get controller => Get.isRegistered<BannersController>()
+      ? Get.find<BannersController>()
+      : Get.put(BannersController());
+
   @override
   Widget build(BuildContext context) {
-    final BannersController bannersController = Get.put(BannersController());
     return Scaffold(
+      backgroundColor: AppColor.cAppBackgroundColor,
       body:  SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.all(20.0),
@@ -34,14 +40,15 @@ class CreateBanners extends GetView<BannersController> {
                 maxLines: 3,
               ),
               SizedBox(height: 20),
-              CommonFileUpload(
+              Obx(() => CommonFileUpload(
+                key: ValueKey('banner-upload-${controller.formVersion.value}'),
                 label: 'Banner Image',
                 hint: 'Upload JPG / PNG',
                 allowMultiple: false,
                 allowedExtensions: const ['jpg', 'jpeg', 'png'],
                 onFilesSelected: controller.onDocumentsSelected,
                 onFileRemoved: controller.onDocumentRemoved,
-              ),
+              )),
 
               SizedBox(height: 30),
             Obx(() => SizedBox(
@@ -59,7 +66,7 @@ class CreateBanners extends GetView<BannersController> {
                     borderRadius: BorderRadius.circular(14),
                   ),
                   disabledBackgroundColor:
-                  AppColor.cPrimaryButtonColor.withOpacity(0.6),
+                  AppColor.cPrimaryButtonColor.withValues(alpha: 0.6),
                 ),
                 child: controller.createBannersLoading.value
                     ? Row(

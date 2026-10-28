@@ -6,20 +6,13 @@ import 'package:eldivex_app/app/core/values/size_configue.dart';
 import '../../../widgets/shimmer_loader.dart';
 import '../controllers/accounts_controller.dart';
 import '../models/credit_note_model.dart';
+import 'accounts_format.dart';
 
 class CreditNotesView extends GetView<AccountsController> {
   const CreditNotesView({super.key});
 
-  Color _statusColor(String status) {
-    switch (status.toLowerCase()) {
-      case 'approved':
-        return Colors.green;
-      case 'rejected':
-        return Colors.red;
-      default:
-        return Colors.orange;
-    }
-  }
+  Color _statusColor(String status) => accountsStatusColor(status);
+
 
   Color _typeColor(String type) {
     switch (type.toLowerCase()) {

@@ -2,8 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:eldivex_app/app/core/values/color_constants.dart';
 import 'package:eldivex_app/app/core/values/text_style_constants.dart';
+import '../../../../routes/app_pages.dart';
+import '../../../../widgets/helper_ui.dart';
 import '../../controllers/write_off_controller.dart';
+import '../../models/parse_utils.dart';
 import '../../models/write_off_model.dart';
+import '../accounts_format.dart';
 
 class WriteOffDetailView extends StatefulWidget {
   const WriteOffDetailView({super.key});
@@ -20,11 +24,13 @@ class _WriteOffDetailViewState extends State<WriteOffDetailView> {
   void initState() {
     super.initState();
     ctrl = Get.find<WriteOffController>();
+    // Arguments are lost on a browser refresh; the ?id= query survives.
     final args = Get.arguments;
-    writeOffId = (args is Map) ? (args['write_off_id'] as int? ?? 0) : 0;
+    writeOffId = toIntOrNull(field(args, 'write_off_id')) ??
+        toInt(Get.parameters['id']);
 
     // Ensure list is loaded so we can find the record
-    if (ctrl.writeOffs.isEmpty) {
+    if (writeOffId > 0 && ctrl.writeOffs.isEmpty) {
       ctrl.loadWriteOffs();
     }
   }
@@ -37,39 +43,13 @@ class _WriteOffDetailViewState extends State<WriteOffDetailView> {
     }
   }
 
-  Color _statusColor(String status) {
-    switch (status) {
-      case 'Approved':
-        return Colors.green;
-      case 'Rejected':
-        return Colors.red;
-      default:
-        return Colors.orange;
-    }
-  }
-
-  String _formatCurrency(double amount) =>
-      '₹${amount.toStringAsFixed(2)}';
-
-  String _formatDate(DateTime dt) =>
-      '${dt.day.toString().padLeft(2, '0')}-'
-      '${_monthAbbr(dt.month)}-${dt.year}';
-
-  String _monthAbbr(int m) {
-    const months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
-    ];
-    return months[m - 1];
-  }
-
   // ── Approve / Reject dialog ─────────────────────────────────────────────────
 
   void _showActionDialog(BuildContext context, String action) {
     final notesCtrl = ctrl.approvalNotesCtrl;
     notesCtrl.clear();
 
-    final isApprove = action == 'approve';
+    final isApprove = action == 'Approved';
     final actionColor = isApprove ? Colors.green : Colors.red;
     final actionLabel = isApprove ? 'Approve' : 'Reject';
 
@@ -146,21 +126,18 @@ class _WriteOffDetailViewState extends State<WriteOffDetailView> {
                     ? null
                     : () async {
                         if (!isApprove && notesCtrl.text.trim().isEmpty) {
-                          Get.snackbar(
-                            'Validation',
-                            'Please provide a reason for rejection.',
+                          HelperUi.showToast(
+                            message: 'Please provide a reason for rejection.',
                             backgroundColor: Colors.orange,
-                            colorText: AppColor.whiteColor,
-                            snackPosition: SnackPosition.BOTTOM,
                           );
                           return;
                         }
-                        await ctrl.approveWriteOff(
+                        final ok = await ctrl.approveWriteOff(
                           writeOffId,
                           action,
                           notesCtrl.text.trim(),
                         );
-                        Get.back();
+                        if (ok) Get.back();
                       },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: actionColor,
@@ -200,7 +177,7 @@ class _WriteOffDetailViewState extends State<WriteOffDetailView> {
         leading: IconButton(
           icon: Icon(Icons.arrow_back_ios_new,
               size: 18, color: AppColor.cPrimaryHeadingColor),
-          onPressed: () => Get.back(),
+          onPressed: () => HelperUi.safeBack(Routes.MAIN),
         ),
         title: Text(
           'Write-off Details',
@@ -217,6 +194,11 @@ class _WriteOffDetailViewState extends State<WriteOffDetailView> {
         }
 
         final wo = _writeOff;
+
+        if (writeOffId <= 0) {
+          return recordNotFound(
+              title: 'Write-off', onBack: () => HelperUi.safeBack(Routes.MAIN));
+        }
 
         if (wo == null) {
           return Center(
@@ -237,7 +219,7 @@ class _WriteOffDetailViewState extends State<WriteOffDetailView> {
           );
         }
 
-        final statusColor = _statusColor(wo.status);
+        final statusColor = accountsStatusColor(wo.status);
         final isPending = wo.status == 'Pending';
 
         return SingleChildScrollView(
@@ -263,7 +245,7 @@ class _WriteOffDetailViewState extends State<WriteOffDetailView> {
                           ),
                           const SizedBox(height: 12),
                           Text(
-                            _formatCurrency(wo.writeOffAmount),
+                            formatInr(wo.writeOffAmount),
                             style: TextStyle(
                               fontSize: 28,
                               fontWeight: FontWeight.w700,
@@ -271,7 +253,7 @@ class _WriteOffDetailViewState extends State<WriteOffDetailView> {
                             ),
                           ),
                           const SizedBox(height: 6),
-                          _typeBadge(wo.serviceName),
+                          _typeBadge(wo.writeOffType.isNotEmpty ? humanizeStatus(wo.writeOffType) : 'Write-off'),
                         ],
                       ),
                     ),
@@ -293,7 +275,9 @@ class _WriteOffDetailViewState extends State<WriteOffDetailView> {
                   _detailRow('Patient', wo.patientName),
                   _detailRow('Mobile', wo.clientMobile),
                   _detailRow('Service', wo.serviceName),
-                  _detailRow('Date', _formatDate(wo.writeOffDate)),
+                  _detailRow('Date', formatAccDate(wo.writeOffDate ?? wo.createdOn)),
+                  if (wo.approvalLevel != null)
+                    _detailRow('Approval Level', wo.approvalLevel!),
                   _detailRow('Reason', wo.reason),
                   if (wo.remarks != null && wo.remarks!.isNotEmpty)
                     _detailRow('Remarks', wo.remarks!),
@@ -309,8 +293,8 @@ class _WriteOffDetailViewState extends State<WriteOffDetailView> {
                   iconColor: statusColor,
                   children: [
                     _detailRow('Status', wo.status, valueColor: statusColor),
-                    _detailRow('Approved By', wo.approvedBy),
-                    _detailRow('Date', _formatDate(wo.writeOffDate)),
+                    if (wo.approvedBy.isNotEmpty)
+                      _detailRow('Approved By', wo.approvedBy),
                   ],
                 ),
               if (!isPending) const SizedBox(height: 16),
@@ -321,7 +305,7 @@ class _WriteOffDetailViewState extends State<WriteOffDetailView> {
                   children: [
                     Expanded(
                       child: ElevatedButton.icon(
-                        onPressed: () => _showActionDialog(context, 'approve'),
+                        onPressed: () => _showActionDialog(context, 'Approved'),
                         icon: Icon(Icons.check_circle_outline,
                             size: 18, color: AppColor.buttonTextWhite),
                         label: Text(
@@ -342,7 +326,7 @@ class _WriteOffDetailViewState extends State<WriteOffDetailView> {
                     const SizedBox(width: 12),
                     Expanded(
                       child: OutlinedButton.icon(
-                        onPressed: () => _showActionDialog(context, 'reject'),
+                        onPressed: () => _showActionDialog(context, 'Rejected'),
                         icon: Icon(Icons.cancel_outlined,
                             size: 18, color: Colors.red.shade600),
                         label: Text(

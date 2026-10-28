@@ -278,59 +278,6 @@ class LoginView extends GetView<LoginController> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 24),
-
-                // Divider
-                Row(
-                  children: [
-                    Expanded(
-                      child: Divider(color: AppColor.divColor, thickness: 1),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: Text(
-                        'or continue with',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: AppColor.unSelectedMenu,
-                        ),
-                      ),
-                    ),
-                    Expanded(
-                      child: Divider(
-                        color: AppColor.unSelectedMenu,
-                        thickness: 1,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 24),
-
-                // Google Sign In Button
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton.icon(
-                    onPressed: () {
-                      controller.signInWithGoogle();
-                    },
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      side: BorderSide(color: AppColor.divColor),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                    icon: Image.asset(
-                      'assets/images/google.png',
-                      width: 20,
-                      height: 20,
-                    ),
-                    label: Text(
-                      'Sign in with Google',
-                      style: AppTextStyles.fieldsHeading16,
-                    ),
-                  ),
-                ),
                 const SizedBox(height: 32),
 
                 // Copyright

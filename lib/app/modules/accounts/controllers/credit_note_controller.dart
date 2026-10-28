@@ -5,12 +5,20 @@ import '../../../data/base_api_services.dart';
 import '../../../widgets/helper_ui.dart';
 import '../models/credit_note_model.dart';
 import '../models/credit_note_application_model.dart';
+import 'accounts_feedback.dart';
 
 class CreditNoteController extends GetxController {
   // ─────────────────────────────────────────────
   // State
   // ─────────────────────────────────────────────
   var creditNotes              = <dynamic>[].obs;
+  // What the list view renders: creditNotes (already status-filtered server-side)
+  // narrowed by the free-text search box. Org isolation is guaranteed upstream
+  // by getCreditNotes being org-scoped on the backend.
+  var filteredCreditNotes      = <dynamic>[].obs;
+  var searchQuery              = ''.obs;
+  // Server-side status filter: 'All' | Pending | Approved | Rejected
+  final statusFilter           = 'All'.obs;
   var selectedCreditNote       = Rxn<dynamic>();
   var creditNoteApplications   = <CreditNoteApplicationModel>[].obs;
   var targetInvoices           = <dynamic>[].obs;
@@ -19,10 +27,10 @@ class CreditNoteController extends GetxController {
   var isSubmitting             = false.obs;
 
   // Selection state
+  var selectedClientId         = Rxn<int>();
   var selectedBookingId        = Rxn<int>();
   var selectedInvoiceId        = Rxn<int>();
   var creditType               = 'Hold'.obs;
-  var creditNoteType           = 'SERVICE_ADJUSTMENT'.obs;
   var selectedCreditNoteId     = Rxn<int>();
   var selectedTargetBookingId  = Rxn<int>();
   var selectedTargetInvoiceId  = Rxn<int>();
@@ -32,8 +40,7 @@ class CreditNoteController extends GetxController {
   // ─────────────────────────────────────────────
   final TextEditingController amountCtrl       = TextEditingController();
   final TextEditingController reasonCtrl       = TextEditingController();
-  final TextEditingController notesCtrl        = TextEditingController();
-  final TextEditingController expiryDateCtrl   = TextEditingController();
+  final TextEditingController creditDateCtrl   = TextEditingController();
   final TextEditingController applyAmountCtrl  = TextEditingController();
   final TextEditingController applyNotesCtrl   = TextEditingController();
   final TextEditingController approvalNotesCtrl = TextEditingController();
@@ -57,8 +64,7 @@ class CreditNoteController extends GetxController {
   void onClose() {
     amountCtrl.dispose();
     reasonCtrl.dispose();
-    notesCtrl.dispose();
-    expiryDateCtrl.dispose();
+    creditDateCtrl.dispose();
     applyAmountCtrl.dispose();
     applyNotesCtrl.dispose();
     approvalNotesCtrl.dispose();
@@ -69,27 +75,48 @@ class CreditNoteController extends GetxController {
   // Load Credit Notes
   // ─────────────────────────────────────────────
 
-  /// Fetches all credit notes, optionally filtered by bookingId and/or status.
+  /// Fetches credit notes, filtered by [status] (defaults to [statusFilter])
+  /// and optionally [bookingId].
   Future<void> loadCreditNotes({String? bookingId, String? status}) async {
     isLoading.value = true;
     try {
-      final url = ApiConstants.getCreditNotes(bookingId, status);
+      final st = status ?? (statusFilter.value == 'All' ? null : statusFilter.value);
+      final url = ApiConstants.getCreditNotes(bookingId, st);
       final response = await _api.getRaw(url);
-      if (response != null && response.statusCode == 200) {
-        final data = response.data;
-        if (data is List) {
-          creditNotes.value = CreditNoteModel.listFromJson(data);
-        } else {
-          creditNotes.value = [];
-        }
+      if (isOkResponse(response)) {
+        final data = response!.data;
+        creditNotes.value = data is List ? CreditNoteModel.listFromJson(data) : [];
+        _applyCreditNoteSearch();
       } else {
-        HelperUi.showToast(message: 'Failed to load credit notes.');
+        toastApiError(response, 'Failed to load credit notes.');
       }
     } catch (e) {
       HelperUi.showToast(message: 'Error loading credit notes: $e');
     } finally {
       isLoading.value = false;
     }
+  }
+
+  /// Free-text search box handler — filters the loaded credit notes in memory.
+  void searchCreditNotes(String query) {
+    searchQuery.value = query;
+    _applyCreditNoteSearch();
+  }
+
+  void _applyCreditNoteSearch() {
+    final q = searchQuery.value.toLowerCase().trim();
+    if (q.isEmpty) {
+      filteredCreditNotes.value = List.from(creditNotes);
+      return;
+    }
+    filteredCreditNotes.value = creditNotes.where((cn) {
+      if (cn is! CreditNoteModel) return false;
+      return (cn.clientName ?? '').toLowerCase().contains(q) ||
+          (cn.clientMobile ?? '').toLowerCase().contains(q) ||
+          (cn.patientName ?? '').toLowerCase().contains(q) ||
+          cn.bookingId.toString().contains(q) ||
+          cn.creditType.toLowerCase().contains(q);
+    }).toList();
   }
 
   /// Selects a credit note by id — uses the already-loaded list first;
@@ -102,8 +129,8 @@ class CreditNoteController extends GetxController {
       selectedCreditNote.value = existing;
       return;
     }
-    // Not cached — reload list and try again.
-    await loadCreditNotes();
+    // Not cached (e.g. browser refresh) — reload the full list and try again.
+    await loadCreditNotes(status: '');
     selectedCreditNote.value = creditNotes.firstWhereOrNull(
       (cn) => (cn is CreditNoteModel) && cn.id == id,
     );
@@ -120,11 +147,11 @@ class CreditNoteController extends GetxController {
     try {
       final url = ApiConstants.getInvoices(bookingId: bookingId);
       final response = await _api.getRaw(url);
-      if (response != null && response.statusCode == 200) {
-        final data = response.data;
+      if (isOkResponse(response)) {
+        final data = response!.data;
         targetInvoices.value = data is List ? data : [];
       } else {
-        HelperUi.showToast(message: 'Failed to load invoices for booking.');
+        toastApiError(response, 'Failed to load invoices for booking.');
       }
     } catch (e) {
       HelperUi.showToast(message: 'Error loading invoices: $e');
@@ -152,7 +179,7 @@ class CreditNoteController extends GetxController {
           creditNoteApplications.value = [];
         }
       } else {
-        HelperUi.showToast(message: 'Failed to load credit note applications.');
+        toastApiError(response, 'Failed to load credit note applications.');
       }
     } catch (e) {
       HelperUi.showToast(message: 'Error loading applications: $e');
@@ -181,177 +208,172 @@ class CreditNoteController extends GetxController {
   // Create Credit Note
   // ─────────────────────────────────────────────
 
-  Future<void> createCreditNote() async {
+  /// POST /api/createCreditNote
+  /// { booking_id, invoice_id?, credit_type, amount, reason, credit_date? }.
+  /// The note is created Pending and must be approved before it can be applied.
+  Future<bool> createCreditNote() async {
     if (selectedBookingId.value == null) {
-      HelperUi.showToast(
-        message: 'Please select a client/booking.',
-        backgroundColor: Colors.red,
-      );
-      return;
+      toastValidation('Please select a client and booking.');
+      return false;
     }
-    final amountText = amountCtrl.text.trim();
-    if (amountText.isEmpty) {
-      HelperUi.showToast(
-        message: 'Please enter the credit amount.',
-        backgroundColor: Colors.red,
-      );
-      return;
-    }
-    final amount = double.tryParse(amountText) ?? 0;
+    final amount = double.tryParse(amountCtrl.text.trim()) ?? 0;
     if (amount <= 0) {
-      HelperUi.showToast(
-        message: 'Amount must be greater than zero.',
-        backgroundColor: Colors.red,
-      );
-      return;
+      toastValidation('Amount must be greater than zero.');
+      return false;
+    }
+    if (reasonCtrl.text.trim().isEmpty) {
+      toastValidation('Please enter a reason.');
+      return false;
     }
 
     isSubmitting.value = true;
     try {
       final body = <String, dynamic>{
-        'booking_id':       selectedBookingId.value,
-        'credit_type':      creditType.value,
-        'credit_note_type': creditNoteType.value,
-        'amount':           amount,
-        'reason':           reasonCtrl.text.trim(),
-        'notes':            notesCtrl.text.trim(),
+        'booking_id':  selectedBookingId.value,
+        'credit_type': creditType.value,
+        'amount':      amount,
+        'reason':      reasonCtrl.text.trim(),
         if (selectedInvoiceId.value != null)
-          'invoice_id':     selectedInvoiceId.value,
-        if (expiryDateCtrl.text.trim().isNotEmpty)
-          'expiry_date':    expiryDateCtrl.text.trim(),
+          'invoice_id': selectedInvoiceId.value,
+        if (creditDateCtrl.text.trim().isNotEmpty)
+          'credit_date': creditDateCtrl.text.trim(),
       };
 
       final response = await _api.postRaw(ApiConstants.createCreditNote, body);
-      if (response != null &&
-          (response.statusCode == 200 || response.statusCode == 201)) {
+      if (isOkResponse(response)) {
         clearForm();
         await loadCreditNotes();
-        HelperUi.showToast(
-          message: 'Credit note created successfully.',
-          backgroundColor: Colors.green,
-        );
-      } else {
-        final msg = response?.data['message'] ?? 'Failed to create credit note.';
-        HelperUi.showToast(message: msg);
+        toastSuccess('Credit note created and sent for approval.');
+        return true;
       }
+      toastApiError(response, 'Failed to create credit note.');
     } catch (e) {
-      HelperUi.showToast(message: 'Error creating credit note: $e');
+      toastValidation('Error creating credit note: $e');
     } finally {
       isSubmitting.value = false;
     }
+    return false;
   }
 
   // ─────────────────────────────────────────────
   // Approve / Reject Credit Note
   // ─────────────────────────────────────────────
 
-  /// action should be 'Approved' or 'Rejected'.
-  Future<void> approveCreditNote(int id, String action, String notes) async {
+  /// PATCH /api/updateCreditNoteStatus { id, status: 'Approved' | 'Rejected' }.
+  Future<bool> approveCreditNote(int id, String action) async {
     isSubmitting.value = true;
     try {
-      final body = <String, dynamic>{
+      final response = await _api.patchRaw(ApiConstants.updateCreditNoteStatus, {
         'id':     id,
         'status': action,
-        if (notes.isNotEmpty) 'notes': notes,
-      };
-      final response =
-          await _api.patchRaw(ApiConstants.updateCreditNoteStatus, body);
-      if (response != null && response.statusCode == 200) {
-        approvalNotesCtrl.clear();
+      });
+      if (isOkResponse(response)) {
         await loadCreditNotes();
-        HelperUi.showToast(
-          message: 'Credit note $action.',
-          backgroundColor:
-              action == 'Approved' ? Colors.green : Colors.orange,
-        );
-      } else {
-        final msg =
-            response?.data['message'] ?? 'Failed to update credit note status.';
-        HelperUi.showToast(message: msg);
+        final sel = selectedCreditNote.value;
+        if (sel is CreditNoteModel && sel.id == id) {
+          selectedCreditNote.value =
+              creditNotes.firstWhereOrNull((cn) => cn is CreditNoteModel && cn.id == id) ?? sel;
+        }
+        toastSuccess('Credit note ${action.toLowerCase()}.');
+        return true;
       }
+      toastApiError(response, 'Failed to update credit note status.');
     } catch (e) {
-      HelperUi.showToast(message: 'Error updating status: $e');
+      toastValidation('Error updating status: $e');
     } finally {
       isSubmitting.value = false;
     }
+    return false;
+  }
+
+  /// Confirmation dialog, then [approveCreditNote].
+  Future<bool> confirmAndUpdateStatus(CreditNoteModel note, String action) async {
+    final approving = action == 'Approved';
+    final ok = await Get.dialog<bool>(
+      AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        title: Text(approving ? 'Approve Credit Note' : 'Reject Credit Note'),
+        content: Text(
+          '${approving ? 'Approve' : 'Reject'} CN-${note.id} for booking '
+          '#${note.bookingId} (₹${note.amount.toStringAsFixed(2)})?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(result: false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Get.back(result: true),
+            style: ElevatedButton.styleFrom(
+                backgroundColor: approving ? Colors.green : Colors.red),
+            child: Text(approving ? 'Approve' : 'Reject',
+                style: const TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+    if (ok != true) return false;
+    return approveCreditNote(note.id, action);
   }
 
   // ─────────────────────────────────────────────
   // Apply Credit Note
   // ─────────────────────────────────────────────
 
-  Future<void> applyCreditNote() async {
-    if (selectedCreditNoteId.value == null) {
-      HelperUi.showToast(
-        message: 'Please select a credit note.',
-        backgroundColor: Colors.red,
-      );
-      return;
+  /// POST /api/applyCreditNote
+  /// { credit_note_id, target_booking_id, target_invoice_id, amount_to_apply, notes? }.
+  Future<bool> applyCreditNote() async {
+    final cnId = selectedCreditNoteId.value;
+    if (cnId == null) {
+      toastValidation('Please select a credit note.');
+      return false;
     }
     if (selectedTargetBookingId.value == null) {
-      HelperUi.showToast(
-        message: 'Please select a target booking.',
-        backgroundColor: Colors.red,
-      );
-      return;
+      toastValidation('Please select a target booking.');
+      return false;
     }
     if (selectedTargetInvoiceId.value == null) {
-      HelperUi.showToast(
-        message: 'Please select a target invoice.',
-        backgroundColor: Colors.red,
-      );
-      return;
+      toastValidation('Please select a target invoice.');
+      return false;
     }
-    final applyAmountText = applyAmountCtrl.text.trim();
-    if (applyAmountText.isEmpty) {
-      HelperUi.showToast(
-        message: 'Please enter the amount to apply.',
-        backgroundColor: Colors.red,
-      );
-      return;
-    }
-    final applyAmount = double.tryParse(applyAmountText) ?? 0;
+    final applyAmount = double.tryParse(applyAmountCtrl.text.trim()) ?? 0;
     if (applyAmount <= 0) {
-      HelperUi.showToast(
-        message: 'Apply amount must be greater than zero.',
-        backgroundColor: Colors.red,
-      );
-      return;
+      toastValidation('Apply amount must be greater than zero.');
+      return false;
+    }
+    final note = selectedCreditNote.value;
+    if (note is CreditNoteModel && note.id == cnId && applyAmount > note.available) {
+      toastValidation('Amount exceeds the remaining credit of ₹${note.available.toStringAsFixed(2)}.');
+      return false;
     }
 
     isSubmitting.value = true;
     try {
       final body = <String, dynamic>{
-        'credit_note_id':      selectedCreditNoteId.value,
-        'target_booking_id':   selectedTargetBookingId.value,
-        'target_invoice_id':   selectedTargetInvoiceId.value,
-        'amount_applied':      applyAmount,
+        'credit_note_id':    cnId,
+        'target_booking_id': selectedTargetBookingId.value,
+        'target_invoice_id': selectedTargetInvoiceId.value,
+        'amount_to_apply':   applyAmount,
         if (applyNotesCtrl.text.trim().isNotEmpty)
-          'notes':             applyNotesCtrl.text.trim(),
+          'notes':           applyNotesCtrl.text.trim(),
       };
 
       final response = await _api.postRaw(ApiConstants.applyCreditNote, body);
-      if (response != null &&
-          (response.statusCode == 200 || response.statusCode == 201)) {
+      if (isOkResponse(response)) {
         clearApplyForm();
         await loadCreditNotes();
-        if (selectedCreditNoteId.value != null) {
-          await loadApplications(selectedCreditNoteId.value!);
-        }
-        HelperUi.showToast(
-          message: 'Credit note applied successfully.',
-          backgroundColor: Colors.green,
-        );
-      } else {
-        final msg =
-            response?.data['message'] ?? 'Failed to apply credit note.';
-        HelperUi.showToast(message: msg);
+        await loadCreditNoteById(cnId);
+        await loadApplications(cnId);
+        toastSuccess('Credit note applied successfully.');
+        return true;
       }
+      toastApiError(response, 'Failed to apply credit note.');
     } catch (e) {
-      HelperUi.showToast(message: 'Error applying credit note: $e');
+      toastValidation('Error applying credit note: $e');
     } finally {
       isSubmitting.value = false;
     }
+    return false;
   }
 
   // ─────────────────────────────────────────────
@@ -361,12 +383,11 @@ class CreditNoteController extends GetxController {
   void clearForm() {
     selectedBookingId.value  = null;
     selectedInvoiceId.value  = null;
+    selectedClientId.value   = null;
     creditType.value         = 'Hold';
-    creditNoteType.value     = 'SERVICE_ADJUSTMENT';
     amountCtrl.clear();
     reasonCtrl.clear();
-    notesCtrl.clear();
-    expiryDateCtrl.clear();
+    creditDateCtrl.clear();
   }
 
   void clearApplyForm() {

@@ -36,13 +36,28 @@ class GetAllBannersModel {
 
   String toRawJson() => json.encode(toJson());
 
+  /// Backend columns are loosely typed (numeric strings, 'NA'), so parse
+  /// instead of casting — one odd row must not blank the whole list.
+  static int? _toInt(dynamic v) {
+    if (v == null) return null;
+    if (v is int) return v;
+    if (v is num) return v.toInt();
+    return int.tryParse(v.toString());
+  }
+
+  static String? _toStr(dynamic v) {
+    if (v == null) return null;
+    final s = v.toString();
+    return s == 'NA' ? null : s;
+  }
+
   factory GetAllBannersModel.fromJson(Map<String, dynamic> json) {
     return GetAllBannersModel(
-      bannerName: json["banner_name"] as String?,
-      bannerDescription: json["banner_description"] as String?,
-      bannerImage: json["banner_photo"] as String?,
-      bannerStatus: json["banner_status"] as int?,
-      bannerId: json["banner_id"] as int?,
+      bannerName: _toStr(json["banner_name"]),
+      bannerDescription: _toStr(json["banner_description"]),
+      bannerImage: _toStr(json["banner_photo"]),
+      bannerStatus: _toInt(json["banner_status"]),
+      bannerId: _toInt(json["banner_id"]),
     );
   }
 

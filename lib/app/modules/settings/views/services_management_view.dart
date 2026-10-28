@@ -8,13 +8,28 @@ import '../../../widgets/helper_ui.dart';
 import '../controllers/settings_controller.dart';
 import '../../dashboard/controllers/dashboard_controller.dart';
 
-class ServicesManagementView extends GetView<SettingsController> {
+class ServicesManagementView extends StatefulWidget {
   const ServicesManagementView({super.key});
 
   @override
+  State<ServicesManagementView> createState() => _ServicesManagementViewState();
+}
+
+class _ServicesManagementViewState extends State<ServicesManagementView> {
+  SettingsController get controller => Get.isRegistered<SettingsController>()
+      ? Get.find<SettingsController>()
+      : Get.put(SettingsController());
+
+  @override
+  void initState() {
+    super.initState();
+    // Fetch once per visit (not from build, which re-runs on every rebuild).
+    if (!controller.branchesLoaded) controller.fetchBranches();
+    if (!controller.servicesLoaded) controller.fetchServices();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    if (controller.branchesList.isEmpty) controller.fetchBranches();
-    if (controller.servicesList.isEmpty) controller.fetchServices();
 
     return Scaffold(
       backgroundColor: AppColor.cAppBackgroundColor,
@@ -85,7 +100,12 @@ class _Header extends StatelessWidget {
             ),
             child: DropdownButtonHideUnderline(
               child: DropdownButton<int?>(
-                value: controller.servicesFilterBranchId.value,
+                // Value must be one of the items or the dropdown asserts.
+                value: branches.any((b) =>
+                        SettingsController.toIntOrNull(b['br_id']) ==
+                        controller.servicesFilterBranchId.value)
+                    ? controller.servicesFilterBranchId.value
+                    : null,
                 hint: Text('All Branches', style: AppTextStyles.regular14Gre),
                 items: [
                   DropdownMenuItem<int?>(
@@ -93,7 +113,7 @@ class _Header extends StatelessWidget {
                     child: Text('All Branches', style: AppTextStyles.regular14Gre),
                   ),
                   ...branches.map((b) {
-                    final id = b['br_id'] as int?;
+                    final id = SettingsController.toIntOrNull(b['br_id']);
                     final name = b['br_name']?.toString() ?? '—';
                     return DropdownMenuItem<int?>(
                       value: id,
@@ -162,6 +182,25 @@ class _ServicesList extends StatelessWidget {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Search
+          Container(
+            margin: const EdgeInsets.only(bottom: 12),
+            decoration: BoxDecoration(
+              color: AppColor.whiteColor,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: AppColor.divColor),
+            ),
+            child: TextField(
+              onChanged: controller.searchServices,
+              decoration: const InputDecoration(
+                hintText: 'Search services by name, description, category...',
+                prefixIcon: Icon(Icons.search),
+                border: InputBorder.none,
+                contentPadding:
+                    EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+              ),
+            ),
+          ),
           // Column headers
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -214,10 +253,10 @@ class _ServicesList extends StatelessWidget {
           const SizedBox(height: 8),
           Expanded(
             child: ListView.separated(
-              itemCount: controller.servicesList.length,
+              itemCount: controller.filteredServices.length,
               separatorBuilder: (_, __) => const SizedBox(height: 8),
               itemBuilder: (context, index) {
-                final svc = controller.servicesList[index];
+                final svc = controller.filteredServices[index];
                 return _ServiceRow(
                   service: svc,
                   controller: controller,
@@ -246,14 +285,17 @@ class _ServiceRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final id = service['id'] as int? ?? 0;
+    final id = SettingsController.toInt(service['id'], fallback: 0);
     final name = service['name']?.toString() ?? '—';
+    final isPremium = SettingsController.toIntOrNull(service['service_type']) == 2;
+    final gender = service['gender']?.toString() ?? '';
+    final careType = service['care_type']?.toString() ?? '';
     final description = service['description']?.toString() ?? '—';
     final branchName = service['br_name']?.toString() ?? '—';
-    final categoryName = service['cat_name']?.toString() ?? '';
+    final categoryName = service['category_name']?.toString() ?? '';
     final serviceRate = service['service_rate']?.toString() ?? '';
     final effectiveFrom = service['effective_from_date']?.toString() ?? '';
-    final status = (service['status'] as int?) ?? 0;
+    final status = SettingsController.toInt(service['status'], fallback: 0);
     final isActive = status == 1;
 
     return Container(
@@ -267,9 +309,29 @@ class _ServiceRow extends StatelessWidget {
         children: [
           Expanded(
             flex: 3,
-            child: Text(name,
-                style: AppTextStyles.regular16
-                    .copyWith(fontWeight: FontWeight.w500)),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(name,
+                    style: AppTextStyles.regular16
+                        .copyWith(fontWeight: FontWeight.w500)),
+                const SizedBox(height: 4),
+                Wrap(
+                  spacing: 6,
+                  children: [
+                    _Tag(
+                      label: isPremium ? 'Premium' : 'Normal',
+                      color: isPremium ? AppColor.cAppPrimaryColor : AppColor.lightGrey,
+                    ),
+                    if (careType.isNotEmpty)
+                      _Tag(label: careType, color: AppColor.cAppPrimaryColor),
+                    if (gender.isNotEmpty && gender != 'Any')
+                      _Tag(label: gender, color: AppColor.lightGrey),
+                  ],
+                ),
+              ],
+            ),
           ),
           Expanded(
             flex: 3,
@@ -337,6 +399,30 @@ class _ServiceRow extends StatelessWidget {
   }
 }
 
+// ── Small pill tag (service type / gender) ─────────────────────────────────────
+
+class _Tag extends StatelessWidget {
+  const _Tag({required this.label, required this.color});
+  final String label;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: color.withValues(alpha: 0.4)),
+      ),
+      child: Text(
+        label,
+        style: AppTextStyles.regular14Gre.copyWith(fontSize: 11, color: color),
+      ),
+    );
+  }
+}
+
 // ── Add / Edit Dialog ─────────────────────────────────────────────────────────
 
 void _showServiceDialog(
@@ -355,11 +441,23 @@ void _showServiceDialog(
   final rateObs = RxString(originalRate); // reactive mirror for asterisk visibility
 
   final initialBranchId = isEdit
-      ? (existing['branch_id'] as int?)
+      ? SettingsController.toIntOrNull(existing['branch_id'])
       : controller.servicesFilterBranchId.value;
   final selectedBranchId = RxnInt()..value = initialBranchId;
   final selectedCategoryId = RxnInt()
-    ..value = isEdit ? (existing['service_category_id'] as int?) : null;
+    ..value = isEdit ? SettingsController.toIntOrNull(existing['service_category_id']) : null;
+  // service_type: 1 = Normal, 2 = Premium
+  final selectedServiceType = RxInt(isEdit ? (SettingsController.toInt(existing['service_type'], fallback: 1)) : 1);
+  // care_type: care arrangement, independent of the Normal/Premium tier
+  const careTypes = ['Live-in', 'Live-out', 'Liveout-day', 'Liveout-night'];
+  final existingCareType = isEdit ? existing['care_type']?.toString() : null;
+  final selectedCareType = RxString(
+      (existingCareType != null && careTypes.contains(existingCareType))
+          ? existingCareType
+          : careTypes.first);
+  // Service gender: Male / Female / Any
+  final selectedGender = RxString(
+      isEdit ? (existing['gender']?.toString().isNotEmpty == true ? existing['gender'].toString() : 'Any') : 'Any');
   final selectedEffectiveDate = Rxn<DateTime>();
 
   rateCtrl.addListener(() => rateObs.value = rateCtrl.text.trim());
@@ -403,7 +501,7 @@ void _showServiceDialog(
                   decoration: _inputDecoration('Brief description of the service'),
                 ),
                 const SizedBox(height: 16),
-                Text('Category', style: AppTextStyles.fieldsHeading16),
+                Text('Category *', style: AppTextStyles.fieldsHeading16),
                 const SizedBox(height: 6),
                 Obx(() {
                   final dashboard = Get.find<DashboardController>();
@@ -419,15 +517,10 @@ void _showServiceDialog(
                     child: DropdownButtonHideUnderline(
                       child: DropdownButton<int?>(
                         value: selectedCategoryId.value,
-                        hint: Text('Select category (optional)',
+                        hint: Text('Select category',
                             style: AppTextStyles.regular14Gre),
                         isExpanded: true,
                         items: [
-                          DropdownMenuItem<int?>(
-                            value: null,
-                            child: Text('No specific category',
-                                style: AppTextStyles.regular14Gre),
-                          ),
                           ...categories.map((c) => DropdownMenuItem<int?>(
                                 value: c.id,
                                 child: Text(c.catName,
@@ -440,7 +533,7 @@ void _showServiceDialog(
                   );
                 }),
                 const SizedBox(height: 16),
-                Text('Branch', style: AppTextStyles.fieldsHeading16),
+                Text('Branch *', style: AppTextStyles.fieldsHeading16),
                 const SizedBox(height: 6),
                 Obx(() {
                   final branches = controller.branchesList;
@@ -454,18 +547,17 @@ void _showServiceDialog(
                     ),
                     child: DropdownButtonHideUnderline(
                       child: DropdownButton<int?>(
-                        value: selectedBranchId.value,
-                        hint: Text('Select branch (optional)',
+                        value: branches.any((b) =>
+                                SettingsController.toIntOrNull(b['br_id']) ==
+                                selectedBranchId.value)
+                            ? selectedBranchId.value
+                            : null,
+                        hint: Text('Select branch',
                             style: AppTextStyles.regular14Gre),
                         isExpanded: true,
                         items: [
-                          DropdownMenuItem<int?>(
-                            value: null,
-                            child: Text('No specific branch',
-                                style: AppTextStyles.regular14Gre),
-                          ),
                           ...branches.map((b) {
-                            final id = b['br_id'] as int?;
+                            final id = SettingsController.toIntOrNull(b['br_id']);
                             final name = b['br_name']?.toString() ?? '—';
                             return DropdownMenuItem<int?>(
                               value: id,
@@ -478,6 +570,83 @@ void _showServiceDialog(
                     ),
                   );
                 }),
+                const SizedBox(height: 16),
+                // ── Service Type + Care Type ──────────────────────────────
+                Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Service Type', style: AppTextStyles.fieldsHeading16),
+                          const SizedBox(height: 6),
+                          Obx(() => _dropdownBox(
+                                DropdownButton<int>(
+                                  value: selectedServiceType.value,
+                                  isExpanded: true,
+                                  items: [
+                                    DropdownMenuItem(value: 1, child: Text('Normal', style: AppTextStyles.regular14Gre)),
+                                    DropdownMenuItem(value: 2, child: Text('Premium', style: AppTextStyles.regular14Gre)),
+                                  ],
+                                  onChanged: (v) => selectedServiceType.value = v ?? 1,
+                                ),
+                              )),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Care Type', style: AppTextStyles.fieldsHeading16),
+                          const SizedBox(height: 6),
+                          Obx(() => _dropdownBox(
+                                DropdownButton<String>(
+                                  value: selectedCareType.value,
+                                  isExpanded: true,
+                                  items: careTypes
+                                      .map((c) => DropdownMenuItem(
+                                          value: c,
+                                          child: Text(c, style: AppTextStyles.regular14Gre)))
+                                      .toList(),
+                                  onChanged: (v) => selectedCareType.value = v ?? careTypes.first,
+                                ),
+                              )),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                // ── Service Gender ────────────────────────────────────────
+                Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Service Gender', style: AppTextStyles.fieldsHeading16),
+                          const SizedBox(height: 6),
+                          Obx(() => _dropdownBox(
+                                DropdownButton<String>(
+                                  value: selectedGender.value,
+                                  isExpanded: true,
+                                  items: const ['Any', 'Male', 'Female']
+                                      .map((g) => DropdownMenuItem(
+                                          value: g,
+                                          child: Text(g, style: AppTextStyles.regular14Gre)))
+                                      .toList(),
+                                  onChanged: (v) => selectedGender.value = v ?? 'Any',
+                                ),
+                              )),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    const Expanded(child: SizedBox()),
+                  ],
+                ),
                 const SizedBox(height: 16),
                 // ── Rate + Market Rate ────────────────────────────────────
                 Row(
@@ -596,6 +765,18 @@ void _showServiceDialog(
                       final name = nameCtrl.text.trim();
                       if (name.isEmpty) return;
 
+                      // Category + branch are required so the service can be
+                      // matched by the branch+category-scoped booking picker.
+                      if (selectedCategoryId.value == null) {
+                        HelperUi.showToast(
+                            message: 'Please select a category.');
+                        return;
+                      }
+                      if (selectedBranchId.value == null) {
+                        HelperUi.showToast(message: 'Please select a branch.');
+                        return;
+                      }
+
                       final rateText = rateCtrl.text.trim();
                       final rateChanged = rateText != originalRate && rateText.isNotEmpty;
 
@@ -614,9 +795,12 @@ void _showServiceDialog(
                       final marketRateText = marketRateCtrl.text.trim();
                       if (isEdit) {
                         ok = await controller.updateService(
-                          id: existing['id'] as int,
+                          id: SettingsController.toInt(existing['id']),
                           name: name,
                           description: descCtrl.text.trim(),
+                          serviceType: selectedServiceType.value,
+                          gender: selectedGender.value,
+                          careType: selectedCareType.value,
                           categoryId: selectedCategoryId.value,
                           branchId: selectedBranchId.value,
                           serviceRate: rateText.isNotEmpty ? rateText : null,
@@ -627,6 +811,9 @@ void _showServiceDialog(
                         ok = await controller.createService(
                           name: name,
                           description: descCtrl.text.trim(),
+                          serviceType: selectedServiceType.value,
+                          gender: selectedGender.value,
+                          careType: selectedCareType.value,
                           categoryId: selectedCategoryId.value,
                           branchId: selectedBranchId.value,
                           serviceRate: rateText.isNotEmpty ? rateText : null,
@@ -656,6 +843,19 @@ void _showServiceDialog(
         ],
       );
     },
+  );
+}
+
+Widget _dropdownBox(Widget child) {
+  return Container(
+    width: double.infinity,
+    padding: const EdgeInsets.symmetric(horizontal: 14),
+    decoration: BoxDecoration(
+      color: AppColor.fieldColorGrey,
+      borderRadius: BorderRadius.circular(8),
+      border: Border.all(color: AppColor.textFieldBorderColor),
+    ),
+    child: DropdownButtonHideUnderline(child: child),
   );
 }
 

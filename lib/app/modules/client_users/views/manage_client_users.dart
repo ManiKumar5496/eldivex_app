@@ -2,7 +2,6 @@ import 'package:data_table_2/data_table_2.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:eldivex_app/app/modules/client_users/views/create_client_user.dart';
-import 'package:eldivex_app/app/routes/app_pages.dart';
 
 import '../../../core/values/color_constants.dart';
 import '../../../core/values/size_configue.dart';
@@ -16,10 +15,16 @@ import '../../client_portal/views/client_portal_link_card.dart';
 class ManageClientUsers extends GetView<ClientUsersController> {
   const ManageClientUsers({super.key});
 
+  // Registered once on first access (shell page has no route binding).
+  @override
+  ClientUsersController get controller =>
+      Get.isRegistered<ClientUsersController>()
+          ? Get.find<ClientUsersController>()
+          : Get.put(ClientUsersController());
+
   @override
   Widget build(BuildContext context) {
     SizeConfig.init(context);
-    Get.put(ClientUsersController());
 
     return Scaffold(
       backgroundColor: AppColor.cAppBackgroundColor,
@@ -33,6 +38,12 @@ class ManageClientUsers extends GetView<ClientUsersController> {
             const ClientPortalLinkCard(),
             SizedBox(height: SizeConfig.spacingLG),
             _buildSearchBar(),
+            Obx(() => controller.showFilters.value
+                ? Padding(
+                    padding: EdgeInsets.only(top: SizeConfig.spacingMD),
+                    child: _buildFilterPanel(),
+                  )
+                : const SizedBox.shrink()),
             SizedBox(height: SizeConfig.spacingLG),
             _buildStatsCards(),
             SizedBox(height: SizeConfig.spacingLG),
@@ -62,7 +73,7 @@ class ManageClientUsers extends GetView<ClientUsersController> {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(
-              onPressed: () => Get.toNamed('/create-client-user'),
+              onPressed: _openCreateClient,
               icon: Icon(Icons.add, size: SizeConfig.iconSM, color: AppColor.buttonTextWhite),
               label: Text('Add Client',
                   style: TextStyle(fontSize: SizeConfig.fontBodySmall)),
@@ -98,17 +109,10 @@ class ManageClientUsers extends GetView<ClientUsersController> {
         SizedBox(width: SizeConfig.spacingMD),
         Row(
           children: [
-            OutlinedButton.icon(
-              onPressed: () {},
-              icon: Icon(Icons.filter_list, size: SizeConfig.iconSM),
-              label: const Text('Filters'),
-              style: OutlinedButton.styleFrom(
-                padding: SizeConfig.buttonPadding,
-              ),
-            ),
+            _filtersButton(),
             SizedBox(width: SizeConfig.spacingSM),
             ElevatedButton.icon(
-              onPressed: () => Get.to(CreateClientUser()),
+              onPressed: _openCreateClient,
               icon:
               Icon(Icons.add, color: AppColor.buttonTextWhite, size: SizeConfig.iconSM),
               label: Text('Add New Client',style: TextStyle(color: AppColor.buttonTextWhite),),
@@ -127,14 +131,37 @@ class ManageClientUsers extends GetView<ClientUsersController> {
   // SEARCH BAR
   // ═══════════════════════════════════════════════════════════════
 
+  void _openCreateClient() {
+    Get.to(() => const CreateClientUser(showBackButton: true));
+  }
+
+  Widget _filtersButton() {
+    return Obx(() {
+      final active = controller.filterLeadType.value.isNotEmpty ||
+          controller.filterLeadSource.value.isNotEmpty;
+      return OutlinedButton.icon(
+        onPressed: controller.toggleFilters,
+        icon: Icon(
+          controller.showFilters.value ? Icons.expand_less : Icons.filter_list,
+          size: SizeConfig.iconSM,
+        ),
+        label: Text(active ? 'Filters •' : 'Filters'),
+        style: OutlinedButton.styleFrom(
+          padding: SizeConfig.buttonPadding,
+        ),
+      );
+    });
+  }
+
   Widget _buildSearchBar() {
     return Row(
       children: [
         Expanded(
           child: TextField(
-            controller: controller.nameController,
+            controller: controller.searchController,
+            onChanged: controller.onSearchChanged,
             decoration: InputDecoration(
-              hintText: 'Search by name, phone, or email...',
+              hintText: 'Search by name, phone, email or ID...',
               prefixIcon: const Icon(Icons.search),
               filled: true,
               fillColor: AppColor.whiteColor,
@@ -153,21 +180,79 @@ class ManageClientUsers extends GetView<ClientUsersController> {
             ),
           ),
         ),
-        if (!SizeConfig.isMobile) ...[
-          SizedBox(width: SizeConfig.spacingMD),
-          ElevatedButton(
-            onPressed: () => controller.fetchClientUsers(),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColor.cPrimaryButtonColor,
-              padding: EdgeInsets.all(SizeConfig.spacingMD),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(SizeConfig.radiusMD),
-              ),
+        SizedBox(width: SizeConfig.spacingSM),
+        if (SizeConfig.isMobile) ...[
+          _filtersButton(),
+          SizedBox(width: SizeConfig.spacingXS),
+        ],
+        IconButton(
+          tooltip: 'Refresh',
+          onPressed: controller.fetchClientUsers,
+          icon: Icon(Icons.refresh, color: AppColor.fontColorGrey),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildFilterPanel() {
+    final children = <Widget>[
+      Obx(() => CommonDropdown(
+            label: 'Lead Type',
+            hint: 'All lead types',
+            value: controller.filterLeadType.value.isEmpty
+                ? null
+                : controller.filterLeadType.value,
+            items: controller.leadTypeList,
+            onChanged: (v) {
+              controller.filterLeadType.value = v ?? '';
+              controller.applyClientFilters();
+            },
+          )),
+      Obx(() => CommonDropdown(
+            label: 'Lead Source',
+            hint: 'All sources',
+            value: controller.filterLeadSource.value.isEmpty
+                ? null
+                : controller.filterLeadSource.value,
+            items: controller.leadSourceList,
+            onChanged: (v) {
+              controller.filterLeadSource.value = v ?? '';
+              controller.applyClientFilters();
+            },
+          )),
+    ];
+    return Container(
+      padding: SizeConfig.cardPadding,
+      decoration: BoxDecoration(
+        color: AppColor.whiteColor,
+        borderRadius: BorderRadius.circular(SizeConfig.radiusMD),
+        border: Border.all(color: AppColor.divColor),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          if (SizeConfig.isMobile)
+            ...children.map((c) => Padding(
+                  padding: EdgeInsets.only(bottom: SizeConfig.spacingSM),
+                  child: c,
+                ))
+          else
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(child: children[0]),
+                SizedBox(width: SizeConfig.spacingMD),
+                Expanded(child: children[1]),
+              ],
             ),
-            child: Icon(Icons.search, color: AppColor.buttonTextWhite),
+          SizedBox(height: SizeConfig.spacingSM),
+          TextButton.icon(
+            onPressed: controller.clearFilters,
+            icon: Icon(Icons.clear, size: SizeConfig.iconSM),
+            label: const Text('Clear filters'),
           ),
         ],
-      ],
+      ),
     );
   }
 
@@ -283,6 +368,37 @@ class ManageClientUsers extends GetView<ClientUsersController> {
         return Center(child: HelperUi().loader());
       }
 
+      if (controller.loadError.value.isNotEmpty &&
+          controller.clientUsers.isEmpty) {
+        return Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.error_outline, size: 48, color: AppColor.fontColorGrey),
+              SizedBox(height: SizeConfig.spacingSM),
+              Text(controller.loadError.value,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: AppColor.fontColorGrey)),
+              SizedBox(height: SizeConfig.spacingSM),
+              OutlinedButton.icon(
+                onPressed: controller.fetchClientUsers,
+                icon: const Icon(Icons.refresh),
+                label: const Text('Retry'),
+              ),
+            ],
+          ),
+        );
+      }
+
+      if (controller.clientUsers.isNotEmpty &&
+          controller.filteredClients.isEmpty) {
+        return Center(
+          child: Text('No clients match your search or filters',
+              style: TextStyle(
+                  fontSize: SizeConfig.fontBody, color: AppColor.fontColorGrey)),
+        );
+      }
+
       if (controller.clientUsers.isEmpty) {
         return Center(
           child: Column(
@@ -315,11 +431,11 @@ class ManageClientUsers extends GetView<ClientUsersController> {
   // ═══════════════════════════════════════════════════════════════
 
   Widget _buildMobileCardList() {
-    return ListView.builder(
-      itemCount: controller.clientUsers.length,
-      itemBuilder: (context, index) =>
-          _buildUserCard(controller.clientUsers[index]),
-    );
+    return Obx(() => ListView.builder(
+          itemCount: controller.filteredClients.length,
+          itemBuilder: (context, index) =>
+              _buildUserCard(controller.filteredClients[index]),
+        ));
   }
 
   Widget _buildUserCard(ClientUserModel user) {
@@ -449,21 +565,20 @@ class ManageClientUsers extends GetView<ClientUsersController> {
                       ),
                     ),
                     SizedBox(width: SizeConfig.spacingXS),
-                    // Expanded(
-                    //   child: ElevatedButton(
-                    //     onPressed: () => controller.editClient(
-                    //         user.id ?? 0, user.isNewUser),
-                    //     style: ElevatedButton.styleFrom(
-                    //       backgroundColor: AppColor.cPrimaryButtonColor,
-                    //       padding: EdgeInsets.symmetric(
-                    //           vertical: SizeConfig.spacingSM),
-                    //     ),
-                    //     child: Text('Edit',
-                    //         style: TextStyle(
-                    //             color: AppColor.buttonTextWhite,
-                    //             fontSize: SizeConfig.fontBodySmall)),
-                    //   ),
-                    // ),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () => controller.editClient(user),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColor.cPrimaryButtonColor,
+                          padding: EdgeInsets.symmetric(
+                              vertical: SizeConfig.spacingSM),
+                        ),
+                        child: Text('Edit',
+                            style: TextStyle(
+                                color: AppColor.buttonTextWhite,
+                                fontSize: SizeConfig.fontBodySmall)),
+                      ),
+                    ),
                   ],
                 ),
               ],
@@ -480,14 +595,14 @@ class ManageClientUsers extends GetView<ClientUsersController> {
 
   Widget _buildDataTableWithPagination() {
     return Obx(() {
-      final allUsers = controller.clientUsers;
+      final allUsers = controller.filteredClients;
       final rowsPerPage = controller.rowsPerPage.value;
-      final currentPage = controller.currentPage.value;
-      final totalPages = (allUsers.length / rowsPerPage).ceil();
+      final totalPages = controller.totalPages;
+      final currentPage =
+          controller.currentPage.value.clamp(0, totalPages - 1);
+      final pageUsers = controller.pagedClients;
       final startIndex = currentPage * rowsPerPage;
-      final endIndex =
-      (startIndex + rowsPerPage).clamp(0, allUsers.length);
-      final pageUsers = allUsers.sublist(startIndex, endIndex);
+      final endIndex = startIndex + pageUsers.length;
 
       return Column(
         children: [
@@ -514,7 +629,7 @@ class ManageClientUsers extends GetView<ClientUsersController> {
                       ? SizeConfig.fontCaption
                       : SizeConfig.fontBody,
                   fontWeight: FontWeight.bold,
-                  color: Colors.black,
+                  color: AppColor.fontColorBlack,
                 ),
                 dataTextStyle: TextStyle(
                   fontFamily: "poppins_regular",
@@ -682,24 +797,23 @@ class ManageClientUsers extends GetView<ClientUsersController> {
           ),
         ),
         const SizedBox(height: 4),
-        // SizedBox(
-        //   height: 28,
-        //   child: ElevatedButton(
-        //     onPressed: () =>
-        //         controller.editClient(user.id ?? 0, user.isNewUser),
-        //     style: ElevatedButton.styleFrom(
-        //       backgroundColor: AppColor.cPrimaryButtonColor,
-        //       padding:
-        //       const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
-        //       minimumSize: const Size(64, 28),
-        //       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-        //     ),
-        //     child: Text('Edit',
-        //         style: TextStyle(
-        //             color: AppColor.buttonTextWhite,
-        //             fontSize: SizeConfig.fontCaption)),
-        //   ),
-        //),
+        SizedBox(
+          height: 28,
+          child: ElevatedButton(
+            onPressed: () => controller.editClient(user),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColor.cPrimaryButtonColor,
+              padding:
+              const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
+              minimumSize: const Size(64, 28),
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+            child: Text('Edit',
+                style: TextStyle(
+                    color: AppColor.buttonTextWhite,
+                    fontSize: SizeConfig.fontCaption)),
+          ),
+        ),
       ],
     );
   }
@@ -746,7 +860,7 @@ class ManageClientUsers extends GetView<ClientUsersController> {
             onChanged: (v) {
               if (v != null) {
                 controller.rowsPerPage.value = v;
-                controller.currentPage.value = 0;
+                controller.goToPage(0);
               }
             },
           ),
@@ -755,7 +869,9 @@ class ManageClientUsers extends GetView<ClientUsersController> {
 
           // ── Range label ────────────────────────────────────────
           Text(
-            '${startIndex + 1}–$endIndex of $totalItems',
+            totalItems == 0
+                ? '0 of 0'
+                : '${startIndex + 1}–$endIndex of $totalItems',
             style: AppTextStyles.regular14Gre
                 .copyWith(fontSize: SizeConfig.fontCaption),
           ),
@@ -766,12 +882,12 @@ class ManageClientUsers extends GetView<ClientUsersController> {
           _pageButton(
             icon: Icons.first_page,
             enabled: currentPage > 0,
-            onTap: () => controller.currentPage.value = 0,
+            onTap: () => controller.goToPage(0),
           ),
           _pageButton(
             icon: Icons.chevron_left,
             enabled: currentPage > 0,
-            onTap: () => controller.currentPage.value = currentPage - 1,
+            onTap: () => controller.goToPage(currentPage - 1),
           ),
 
           // Page number chips
@@ -780,32 +896,21 @@ class ManageClientUsers extends GetView<ClientUsersController> {
           i == 0 ||
               i == totalPages - 1 ||
               (i - currentPage).abs() <= 1)
-              .fold<List<Widget>>([], (acc, i) {
-            if (acc.isNotEmpty) {
-              final prevPage = int.tryParse(
-                  (acc.last as _PageChip?)?.pageNumber?.toString() ??
-                      '') ??
-                  -99;
-              // insert ellipsis if gap
-            }
-            acc.add(_PageChip(
-              pageNumber: i,
-              isSelected: i == currentPage,
-              onTap: () => controller.currentPage.value = i,
-            ));
-            return acc;
-          }),
+              .map((i) => _PageChip(
+                    pageNumber: i,
+                    isSelected: i == currentPage,
+                    onTap: () => controller.goToPage(i),
+                  )),
 
           _pageButton(
             icon: Icons.chevron_right,
             enabled: currentPage < totalPages - 1,
-            onTap: () => controller.currentPage.value = currentPage + 1,
+            onTap: () => controller.goToPage(currentPage + 1),
           ),
           _pageButton(
             icon: Icons.last_page,
             enabled: currentPage < totalPages - 1,
-            onTap: () =>
-            controller.currentPage.value = totalPages - 1,
+            onTap: () => controller.goToPage(totalPages - 1),
           ),
         ],
       ),

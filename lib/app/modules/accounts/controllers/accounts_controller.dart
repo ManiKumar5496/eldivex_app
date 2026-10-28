@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:eldivex_app/app/core/values/color_constants.dart';
 import 'package:get/get.dart';
-import 'package:intl/intl.dart';
 import '../../../data/api_constant_url.dart';
 import '../../../data/base_api_services.dart';
 import '../../../widgets/helper_ui.dart';
@@ -12,6 +11,13 @@ import '../models/write_off_model.dart';
 import '../models/invoice_model.dart';
 import '../models/credit_note_model.dart';
 import '../models/insurance_claim_model.dart';
+import '../models/parse_utils.dart';
+import '../views/accounts_format.dart' as fmt;
+import 'accounts_feedback.dart';
+
+/// Default payment terms (days) sent to bulkGenerateInvoices when the org
+/// profile does not configure its own.
+const int kDefaultPaymentTermsDays = 15;
 
 class GroupedClient {
   final int userId;
@@ -32,11 +38,6 @@ class GroupedClient {
 }
 
 class AccountsController extends GetxController {
-  // ─────────────────────────────────────────────
-  // Tab Controller
-  // ─────────────────────────────────────────────
-  RxInt selectedTabIndex = 0.obs;
-
   // ─────────────────────────────────────────────
   // Loading States
   // ─────────────────────────────────────────────
@@ -83,27 +84,8 @@ class AccountsController extends GetxController {
   RxString filterCity = ''.obs;
 
   // ─────────────────────────────────────────────
-  // Receipt Form Controllers
+  // Record Payment Form Controllers
   // ─────────────────────────────────────────────
-  final TextEditingController receiptAmountController = TextEditingController();
-  final TextEditingController receiptTaxController = TextEditingController();
-  final TextEditingController receiptRemarksController =
-      TextEditingController();
-  final TextEditingController receiptTransactionIdController =
-      TextEditingController();
-  final TextEditingController receiptPeriodFromController =
-      TextEditingController();
-  final TextEditingController receiptPeriodToController =
-      TextEditingController();
-  RxString receiptPaymentMode = ''.obs;
-  Rx<ActiveBookingClient?> selectedClientForReceipt =
-      Rx<ActiveBookingClient?>(null);
-
-  // ─────────────────────────────────────────────
-  // Record Receipt Form Controllers
-  // ─────────────────────────────────────────────
-  Rx<ProvisionalReceipt?> selectedReceiptForPayment =
-      Rx<ProvisionalReceipt?>(null);
   Rx<InvoiceModel?> selectedInvoiceForPayment = Rx<InvoiceModel?>(null);
   final TextEditingController recordPaymentAmountController =
       TextEditingController();
@@ -112,9 +94,6 @@ class AccountsController extends GetxController {
       TextEditingController();
   final TextEditingController recordPaymentRemarksController =
       TextEditingController();
-
-  List<ProvisionalReceipt> get pendingReceipts =>
-      receipts.where((r) => r.status == 'Pending').toList();
 
   List<InvoiceModel> get invoicesWithBalance =>
       invoices.where((i) => i.balanceDue > 0).toList();
@@ -135,6 +114,19 @@ class AccountsController extends GetxController {
         bookings:     stmts,
       );
     }).toList();
+  }
+
+  /// Pre-selects the oldest invoice with a balance for [bookingId] (if any)
+  /// so the record-payment sheet opens on it.
+  void selectInvoiceForBooking(int bookingId) {
+    final open = invoicesWithBalance.where((i) => i.bookingId == bookingId).toList()
+      ..sort((a, b) => a.invoiceDbId.compareTo(b.invoiceDbId));
+    if (open.isEmpty) {
+      selectedInvoiceForPayment.value = null;
+      recordPaymentAmountController.clear();
+    } else {
+      selectInvoiceForPayment(open.first);
+    }
   }
 
   void selectInvoiceForPayment(InvoiceModel inv) {
@@ -217,6 +209,22 @@ class AccountsController extends GetxController {
   RxInt    collected     = 0.obs;
   RxInt    churnCount    = 0.obs;
   RxInt    activeCount   = 0.obs;
+  /// True once revenue data has been fetched at least once.
+  RxBool   revenueLoaded = false.obs;
+  /// Set on the first request so the view triggers a single auto-fetch.
+  bool     revenueRequested = false;
+
+  /// Payment terms from the org profile, else [kDefaultPaymentTermsDays].
+  Future<int> _orgPaymentTermsDays() async {
+    try {
+      final r = await _api.getRaw(ApiConstants.orgProfileApi);
+      if (isOkResponse(r)) {
+        final days = toIntOrNull(field(r!.data, 'payment_terms_days'));
+        if (days != null && days > 0) return days;
+      }
+    } catch (_) {}
+    return kDefaultPaymentTermsDays;
+  }
 
   // ─────────────────────────────────────────────
   // Period Closing
@@ -250,20 +258,6 @@ class AccountsController extends GetxController {
     'Active',
     'On Hold',
     'Completed',
-  ];
-
-  final List<String> receiptStatusOptions = [
-    'All',
-    'Pending',
-    'Approved',
-    'Cancelled',
-  ];
-
-  final List<String> writeOffStatusOptions = [
-    'All',
-    'Pending',
-    'Approved',
-    'Rejected',
   ];
 
   final List<String> approverList = [
@@ -303,12 +297,9 @@ class AccountsController extends GetxController {
     filterBookingIdController.dispose();
     filterClientNameController.dispose();
     filterMobileController.dispose();
-    receiptAmountController.dispose();
-    receiptTaxController.dispose();
-    receiptRemarksController.dispose();
-    receiptTransactionIdController.dispose();
-    receiptPeriodFromController.dispose();
-    receiptPeriodToController.dispose();
+    recordPaymentAmountController.dispose();
+    recordTransactionIdController.dispose();
+    recordPaymentRemarksController.dispose();
     writeOffAmountController.dispose();
     writeOffReasonController.dispose();
     writeOffRemarksController.dispose();
@@ -337,7 +328,7 @@ class AccountsController extends GetxController {
         }
         filteredClients.value = List.from(activeClients);
       } else {
-        HelperUi.showToast(message: 'Failed to load clients.');
+        toastApiError(response, 'Failed to load clients.');
       }
     } catch (e) {
       HelperUi.showToast(message: 'Error loading clients: $e');
@@ -359,7 +350,7 @@ class AccountsController extends GetxController {
         }
         filteredReceipts.value = List.from(receipts);
       } else {
-        HelperUi.showToast(message: 'Failed to load receipts.');
+        toastApiError(response, 'Failed to load receipts.');
       }
     } catch (e) {
       HelperUi.showToast(message: 'Error loading receipts: $e');
@@ -417,7 +408,7 @@ class AccountsController extends GetxController {
           );
         }
       } else {
-        HelperUi.showToast(message: 'Failed to load statement.');
+        toastApiError(response, 'Failed to load statement.');
       }
     } catch (e) {
       HelperUi.showToast(message: 'Error loading statements: $e');
@@ -482,7 +473,7 @@ class AccountsController extends GetxController {
         }
         filteredWriteOffs.value = List.from(writeOffs);
       } else {
-        HelperUi.showToast(message: 'Failed to load write-offs.');
+        toastApiError(response, 'Failed to load write-offs.');
       }
     } catch (e) {
       HelperUi.showToast(message: 'Error loading write-offs: $e');
@@ -590,209 +581,72 @@ class AccountsController extends GetxController {
   // ─────────────────────────────────────────────
   // Receipt Actions
   // ─────────────────────────────────────────────
-  void selectClientForReceipt(ActiveBookingClient client) {
-    selectedClientForReceipt.value = client;
-  }
-
-  bool validateReceiptForm() {
-    if (selectedClientForReceipt.value == null) {
-      HelperUi.showToast(
-          message: 'Please select a client', backgroundColor: Colors.red);
-      return false;
-    }
-    if (receiptAmountController.text.isEmpty) {
-      HelperUi.showToast(
-          message: 'Please enter amount', backgroundColor: Colors.red);
-      return false;
-    }
-    if (receiptPaymentMode.value.isEmpty) {
-      HelperUi.showToast(
-          message: 'Please select payment mode', backgroundColor: Colors.red);
-      return false;
-    }
-    if (receiptPeriodFromController.text.isEmpty ||
-        receiptPeriodToController.text.isEmpty) {
-      HelperUi.showToast(
-          message: 'Please select billing period', backgroundColor: Colors.red);
-      return false;
-    }
-    return true;
-  }
-
-  Future<void> createProvisionalReceipt({bool force = false}) async {
-    if (!validateReceiptForm()) return;
-
-    final client = selectedClientForReceipt.value!;
-
-    // Guard: cancelled bookings cannot receive receipts
-    if (client.status == 'Cancelled') {
-      HelperUi.showToast(
-        message: 'Cannot create receipt for a cancelled booking.',
-        backgroundColor: Colors.red,
-      );
-      return;
-    }
-
-    // Guard: period must not be closed
-    if (receiptPeriodFromController.text.isNotEmpty) {
-      final periodDate = DateTime.tryParse(receiptPeriodFromController.text.trim());
-      if (periodDate != null && isPeriodClosed(periodDate.month, periodDate.year)) {
-        HelperUi.showToast(
-          message: 'Period ${periodDate.month}/${periodDate.year} is closed. No new entries allowed.',
-          backgroundColor: Colors.red,
-        );
-        return;
-      }
-    }
-
-    final amount = double.tryParse(receiptAmountController.text) ?? 0;
-    final tax    = amount * 0.18;
-
-    isLoadingReceipts.value = true;
-    try {
-      final body = {
-        'booking_id':     client.bookingId,
-        'user_id':        client.userId,
-        'amount':         amount,
-        'tax_amount':     tax,
-        'payment_mode':   receiptPaymentMode.value,
-        'transaction_id': receiptTransactionIdController.text.trim(),
-        'remarks':        receiptRemarksController.text.trim(),
-        'period_from':    receiptPeriodFromController.text.trim(),
-        'period_to':      receiptPeriodToController.text.trim(),
-        if (force) 'force': true,
-      };
-
-      final response = await _api.postRaw(ApiConstants.createReceipt, body);
-
-      // Overpayment warning from backend — ask user to confirm
-      if (response != null && response.statusCode == 422 &&
-          response.data['warning'] == true) {
-        isLoadingReceipts.value = false;
-        final outstanding = (response.data['outstanding'] as num?)?.toDouble() ?? 0;
-        final confirm = await Get.dialog<bool>(
-          AlertDialog(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            title: const Text('Overpayment Warning'),
-            content: Text(
-              'Receipt amount ₹${amount.toStringAsFixed(2)} exceeds the outstanding balance '
-              '₹${outstanding.toStringAsFixed(2)}.\n\nDo you want to record an overpayment?',
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Get.back(result: false),
-                child: const Text('Cancel'),
-              ),
-              ElevatedButton(
-                onPressed: () => Get.back(result: true),
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
-                child: const Text('Record Overpayment'),
-              ),
-            ],
-          ),
-        );
-        if (confirm == true) {
-          await createProvisionalReceipt(force: true);
-        }
-        return;
-      }
-
-      if (response != null && (response.statusCode == 200 || response.statusCode == 201)) {
-        _clearReceiptForm();
-        await fetchReceipts();
-        await fetchActiveClients();
-        HelperUi.showToast(
-          message: 'Provisional receipt created successfully.',
-          backgroundColor: Colors.green,
-        );
-      } else {
-        final msg = response?.data['message'] ?? 'Failed to create receipt. Please try again.';
-        HelperUi.showToast(message: msg);
-      }
-    } catch (e) {
-      HelperUi.showToast(message: 'Error creating receipt: $e');
-    } finally {
-      isLoadingReceipts.value = false;
-    }
-  }
-
-  void _clearReceiptForm() {
-    selectedClientForReceipt.value = null;
-    receiptAmountController.clear();
-    receiptTaxController.clear();
-    receiptRemarksController.clear();
-    receiptTransactionIdController.clear();
-    receiptPeriodFromController.clear();
-    receiptPeriodToController.clear();
-    receiptPaymentMode.value = '';
-  }
-
-  // ─────────────────────────────────────────────
-  // Record Receipt Payment
-  // ─────────────────────────────────────────────
-  void selectReceiptForPayment(ProvisionalReceipt receipt) {
-    selectedReceiptForPayment.value = receipt;
-    recordPaymentAmountController.text = receipt.totalAmount.toStringAsFixed(2);
-  }
-
-  bool validateRecordPaymentForm() {
-    if (selectedReceiptForPayment.value == null) {
-      HelperUi.showToast(
-          message: 'Please select a receipt', backgroundColor: Colors.red);
-      return false;
-    }
-    if (recordPaymentAmountController.text.isEmpty) {
-      HelperUi.showToast(
-          message: 'Please enter payment amount', backgroundColor: Colors.red);
-      return false;
-    }
-    if (recordPaymentMode.value.isEmpty) {
-      HelperUi.showToast(
-          message: 'Please select payment mode', backgroundColor: Colors.red);
-      return false;
-    }
-    return true;
-  }
-
-  Future<void> recordReceiptPayment() async {
-    if (!validateRecordPaymentForm()) return;
-
-    final receipt = selectedReceiptForPayment.value!;
-    isLoadingReceipts.value = true;
-    try {
-      final response = await _api.postRaw(ApiConstants.updateReceiptStatus, {
-        'id':     receipt.id,
-        'status': 'Approved',
-      });
-
-      if (response != null && response.statusCode == 200) {
-        clearRecordPaymentForm();
-        await fetchReceipts();
-        fetchActiveClients();
-        fetchInvoices();         // sync invoice paid_amount + status after payment
-        fetchCollectionsKPIs();  // sync header KPIs
-        HelperUi.showToast(
-          message: 'Payment recorded successfully.',
-          backgroundColor: Colors.green,
-        );
-      } else {
-        final msg = response?.data['message'] ?? 'Failed to record payment. Please try again.';
-        HelperUi.showToast(message: msg);
-      }
-    } catch (e) {
-      HelperUi.showToast(message: 'Error recording payment: $e');
-    } finally {
-      isLoadingReceipts.value = false;
-    }
-  }
-
   void clearRecordPaymentForm() {
-    selectedReceiptForPayment.value = null;
     selectedInvoiceForPayment.value = null;
     recordPaymentAmountController.clear();
     recordTransactionIdController.clear();
     recordPaymentRemarksController.clear();
     recordPaymentMode.value = '';
+  }
+
+  Future<bool> _confirm(String title, String message,
+      {String confirmLabel = 'Confirm', Color color = Colors.orange}) async {
+    final ok = await Get.dialog<bool>(
+      AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        title: Text(title),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(result: false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Get.back(result: true),
+            style: ElevatedButton.styleFrom(backgroundColor: color),
+            child: Text(confirmLabel,
+                style: TextStyle(color: AppColor.buttonTextWhite)),
+          ),
+        ],
+      ),
+    );
+    return ok == true;
+  }
+
+  /// PATCH /updateReceiptStatus — approves an existing Pending receipt
+  /// (does not create a new one).
+  Future<void> approveReceipt(ProvisionalReceipt receipt) async {
+    final ok = await _confirm(
+      'Approve Receipt',
+      'Approve ${receipt.receiptNumber.isNotEmpty ? receipt.receiptNumber : 'receipt #${receipt.id}'} '
+          'for ${formatCurrency(receipt.totalAmount)}?',
+      confirmLabel: 'Approve',
+      color: Colors.green,
+    );
+    if (!ok) return;
+    await _updateReceiptStatus(receipt.id, 'Approved', 'Receipt approved.');
+  }
+
+  Future<void> _updateReceiptStatus(int id, String status, String successMsg) async {
+    isLoadingReceipts.value = true;
+    try {
+      final response = await _api.patchRaw(ApiConstants.updateReceiptStatus, {
+        'id': id, 'status': status,
+      });
+      if (isOkResponse(response)) {
+        await fetchReceipts();
+        fetchActiveClients();
+        fetchInvoices();
+        fetchCollectionsKPIs();
+        toastSuccess(successMsg);
+      } else {
+        toastApiError(response, 'Failed to update receipt.');
+      }
+    } catch (e) {
+      toastValidation('Error updating receipt: $e');
+    } finally {
+      isLoadingReceipts.value = false;
+    }
   }
 
   // ─────────────────────────────────────────────
@@ -849,10 +703,8 @@ class AccountsController extends GetxController {
         'period_to': inv.periodTo,
       });
 
-      if (resp == null ||
-          (resp.statusCode != 200 && resp.statusCode != 201)) {
-        final msg = resp?.data['message'] ?? 'Failed to record payment.';
-        HelperUi.showToast(message: msg);
+      if (!isOkResponse(resp)) {
+        toastApiError(resp, 'Failed to record payment.');
         return;
       }
 
@@ -986,7 +838,7 @@ class AccountsController extends GetxController {
         'approved_by':      writeOffApprover.value,
       });
 
-      if (response != null && (response.statusCode == 200 || response.statusCode == 201)) {
+      if (isOkResponse(response)) {
         _clearWriteOffForm();
         await fetchWriteOffs();
         HelperUi.showToast(
@@ -994,8 +846,7 @@ class AccountsController extends GetxController {
           backgroundColor: Colors.green,
         );
       } else {
-        final msg = response?.data['message'] ?? 'Failed to create write-off. Please try again.';
-        HelperUi.showToast(message: msg);
+        toastApiError(response, 'Failed to create write-off. Please try again.');
       }
     } catch (e) {
       HelperUi.showToast(message: 'Error creating write-off: $e');
@@ -1012,57 +863,48 @@ class AccountsController extends GetxController {
     writeOffApprover.value = '';
   }
 
-  Future<void> approveWriteOff(int id) async {
+  Future<void> approveWriteOff(int id) =>
+      _updateWriteOffStatus(id, 'Approved');
+
+  Future<void> rejectWriteOff(int id) =>
+      _updateWriteOffStatus(id, 'Rejected');
+
+  /// PATCH /updateWriteOffStatus { id, status: Approved | Rejected }
+  Future<void> _updateWriteOffStatus(int id, String status) async {
+    final approving = status == 'Approved';
+    final ok = await _confirm(
+      approving ? 'Approve Write-Off' : 'Reject Write-Off',
+      '${approving ? 'Approve' : 'Reject'} write-off #$id?',
+      confirmLabel: approving ? 'Approve' : 'Reject',
+      color: approving ? Colors.green : Colors.red,
+    );
+    if (!ok) return;
     try {
-      final response = await _api.postRaw(ApiConstants.updateWriteOffStatus, {
-        'id': id, 'status': 'Approved',
+      final response = await _api.patchRaw(ApiConstants.updateWriteOffStatus, {
+        'id': id, 'status': status,
       });
-      if (response != null && response.statusCode == 200) {
+      if (isOkResponse(response)) {
         await fetchWriteOffs();
         fetchActiveClients();
-        HelperUi.showToast(message: 'Write-off approved.', backgroundColor: Colors.green);
+        toastSuccess('Write-off ${status.toLowerCase()}.');
       } else {
-        final msg = response?.data['message'] ?? 'Failed to approve write-off.';
-        HelperUi.showToast(message: msg);
+        toastApiError(response, 'Failed to update write-off.');
       }
     } catch (e) {
-      HelperUi.showToast(message: 'Error: $e');
+      toastValidation('Error: $e');
     }
   }
 
-  Future<void> rejectWriteOff(int id) async {
-    try {
-      final response = await _api.postRaw(ApiConstants.updateWriteOffStatus, {
-        'id': id, 'status': 'Rejected',
-      });
-      if (response != null && response.statusCode == 200) {
-        await fetchWriteOffs();
-        HelperUi.showToast(message: 'Write-off rejected.');
-      } else {
-        final msg = response?.data['message'] ?? 'Failed to reject write-off.';
-        HelperUi.showToast(message: msg);
-      }
-    } catch (e) {
-      HelperUi.showToast(message: 'Error: $e');
-    }
-  }
-
+  /// PATCH /updateReceiptStatus { id, status: Cancelled } after confirmation.
   Future<void> cancelReceipt(int id) async {
-    try {
-      final response = await _api.postRaw(ApiConstants.updateReceiptStatus, {
-        'id': id, 'status': 'Cancelled',
-      });
-      if (response != null && response.statusCode == 200) {
-        await fetchReceipts();
-        fetchActiveClients();
-        HelperUi.showToast(message: 'Receipt cancelled.');
-      } else {
-        final msg = response?.data['message'] ?? 'Failed to cancel receipt.';
-        HelperUi.showToast(message: msg);
-      }
-    } catch (e) {
-      HelperUi.showToast(message: 'Error: $e');
-    }
+    final ok = await _confirm(
+      'Cancel Receipt',
+      'Cancel receipt #$id? This cannot be undone.',
+      confirmLabel: 'Cancel Receipt',
+      color: Colors.red,
+    );
+    if (!ok) return;
+    await _updateReceiptStatus(id, 'Cancelled', 'Receipt cancelled.');
   }
 
   // ─────────────────────────────────────────────
@@ -1082,7 +924,7 @@ class AccountsController extends GetxController {
         }
         _applyInvoiceFilter();
       } else {
-        HelperUi.showToast(message: 'Failed to load invoices.');
+        toastApiError(response, 'Failed to load invoices.');
       }
     } catch (e) {
       HelperUi.showToast(message: 'Error loading invoices: $e');
@@ -1119,14 +961,14 @@ class AccountsController extends GetxController {
         'invoice_id': invoice.invoiceDbId,
         'amount':     invoice.balanceDue,
       });
-      if (response != null && (response.statusCode == 200 || response.statusCode == 201)) {
-        final linkUrl = response.data['link_url'];
+      if (isOkResponse(response)) {
+        final linkUrl = field(response!.data, 'link_url');
         HelperUi.showToast(
           message: 'Payment link created: $linkUrl',
           backgroundColor: Colors.green,
         );
       } else {
-        HelperUi.showToast(message: 'Failed to create payment link.');
+        toastApiError(response, 'Failed to create payment link.');
       }
     } catch (e) {
       HelperUi.showToast(message: 'Error creating payment link: $e');
@@ -1141,14 +983,14 @@ class AccountsController extends GetxController {
     try {
       final response = await _api.getRaw(ApiConstants.getCollectionsKPIs);
       if (response != null && response.statusCode == 200) {
-        final d = response.data as Map<String, dynamic>;
-        totalBilled.value      = (d['total_billed']      ?? 0).toDouble();
-        totalCollected.value   = (d['total_collected']   ?? 0).toDouble();
-        totalOutstanding.value = (d['total_outstanding'] ?? 0).toDouble();
-        collectionRate.value   = (d['collection_rate']   ?? 0) as int;
-        dso.value              = (d['dso']               ?? 0) as int;
-        overdueCount.value     = (d['overdue_count']     ?? 0) as int;
-        overdueAmount.value    = (d['overdue_amount']    ?? 0).toDouble();
+        final d = response.data;
+        totalBilled.value      = toDouble(field(d, 'total_billed'));
+        totalCollected.value   = toDouble(field(d, 'total_collected'));
+        totalOutstanding.value = toDouble(field(d, 'total_outstanding'));
+        collectionRate.value   = toInt(field(d, 'collection_rate'));
+        dso.value              = toInt(field(d, 'dso'));
+        overdueCount.value     = toInt(field(d, 'overdue_count'));
+        overdueAmount.value    = toDouble(field(d, 'overdue_amount'));
       }
     } catch (e) {
       // Non-critical — silently ignore
@@ -1165,11 +1007,13 @@ class AccountsController extends GetxController {
     try {
       final response = await _api.getRaw(ApiConstants.getAgingReport);
       if (response != null && response.statusCode == 200) {
-        final data = response.data as Map<String, dynamic>;
-        final bucketsMap = data['buckets'] as Map<String, dynamic>? ?? {};
-        agingBuckets.value = bucketsMap.values
-            .map((v) => Map<String, dynamic>.from(v as Map))
-            .toList();
+        final bucketsMap = field(response.data, 'buckets');
+        agingBuckets.value = bucketsMap is Map
+            ? bucketsMap.values
+                .whereType<Map>()
+                .map((v) => Map<String, dynamic>.from(v))
+                .toList()
+            : <Map<String, dynamic>>[];
       }
     } catch (e) {
       // Non-critical
@@ -1200,31 +1044,24 @@ class AccountsController extends GetxController {
     }
   }
 
-  Future<void> approveCreditNote(int id) async {
-    try {
-      final response = await _api.postRaw(ApiConstants.updateCreditNoteStatus, {
-        'id': id, 'status': 'Approved',
-      });
-      if (response != null && response.statusCode == 200) {
-        await fetchCreditNotes();
-        HelperUi.showToast(message: 'Credit note approved.', backgroundColor: Colors.green);
-      }
-    } catch (e) {
-      HelperUi.showToast(message: 'Error: $e');
-    }
-  }
+  Future<void> approveCreditNote(int id) => _updateCreditNoteStatus(id, 'Approved');
 
-  Future<void> rejectCreditNote(int id) async {
+  Future<void> rejectCreditNote(int id) => _updateCreditNoteStatus(id, 'Rejected');
+
+  /// PATCH /updateCreditNoteStatus { id, status: Approved | Rejected }
+  Future<void> _updateCreditNoteStatus(int id, String status) async {
     try {
-      final response = await _api.postRaw(ApiConstants.updateCreditNoteStatus, {
-        'id': id, 'status': 'Rejected',
+      final response = await _api.patchRaw(ApiConstants.updateCreditNoteStatus, {
+        'id': id, 'status': status,
       });
-      if (response != null && response.statusCode == 200) {
+      if (isOkResponse(response)) {
         await fetchCreditNotes();
-        HelperUi.showToast(message: 'Credit note rejected.');
+        toastSuccess('Credit note ${status.toLowerCase()}.');
+      } else {
+        toastApiError(response, 'Failed to update credit note.');
       }
     } catch (e) {
-      HelperUi.showToast(message: 'Error: $e');
+      toastValidation('Error: $e');
     }
   }
 
@@ -1272,12 +1109,12 @@ class AccountsController extends GetxController {
         'claim_amount':    double.tryParse(claimAmountController.text) ?? 0,
         'remarks':         claimRemarksController.text.trim(),
       });
-      if (response != null && (response.statusCode == 200 || response.statusCode == 201)) {
+      if (isOkResponse(response)) {
         _clearClaimForm();
         await fetchInsuranceClaims();
-        HelperUi.showToast(message: 'Insurance claim created.', backgroundColor: Colors.green);
+        toastSuccess('Insurance claim created.');
       } else {
-        HelperUi.showToast(message: 'Failed to create claim.');
+        toastApiError(response, 'Failed to create claim.');
       }
     } catch (e) {
       HelperUi.showToast(message: 'Error: $e');
@@ -1290,10 +1127,12 @@ class AccountsController extends GetxController {
     try {
       final body = <String, dynamic>{'id': id, 'status': status};
       if (settledAmount != null) body['settled_amount'] = settledAmount;
-      final response = await _api.postRaw(ApiConstants.updateInsuranceClaim, body);
-      if (response != null && response.statusCode == 200) {
+      final response = await _api.patchRaw(ApiConstants.updateInsuranceClaim, body);
+      if (isOkResponse(response)) {
         await fetchInsuranceClaims();
-        HelperUi.showToast(message: 'Claim updated to $status.', backgroundColor: Colors.green);
+        toastSuccess('Claim updated to $status.');
+      } else {
+        toastApiError(response, 'Failed to update claim.');
       }
     } catch (e) {
       HelperUi.showToast(message: 'Error: $e');
@@ -1313,7 +1152,7 @@ class AccountsController extends GetxController {
   // ─────────────────────────────────────────────
   // Bulk Invoice Generation
   // ─────────────────────────────────────────────
-  Future<void> bulkGenerateInvoices({int? month, int? year}) async {
+  Future<void> bulkGenerateInvoices({int? month, int? year, int? paymentTermsDays}) async {
     final now = DateTime.now();
     final targetMonth = month ?? now.month;
     final targetYear  = year  ?? now.year;
@@ -1332,10 +1171,10 @@ class AccountsController extends GetxController {
       final response = await _api.postRaw(ApiConstants.bulkGenerateInvoices, {
         'month': targetMonth,
         'year':  targetYear,
-        'payment_terms_days': 15,
+        'payment_terms_days': paymentTermsDays ?? await _orgPaymentTermsDays(),
       });
-      if (response != null && (response.statusCode == 200 || response.statusCode == 201)) {
-        final count = response.data['generated'] ?? 0;
+      if (isOkResponse(response)) {
+        final count = toInt(field(response!.data, 'generated'));
         await fetchInvoices();
         await fetchCollectionsKPIs();
         HelperUi.showToast(
@@ -1343,8 +1182,7 @@ class AccountsController extends GetxController {
           backgroundColor: Colors.green,
         );
       } else {
-        final msg = response?.data['message'] ?? 'Failed to generate invoices.';
-        HelperUi.showToast(message: msg);
+        toastApiError(response, 'Failed to generate invoices.');
       }
     } catch (e) {
       HelperUi.showToast(message: 'Error: $e');
@@ -1373,15 +1211,14 @@ class AccountsController extends GetxController {
       final response = await _api.postRaw(ApiConstants.closePeriod, {
         'month': month, 'year': year,
       });
-      if (response != null && (response.statusCode == 200 || response.statusCode == 201)) {
+      if (isOkResponse(response)) {
         await fetchClosedPeriods();
         HelperUi.showToast(
           message: 'Period $month/$year closed successfully.',
           backgroundColor: Colors.green,
         );
       } else {
-        final msg = response?.data['message'] ?? 'Failed to close period.';
-        HelperUi.showToast(message: msg);
+        toastApiError(response, 'Failed to close period.');
       }
     } catch (e) {
       HelperUi.showToast(message: 'Error: $e');
@@ -1390,7 +1227,7 @@ class AccountsController extends GetxController {
 
   bool isPeriodClosed(int month, int year) {
     return closedPeriods.any((p) =>
-      p['period_month'] == month && p['period_year'] == year
+      toInt(p['period_month']) == month && toInt(p['period_year']) == year
     );
   }
 
@@ -1398,18 +1235,20 @@ class AccountsController extends GetxController {
   // Revenue Recognition
   // ─────────────────────────────────────────────
   Future<void> fetchRevenueRecognition() async {
+    revenueRequested = true;
     isLoadingRevenue.value = true;
     try {
       final response = await _api.getRaw(ApiConstants.getRevenueRecognition);
       if (response != null && response.statusCode == 200) {
-        final d = response.data as Map<String, dynamic>;
-        mrr.value        = (d['mrr']         ?? 0) as int;
-        arr.value        = (d['arr']         ?? 0) as int;
-        deferred.value   = (d['deferred']    ?? 0) as int;
-        recognized.value = (d['recognized']  ?? 0) as int;
-        collected.value  = (d['collected']   ?? 0) as int;
-        churnCount.value = (d['churn_count'] ?? 0) as int;
-        activeCount.value= (d['active_count']?? 0) as int;
+        final d = response.data;
+        mrr.value        = toInt(field(d, 'mrr'));
+        arr.value        = toInt(field(d, 'arr'));
+        deferred.value   = toInt(field(d, 'deferred'));
+        recognized.value = toInt(field(d, 'recognized'));
+        collected.value  = toInt(field(d, 'collected'));
+        churnCount.value = toInt(field(d, 'churn_count'));
+        activeCount.value= toInt(field(d, 'active_count'));
+        revenueLoaded.value = true;
       }
     } catch (e) {
       HelperUi.showToast(message: 'Error loading revenue data: $e');
@@ -1421,34 +1260,10 @@ class AccountsController extends GetxController {
   // ─────────────────────────────────────────────
   // Helpers
   // ─────────────────────────────────────────────
-  String formatCurrency(double amount) {
-    final formatter = NumberFormat.currency(locale: 'en_IN', symbol: '\u20B9');
-    return formatter.format(amount);
-  }
+  String formatCurrency(double amount) => fmt.formatInr(amount);
 
-  String formatDate(DateTime? date) {
-    if (date == null) return '-';
-    return DateFormat('dd-MMM-yyyy').format(date);
-  }
+  String formatDate(DateTime? date) =>
+      fmt.formatAccDate(date, pattern: 'dd-MMM-yyyy', empty: '-');
 
-  Color getStatusColor(String status) {
-    switch (status.toLowerCase()) {
-      case 'active':
-        return Colors.green;
-      case 'approved':
-        return Colors.green;
-      case 'completed':
-        return Colors.blue;
-      case 'on hold':
-        return Colors.orange;
-      case 'pending':
-        return Colors.orange;
-      case 'cancelled':
-        return Colors.red;
-      case 'rejected':
-        return Colors.red;
-      default:
-        return AppColor.fontColorGrey;
-    }
-  }
+  Color getStatusColor(String status) => fmt.accountsStatusColor(status);
 }

@@ -3,12 +3,14 @@ class ApiConstants {
   ///
   /// Usage examples:
   ///   Local dev  : flutter run   (uses default below)
-  ///   QA         : flutter run   --dart-define=API_BASE_URL=http://18.61.254.100:3000/api
-  ///   Production : flutter build web --dart-define=API_BASE_URL=http://65.2.74.114:4000/api
+  ///   QA         : flutter run   --dart-define=API_BASE_URL=http://43.204.68.253:5004/api
+  ///   Production : flutter build web --release --dart-define=API_BASE_URL=http://13.233.237.76:4000/api
   static const String baseURL = String.fromEnvironment(
     'API_BASE_URL',
     //defaultValue: 'http://localhost:4000/api',
-    defaultValue: 'https://eldivexbe-production.up.railway.app/api',
+    //defaultValue: 'https://eldivexbe-production.up.railway.app/api',
+    //defaultValue: 'https://api.eldivex.com/api',
+    defaultValue: 'http://13.233.237.76:4000/api',
   );
 
   ///End point
@@ -45,6 +47,8 @@ class ApiConstants {
   static const String markCgAttendance = '$baseURL/markAttendance';
   static const String markCgAttendanceBatch = '$baseURL/markAttendanceBatch';
   static const String addClientUser = '$baseURL/login';
+  // Staff create/find a client by phone; org comes from the JWT, no token issued.
+  static const String createClientUser = '$baseURL/createClientUser';
   static const String updateAddressApi = '$baseURL/updateAddress';
   static const String updatePatientApi = '$baseURL/updatePatient';
   static const String updateClientUserApi = '$baseURL/update-user-client';
@@ -65,6 +69,21 @@ class ApiConstants {
   // ── Phase 2.3 — Forgot / Reset Password ────────────────────────────────────
   static const String forgotPassword = '$baseURL/forgotPassword';
   static const String resetPassword  = '$baseURL/resetPassword';
+
+  // ── Terms & Conditions ─────────────────────────────────────────────────────
+  static const String getCurrentTerms = '$baseURL/getCurrentTerms';
+  static const String acceptTerms      = '$baseURL/acceptTerms';
+
+  // ── Notifications (admin bell feed) ────────────────────────────────────────
+  static const String getNotificationsApi      = '$baseURL/notifications';
+  static const String readAllNotificationsApi  = '$baseURL/notifications/readAll';
+  static const String clearNotificationsApi    = '$baseURL/notifications/clearAll';
+  static String readNotificationApi(int id)    => '$baseURL/notifications/$id/read';
+  static String deleteNotificationApi(int id)  => '$baseURL/notifications/$id';
+
+  // ── Settings — Organisation Profile & Branding ─────────────────────────────
+  static const String orgProfileApi      = '$baseURL/orgProfile';
+  static const String orgEmailPreviewApi = '$baseURL/orgProfile/emailPreview';
 
   // ── Phase 2.4 — Accounts ───────────────────────────────────────────────────
   static const String getActiveClients     = '$baseURL/getActiveClients';
@@ -171,16 +190,19 @@ class ApiConstants {
 
   static String getClientOutstanding(int clientId)   => '$baseURL/clientOutstanding/$clientId';
   static String getBookingOutstanding(int bookingId) => '$baseURL/bookingOutstanding/$bookingId';
-  static String getTransactionLedger(String params)  => '$baseURL/transactionLedger?$params';
+  static String getTransactionLedger(String params)  =>
+      params.isEmpty ? '$baseURL/transactionLedger' : '$baseURL/transactionLedger?$params';
 
   // ── Advanced Accounts — Refunds ───────────────────────────────────────────
   static const String createRefund  = '$baseURL/createRefund';
   static const String approveRefund = '$baseURL/approveRefund';
 
-  static String getRefunds(String extra, {String? bookingId, String? status, int limit = 200}) {
+  static String getRefunds(String extra, {String? bookingId, String? status, String? fromDate, String? toDate, int limit = 200}) {
     final params = <String>['limit=$limit'];
     if (bookingId != null && bookingId.isNotEmpty) params.add('booking_id=$bookingId');
     if (status    != null && status.isNotEmpty)    params.add('status=$status');
+    if (fromDate  != null && fromDate.isNotEmpty)  params.add('from_date=$fromDate');
+    if (toDate    != null && toDate.isNotEmpty)    params.add('to_date=$toDate');
     return '$baseURL/getRefunds?${params.join('&')}';
   }
 
@@ -235,7 +257,10 @@ class ApiConstants {
   static const String createService         = '$baseURL/createService';
   static String updateServiceById(int id)   => '$baseURL/updateService/$id';
   static const String toggleServiceStatus   = '$baseURL/toggleServiceStatus';
-  static const String createServiceCategory = '$baseURL/createServiceCategory';
+  static const String getServiceCategories    = '$baseURL/getServiceCategories';
+  static const String createServiceCategory    = '$baseURL/createServiceCategory';
+  static String updateServiceCategoryById(int id) => '$baseURL/updateServiceCategory/$id';
+  static const String toggleServiceCategoryStatus = '$baseURL/toggleServiceCategoryStatus';
 
   // ── Phase 2.6 — Branch CRUD ────────────────────────────────────────────────
   static const String createBranch          = '$baseURL/createBranch';

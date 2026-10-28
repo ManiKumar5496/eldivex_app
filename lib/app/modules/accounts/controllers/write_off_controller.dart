@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:eldivex_app/app/core/values/color_constants.dart';
 import '../../../data/api_constant_url.dart';
 import '../../../data/base_api_services.dart';
 import '../../../widgets/helper_ui.dart';
 import '../models/write_off_model.dart';
+import 'accounts_feedback.dart';
 
 class WriteOffController extends GetxController {
   // ─────────────────────────────────────────────
@@ -63,15 +63,11 @@ class WriteOffController extends GetxController {
         status:    status,
       );
       final response = await _api.getRaw(url);
-      if (response != null && response.statusCode == 200) {
-        final data = response.data;
-        if (data is List) {
-          writeOffs.value = WriteOffModel.listFromJson(data);
-        } else {
-          writeOffs.value = [];
-        }
+      if (isOkResponse(response)) {
+        final data = response!.data;
+        writeOffs.value = data is List ? WriteOffModel.listFromJson(data) : [];
       } else {
-        HelperUi.showToast(message: 'Failed to load write-offs.');
+        toastApiError(response, 'Failed to load write-offs.');
       }
     } catch (e) {
       HelperUi.showToast(message: 'Error loading write-offs: $e');
@@ -88,7 +84,7 @@ class WriteOffController extends GetxController {
         final data = response.data;
         activeClients.value = (data is List) ? data : [];
       } else {
-        HelperUi.showToast(message: 'Failed to load clients.');
+        toastApiError(response, 'Failed to load clients.');
       }
     } catch (e) {
       HelperUi.showToast(message: 'Error loading clients: $e');
@@ -104,44 +100,34 @@ class WriteOffController extends GetxController {
         final data = response.data;
         bookingInvoices.value = (data is List) ? data : [];
       } else {
-        HelperUi.showToast(message: 'Failed to load invoices.');
+        toastApiError(response, 'Failed to load invoices.');
       }
     } catch (e) {
       HelperUi.showToast(message: 'Error loading invoices: $e');
     }
   }
 
-  /// Submit a new write-off via /api/createWriteOffV2.
-  Future<void> createWriteOff() async {
-    if (writeOffAmountCtrl.text.isEmpty) {
-      HelperUi.showToast(
-        message: 'Please enter a write-off amount.',
-        backgroundColor: Colors.red,
-      );
-      return;
-    }
-    if (reasonCtrl.text.isEmpty) {
-      HelperUi.showToast(
-        message: 'Please enter a reason.',
-        backgroundColor: Colors.red,
-      );
-      return;
-    }
+  /// Submit a new write-off via POST /api/createWriteOffV2
+  /// { booking_id, user_id, write_off_type, invoice_ids, write_off_amount, reason, remarks }.
+  /// Returns true on success.
+  Future<bool> createWriteOff() async {
     if (selectedBookingId.value == null) {
-      HelperUi.showToast(
-        message: 'Please select a booking.',
-        backgroundColor: Colors.red,
-      );
-      return;
+      toastValidation('Please select a booking.');
+      return false;
+    }
+    if (writeOffAmountCtrl.text.trim().isEmpty) {
+      toastValidation('Please enter a write-off amount.');
+      return false;
+    }
+    if (reasonCtrl.text.trim().isEmpty) {
+      toastValidation('Please enter a reason.');
+      return false;
     }
 
     final amount = double.tryParse(writeOffAmountCtrl.text.trim()) ?? 0;
     if (amount <= 0) {
-      HelperUi.showToast(
-        message: 'Write-off amount must be greater than zero.',
-        backgroundColor: Colors.red,
-      );
-      return;
+      toastValidation('Write-off amount must be greater than zero.');
+      return false;
     }
 
     isSubmitting.value = true;
@@ -153,50 +139,31 @@ class WriteOffController extends GetxController {
         'remarks':          remarksCtrl.text.trim(),
         'write_off_type':   writeOffType.value,
         if (selectedClientId.value != null)
-          'client_id': selectedClientId.value,
+          'user_id': selectedClientId.value,
         if (selectedInvoiceIds.isNotEmpty)
           'invoice_ids': selectedInvoiceIds.toList(),
       };
 
       final response = await _api.postRaw(ApiConstants.createWriteOffV2, body);
 
-      if (response != null &&
-          (response.statusCode == 200 || response.statusCode == 201)) {
+      if (isOkResponse(response)) {
         clearForm();
         await loadWriteOffs();
-        Get.snackbar(
-          'Success',
-          'Write-off created successfully.',
-          backgroundColor: Colors.green,
-          colorText: AppColor.buttonTextWhite,
-          snackPosition: SnackPosition.BOTTOM,
-        );
-      } else {
-        final msg = response?.data['message'] ??
-            'Failed to create write-off. Please try again.';
-        Get.snackbar(
-          'Error',
-          msg.toString(),
-          backgroundColor: Colors.red,
-          colorText: AppColor.buttonTextWhite,
-          snackPosition: SnackPosition.BOTTOM,
-        );
+        toastSuccess('Write-off created and sent for approval.');
+        return true;
       }
+      toastApiError(response, 'Failed to create write-off. Please try again.');
     } catch (e) {
-      Get.snackbar(
-        'Error',
-        'Error creating write-off: $e',
-        backgroundColor: Colors.red,
-        colorText: AppColor.whiteColor,
-        snackPosition: SnackPosition.BOTTOM,
-      );
+      toastValidation('Error creating write-off: $e');
     } finally {
       isSubmitting.value = false;
     }
+    return false;
   }
 
-  /// Approve or reject a write-off via PATCH /api/approveWriteOff.
-  Future<void> approveWriteOff(
+  /// PATCH /api/approveWriteOff { write_off_id, action: 'Approved'|'Rejected', notes }.
+  /// Returns true on success.
+  Future<bool> approveWriteOff(
     int writeOffId,
     String action,
     String notes,
@@ -204,41 +171,23 @@ class WriteOffController extends GetxController {
     isSubmitting.value = true;
     try {
       final response = await _api.patchRaw(ApiConstants.approveWriteOff, {
-        'id':     writeOffId,
-        'action': action,   // e.g. 'approve' | 'reject'
-        'notes':  notes,
+        'write_off_id': writeOffId,
+        'action':       action,
+        if (notes.isNotEmpty) 'notes': notes,
       });
 
-      if (response != null && response.statusCode == 200) {
+      if (isOkResponse(response)) {
         await loadWriteOffs();
-        Get.snackbar(
-          'Success',
-          'Write-off ${action == 'approve' ? 'approved' : 'rejected'} successfully.',
-          backgroundColor: Colors.green,
-          colorText: AppColor.buttonTextWhite,
-          snackPosition: SnackPosition.BOTTOM,
-        );
-      } else {
-        final msg = response?.data['message'] ?? 'Failed to update write-off.';
-        Get.snackbar(
-          'Error',
-          msg.toString(),
-          backgroundColor: Colors.red,
-          colorText: AppColor.buttonTextWhite,
-          snackPosition: SnackPosition.BOTTOM,
-        );
+        toastSuccess('Write-off ${action.toLowerCase()} successfully.');
+        return true;
       }
+      toastApiError(response, 'Failed to update write-off.');
     } catch (e) {
-      Get.snackbar(
-        'Error',
-        'Error updating write-off: $e',
-        backgroundColor: Colors.red,
-        colorText: AppColor.whiteColor,
-        snackPosition: SnackPosition.BOTTOM,
-      );
+      toastValidation('Error updating write-off: $e');
     } finally {
       isSubmitting.value = false;
     }
+    return false;
   }
 
   // ─────────────────────────────────────────────

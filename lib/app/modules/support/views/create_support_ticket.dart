@@ -13,28 +13,43 @@ import '../models/get_support_categories.dart';
 class CreateSupportTicket extends GetView<SupportController> {
   const CreateSupportTicket({super.key});
 
+  // Registered once on first access (shell page has no route binding).
+  @override
+  SupportController get controller => Get.isRegistered<SupportController>()
+      ? Get.find<SupportController>()
+      : Get.put(SupportController());
+
+  /// True when pushed from Manage Bookings (Get.to with {bookingId, userId});
+  /// false when shown as a page inside the admin shell.
+  bool _isPushed(BuildContext context) {
+    final args = ModalRoute.of(context)?.settings.arguments;
+    return args is Map && args.containsKey('bookingId');
+  }
+
+  /// Leave the screen: pop only when pushed — inside the shell, Get.back()
+  /// would pop the whole shell, so just reset the form there.
+  void _leave(BuildContext context) {
+    controller.clearForm();
+    if (_isPushed(context)) Navigator.of(context).maybePop();
+  }
+
   @override
   Widget build(BuildContext context) {
-    final ctrl = Get.isRegistered<SupportController>()
-        ? Get.find<SupportController>()
-        : Get.put(SupportController());
     SizeConfig.init(context);
+    final pushed = _isPushed(context);
 
-    // Pre-fill when opened from bookings via Get.to(..., arguments: {...})
-    final args = Get.arguments as Map<String, dynamic>?;
-    if (args != null && ctrl.bookingId.value.isEmpty) {
+    // Pre-fill when opened from bookings via Get.to(..., arguments: {...}).
+    // applyPrefillArgs ignores arguments it has already applied.
+    if (pushed) {
+      final args = ModalRoute.of(context)?.settings.arguments;
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        ctrl.prefillFromBooking(
-          bookingId: args['bookingId'] as int,
-          userId:    args['userId']    as int,
-          typeId:    args['typeId']    as int?,
-        );
+        controller.applyPrefillArgs(args);
       });
     }
 
     return Scaffold(
       backgroundColor: AppColor.cAppBackgroundColor,
-      appBar: _buildAppBar(),
+      appBar: pushed ? _buildAppBar(context) : null,
       body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.all(24),
@@ -57,12 +72,15 @@ class CreateSupportTicket extends GetView<SupportController> {
                   CommonTextField(
                     label: 'User Id',
                     hint: 'Client User Id',
+                    isMandatory: true,
+                    keyboardType: TextInputType.number,
                     controller: controller.clientUserIdTextController,
                     onChanged: (v) => controller.clientUserId.value = v,
                   ),
                   CommonTextField(
                     label: 'Booking ID',
                     hint: 'Enter booking ID',
+                    isMandatory: true,
                     controller: controller.bookingIdTextController,
                     onChanged: (v) => controller.bookingId.value = v,
                   ),
@@ -77,11 +95,12 @@ class CreateSupportTicket extends GetView<SupportController> {
                         () => CommonDropdown(
                       label: 'Priority',
                       hint: 'Select priority',
+                      isMandatory: true,
                       value: controller.priority.value.isEmpty
                           ? null
                           : controller.priority.value,
                       items: const ['Low', 'Medium', 'High', 'Urgent'],
-                      onChanged: (v) => controller.priority.value = v!,
+                      onChanged: (v) => controller.priority.value = v ?? '',
                     ),
                   ),
                 ),
@@ -97,6 +116,8 @@ class CreateSupportTicket extends GetView<SupportController> {
                 CommonTextField(
                   label: 'Subject',
                   hint: 'Enter ticket subject',
+                  isMandatory: true,
+                  controller: controller.subjectTextController,
                   onChanged: (v) => controller.subject.value = v,
                 ),
                 const SizedBox(height: 20),
@@ -105,7 +126,9 @@ class CreateSupportTicket extends GetView<SupportController> {
                 CommonTextField(
                   label: 'Description',
                   hint: 'Describe your issue in detail',
+                  isMandatory: true,
                   maxLines: 4,
+                  controller: controller.descriptionTextController,
                   onChanged: (v) => controller.description.value = v,
                 ),
 
@@ -116,17 +139,14 @@ class CreateSupportTicket extends GetView<SupportController> {
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
                     OutlinedButton(
-                      onPressed: () {
-                        controller.clearForm();
-                        Get.back();
-                      },
+                      onPressed: () => _leave(context),
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 28,
                           vertical: 14,
                         ),
                       ),
-                      child: const Text('Cancel'),
+                      child: Text(pushed ? 'Cancel' : 'Clear'),
                     ),
                     const SizedBox(width: 12),
                     Obx(
@@ -137,7 +157,14 @@ class CreateSupportTicket extends GetView<SupportController> {
                         child: CircularProgressIndicator(),
                       )
                           : ElevatedButton(
-                        onPressed: controller.createSupportTicket,
+                        onPressed: () async {
+                          final ok = await controller.createSupportTicket();
+                          // Pushed from bookings → return there; in the shell
+                          // the form was reset and the list refreshed.
+                          if (ok && pushed && context.mounted) {
+                            Navigator.of(context).maybePop();
+                          }
+                        },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColor.cPrimaryButtonColor,
                           padding: const EdgeInsets.symmetric(
@@ -201,7 +228,8 @@ class CreateSupportTicket extends GetView<SupportController> {
           const SizedBox(height: 8),
           AppDropdown<SupportCategory>(
             hint: 'Select ticket type',
-            value: controller.selectedTicketType.value,
+            value: controller.getSupportCategoriesData
+                .firstWhereOrNull((c) => c == controller.selectedTicketType.value),
             items: controller.getSupportCategoriesData
                 .map((SupportCategory category) {
               return DropdownMenuItem<SupportCategory>(
@@ -267,6 +295,7 @@ class CreateSupportTicket extends GetView<SupportController> {
             label: 'Replacement Reason',
             hint: 'Enter reason for replacement',
             maxLines: 2,
+            controller: controller.reasonTextController,
             onChanged: (v) => controller.replacementReason.value = v,
           ),
           const SizedBox(height: 20),
@@ -289,6 +318,7 @@ class CreateSupportTicket extends GetView<SupportController> {
             label: 'Cancellation Reason',
             hint: 'Enter reason for cancellation',
             maxLines: 2,
+            controller: controller.reasonTextController,
             onChanged: (v) => controller.cancellationReason.value = v,
           ),
           const SizedBox(height: 20),
@@ -319,11 +349,11 @@ class CreateSupportTicket extends GetView<SupportController> {
               context: Get.context!,
               initialDate: selectedDate ?? DateTime.now(),
               firstDate: DateTime(2020),
-              lastDate: DateTime(2030),
+              lastDate: DateTime(DateTime.now().year + 5),
               builder: (context, child) {
                 return Theme(
                   data: Theme.of(context).copyWith(
-                    colorScheme: ColorScheme.light(
+                    colorScheme: Theme.of(context).colorScheme.copyWith(
                       primary: AppColor.cPrimaryButtonColor,
                     ),
                   ),
@@ -368,16 +398,13 @@ class CreateSupportTicket extends GetView<SupportController> {
     );
   }
 
-  PreferredSizeWidget _buildAppBar() {
+  PreferredSizeWidget _buildAppBar(BuildContext context) {
     return AppBar(
       backgroundColor: AppColor.whiteColor,
       elevation: 0,
       leading: IconButton(
         icon: Icon(Icons.arrow_back, color: AppColor.fontColorBlack),
-        onPressed: () {
-          controller.clearForm();
-          Get.back();
-        },
+        onPressed: () => _leave(context),
       ),
       title: Text(
         'Support',

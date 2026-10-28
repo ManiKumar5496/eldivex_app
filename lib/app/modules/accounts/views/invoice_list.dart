@@ -8,6 +8,9 @@ import 'package:eldivex_app/app/core/values/text_style_constants.dart';
 import '../controllers/accounts_controller.dart';
 import '../models/invoice_model.dart';
 import '../models/provisional_receipt_model.dart';
+import '../models/parse_utils.dart';
+import 'accounts_format.dart';
+import 'manage_reciepts.dart';
 
 class InvoiceListView extends StatelessWidget {
   const InvoiceListView({super.key});
@@ -17,7 +20,6 @@ class InvoiceListView extends StatelessWidget {
     // AccountsBinding is tied to a named route and never fires when this view
     // is embedded directly in the side-menu pages list — so we must ensure the
     // controller exists before calling find().
-    Get.put(AccountsController());
     final ctrl = Get.isRegistered<AccountsController>()
         ? Get.find<AccountsController>()
         : Get.put(AccountsController());
@@ -83,7 +85,7 @@ class InvoiceListView extends StatelessWidget {
   // Header with KPI Summary + Actions
   // ─────────────────────────────────────────────
   Widget _buildHeader(AccountsController ctrl) {
-    final currencyFormat = NumberFormat.currency(locale: 'en_IN', symbol: '₹');
+    final currencyFormat = inrFormat;
     // Single Obx wraps the entire header — no nested Obx inside adaptiveLayout
     // arguments (they are eagerly evaluated and both Obx instances would be
     // created, but only one mounts, causing the GetX "improper use" error).
@@ -399,9 +401,9 @@ class InvoiceListView extends StatelessWidget {
               scrollDirection: Axis.horizontal,
               child: Row(
                 children: ctrl.agingBuckets.map((bucket) {
-                  final label = bucket['label'] as String? ?? '';
-                  final count = bucket['count'] ?? 0;
-                  final amount = (bucket['amount'] ?? 0).toDouble();
+                  final label = toStr(bucket['label']);
+                  final count = toInt(bucket['count']);
+                  final amount = toDouble(bucket['amount']);
                   final color = bucketColors[label] ?? AppColor.fontColorGrey;
                   final fmt = NumberFormat.compactCurrency(
                     locale: 'en_IN',
@@ -461,7 +463,7 @@ class InvoiceListView extends StatelessWidget {
   // Desktop / Tablet Table
   // ─────────────────────────────────────────────
   Widget _buildInvoiceTable(AccountsController ctrl, BuildContext context) {
-    final currFmt = NumberFormat.currency(locale: 'en_IN', symbol: '₹');
+    final currFmt = inrFormat;
     // No Obx here — this method is called as an adaptiveLayout argument inside
     // the outer Obx in build(), so reactive reads are tracked there.
     return SingleChildScrollView(
@@ -610,7 +612,7 @@ class InvoiceListView extends StatelessWidget {
   // Mobile Cards
   // ─────────────────────────────────────────────
   Widget _buildInvoiceCards(AccountsController ctrl, BuildContext context) {
-    final currFmt = NumberFormat.currency(locale: 'en_IN', symbol: '₹');
+    final currFmt = inrFormat;
     // No Obx here — called as an adaptiveLayout argument inside the outer Obx.
     return ListView.builder(
       padding: EdgeInsets.symmetric(
@@ -807,19 +809,14 @@ class InvoiceListView extends StatelessWidget {
     );
   }
 
-  Color _statusColor(String s) {
-    switch (s) {
-      case 'Paid':
-        return Colors.green;
-      case 'Partially Paid':
-        return Colors.orange;
-      case 'Overdue':
-        return Colors.red;
-      case 'Pending':
-        return Colors.blue;
-      default:
-        return AppColor.fontColorGrey;
-    }
+  Color _statusColor(String s) => accountsStatusColor(s);
+
+  /// Opens the record-payment sheet for [inv]. Inside AccountsView it also
+  /// switches to the receipts tab; in the side-menu shell (no tab bar) the
+  /// sheet opens in place.
+  void _raiseReceipt(InvoiceModel inv, BuildContext context) {
+    DefaultTabController.maybeOf(context)?.animateTo(2);
+    ManageRecieptsView.openRecordSheet(context, invoice: inv);
   }
 
   Widget _actionsMenu(InvoiceModel inv, AccountsController ctrl, BuildContext context) {
@@ -832,13 +829,7 @@ class InvoiceListView extends StatelessWidget {
             _showInvoiceDetail(inv, ctrl, context);
             break;
           case 'raise_receipt':
-            final client = ctrl.activeClients.firstWhereOrNull(
-              (c) => c.bookingId == inv.bookingId,
-            );
-            if (client != null) {
-              ctrl.selectClientForReceipt(client);
-            }
-            DefaultTabController.of(context).animateTo(2);
+            _raiseReceipt(inv, context);
             break;
           case 'payment_link':
             ctrl.sendPaymentLink(inv);
@@ -908,7 +899,7 @@ class InvoiceListView extends StatelessWidget {
   // Invoice Detail Dialog — Clean, Amount Only
   // ─────────────────────────────────────────────
   void _showInvoiceDetail(InvoiceModel inv, AccountsController ctrl, BuildContext tabContext) {
-    final currFmt = NumberFormat.currency(locale: 'en_IN', symbol: '₹');
+    final currFmt = inrFormat;
     Get.dialog(
       Dialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -1035,13 +1026,7 @@ class InvoiceListView extends StatelessWidget {
                       ElevatedButton.icon(
                         onPressed: () {
                           Get.back();
-                          final client = ctrl.activeClients.firstWhereOrNull(
-                            (c) => c.bookingId == inv.bookingId,
-                          );
-                          if (client != null) {
-                            ctrl.selectClientForReceipt(client);
-                          }
-                          DefaultTabController.of(tabContext).animateTo(2);
+                          _raiseReceipt(inv, tabContext);
                         },
                         icon: const Icon(Icons.receipt_long, size: 16),
                         label: const Text('Raise Receipt'),
@@ -1105,7 +1090,7 @@ class InvoiceListView extends StatelessWidget {
                 ),
               ),
               Text(
-                '${r.paymentMode}  •  ${r.receiptDate.toLocal().toString().substring(0, 10)}',
+                '${r.paymentMode}  •  ${formatAccDate(r.receiptDate, pattern: 'yyyy-MM-dd')}',
                 style: TextStyle(fontSize: 11, color: AppColor.fontColorGrey),
               ),
             ],
@@ -1268,7 +1253,7 @@ class InvoiceListView extends StatelessWidget {
                             labelText: 'Year',
                             border: OutlineInputBorder(),
                           ),
-                          items: [2025, 2026, 2027]
+                          items: [now.year - 1, now.year, now.year + 1]
                               .map(
                                 (y) => DropdownMenuItem(
                                   value: y,

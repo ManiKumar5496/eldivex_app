@@ -1,3 +1,5 @@
+import 'parse_utils.dart';
+
 /// InvoiceModel — clean, amount-only invoice.
 /// No tax fields — invoice amount = total_days × daily_rate.
 class InvoiceModel {
@@ -54,26 +56,26 @@ class InvoiceModel {
 
   factory InvoiceModel.fromJson(Map<String, dynamic> json) {
     return InvoiceModel(
-      invoiceDbId:  (json['invoice_db_id'] as num?)?.toInt() ?? 0,
-      invoiceId:    json['invoice_id']?.toString() ?? 'INV-0',
-      bookingId:    (json['booking_id'] as num?)?.toInt() ?? 0,
-      clientName:   json['client_name']  ?? '',
-      clientMobile: json['client_mobile'] ?? '',
-      patientName:  json['patient_name']  ?? '',
-      serviceName:  json['service_name'],
-      branchName:   json['branch_name'],
-      periodFrom:   json['period_from']  ?? '',
-      periodTo:     json['period_to']    ?? '',
-      invoiceDate:  json['invoice_date'],
-      dueDate:      json['due_date'],
-      totalAmount:  double.tryParse(json['total_amount']?.toString() ?? '0') ?? 0,
-      paidAmount:   double.tryParse(json['paid_amount']?.toString()  ?? '0') ?? 0,
-      dailyRate:    double.tryParse(json['daily_rate']?.toString()   ?? '0') ?? 0,
-      status:       json['status'] ?? 'Pending',
-      invoiceType:  json['invoice_type'],
+      invoiceDbId:  toInt(json['invoice_db_id']),
+      invoiceId:    toStr(json['invoice_id'], 'INV-0'),
+      bookingId:    toInt(json['booking_id']),
+      clientName:   toStr(json['client_name']),
+      clientMobile: toStr(json['client_mobile']),
+      patientName:  toStr(json['patient_name']),
+      serviceName:  toStrOrNull(json['service_name']),
+      branchName:   toStrOrNull(json['branch_name']),
+      periodFrom:   toStr(json['period_from']),
+      periodTo:     toStr(json['period_to']),
+      invoiceDate:  toStrOrNull(json['invoice_date']),
+      dueDate:      toStrOrNull(json['due_date']),
+      totalAmount:  toDouble(json['total_amount']),
+      paidAmount:   toDouble(json['paid_amount']),
+      dailyRate:    toDouble(json['daily_rate']),
+      status:       toStr(json['status'], 'Pending'),
+      invoiceType:  toStrOrNull(json['invoice_type']),
     );
   }
 
   static List<InvoiceModel> listFromJson(List<dynamic> list) =>
-      list.map((e) => InvoiceModel.fromJson(e as Map<String, dynamic>)).toList();
+      parseList(list, InvoiceModel.fromJson);
 }

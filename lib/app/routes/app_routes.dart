@@ -9,6 +9,7 @@ abstract class Routes {
   static const BOOKINGS = _Paths.BOOKINGS;
   static const REGISTER_CG = _Paths.REGISTER_CG;
   static const LOGIN = _Paths.LOGIN;
+  static const TERMS = _Paths.TERMS;
   static const ROLE = _Paths.ROLE;
   static const initial = _Paths.initial;
   static const MAIN = _Paths.MAIN;
@@ -73,6 +74,7 @@ abstract class _Paths {
   static const BOOKINGS = '/bookings';
   static const REGISTER_CG = '/register-cg';
   static const LOGIN = '/login';
+  static const TERMS = '/terms';
   static const ROLE = '/role';
   static const initial = '/initial';
   static const MAIN = '/main';

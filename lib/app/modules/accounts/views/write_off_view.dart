@@ -13,7 +13,7 @@ class WriteOffView extends GetView<AccountsController> {
   @override
   Widget build(BuildContext context) {
     SizeConfig.init(context);
-    Get.put(AccountsController());
+    if (!Get.isRegistered<AccountsController>()) Get.put(AccountsController());
     return Column(
       children: [
         _buildWriteOffSearchBar(),

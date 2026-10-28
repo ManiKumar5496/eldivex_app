@@ -35,6 +35,26 @@ class HostelSettlementView extends StatelessWidget {
                 return const Center(
                     child: Padding(padding: EdgeInsets.all(40), child: CircularProgressIndicator()));
               }
+              if (c.settlementError.value.isNotEmpty) {
+                return Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(c.settlementError.value,
+                            style: TextStyle(color: AppColor.calenderRed)),
+                        const SizedBox(height: 8),
+                        OutlinedButton.icon(
+                          onPressed: c.fetchSettlement,
+                          icon: const Icon(Icons.refresh),
+                          label: const Text('Retry'),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }
               final s = c.settlement.value;
               if (s == null) {
                 return Padding(
@@ -67,20 +87,27 @@ class HostelSettlementView extends StatelessWidget {
         children: [
           SizedBox(
             width: 260,
-            child: Obx(() => DropdownButtonFormField<int>(
-                  initialValue: c.settlementHostelId.value,
+            child: Obx(() {
+              // Only active hostels can be settled.
+              final hostels = c.activeHostels;
+              final sel = c.settlementHostelId.value;
+              return DropdownButtonFormField<int>(
+                  key: ValueKey('settle-hostel-${hostels.length}-$sel'),
+                  initialValue: hostels.any((h) => h.id == sel) ? sel : null,
                   isExpanded: true,
                   decoration: const InputDecoration(
                       labelText: 'Hostel', border: OutlineInputBorder()),
-                  items: c.allHostels
+                  items: hostels
                       .map((h) => DropdownMenuItem<int>(
                             value: h.id,
-                            child: Text('${h.hostelName} (${h.gender})',
+                            child: Text(
+                                '${h.hostelName} (${HostelsController.normalizeGenderLabel(h.gender)})',
                                 overflow: TextOverflow.ellipsis),
                           ))
                       .toList(),
                   onChanged: (v) => c.settlementHostelId.value = v,
-                )),
+                );
+            }),
           ),
           SizedBox(width: 170, child: _dateField(c.settlementFromCtrl, 'From')),
           SizedBox(width: 170, child: _dateField(c.settlementToCtrl, 'To')),
@@ -116,7 +143,29 @@ class HostelSettlementView extends StatelessWidget {
                     style: TextStyle(
                         fontSize: 16, fontWeight: FontWeight.w700, color: AppColor.blackColor)),
               ),
-              Obx(() => ElevatedButton.icon(
+              Obx(() {
+                final savedId = c.lastSettlementId.value;
+                if (savedId != null) {
+                  // Saved in this session → offer mark-paid on it.
+                  if (c.lastSettlementStatus.value == 'Paid') {
+                    return Chip(
+                      label: Text('Settlement #$savedId · Paid'),
+                      backgroundColor: Colors.green.withValues(alpha: 0.12),
+                    );
+                  }
+                  return ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green.shade700,
+                      foregroundColor: AppColor.buttonTextWhite,
+                    ),
+                    onPressed: c.isSubmitting.value
+                        ? null
+                        : () => _confirmMarkPaid(c, savedId),
+                    icon: const Icon(Icons.check_circle_outline, size: 18),
+                    label: Text('Mark #$savedId as paid'),
+                  );
+                }
+                return ElevatedButton.icon(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColor.cAppPrimaryColor,
                       foregroundColor: AppColor.buttonTextWhite,
@@ -126,7 +175,8 @@ class HostelSettlementView extends StatelessWidget {
                         : () => c.generateSettlement(),
                     icon: const Icon(Icons.receipt_long_outlined, size: 18),
                     label: const Text('Generate settlement'),
-                  )),
+                  );
+              }),
             ],
           ),
           const SizedBox(height: 8),
@@ -156,6 +206,48 @@ class HostelSettlementView extends StatelessWidget {
           ],
         ],
       ),
+    );
+  }
+
+  void _confirmMarkPaid(HostelsController c, int id) {
+    final modeCtrl = TextEditingController();
+    Get.dialog(
+      AlertDialog(
+        backgroundColor: AppColor.whiteColor,
+        title: Text('Mark settlement #$id as paid?'),
+        content: SizedBox(
+          width: 360,
+          child: TextField(
+            controller: modeCtrl,
+            decoration: const InputDecoration(
+              labelText: 'Payment mode (optional)',
+              hintText: 'e.g. Bank transfer, UPI, Cash',
+              border: OutlineInputBorder(),
+            ),
+          ),
+        ),
+        actions: [
+          Obx(() => TextButton(
+                onPressed: c.isSubmitting.value ? null : Get.back,
+                child: const Text('Cancel'),
+              )),
+          Obx(() => ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColor.cAppPrimaryColor,
+                  foregroundColor: AppColor.buttonTextWhite,
+                ),
+                onPressed: c.isSubmitting.value
+                    ? null
+                    : () async {
+                        final ok = await c.markSettlementPaid(id,
+                            paymentMode: modeCtrl.text.trim());
+                        if (ok && (Get.isDialogOpen ?? false)) Get.back();
+                      },
+                child: const Text('Mark paid'),
+              )),
+        ],
+      ),
+      barrierDismissible: false,
     );
   }
 

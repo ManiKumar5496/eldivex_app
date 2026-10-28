@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import '../../../data/api_constant_url.dart';
 import '../../../data/base_api_services.dart';
+import '../../../routes/app_pages.dart';
 import '../../../widgets/helper_ui.dart';
 import '../models/get_all_branches_model.dart';
 import '../models/get_categories_model.dart';
@@ -44,6 +45,8 @@ class DashboardController extends GetxController {
 
   // ── Phase 4.1: Dashboard filter state ──────────────────────────────────────
   final RxBool   dashboardLoading = false.obs;
+  /// Non-empty when the last stats fetch failed; the view shows a retry banner.
+  final RxString dashboardError   = ''.obs;
   final RxString dashFrom         = ''.obs;
   final RxString dashTo           = ''.obs;
   final Rxn<int> filterBranchId   = Rxn<int>();
@@ -130,78 +133,82 @@ class DashboardController extends GetxController {
       );
 
       final response = await baseApi.getRaw(url);
-      if (response == null || response.statusCode != 200) {
+      if (response == null || response.statusCode != 200 || response.data is! Map) {
         debugPrint('[dashboard] getDashboardStats → ${response?.statusCode}');
+        dashboardError.value = ApiService.lastError ??
+            'Could not load dashboard statistics.';
         return;
       }
+      dashboardError.value = '';
 
-      final data = response.data as Map<String, dynamic>;
+      final data = Map<String, dynamic>.from(response.data as Map);
 
       // ── Summary stats ──────────────────────────────────────────────────────
-      totalClients.value      = (data['totalClients']      as num? ?? 0).toInt();
-      totalBookings.value     = (data['totalBookings']     as num? ?? 0).toInt();
-      activeBookings.value    = (data['activeBookings']    as num? ?? 0).toInt();
-      completedBookings.value = (data['completedBookings'] as num? ?? 0).toInt();
-      cancelledBookings.value = (data['cancelledBookings'] as num? ?? 0).toInt();
-      cancellationRate.value  = (data['cancellationRate']  as num? ?? 0).toDouble();
-      newBookingsToday.value  = (data['newBookingsToday']  as num? ?? 0).toInt();
-      totalRevenue.value      = (data['totalRevenue']      as num? ?? 0).toDouble();
-      totalBilled.value       = (data['totalBilled']       as num? ?? 0).toDouble();
-      totalCollected.value    = (data['totalCollected']    as num? ?? 0).toDouble();
-      outstanding.value       = (data['outstanding']       as num? ?? 0).toDouble();
-      totalHPs.value          = (data['totalHPs']          as num? ?? 0).toInt();
+      totalClients.value      = _num(data['totalClients'],      0).toInt();
+      totalBookings.value     = _num(data['totalBookings'],     0).toInt();
+      activeBookings.value    = _num(data['activeBookings'],    0).toInt();
+      completedBookings.value = _num(data['completedBookings'], 0).toInt();
+      cancelledBookings.value = _num(data['cancelledBookings'], 0).toInt();
+      cancellationRate.value  = _num(data['cancellationRate'],  0).toDouble();
+      newBookingsToday.value  = _num(data['newBookingsToday'],  0).toInt();
+      totalRevenue.value      = _num(data['totalRevenue'],      0).toDouble();
+      totalBilled.value       = _num(data['totalBilled'],       0).toDouble();
+      totalCollected.value    = _num(data['totalCollected'],    0).toDouble();
+      outstanding.value       = _num(data['outstanding'],       0).toDouble();
+      totalHPs.value          = _num(data['totalHPs'],          0).toInt();
 
       // ── Period-over-period trends ───────────────────────────────────────────
-      final trendsMap = data['trends'] as Map<String, dynamic>? ?? {};
+      final trendsMap = data['trends'] is Map ? data['trends'] as Map : const {};
       trends.value = trendsMap.map(
-        (k, v) => MapEntry(k, (v as num?)?.toDouble()),
+        (k, v) => MapEntry(k.toString(),
+            v == null ? null : num.tryParse(v.toString())?.toDouble()),
       );
 
       // ── Weekly bookings ────────────────────────────────────────────────────
       final weekly = data['weeklyBookings'] as List? ?? [];
       weeklyBookingsData.value = weekly.map((d) {
-        final m = d as Map<String, dynamic>;
+        final m = d is Map ? d : const {};
         return BookingData(
           m['day']?.toString() ?? '',
-          (m['count'] as num? ?? 0).toDouble(),
+          _num(m['count'], 0).toDouble(),
         );
       }).toList();
 
       // ── Service distribution ───────────────────────────────────────────────
       final services = data['serviceDistribution'] as List? ?? [];
       serviceDistributionData.value = services.map((d) {
-        final m = d as Map<String, dynamic>;
+        final m = d is Map ? d : const {};
         return ServiceData(
           m['name']?.toString() ?? 'Other',
-          (m['count'] as num? ?? 0).toDouble(),
+          _num(m['count'], 0).toDouble(),
         );
       }).toList();
 
       // ── Top CGs ───────────────────────────────────────────────────────────
       final cgs = data['topCgs'] as List? ?? [];
       topCgItems.value = cgs.map((d) {
-        final m = d as Map<String, dynamic>;
+        final m = d is Map ? d : const {};
         return TopCgItem(
           name:     m['name']?.toString() ?? 'HP #${m['hp_reg_id']}',
           service:  'Health Professional',
           rating:   0,
-          bookings: (m['bookings'] as num? ?? 0).toInt(),
+          bookings: _num(m['bookings'], 0).toInt(),
         );
       }).toList();
 
       // ── City performance ───────────────────────────────────────────────────
       final cities = data['cityPerformance'] as List? ?? [];
       final maxBkgs = cities.isNotEmpty
-          ? ((cities.first as Map)['bookings'] as num? ?? 1).toDouble()
+          ? _num((cities.first as Map)['bookings'], 1).toDouble()
           : 1.0;
       cityPerformanceData.value = cities.asMap().entries.map((e) {
-        final m   = e.value as Map<String, dynamic>;
-        final bkgs = (m['bookings'] as num? ?? 0).toInt();
+        final m   = e.value is Map ? e.value as Map : const {};
+        final bkgs = _num(m['bookings'], 0).toInt();
         return CityPerformance(
-          rank:     (m['rank'] as num? ?? e.key + 1).toInt(),
+          rank:     _num(m['rank'], e.key + 1).toInt(),
           city:     m['city']?.toString() ?? '',
           bookings: bkgs,
-          revenue:  (m['revenue'] as num? ?? 0).toDouble(),
+          revenue:  _num(m['revenue'], 0).toDouble(),
           progress: maxBkgs > 0 ? bkgs / maxBkgs : 0,
         );
       }).toList();
@@ -226,9 +233,9 @@ class DashboardController extends GetxController {
       bookingStatusData.clear();
       int ci = 0;
       for (final s in statusList) {
-        final m      = s as Map<String, dynamic>;
+        final m      = s is Map ? s : const {};
         final status = m['status']?.toString() ?? 'Unknown';
-        final count  = (m['count'] as num? ?? 0).toInt();
+        final count  = _num(m['count'], 0).toInt();
         bookingStatusData.add(BookingStatusData(
           label: status,
           value: count,
@@ -239,6 +246,7 @@ class DashboardController extends GetxController {
       lastUpdated.value = DateTime.now();
     } catch (e, stack) {
       debugPrint('[dashboard] fetchDashboardStats error: $e\n$stack');
+      dashboardError.value = 'Could not load dashboard statistics.';
     } finally {
       dashboardLoading.value = false;
     }
@@ -276,6 +284,20 @@ class DashboardController extends GetxController {
         break;
     }
     activePreset.value = preset;
+    refreshDashboard();
+  }
+
+  /// Apply the custom From/To range after checking it is not inverted.
+  void applyCustomRange() {
+    if (dashFrom.value.isNotEmpty &&
+        dashTo.value.isNotEmpty &&
+        dashFrom.value.compareTo(dashTo.value) > 0) {
+      HelperUi.showToast(
+        message: "'From' date must be on or before 'To' date.",
+        backgroundColor: Colors.orange,
+      );
+      return;
+    }
     refreshDashboard();
   }
 
@@ -361,11 +383,14 @@ class DashboardController extends GetxController {
   Future<void> getCategoriesList() async {
     getCategoriesLoading.value = true;
     try {
+      // Org-scoped category catalogue (per-tenant "products"). Only active
+      // categories are offered when creating/assigning services.
       final result = await baseApi.getList<CategoryModel>(
-        ApiConstants.getMasterServices,
+        ApiConstants.getServiceCategories,
         (json) => CategoryModel.fromJson(json),
       );
-      categoriesList.value = result ?? [];
+      categoriesList.value =
+          (result ?? []).where((c) => c.status == 1).toList();
     } catch (e) {
       debugPrint('Error fetching categories: $e');
     } finally {
@@ -429,19 +454,21 @@ class DashboardController extends GetxController {
       if (response.statusCode == 200 || response.statusCode == 201) {
         HelperUi.showToast(
           message: 'Role created successfully!',
-          backgroundColor: const Color(0xFF14B8A6),
+          backgroundColor: Colors.green,
         );
         clearRoleForm();
         getMasterRoles();
-        Get.back();
+        HelperUi.safeBack(Routes.MAIN);
       } else if (response.statusCode == 409) {
         HelperUi.showToast(
           message: 'Role name already exists.',
           backgroundColor: Colors.orange,
         );
       } else {
+        final data = response.data;
+        final msg = data is Map ? (data['error'] ?? data['message'])?.toString() : null;
         HelperUi.showToast(
-          message: 'Failed to create role. (${response.statusCode})',
+          message: msg ?? 'Failed to create role. (${response.statusCode})',
           backgroundColor: Colors.red,
         );
       }
@@ -460,3 +487,6 @@ class DashboardController extends GetxController {
 
   String getSelectedAccessListString() => selectedAccessList.join(',');
 }
+
+num _num(dynamic v, num fallback) =>
+    v is num ? v : num.tryParse('${v ?? ''}') ?? fallback;

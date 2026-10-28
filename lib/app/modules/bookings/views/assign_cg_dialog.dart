@@ -5,22 +5,102 @@ import '../../../core/values/color_constants.dart';
 import '../../../core/values/text_style_constants.dart';
 import '../../../core/values/size_configue.dart';
 import '../../register_cg/controllers/register_cg_controller.dart';
+import '../../register_cg/models/get_cg_details_model.dart';
+import '../models/get_bookings_model.dart';
 import '../../dashboard/controllers/dashboard_controller.dart'; // Phase 4.4 — branch list
 import '../../../widgets/dropdown_common.dart';
 import '../../../widgets/shimmer_loader.dart';
 import '../controllers/bookings_controller.dart';
 
-class AssignCgDialog extends StatelessWidget {
+class AssignCgDialog extends StatefulWidget {
   final int bookingId;
-  AssignCgDialog({super.key, required this.bookingId});
+  const AssignCgDialog({super.key, required this.bookingId});
 
-  final RegisterCgController cgController   = Get.put(RegisterCgController());
-  final BookingsController bookingController = Get.find<BookingsController>();
+  @override
+  State<AssignCgDialog> createState() => _AssignCgDialogState();
+}
+
+class _AssignCgDialogState extends State<AssignCgDialog> {
+  late final RegisterCgController cgController;
+  late final BookingsController bookingController;
+
+  /// Local gender filter (the controller's hpGender belongs to the HP form).
+  final RxString genderFilter = ''.obs;
+
+  int get bookingId => widget.bookingId;
+
+  @override
+  void initState() {
+    super.initState();
+    cgController = Get.isRegistered<RegisterCgController>()
+        ? Get.find<RegisterCgController>()
+        : Get.put(RegisterCgController());
+    bookingController = Get.isRegistered<BookingsController>()
+        ? Get.find<BookingsController>()
+        : Get.put(BookingsController());
+    // The HP list is loaded once; filters below apply to it in memory.
+    if (cgController.getAllCgData.value.isEmpty &&
+        !cgController.getAllCGLoading.value) {
+      cgController.getAllCgFromApi();
+    }
+    if (cgController.availableLanguages.isEmpty) cgController.fetchLanguages();
+  }
+
+  static int _int(dynamic v) =>
+      v is num ? v.toInt() : int.tryParse('${v ?? ''}'.trim()) ?? 0;
+
+  static String _str(dynamic v, [String fallback = '—']) {
+    final s = '${v ?? ''}'.trim();
+    return s.isEmpty || s == 'NA' || s == 'null' ? fallback : s;
+  }
+
+  String _langName(Map l) => _str(l['language_name'] ?? l['name'], '');
+
+  bool _matchesFilters(GetCgDetails cg) {
+    final branchId = cgController.filterAssignBranchId.value;
+    if (branchId != null && cg.hpRegBranchId != branchId) return false;
+
+    final gender = genderFilter.value.toLowerCase();
+    if (gender.isNotEmpty) {
+      final g = cg.hpRegGender.trim().toLowerCase();
+      final code = gender == 'male' ? '1' : '2';
+      if (g != gender && g != code) return false;
+    }
+
+    final lang = cgController.filterAssignLanguage.value.trim().toLowerCase();
+    if (lang.isNotEmpty) {
+      // HP languages are stored as ids; accept names for older rows.
+      final match = cgController.availableLanguages
+          .firstWhereOrNull((l) => _langName(l).toLowerCase() == lang);
+      final id = match == null ? '' : '${match['id']}';
+      final hpLangs = cg.hpRegLanguages
+          .split(',')
+          .map((e) => e.trim().toLowerCase())
+          .toSet();
+      if (!hpLangs.contains(lang) && !(id.isNotEmpty && hpLangs.contains(id))) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  void _clearFilters() {
+    cgController.filterAssignBranchId.value = null;
+    cgController.filterAssignLanguage.value = '';
+    genderFilter.value = '';
+  }
 
   @override
   Widget build(BuildContext context) {
     SizeConfig.init(context);
-    final booking = bookingController.bookingsByBookingId.value.first;
+    final booking = bookingController.bookingsByBookingId.value.firstOrNull;
+    if (booking == null) {
+      return AlertDialog(
+        title: const Text('Assign Health Professional'),
+        content: const Text('Booking details are still loading. Please try again.'),
+        actions: [TextButton(onPressed: () => Get.back(), child: const Text('Close'))],
+      );
+    }
 
     return Dialog(
       insetPadding: EdgeInsets.all(SizeConfig.spacingMD),
@@ -63,7 +143,7 @@ class AssignCgDialog extends StatelessWidget {
   // HEADER
   // ═══════════════════════════════════════════════════════════════
 
-  Widget _buildHeader(dynamic booking) {
+  Widget _buildHeader(GetBookingsModel booking) {
     return Container(
       padding: EdgeInsets.symmetric(
         horizontal: SizeConfig.spacingMD,
@@ -135,7 +215,7 @@ class AssignCgDialog extends StatelessWidget {
   // BOOKING DETAILS CARD
   // ═══════════════════════════════════════════════════════════════
 
-  Widget _buildBookingDetails(dynamic booking) {
+  Widget _buildBookingDetails(GetBookingsModel booking) {
     return Container(
       decoration: BoxDecoration(
         color: AppColor.whiteColor,
@@ -190,8 +270,8 @@ class AssignCgDialog extends StatelessWidget {
                 _infoCell(
                   icon: Icons.location_city_outlined,
                   label: 'City',
-                  value: (booking.branchCity as String?)?.isNotEmpty == true
-                      ? booking.branchCity
+                  value: (booking.branchCity ?? '').isNotEmpty
+                      ? booking.branchCity!
                       : (booking.city ?? '-'),
                 ),
                 _verticalDivider(),
@@ -204,7 +284,7 @@ class AssignCgDialog extends StatelessWidget {
                 _infoCell(
                   icon: Icons.monitor_weight_outlined,
                   label: 'Patient Weight',
-                  value: (booking.patientWeight as String?)?.isNotEmpty == true
+                  value: (booking.patientWeight ?? '').isNotEmpty
                       ? '${booking.patientWeight} kg'
                       : '-',
                 ),
@@ -222,7 +302,7 @@ class AssignCgDialog extends StatelessWidget {
     );
   }
 
-  String _genderLabel(dynamic gender) {
+  String _genderLabel(int? gender) {
     switch (gender) {
       case 1:
         return 'Male';
@@ -410,9 +490,11 @@ class AssignCgDialog extends StatelessWidget {
                               items: [
                                 const DropdownMenuItem<String>(
                                     value: null, child: Text('All Languages')),
-                                ...languages.map((l) {
-                                  final name = l['language_name'] as String? ??
-                                      l['name']   as String? ?? '';
+                                ...languages
+                                    .map(_langName)
+                                    .where((n) => n.isNotEmpty)
+                                    .toSet()
+                                    .map((name) {
                                   return DropdownMenuItem<String>(
                                       value: name,
                                       child: Text(name,
@@ -427,42 +509,27 @@ class AssignCgDialog extends StatelessWidget {
                       ),
                     ),
 
-                    // Existing: Gender
                     SizedBox(
                       width: 140,
                       child: _buildDropdown(
                         label: 'Gender',
-                        value: cgController.hpGender.value.isEmpty
+                        value: genderFilter.value.isEmpty
                             ? null
-                            : cgController.hpGender.value,
+                            : genderFilter.value,
                         items: ['Male', 'Female'],
-                        onChanged: (v) => cgController.hpGender.value = v ?? '',
+                        onChanged: (v) => genderFilter.value = v ?? '',
                       ),
                     ),
 
-                    // Existing: Min weight
-                    SizedBox(width: 130, child: _buildTextField(label: 'Min Weight (kg)')),
-
-                    // Existing: Max weight
-                    SizedBox(width: 130, child: _buildTextField(label: 'Max Weight (kg)')),
-
-                    // Existing: Search
+                    // Filters apply instantly to the loaded list.
                     Padding(
                       padding: const EdgeInsets.only(top: 20),
-                      child: ElevatedButton.icon(
-                        onPressed: cgController.getAllCgFromApi,
-                        icon: Icon(Icons.search,
-                            size: SizeConfig.iconSM, color: AppColor.buttonTextWhite),
-                        label: Text('Search',
-                            style: TextStyle(
-                              color: AppColor.buttonTextWhite,
-                              fontSize: SizeConfig.fontBody,
-                              fontFamily: 'poppins_regular',
-                              fontWeight: FontWeight.w500,
-                            )),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColor.cPrimaryButtonColor,
-                          elevation: 0,
+                      child: OutlinedButton.icon(
+                        onPressed: _clearFilters,
+                        icon: Icon(Icons.filter_alt_off_outlined, size: SizeConfig.iconSM),
+                        label: Text('Clear Filters',
+                            style: TextStyle(fontSize: SizeConfig.fontBody)),
+                        style: OutlinedButton.styleFrom(
                           padding: SizeConfig.buttonPadding,
                           shape: RoundedRectangleBorder(
                               borderRadius:
@@ -499,49 +566,6 @@ class AssignCgDialog extends StatelessWidget {
       ))
           .toList(),
       onChanged: onChanged,
-    );
-  }
-
-  Widget _buildTextField({required String label}) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: AppTextStyles.regular14Gre
-              .copyWith(fontSize: SizeConfig.fontCaption),
-        ),
-        SizedBox(height: SizeConfig.spacingXS),
-        TextField(
-          style: AppTextStyles.regular14black
-              .copyWith(fontSize: SizeConfig.fontBody),
-          decoration: InputDecoration(
-            filled: true,
-            fillColor: AppColor.whiteColor,
-            isDense: true,
-            contentPadding: EdgeInsets.symmetric(
-              horizontal: SizeConfig.spacingSM,
-              vertical: SizeConfig.spacingSM,
-            ),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(SizeConfig.radiusSM),
-              borderSide: BorderSide(color: AppColor.divColor),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(SizeConfig.radiusSM),
-              borderSide: BorderSide(color: AppColor.divColor),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(SizeConfig.radiusSM),
-              borderSide:
-              BorderSide(color: AppColor.cPrimaryButtonColor, width: 1.5),
-            ),
-            hintText: 'Enter value',
-            hintStyle: AppTextStyles.regular14Gre
-                .copyWith(fontSize: SizeConfig.fontBody),
-          ),
-        ),
-      ],
     );
   }
 
@@ -607,7 +631,10 @@ class AssignCgDialog extends StatelessWidget {
                     .map((hp) => hp.hpRegId ?? 0).toSet();
                 final active = bookingController.globalActiveHpIds;
                 final available = cgController.getAllCgData.value
-                    .where((cg) => !assigned.contains(cg.hpRegId) && !active.contains(cg.hpRegId))
+                    .where((cg) =>
+                        !assigned.contains(cg.hpRegId) &&
+                        !active.contains(cg.hpRegId) &&
+                        _matchesFilters(cg))
                     .length;
                 return '$available';
               }(),
@@ -762,12 +789,13 @@ class AssignCgDialog extends StatelessWidget {
   }
 
   Widget _buildAiHpRow(Map<String, dynamic> hp) {
-    final score = (hp['score_pct'] as num? ?? 0).toInt();
-    final name  = hp['name']  as String? ?? 'HP #${hp['hp_reg_id']}';
-    final hpId  = hp['hp_reg_id'];
-    final city  = hp['city']  as String? ?? '—';
-    final langs = hp['languages'] as String? ?? '—';
-    final exp   = hp['experience'] != null ? '${hp['experience']} yr' : '—';
+    final score = (num.tryParse('${hp['score_pct'] ?? 0}') ?? 0).round();
+    final hpId  = _int(hp['hp_reg_id']);
+    final name  = _str(hp['name'], 'HP #$hpId');
+    final city  = _str(hp['city']);
+    final langs = _str(hp['languages']);
+    final expRaw = _str(hp['experience'], '');
+    final exp   = expRaw.isEmpty ? '—' : '$expRaw yr';
 
     // Score colour: green ≥ 70, amber ≥ 40, red < 40
     final scoreColor = score >= 70
@@ -855,10 +883,12 @@ class AssignCgDialog extends StatelessWidget {
           Expanded(
             flex: 1,
             child: ElevatedButton(
-              onPressed: () => bookingController.assignCgToBooking(
-                bookingId: bookingId,
-                cgId:      hpId is int ? hpId : int.tryParse('$hpId') ?? 0,
-              ),
+              onPressed: hpId <= 0
+                  ? null
+                  : () => bookingController.assignCgToBooking(
+                        bookingId: bookingId,
+                        cgId: hpId,
+                      ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColor.cPrimaryButtonColor,
                 elevation: 0,
@@ -901,7 +931,8 @@ class AssignCgDialog extends StatelessWidget {
       final availableCgs = cgController.getAllCgData.value
           .where((cg) =>
               !alreadyOnThisBooking.contains(cg.hpRegId) &&
-              !activeElsewhere.contains(cg.hpRegId))
+              !activeElsewhere.contains(cg.hpRegId) &&
+              _matchesFilters(cg))
           .toList();
       // ───────────────────────────────────────────────────────────────
 
@@ -922,7 +953,7 @@ class AssignCgDialog extends StatelessWidget {
               ),
               SizedBox(height: SizeConfig.spacingXS),
               Text(
-                'All matching HPs are already assigned to a booking',
+                'No unassigned HP matches the current filters',
                 style: AppTextStyles.regular14Gre
                     .copyWith(fontSize: SizeConfig.fontBody),
               ),
@@ -991,7 +1022,7 @@ class AssignCgDialog extends StatelessWidget {
     );
   }
 
-  Widget _buildCgRow(dynamic cg) {
+  Widget _buildCgRow(GetCgDetails cg) {
     return Container(
       padding: EdgeInsets.symmetric(
         horizontal: SizeConfig.spacingMD,
@@ -1029,7 +1060,7 @@ class AssignCgDialog extends StatelessWidget {
                   ),
                   overflow: TextOverflow.ellipsis,
                 ),
-                if (cg.hpRegEducation != null)
+                if (cg.hpRegEducation.isNotEmpty && cg.hpRegEducation != 'NA')
                   Container(
                     margin: const EdgeInsets.only(top: 2),
                     padding:
@@ -1060,7 +1091,7 @@ class AssignCgDialog extends StatelessWidget {
                     size: SizeConfig.iconSM, color: AppColor.lightGrey),
                 SizedBox(width: SizeConfig.spacingXS),
                 Text(
-                  cg.hpRegPhoneNumber ?? '-',
+                  cg.hpRegPhoneNumber.isEmpty ? '-' : cg.hpRegPhoneNumber,
                   style: AppTextStyles.regular14Gre
                       .copyWith(fontSize: SizeConfig.fontBody),
                 ),
@@ -1076,7 +1107,7 @@ class AssignCgDialog extends StatelessWidget {
           Expanded(
             flex: 2,
             child: Text(
-              cg.hpRegLanguages ?? '-',
+              cg.hpRegLanguages.isEmpty ? '-' : cg.hpRegLanguages,
               style: AppTextStyles.regular14Gre
                   .copyWith(fontSize: SizeConfig.fontBody),
               overflow: TextOverflow.ellipsis,
@@ -1153,64 +1184,13 @@ class AssignCgDialog extends StatelessWidget {
         border: Border(top: BorderSide(color: AppColor.divColor)),
       ),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(
             'Showing $count health professionals',
             style: AppTextStyles.regular14Gre
                 .copyWith(fontSize: SizeConfig.fontCaption),
           ),
-          Row(
-            children: [
-              _paginationBtn('Previous', false, () {}),
-              SizedBox(width: SizeConfig.spacingXS),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 12, vertical: 5),
-                decoration: BoxDecoration(
-                  color: AppColor.cPrimaryButtonColor,
-                  borderRadius:
-                  BorderRadius.circular(SizeConfig.radiusSM),
-                ),
-                child: Text(
-                  '1',
-                  style: TextStyle(
-                    color: AppColor.buttonTextWhite,
-                    fontSize: SizeConfig.fontBody,
-                    fontFamily: 'poppins_regular',
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-              SizedBox(width: SizeConfig.spacingXS),
-              _paginationBtn('Next', true, () {}),
-            ],
-          ),
         ],
-      ),
-    );
-  }
-
-  Widget _paginationBtn(String label, bool enabled, VoidCallback onTap) {
-    return OutlinedButton(
-      onPressed: enabled ? onTap : null,
-      style: OutlinedButton.styleFrom(
-        foregroundColor: AppColor.fontColorGrey,
-        side: BorderSide(color: AppColor.divColor),
-        padding: EdgeInsets.symmetric(
-          horizontal: SizeConfig.spacingSM,
-          vertical: SizeConfig.spacingXS,
-        ),
-        minimumSize: const Size(0, 34),
-        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(SizeConfig.radiusSM),
-        ),
-      ),
-      child: Text(
-        label,
-        style: AppTextStyles.regular14Gre
-            .copyWith(fontSize: SizeConfig.fontBody),
       ),
     );
   }

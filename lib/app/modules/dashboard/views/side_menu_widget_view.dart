@@ -32,6 +32,8 @@ import 'manage_master_role.dart';
 import '../../settings/views/otp_cupon_generation.dart';
 import '../../settings/views/branch_management_view.dart';
 import '../../settings/views/services_management_view.dart';
+import '../../settings/views/service_categories_view.dart';
+import '../../settings/views/org_profile_view.dart';
 import '../../audit_log/controllers/audit_log_controller.dart';
 import '../../audit_log/views/audit_log_view.dart';
 import '../../reports/controllers/reports_controller.dart';
@@ -63,6 +65,9 @@ class _SideMenuWidgetViewState extends State<SideMenuWidgetView> {
   final RxInt selectedIndex = 0.obs;
   final RxBool isExpanded = true.obs;
   final RxBool isMobileMenuOpen = false.obs;
+  /// Expanded state of each collapsible menu group, keyed by title. Held on
+  /// the State so a rebuild doesn't collapse the group.
+  final Map<String, RxBool> _expandedMenus = {};
 
   bool hasAccess(String menuName) {
     return rolesController.accessList.contains(menuName);
@@ -71,7 +76,7 @@ class _SideMenuWidgetViewState extends State<SideMenuWidgetView> {
   @override
   void initState() {
     super.initState();
-    _savedIndex = _storage.read<int>('selected_page_index') ?? 0;
+    _savedIndex = int.tryParse('${_storage.read('selected_page_index') ?? ''}') ?? 0;
     selectedIndex.value = _savedIndex;
     pageController = PageController(initialPage: _savedIndex);
 
@@ -111,6 +116,12 @@ class _SideMenuWidgetViewState extends State<SideMenuWidgetView> {
     if (!Get.isRegistered<OutstandingController>()) {
       Get.lazyPut<OutstandingController>(() => OutstandingController(), fenix: true);
     }
+  }
+
+  @override
+  void dispose() {
+    pageController.dispose();
+    super.dispose();
   }
 
   /// Determine device type based on screen width
@@ -302,13 +313,15 @@ class _SideMenuWidgetViewState extends State<SideMenuWidgetView> {
     }
 
     if (hasAccess('Settings')) {
-      final manageEmpRolesIndex      = pageIndex;
-      final addEmployees             = pageIndex + 1;
-      final bannersIndex             = pageIndex + 2;
-      final otpCuponIndex            = pageIndex + 3;
-      final auditLogIndex            = pageIndex + 4;
-      final branchManagementIndex    = pageIndex + 5;
-      final servicesManagementIndex  = pageIndex + 6;
+      final orgProfileIndex          = pageIndex;
+      final manageEmpRolesIndex      = pageIndex + 1;
+      final addEmployees             = pageIndex + 2;
+      final bannersIndex             = pageIndex + 3;
+      final otpCuponIndex            = pageIndex + 4;
+      final auditLogIndex            = pageIndex + 5;
+      final branchManagementIndex    = pageIndex + 6;
+      final servicesManagementIndex  = pageIndex + 7;
+      final serviceCategoriesIndex   = pageIndex + 8;
 
       menuItems.add(
         MenuItemData(
@@ -316,17 +329,20 @@ class _SideMenuWidgetViewState extends State<SideMenuWidgetView> {
           icon: Icons.settings,
           hasSubmenu: true,
           children: [
+            MenuItemData(title: 'Organisation Profile',  pageIndex: orgProfileIndex),
             MenuItemData(title: 'Manage Emp Roles',     pageIndex: manageEmpRolesIndex),
             MenuItemData(title: 'Manage Employees',      pageIndex: addEmployees),
             MenuItemData(title: 'Manage Banners',        pageIndex: bannersIndex),
             MenuItemData(title: 'OTP & Cupon',           pageIndex: otpCuponIndex),
             MenuItemData(title: 'Audit Log',             pageIndex: auditLogIndex),
             MenuItemData(title: 'Branch Management',     pageIndex: branchManagementIndex),
+            MenuItemData(title: 'Service Categories',    pageIndex: serviceCategoriesIndex),
             MenuItemData(title: 'Services Management',   pageIndex: servicesManagementIndex),
           ],
         ),
       );
 
+      pages.add(const OrgProfileView());
       pages.add(ManageMasterRoles());
       pages.add(UsersView());
       pages.add(ManageBannersView());
@@ -334,7 +350,8 @@ class _SideMenuWidgetViewState extends State<SideMenuWidgetView> {
       pages.add(const AuditLogView());
       pages.add(const BranchManagementView());
       pages.add(const ServicesManagementView());
-      pageIndex += 7;
+      pages.add(const ServiceCategoriesView());
+      pageIndex += 9;
     }
 
     return {
@@ -708,7 +725,8 @@ class _SideMenuWidgetViewState extends State<SideMenuWidgetView> {
   }
 
   Widget _buildExpandableMenuItem(MenuItemData item, DeviceType deviceType) {
-    final RxBool isExpandedMenu = false.obs;
+    final RxBool isExpandedMenu =
+        _expandedMenus.putIfAbsent(item.title, () => false.obs);
     final isTablet = deviceType == DeviceType.tablet;
 
     return Obx(() {

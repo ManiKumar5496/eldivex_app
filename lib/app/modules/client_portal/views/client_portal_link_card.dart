@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 
+import '../../../core/utils/session_utils.dart';
 import '../../../core/values/color_constants.dart';
 import '../../../widgets/helper_ui.dart';
 
@@ -15,7 +16,7 @@ String buildClientPortalLink({String? orgRef}) {
   final box = GetStorage();
   final code = (box.read('org_code') ?? '').toString();
   final ref = orgRef ??
-      (code.isNotEmpty ? code : (box.read('org_id') ?? 1).toString());
+      (code.isNotEmpty ? code : adminOrgId().toString());
   final origin = Uri.base.origin;
   return '$origin/#/client?org_id=$ref';
 }

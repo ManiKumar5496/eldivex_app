@@ -3,16 +3,21 @@ import 'package:eldivex_app/app/core/values/color_constants.dart';
 import 'package:eldivex_app/app/routes/app_pages.dart';
 import 'package:get/get.dart';
 
+import '../../../role/controllers/role_controller.dart';
 import '../../controllers/dashboard_controller.dart';
 
 /// Compact operational mini-stats shown above the main stat cards:
-/// "New bookings today" and "Cancellation rate".
+/// "New bookings today" and "Cancellation rate". Both are Bookings metrics, so
+/// they're hidden for roles without the Bookings module.
 class DashboardMiniStats extends GetView<DashboardController> {
   const DashboardMiniStats({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final roles = Get.find<RoleController>();
     return Obx(() {
+      roles.accessList.length; // rebuild once role access loads
+      if (!roles.hasAccess('Bookings')) return const SizedBox.shrink();
       if (controller.dashboardLoading.value) {
         return const SizedBox.shrink();
       }

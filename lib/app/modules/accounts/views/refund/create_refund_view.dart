@@ -2,8 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:eldivex_app/app/core/values/color_constants.dart';
 import 'package:eldivex_app/app/core/values/text_style_constants.dart';
+import '../../../../routes/app_pages.dart';
 import '../../../../widgets/common_textfield.dart';
+import '../../../../widgets/helper_ui.dart';
 import '../../controllers/refund_controller.dart';
+import '../../models/active_booking_client_model.dart';
+import '../../models/parse_utils.dart';
+import '../accounts_format.dart';
 
 class CreateRefundView extends GetView<RefundController> {
   const CreateRefundView({super.key});
@@ -34,7 +39,7 @@ class CreateRefundView extends GetView<RefundController> {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 18),
-          onPressed: () => Get.back(),
+          onPressed: () => HelperUi.safeBack(Routes.MAIN),
           color: AppColor.cPrimaryHeadingColor,
         ),
         title: Text(
@@ -63,51 +68,48 @@ class CreateRefundView extends GetView<RefundController> {
                 // Client dropdown
                 _dropdownLabel('Client', isMandatory: true),
                 const SizedBox(height: 8),
-                Obx(() => _dropdownContainer(
+                Obx(() {
+                  // getActiveClients is one row per booking; dedupe to clients.
+                  final clients = ClientOption.fromBookingRows(controller.activeClients);
+                  final selected = clients.any((c) => c.userId == controller.selectedClientId.value)
+                      ? controller.selectedClientId.value
+                      : null;
+                  return _dropdownContainer(
                       child: DropdownButtonHideUnderline(
                         child: DropdownButton<int>(
                           isExpanded: true,
-                          value: controller.selectedClientId.value,
+                          value: selected,
                           hint: Text(
                             'Choose a client',
                             style: TextStyle(
                                 color: AppColor.fontColorGrey, fontSize: 14),
                           ),
-                          items: controller.activeClients.map((c) {
-                            final id = (c['id'] as num?)?.toInt() ?? 0;
-                            final name = c['client_name']?.toString() ?? 'Client $id';
+                          items: clients.map((c) {
                             return DropdownMenuItem<int>(
-                              value: id,
-                              child: Text(name,
-                                  style: const TextStyle(fontSize: 14)),
+                              value: c.userId,
+                              child: Text(c.label,
+                                  style: const TextStyle(fontSize: 14),
+                                  overflow: TextOverflow.ellipsis),
                             );
                           }).toList(),
                           onChanged: (id) {
                             controller.selectedClientId.value = id;
                             controller.selectedBookingId.value = null;
-                            if (id != null) {
-                              controller.loadClientReceipts(id);
-                            } else {
-                              controller.clientReceipts.clear();
-                            }
+                            controller.selectedReceiptIds.clear();
+                            controller.clientReceipts.clear();
                           },
                         ),
                       ),
-                    )),
+                    );
+                }),
                 const SizedBox(height: 16),
 
                 // Booking dropdown — derived from selected client's bookings
                 _dropdownLabel('Booking', isMandatory: true),
                 const SizedBox(height: 8),
                 Obx(() {
-                  // Collect unique bookings from the loaded receipts
-                  final receipts = controller.clientReceipts;
-                  final Map<int, String> bookingMap = {};
-                  for (final r in receipts) {
-                    final bId = (r['booking_id'] as num?)?.toInt() ?? 0;
-                    final bRef = r['booking_ref']?.toString() ?? 'BK-$bId';
-                    bookingMap[bId] = bRef;
-                  }
+                  final bookings = bookingRowsForUser(
+                      controller.activeClients, controller.selectedClientId.value);
 
                   return _dropdownContainer(
                     child: DropdownButtonHideUnderline(
@@ -121,18 +123,26 @@ class CreateRefundView extends GetView<RefundController> {
                           style: TextStyle(
                               color: AppColor.fontColorGrey, fontSize: 14),
                         ),
-                        items: bookingMap.entries
-                            .map((e) => DropdownMenuItem<int>(
-                                  value: e.key,
-                                  child: Text('${e.value}  (BK-${e.key})',
-                                      style:
-                                          const TextStyle(fontSize: 14)),
-                                ))
-                            .toList(),
+                        items: bookings.map((b) {
+                          final bid = toInt(field(b, 'booking_id'), toInt(field(b, 'id')));
+                          final paid = toDouble(field(b, 'total_paid'));
+                          return DropdownMenuItem<int>(
+                            value: bid,
+                            child: Text('${bookingRowLabel(b)} · Paid ${formatInr(paid)}',
+                                style: const TextStyle(fontSize: 14),
+                                overflow: TextOverflow.ellipsis),
+                          );
+                        }).toList(),
                         onChanged: controller.selectedClientId.value == null
                             ? null
                             : (id) {
                                 controller.selectedBookingId.value = id;
+                                controller.selectedReceiptIds.clear();
+                                if (id != null) {
+                                  controller.loadClientReceipts(id);
+                                } else {
+                                  controller.clientReceipts.clear();
+                                }
                               },
                       ),
                     ),
@@ -149,9 +159,9 @@ class CreateRefundView extends GetView<RefundController> {
               children: [
                 Obx(() {
                   final receipts = controller.clientReceipts;
-                  if (controller.selectedClientId.value == null) {
+                  if (controller.selectedBookingId.value == null) {
                     return _emptyHint(
-                        Icons.touch_app_outlined, 'Select a client to see receipts');
+                        Icons.touch_app_outlined, 'Select a booking to see receipts');
                   }
                   if (receipts.isEmpty) {
                     return _emptyHint(
@@ -159,11 +169,11 @@ class CreateRefundView extends GetView<RefundController> {
                   }
                   return Column(
                     children: receipts.map((r) {
-                      final receiptId = (r['id'] as num?)?.toInt() ?? 0;
-                      final receiptNo = r['receipt_number']?.toString() ?? '#$receiptId';
-                      final date = r['created_on']?.toString() ?? '';
-                      final amount = (r['total_amount'] as num?)?.toDouble() ?? 0.0;
-                      final mode = r['payment_mode']?.toString() ?? '—';
+                      final receiptId = toInt(field(r, 'id'));
+                      final receiptNo = toStr(field(r, 'receipt_number'), '#$receiptId');
+                      final date = formatAccDate(field(r, 'receipt_date') ?? field(r, 'created_on'));
+                      final amount = toDouble(field(r, 'total_amount'));
+                      final mode = toStr(field(r, 'payment_mode'), '—');
                       final isSelected =
                           controller.selectedReceiptIds.contains(receiptId);
 
@@ -218,7 +228,7 @@ class CreateRefundView extends GetView<RefundController> {
                             ],
                           ),
                           subtitle: Text(
-                            '₹${amount.toStringAsFixed(2)}  •  $date',
+                            '${formatInr(amount)}  •  $date',
                             style: TextStyle(
                                 fontSize: 12, color: AppColor.fontColorGrey),
                           ),
@@ -241,14 +251,12 @@ class CreateRefundView extends GetView<RefundController> {
                   // Compute max refundable = sum of selected receipts
                   double maxAmount = 0;
                   for (final r in controller.clientReceipts) {
-                    final id = (r['id'] as num?)?.toInt() ?? 0;
-                    if (controller.selectedReceiptIds.contains(id)) {
-                      maxAmount +=
-                          (r['total_amount'] as num?)?.toDouble() ?? 0.0;
+                    if (controller.selectedReceiptIds.contains(toInt(field(r, 'id')))) {
+                      maxAmount += toDouble(field(r, 'total_amount'));
                     }
                   }
                   final hint = maxAmount > 0
-                      ? 'Max refundable: ₹${maxAmount.toStringAsFixed(2)}'
+                      ? 'Selected receipts total: ${formatInr(maxAmount)}'
                       : 'Enter refund amount';
                   return CommonTextField(
                     label: 'Refund Amount',
@@ -384,8 +392,8 @@ class CreateRefundView extends GetView<RefundController> {
                     onPressed: controller.isSubmitting.value
                         ? null
                         : () async {
-                            await controller.createRefund();
-                            if (!controller.isSubmitting.value) Get.back();
+                            final ok = await controller.createRefund();
+                            if (ok) HelperUi.safeBack(Routes.MAIN);
                           },
                     icon: controller.isSubmitting.value
                         ? SizedBox(

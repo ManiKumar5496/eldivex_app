@@ -1,18 +1,5 @@
-import 'dart:convert';
-
-double? _toDouble(dynamic v) {
-  if (v == null) return null;
-  if (v is num) return v.toDouble();
-  if (v is String) return double.tryParse(v);
-  return null;
-}
-
-int? _toInt(dynamic v) {
-  if (v == null) return null;
-  if (v is num) return v.toInt();
-  if (v is String) return int.tryParse(v);
-  return null;
-}
+import 'approval_history_model.dart';
+import 'parse_utils.dart';
 
 class RefundModel {
   final int id;
@@ -44,6 +31,7 @@ class RefundModel {
   final List<int>? receiptIds;
   final Map<String, dynamic>? channelDetails;
   final Map<String, dynamic>? dispatchDetails;
+  final List<ApprovalHistoryModel> approvalHistory;
 
   RefundModel({
     required this.id,
@@ -75,71 +63,43 @@ class RefundModel {
     this.receiptIds,
     this.channelDetails,
     this.dispatchDetails,
+    this.approvalHistory = const [],
   });
 
   factory RefundModel.fromJson(Map<String, dynamic> json) {
-    // Parse receipt_ids — may arrive as a JSON string or a List
-    List<int>? receiptIds;
-    final rawReceipts = json['receipt_ids'];
-    if (rawReceipts is String) {
-      final decoded = jsonDecode(rawReceipts);
-      if (decoded is List) {
-        receiptIds = decoded.map((e) => (e as num).toInt()).toList();
-      }
-    } else if (rawReceipts is List) {
-      receiptIds = rawReceipts.map((e) => (e as num).toInt()).toList();
-    }
-
-    // Parse channelDetails — may arrive as a JSON string or a Map
-    Map<String, dynamic>? channelDetails;
-    final rawChannel = json['channel_details'];
-    if (rawChannel is String) {
-      final decoded = jsonDecode(rawChannel);
-      if (decoded is Map) channelDetails = Map<String, dynamic>.from(decoded);
-    } else if (rawChannel is Map) {
-      channelDetails = Map<String, dynamic>.from(rawChannel);
-    }
-
-    // Parse dispatchDetails — may arrive as a JSON string or a Map
-    Map<String, dynamic>? dispatchDetails;
-    final rawDispatch = json['dispatch_details'];
-    if (rawDispatch is String) {
-      final decoded = jsonDecode(rawDispatch);
-      if (decoded is Map) dispatchDetails = Map<String, dynamic>.from(decoded);
-    } else if (rawDispatch is Map) {
-      dispatchDetails = Map<String, dynamic>.from(rawDispatch);
-    }
-
     return RefundModel(
-      id:                   _toInt(json['id']) ?? 0,
-      orgId:                _toInt(json['org_id']) ?? 0,
-      clientId:             _toInt(json['client_id']) ?? 0,
-      bookingId:            _toInt(json['booking_id']) ?? 0,
-      invoiceId:            _toInt(json['invoice_id']),
-      transactionEntryId:   _toInt(json['transaction_entry_id']),
-      requestedBy:          _toInt(json['requested_by']),
-      approvedBy:           _toInt(json['approved_by']),
-      processedBy:          _toInt(json['processed_by']),
-      reversedBy:           _toInt(json['reversed_by']),
-      refundAmount:         _toDouble(json['refund_amount']) ?? 0.0,
+      id:                   toIntOrNull(json['id']) ?? 0,
+      orgId:                toIntOrNull(json['org_id']) ?? 0,
+      clientId:             toIntOrNull(json['client_id']) ?? 0,
+      bookingId:            toIntOrNull(json['booking_id']) ?? 0,
+      invoiceId:            toIntOrNull(json['invoice_id']),
+      transactionEntryId:   toIntOrNull(json['transaction_entry_id']),
+      requestedBy:          toIntOrNull(json['requested_by']),
+      approvedBy:           toIntOrNull(json['approved_by']),
+      processedBy:          toIntOrNull(json['processed_by']),
+      reversedBy:           toIntOrNull(json['reversed_by']),
+      refundAmount:         toDoubleOrNull(json['refund_amount']) ?? 0.0,
       refundChannel:        json['refund_channel']?.toString() ?? '',
       refundReason:         json['refund_reason']?.toString() ?? '',
       status:               json['status']?.toString() ?? '',
-      approvalLevel:        json['approval_level'] as String?,
-      approvedAt:           json['approved_at'] as String?,
-      processedAt:          json['processed_at'] as String?,
-      reversedAt:           json['reversed_at'] as String?,
-      reversalReason:       json['reversal_reason'] as String?,
-      notes:                json['notes'] as String?,
-      createdOn:            json['created_on'] as String?,
-      updatedOn:            json['updated_on'] as String?,
-      requestedByName:      json['requested_by_name'] as String?,
-      approvedByName:       json['approved_by_name'] as String?,
-      clientName:           json['client_name'] as String?,
-      bookingRef:           json['booking_ref'] as String?,
-      receiptIds:           receiptIds,
-      channelDetails:       channelDetails,
-      dispatchDetails:      dispatchDetails,
+      approvalLevel:        toStrOrNull(json['approval_level']),
+      approvedAt:           toStrOrNull(json['approved_at']),
+      processedAt:          toStrOrNull(json['processed_at']),
+      reversedAt:           toStrOrNull(json['reversed_at']),
+      reversalReason:       toStrOrNull(json['reversal_reason']),
+      notes:                toStrOrNull(json['notes']),
+      createdOn:            toStrOrNull(json['created_on']),
+      updatedOn:            toStrOrNull(json['updated_on']),
+      requestedByName:      toStrOrNull(json['requested_by_name']),
+      approvedByName:       toStrOrNull(json['approved_by_name']),
+      clientName:           toStrOrNull(json['client_name']),
+      bookingRef:           toStrOrNull(json['booking_ref']),
+      receiptIds:           toIntList(json['receipt_ids']),
+      channelDetails:       toJsonMap(json['channel_details']),
+      dispatchDetails:      toJsonMap(json['dispatch_details']),
+      approvalHistory:      json['approval_history'] is List
+          ? ApprovalHistoryModel.fromJsonList(json['approval_history'] as List)
+          : const [],
     );
   }
 
@@ -176,5 +136,5 @@ class RefundModel {
   };
 
   static List<RefundModel> fromJsonList(List list) =>
-      list.map((e) => RefundModel.fromJson(e as Map<String, dynamic>)).toList();
+      parseList(list, RefundModel.fromJson);
 }

@@ -3,6 +3,7 @@ import 'package:eldivex_app/app/core/values/color_constants.dart';
 import 'package:eldivex_app/app/routes/app_pages.dart';
 import 'package:get/get.dart';
 
+import '../../../role/controllers/role_controller.dart';
 import '../../controllers/dashboard_controller.dart';
 import 'dashboard_shimmer.dart';
 import 'dashboard_status_card.dart';
@@ -21,18 +22,14 @@ class DashboardStatsSection extends GetView<DashboardController> {
 
   bool _trendUp(String key) => (controller.trends[key] ?? 0) >= 0;
 
-  @override
-  Widget build(BuildContext context) {
-    return Obx(() {
-      if (controller.dashboardLoading.value) {
-        return DashboardShimmer.statsSection();
-      }
-
-      return Wrap(
-        spacing: 20,
-        runSpacing: 20,
-        children: [
-          DashboardStatCard(
+  /// Declarative card registry: each card names the role module that gates it,
+  /// so a role only sees the metrics for the modules it can access (e.g. a role
+  /// without `Billing` never sees Revenue / Collection). One readable place to
+  /// audit dashboard RBAC.
+  List<_StatCardSpec> get _specs => [
+        _StatCardSpec(
+          module: 'Users',
+          build: () => DashboardStatCard(
             title: 'Total Clients',
             value: controller.formattedTotalClients,
             percentage: _trendText('totalClients'),
@@ -42,7 +39,10 @@ class DashboardStatsSection extends GetView<DashboardController> {
             iconColor: AppColor.cPrimaryButtonColor,
             onTap: () => Get.toNamed(Routes.CLIENT_USERS),
           ),
-          DashboardStatCard(
+        ),
+        _StatCardSpec(
+          module: 'Bookings',
+          build: () => DashboardStatCard(
             title: 'Total Bookings',
             value: controller.formattedTotalBookings,
             percentage: _trendText('totalBookings'),
@@ -52,7 +52,10 @@ class DashboardStatsSection extends GetView<DashboardController> {
             iconColor: const Color(0xFF2563EB),
             onTap: () => Get.toNamed(Routes.BOOKINGS),
           ),
-          DashboardStatCard(
+        ),
+        _StatCardSpec(
+          module: 'Bookings',
+          build: () => DashboardStatCard(
             title: 'Active Bookings',
             value: controller.formattedActiveBookings,
             percentage: _trendText('activeBookings'),
@@ -62,7 +65,10 @@ class DashboardStatsSection extends GetView<DashboardController> {
             iconColor: const Color(0xFF059669),
             onTap: () => Get.toNamed(Routes.BOOKINGS),
           ),
-          DashboardStatCard(
+        ),
+        _StatCardSpec(
+          module: 'Bookings',
+          build: () => DashboardStatCard(
             title: 'Completed Bookings',
             value: controller.formattedCompletedBookings,
             percentage: _trendText('completedBookings'),
@@ -72,7 +78,10 @@ class DashboardStatsSection extends GetView<DashboardController> {
             iconColor: const Color(0xFF0284C7),
             onTap: () => Get.toNamed(Routes.BOOKINGS),
           ),
-          DashboardStatCard(
+        ),
+        _StatCardSpec(
+          module: 'Billing',
+          build: () => DashboardStatCard(
             title: 'Revenue',
             value: controller.formattedRevenue,
             percentage: _trendText('totalRevenue'),
@@ -82,7 +91,10 @@ class DashboardStatsSection extends GetView<DashboardController> {
             iconColor: const Color(0xFF7C3AED),
             onTap: () => Get.toNamed(Routes.ACCOUNTS),
           ),
-          DashboardStatCard(
+        ),
+        _StatCardSpec(
+          module: 'Billing',
+          build: () => DashboardStatCard(
             title: 'Collection Rate',
             value: controller.formattedCollectionRate,
             subtitle: 'Outstanding ${controller.formattedOutstanding}',
@@ -93,7 +105,10 @@ class DashboardStatsSection extends GetView<DashboardController> {
             iconColor: const Color(0xFFEA580C),
             onTap: () => Get.toNamed(Routes.OUTSTANDING_DASHBOARD),
           ),
-          DashboardStatCard(
+        ),
+        _StatCardSpec(
+          module: 'HP Modules',
+          build: () => DashboardStatCard(
             title: 'Health Professionals',
             value: controller.formattedTotalHPs,
             icon: Icons.person_outline,
@@ -101,8 +116,37 @@ class DashboardStatsSection extends GetView<DashboardController> {
             iconColor: const Color(0xFFDB2777),
             onTap: () => Get.toNamed(Routes.REGISTER_CG),
           ),
-        ],
-      );
+        ),
+      ];
+
+  @override
+  Widget build(BuildContext context) {
+    final roles = Get.find<RoleController>();
+    return Obx(() {
+      roles.accessList.length; // rebuild once role access loads
+
+      final cards = _specs
+          .where((s) => roles.hasAccess(s.module))
+          .map((s) => s.build())
+          .toList();
+
+      if (controller.dashboardLoading.value) {
+        // Shimmer only the cards this role will actually see, so the layout
+        // doesn't jump once data lands.
+        return DashboardShimmer.statsSection(count: cards.length);
+      }
+
+      if (cards.isEmpty) return const SizedBox.shrink();
+
+      return Wrap(spacing: 20, runSpacing: 20, children: cards);
     });
   }
+}
+
+/// One role-gated stat card: the module it requires + its builder.
+class _StatCardSpec {
+  final String module;
+  final Widget Function() build;
+
+  _StatCardSpec({required this.module, required this.build});
 }

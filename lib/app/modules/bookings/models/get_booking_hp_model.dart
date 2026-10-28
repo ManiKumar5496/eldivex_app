@@ -12,7 +12,6 @@ class GetBookingHpModel {
   final String? outTime;
   final DateTime? reportingDateActual;
   final DateTime? endDateActual;
-  final int? otp;
   final DateTime? otpVerificationDatetime;
   final String? otpVerificationIpAddress;
   final DateTime? createdOn;
@@ -66,7 +65,6 @@ class GetBookingHpModel {
     this.outTime,
     this.reportingDateActual,
     this.endDateActual,
-    this.otp,
     this.otpVerificationDatetime,
     this.otpVerificationIpAddress,
     this.createdOn,
@@ -111,82 +109,65 @@ class GetBookingHpModel {
   static int? _iN(dynamic v) =>
       v == null ? null : (v is num ? v.toInt() : int.tryParse(v.toString()));
 
+  static String? _s(dynamic v) {
+    if (v == null) return null;
+    final s = v.toString();
+    return s.trim() == 'NA' ? null : s;
+  }
+
+  static DateTime? _d(dynamic v) => v == null ? null : DateTime.tryParse(v.toString());
+
   factory GetBookingHpModel.fromJson(Map<String, dynamic> json) {
     return GetBookingHpModel(
       id: _i(json['id']),
       bkngId: _i(json['bkng_id']),
       hpUniqueId: _i(json['hp_unique_id']),
-      interviewDate: json['interview_date'] != null
-          ? DateTime.tryParse(json['interview_date'])
-          : null,
-      interviewTime: json['interview_time'],
-      interviewExpirydate: json['interview_expirydate'] != null
-          ? DateTime.tryParse(json['interview_expirydate'])
-          : null,
-      reportingDatePlanned: json['reporting_date_planned'] != null
-          ? DateTime.tryParse(json['reporting_date_planned'])
-          : null,
-      endDatePlanned: json['end_date_planned'] != null
-          ? DateTime.tryParse(json['end_date_planned'])
-          : null,
+      interviewDate: _d(json['interview_date']),
+      interviewTime: _s(json['interview_time']),
+      interviewExpirydate: _d(json['interview_expirydate']),
+      reportingDatePlanned: _d(json['reporting_date_planned']),
+      endDatePlanned: _d(json['end_date_planned']),
       reportingDateRequestedByClient:
-          json['reporting_date_requested_by_client'] != null
-              ? DateTime.tryParse(json['reporting_date_requested_by_client'])
-              : null,
-      inTime: json['in_time'],
-      outTime: json['out_time'],
-      reportingDateActual: json['reporting_date_actual'] != null
-          ? DateTime.tryParse(json['reporting_date_actual'])
-          : null,
-      endDateActual: json['end_date_actual'] != null
-          ? DateTime.tryParse(json['end_date_actual'])
-          : null,
-      otp: _iN(json['otp']),
-      otpVerificationDatetime: json['otp_verification_datetime'] != null
-          ? DateTime.tryParse(json['otp_verification_datetime'])
-          : null,
-      otpVerificationIpAddress: json['otp_verification_ip_address'],
-      createdOn: json['created_on'] != null
-          ? DateTime.tryParse(json['created_on'])
-          : null,
+          _d(json['reporting_date_requested_by_client']),
+      inTime: _s(json['in_time']),
+      outTime: _s(json['out_time']),
+      reportingDateActual: _d(json['reporting_date_actual']),
+      endDateActual: _d(json['end_date_actual']),
+      otpVerificationDatetime: _d(json['otp_verification_datetime']),
+      otpVerificationIpAddress: _s(json['otp_verification_ip_address']),
+      createdOn: _d(json['created_on']),
       createdBy: _i(json['created_by']),
-      updatedOn: json['updated_on'] != null
-          ? DateTime.tryParse(json['updated_on'])
-          : null,
+      updatedOn: _d(json['updated_on']),
       updatedBy: _i(json['updated_by']),
       status: _i(json['status']),
-      otpGeneratationDatetime: json['otp_generatation_datetime'] != null
-          ? DateTime.tryParse(json['otp_generatation_datetime'])
-          : null,
-      placementTime: json['placement_time'],
+      otpGeneratationDatetime: _d(json['otp_generatation_datetime']),
+      placementTime: _s(json['placement_time']),
       hpRegId: _iN(json['hp_reg_id']),
-      hpRegPhoto: json['hp_reg_photo'],
-      hpRegFirstName: json['hp_reg_first_name'],
-      hpRegLastName: json['hp_reg_last_name'],
-      hpRegEmail: json['hp_reg_email'],
-      hpRegPhoneNumber: json['hp_reg_phone_number'],
-      hpRegAddress: json['hp_reg_address'],
-      hpRegDob: json['hp_reg_dob'] != null
-          ? DateTime.tryParse(json['hp_reg_dob'])
-          : null,
+      hpRegPhoto: _s(json['hp_reg_photo']),
+      hpRegFirstName: _s(json['hp_reg_first_name']),
+      hpRegLastName: _s(json['hp_reg_last_name']),
+      hpRegEmail: _s(json['hp_reg_email']),
+      hpRegPhoneNumber: _s(json['hp_reg_phone_number']),
+      hpRegAddress: _s(json['hp_reg_address']),
+      hpRegDob: _d(json['hp_reg_dob']),
       hpRegGender: _iN(json['hp_reg_gender']),
-      hpRegCity: json['hp_reg_city'],
-      hpRegState: json['hp_reg_state'],
+      hpRegCity: _s(json['hp_reg_city']),
+      hpRegState: _s(json['hp_reg_state']),
       hpRegPinCode: _iN(json['hp_reg_pin_code']),
-      hpRegEmergencyContactPhone: json['hp_reg_emergency_contact_phone'],
-      hpRegLanguages: json['hp_reg_languages'],
+      hpRegEmergencyContactPhone: _s(json['hp_reg_emergency_contact_phone']),
+      hpRegLanguages: _s(json['hp_reg_languages']),
       hpRegBranchId: _iN(json['hp_reg_branch_id']),
       hpRegMaritalStatus: _iN(json['hp_reg_marital_status']),
       hpRegExperience: _iN(json['hp_reg_experience']),
-      hpRegFatherName: json['hp_reg_father_name'],
-      hpRegFatherOccupation: json['hp_reg_father_occupation'],
-      hpRegMotherName: json['hp_reg_mother_name'],
-      hpRegIdentityProofType: json['hp_reg_identity_proof_type'],
-      hpRegIdentityProofNumber: json['hp_reg_identity_proof_number'],
-      hpRegIdentityProofFrontImage: json['hp_reg_identity_proof_front_image'],
-      hpRegIdentityProofBackImage: json['hp_reg_identity_proof_back_image'],
-      hpRegEducation: json['hp_reg_education'],
-      hpRegEducationCertificate: json['hp_reg_education_certificate'],
+      hpRegFatherName: _s(json['hp_reg_father_name']),
+      hpRegFatherOccupation: _s(json['hp_reg_father_occupation']),
+      hpRegMotherName: _s(json['hp_reg_mother_name']),
+      hpRegIdentityProofType: _s(json['hp_reg_identity_proof_type']),
+      hpRegIdentityProofNumber: _s(json['hp_reg_identity_proof_number']),
+      hpRegIdentityProofFrontImage: _s(json['hp_reg_identity_proof_front_image']),
+      hpRegIdentityProofBackImage: _s(json['hp_reg_identity_proof_back_image']),
+      hpRegEducation: _s(json['hp_reg_education']),
+      hpRegEducationCertificate: _s(json['hp_reg_education_certificate']),
       hpRegStatus: _iN(json['hp_reg_status']),
     );
   }
@@ -207,7 +188,6 @@ class GetBookingHpModel {
       'out_time': outTime,
       'reporting_date_actual': reportingDateActual?.toIso8601String(),
       'end_date_actual': endDateActual?.toIso8601String(),
-      'otp': otp,
       'otp_verification_datetime':
           otpVerificationDatetime?.toIso8601String(),
       'otp_verification_ip_address': otpVerificationIpAddress,

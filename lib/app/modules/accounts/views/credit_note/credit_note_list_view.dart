@@ -3,29 +3,16 @@ import 'package:get/get.dart';
 import 'package:eldivex_app/app/core/values/color_constants.dart';
 import 'package:eldivex_app/app/core/values/text_style_constants.dart';
 import 'package:eldivex_app/app/core/values/size_configue.dart';
+import '../../../../routes/app_pages.dart';
 import '../../../../widgets/shimmer_loader.dart';
 import '../../controllers/credit_note_controller.dart';
 import '../../models/credit_note_model.dart';
+import '../accounts_format.dart';
 
 class CreditNoteListView extends GetView<CreditNoteController> {
   const CreditNoteListView({super.key});
 
-  Color _statusColor(String status) {
-    switch (status.toLowerCase()) {
-      case 'active':
-        return Colors.green;
-      case 'partially_applied':
-      case 'partially applied':
-        return Colors.orange;
-      case 'fully_applied':
-      case 'fully applied':
-        return Colors.blue;
-      case 'expired':
-        return Colors.red;
-      default:
-        return AppColor.fontColorGrey;
-    }
-  }
+  Color _statusColor(String status) => accountsStatusColor(status);
 
   Color _typeColor(String type) {
     switch (type.toLowerCase()) {
@@ -39,6 +26,10 @@ class CreditNoteListView extends GetView<CreditNoteController> {
         return Colors.blue;
       case 'cancellation':
         return Colors.orange;
+      case 'hold':
+        return Colors.blue;
+      case 'overpayment':
+        return Colors.teal;
       default:
         return AppColor.fontColorGrey;
     }
@@ -61,10 +52,17 @@ class CreditNoteListView extends GetView<CreditNoteController> {
     }
   }
 
-  bool _canApply(String status) {
-    final s = status.toLowerCase();
-    return s == 'active' || s == 'partially_applied' || s == 'partially applied';
-  }
+  void _openDetail(CreditNoteModel note) => Get.toNamed(
+        Routes.CREDIT_NOTE_DETAIL,
+        arguments: note,
+        parameters: {'id': '${note.id}'},
+      );
+
+  void _openApply(CreditNoteModel note) => Get.toNamed(
+        Routes.APPLY_CREDIT_NOTE,
+        arguments: note,
+        parameters: {'id': '${note.id}'},
+      );
 
   @override
   Widget build(BuildContext context) {
@@ -91,7 +89,7 @@ class CreditNoteListView extends GetView<CreditNoteController> {
             child: SizeConfig.isMobile
                 ? IconButton(
                     onPressed: () =>
-                        Get.toNamed('/accounts/credit-note/create'),
+                        Get.toNamed(Routes.CREATE_CREDIT_NOTE),
                     icon: Icon(Icons.add,
                         color: AppColor.cPrimaryButtonColor,
                         size: SizeConfig.iconMD),
@@ -99,7 +97,7 @@ class CreditNoteListView extends GetView<CreditNoteController> {
                   )
                 : ElevatedButton.icon(
                     onPressed: () =>
-                        Get.toNamed('/accounts/credit-note/create'),
+                        Get.toNamed(Routes.CREATE_CREDIT_NOTE),
                     icon: Icon(Icons.add, size: SizeConfig.iconSM, color: AppColor.buttonTextWhite),
                     label: Text('New Credit Note',
                         style: TextStyle(
@@ -145,11 +143,7 @@ class CreditNoteListView extends GetView<CreditNoteController> {
                 border: Border.all(color: AppColor.textFieldBorderColor),
               ),
               child: TextField(
-                onChanged: (q) {
-                  if (q.isEmpty) {
-                    controller.creditNotes.refresh();
-                  }
-                },
+                onChanged: controller.searchCreditNotes,
                 style: TextStyle(fontSize: SizeConfig.fontBody),
                 decoration: InputDecoration(
                   hintText: 'Search by booking, client, type...',
@@ -189,9 +183,8 @@ class CreditNoteListView extends GetView<CreditNoteController> {
   }
 
   Widget _buildStatusFilters() {
-    final filters = [
-      'All', 'Active', 'Partially Applied', 'Fully Applied', 'Expired',
-    ];
+    // getCreditNotes filters on edx_credit_notes.status.
+    final filters = ['All', 'Pending', 'Approved', 'Rejected'];
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       padding: EdgeInsets.symmetric(
@@ -214,7 +207,7 @@ class CreditNoteListView extends GetView<CreditNoteController> {
       if (controller.isLoading.value) {
         return const ShimmerLoader.table();
       }
-      final notes = controller.creditNotes;
+      final notes = controller.filteredCreditNotes;
       if (notes.isEmpty) {
         return Center(
           child: Column(
@@ -259,16 +252,16 @@ class CreditNoteListView extends GetView<CreditNoteController> {
   }
 
   Widget _buildMobileCreditNoteCard(CreditNoteModel note) {
-    final statusColor = _statusColor(note.status);
+    final statusColor = _statusColor(note.displayStatus);
     final typeColor = _typeColor(note.creditType);
     final double amount = note.amount;
-    final double remaining = amount;
+    final double remaining = note.available;
     final double progress = amount > 0
         ? ((amount - remaining) / amount).clamp(0.0, 1.0)
         : 0.0;
 
     return InkWell(
-      onTap: () => Get.toNamed('/accounts/credit-note/detail', arguments: note.id),
+      onTap: () => _openDetail(note),
       borderRadius: BorderRadius.circular(SizeConfig.radiusMD),
       child: Container(
         margin: EdgeInsets.only(bottom: SizeConfig.spacingSM),
@@ -305,7 +298,7 @@ class CreditNoteListView extends GetView<CreditNoteController> {
                     color: statusColor.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(20),
                   ),
-                  child: Text(note.status,
+                  child: Text(humanizeStatus(note.displayStatus),
                       style: TextStyle(
                           color: statusColor,
                           fontSize: SizeConfig.fontCaption,
@@ -334,10 +327,14 @@ class CreditNoteListView extends GetView<CreditNoteController> {
                           fontWeight: FontWeight.w500)),
                 ),
                 SizedBox(width: SizeConfig.spacingXS),
-                Text('#${note.bookingId}',
-                    style: TextStyle(
-                        fontSize: SizeConfig.fontBodySmall,
-                        color: AppColor.fontColorGrey)),
+                Flexible(
+                  child: Text(
+                      '#${note.bookingId}${note.clientName != null ? ' · ${note.clientName}' : ''}',
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                          fontSize: SizeConfig.fontBodySmall,
+                          color: AppColor.fontColorGrey)),
+                ),
                 const Spacer(),
                 Text(_formatDateStr(note.creditDate),
                     style: TextStyle(
@@ -377,16 +374,19 @@ class CreditNoteListView extends GetView<CreditNoteController> {
               ),
             ),
 
+            if (note.status == 'Pending') ...[
+              SizedBox(height: SizeConfig.spacingMD),
+              _approvalButtons(note),
+            ],
+
             // Bottom: Apply button if applicable
-            if (_canApply(note.status)) ...[
+            if (note.canApply) ...[
               SizedBox(height: SizeConfig.spacingMD),
               SizedBox(
                 width: double.infinity,
                 height: 44,
                 child: ElevatedButton.icon(
-                  onPressed: () => Get.toNamed(
-                      '/accounts/credit-note/apply',
-                      arguments: note.id),
+                  onPressed: () => _openApply(note),
                   icon: Icon(Icons.check_circle_outline,
                       size: SizeConfig.iconSM, color: AppColor.buttonTextWhite),
                   label: Text('Apply Credit Note',
@@ -420,9 +420,7 @@ class CreditNoteListView extends GetView<CreditNoteController> {
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: AppColor.divColor),
         ),
-        child: SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: DataTable(
+        child: horizontalTable(DataTable(
             headingRowColor: WidgetStateProperty.all(AppColor.cAppBackgroundColor),
             headingTextStyle: TextStyle(
               fontWeight: FontWeight.w600,
@@ -434,12 +432,12 @@ class CreditNoteListView extends GetView<CreditNoteController> {
             horizontalMargin: SizeConfig.spacingMD,
             columns: const [
               DataColumn(label: Text('Credit Note #')),
-              DataColumn(label: Text('Booking')),
+              DataColumn(label: Text('Client / Booking')),
               DataColumn(label: Text('Type')),
               DataColumn(label: Text('Amount')),
               DataColumn(label: Text('Remaining')),
               DataColumn(label: Text('Status')),
-              DataColumn(label: Text('Expiry')),
+              DataColumn(label: Text('Date')),
               DataColumn(label: Text('Actions')),
             ],
             rows: notes.map((note) {
@@ -452,25 +450,21 @@ class CreditNoteListView extends GetView<CreditNoteController> {
                 DataCell(Text('-')), DataCell(Text('-')),
               ]);
             }).toList(),
-          ),
-        ),
+        )),
       ),
     );
   }
 
   DataRow _buildRow(CreditNoteModel note) {
-    final statusColor = _statusColor(note.status);
+    final statusColor = _statusColor(note.displayStatus);
     final typeColor = _typeColor(note.creditType);
     final double amount = note.amount;
-    final double remaining = amount;
+    final double remaining = note.available;
     final double used = amount - remaining;
     final double progress = amount > 0 ? (used / amount).clamp(0.0, 1.0) : 0.0;
 
     return DataRow(
-      onSelectChanged: (_) => Get.toNamed(
-        '/accounts/credit-note/detail',
-        arguments: note.id,
-      ),
+      onSelectChanged: (_) => _openDetail(note),
       cells: [
         DataCell(Text(
           'CN-${note.id}',
@@ -480,7 +474,10 @@ class CreditNoteListView extends GetView<CreditNoteController> {
             color: AppColor.cPrimaryButtonColor,
           ),
         )),
-        DataCell(Text('#${note.bookingId}',
+        DataCell(Text(
+            note.clientName != null
+                ? '${note.clientName} · #${note.bookingId}'
+                : '#${note.bookingId}',
             style: TextStyle(fontSize: SizeConfig.fontBodySmall))),
         DataCell(Container(
           padding: EdgeInsets.symmetric(
@@ -533,13 +530,13 @@ class CreditNoteListView extends GetView<CreditNoteController> {
             color: statusColor.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(20),
           ),
-          child: Text(note.status,
+          child: Text(humanizeStatus(note.displayStatus),
               style: TextStyle(
                   color: statusColor,
                   fontSize: SizeConfig.fontCaption,
                   fontWeight: FontWeight.w500)),
         )),
-        DataCell(Text(_formatDateStr(note.creditDate),
+        DataCell(Text(_formatDateStr(note.creditDate ?? note.createdOn),
             style: TextStyle(
                 fontSize: SizeConfig.fontBodySmall,
                 color: AppColor.fontColorGrey))),
@@ -555,8 +552,7 @@ class CreditNoteListView extends GetView<CreditNoteController> {
         Tooltip(
           message: 'View Details',
           child: InkWell(
-            onTap: () => Get.toNamed('/accounts/credit-note/detail',
-                arguments: note.id),
+            onTap: () => _openDetail(note),
             borderRadius: BorderRadius.circular(6),
             child: Container(
               padding: EdgeInsets.all(SizeConfig.spacingSM),
@@ -569,13 +565,16 @@ class CreditNoteListView extends GetView<CreditNoteController> {
             ),
           ),
         ),
-        if (_canApply(note.status)) ...[
+        if (note.status == 'Pending') ...[
+          SizedBox(width: SizeConfig.spacingXS),
+          _approvalButtons(note, compact: true),
+        ],
+        if (note.canApply) ...[
           SizedBox(width: SizeConfig.spacingXS),
           Tooltip(
             message: 'Apply',
             child: InkWell(
-              onTap: () => Get.toNamed('/accounts/credit-note/apply',
-                  arguments: note.id),
+              onTap: () => _openApply(note),
               borderRadius: BorderRadius.circular(6),
               child: Container(
                 padding: EdgeInsets.symmetric(
@@ -600,23 +599,58 @@ class CreditNoteListView extends GetView<CreditNoteController> {
     );
   }
 
-  String _formatCurrency(double amount) {
-    return '₹${amount.toStringAsFixed(0)}';
+  /// Approve / Reject buttons for a Pending credit note
+  /// (PATCH /updateCreditNoteStatus).
+  Widget _approvalButtons(CreditNoteModel note, {bool compact = false}) {
+    return Obx(() {
+      final busy = controller.isSubmitting.value;
+      Widget btn(String label, Color color, String action) => compact
+          ? Tooltip(
+              message: label,
+              child: InkWell(
+                onTap: busy ? null : () => controller.confirmAndUpdateStatus(note, action),
+                borderRadius: BorderRadius.circular(6),
+                child: Container(
+                  padding: EdgeInsets.symmetric(
+                      horizontal: SizeConfig.spacingSM,
+                      vertical: SizeConfig.spacingXS),
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(color: color.withValues(alpha: 0.3)),
+                  ),
+                  child: Text(label,
+                      style: TextStyle(
+                          fontSize: SizeConfig.fontBodySmall,
+                          fontWeight: FontWeight.w600,
+                          color: color)),
+                ),
+              ),
+            )
+          : Expanded(
+              child: OutlinedButton(
+                onPressed: busy ? null : () => controller.confirmAndUpdateStatus(note, action),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: color,
+                  side: BorderSide(color: color.withValues(alpha: 0.5)),
+                ),
+                child: Text(label),
+              ),
+            );
+      return Row(
+        mainAxisSize: compact ? MainAxisSize.min : MainAxisSize.max,
+        children: [
+          btn('Approve', Colors.green.shade700, 'Approved'),
+          SizedBox(width: SizeConfig.spacingXS),
+          btn('Reject', Colors.red.shade700, 'Rejected'),
+        ],
+      );
+    });
   }
 
-  String _formatDateStr(String? s) {
-    if (s == null || s.isEmpty) return '—';
-    try {
-      final dt = DateTime.parse(s);
-      const months = [
-        'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-        'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
-      ];
-      return '${dt.day.toString().padLeft(2, '0')}-${months[dt.month - 1]}-${dt.year}';
-    } catch (_) {
-      return s;
-    }
-  }
+  String _formatCurrency(double amount) => formatInr(amount);
+
+  String _formatDateStr(String? s) => formatAccDate(s, pattern: 'dd-MMM-yyyy');
 }
 
 class _FilterChipItem extends StatefulWidget {
@@ -637,7 +671,7 @@ class _FilterChipItem extends StatefulWidget {
 }
 
 class _FilterChipItemState extends State<_FilterChipItem> {
-  static final RxString _selected = 'All'.obs;
+  RxString get _selected => widget.controller.statusFilter;
 
   @override
   Widget build(BuildContext context) {
@@ -650,18 +684,7 @@ class _FilterChipItemState extends State<_FilterChipItem> {
           selected: isSelected,
           onSelected: (_) {
             _selected.value = widget.label;
-            if (widget.label == 'All') {
-              widget.controller.loadCreditNotes();
-            } else {
-              final statusMap = {
-                'Active': 'Active',
-                'Partially Applied': 'Partially Applied',
-                'Fully Applied': 'Fully Applied',
-                'Expired': 'Expired',
-              };
-              widget.controller
-                  .loadCreditNotes(status: statusMap[widget.label]);
-            }
+            widget.controller.loadCreditNotes();
           },
           backgroundColor: AppColor.whiteColor,
           selectedColor: AppColor.cPrimaryButtonColor.withValues(alpha: 0.1),

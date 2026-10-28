@@ -25,9 +25,16 @@ class SaasPlanModel {
       name:          json['name']?.toString() ?? '',
       bookingLimit:  (json['booking_limit'] as num?)?.toInt() ?? 0,
       hpLimit:       (json['hp_limit'] as num?)?.toInt() ?? 0,
-      pricePerMonth: (json['price_per_month'] as num?)?.toDouble() ?? 0,
+      pricePerMonth: _toDouble(json['price_per_month']),
       features:      feat,
     );
+  }
+
+  /// Tolerates DECIMAL columns serialized as String (e.g. "999.00")
+  /// as well as numeric JSON values.
+  static double _toDouble(dynamic v) {
+    if (v is num) return v.toDouble();
+    return double.tryParse(v?.toString() ?? '') ?? 0;
   }
 
   static List<SaasPlanModel> listFromJson(List<dynamic> list) =>

@@ -65,6 +65,25 @@ class ManageHostelsView extends StatelessWidget {
                 if (c.isLoading.value) {
                   return const Center(child: CircularProgressIndicator());
                 }
+                if (c.loadError.value.isNotEmpty && c.allHostels.isEmpty) {
+                  return Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.error_outline, size: 40, color: AppColor.fontColorGrey),
+                        const SizedBox(height: 8),
+                        Text(c.loadError.value,
+                            style: TextStyle(color: AppColor.fontColorGrey)),
+                        const SizedBox(height: 8),
+                        OutlinedButton.icon(
+                          onPressed: c.fetchHostels,
+                          icon: const Icon(Icons.refresh),
+                          label: const Text('Retry'),
+                        ),
+                      ],
+                    ),
+                  );
+                }
                 final list = c.filteredHostels;
                 if (list.isEmpty) {
                   return Center(
@@ -101,7 +120,8 @@ class _HostelCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isMale = hostel.gender.toLowerCase() == 'male';
+    final genderLabel = HostelsController.normalizeGenderLabel(hostel.gender);
+    final isMale = genderLabel == 'Male';
     final genderColor = isMale ? const Color(0xFF2D7DD2) : const Color(0xFFD81B8C);
     return InkWell(
       borderRadius: BorderRadius.circular(12),
@@ -136,7 +156,7 @@ class _HostelCard extends StatelessWidget {
                       c.prepareEdit(hostel);
                       Get.to(() => const CreateHostelScreen());
                     } else if (v == 'toggle') {
-                      c.toggleStatus(hostel);
+                      _confirmToggle(hostel);
                     }
                   },
                   itemBuilder: (_) => [
@@ -158,7 +178,7 @@ class _HostelCard extends StatelessWidget {
                     color: genderColor.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(20),
                   ),
-                  child: Text(hostel.gender,
+                  child: Text(genderLabel,
                       style: TextStyle(
                           color: genderColor,
                           fontSize: 12,
@@ -190,6 +210,46 @@ class _HostelCard extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+
+  void _confirmToggle(GetHostelsModel h) {
+    final deactivate = h.status == 1;
+    Get.dialog(
+      AlertDialog(
+        backgroundColor: AppColor.whiteColor,
+        title: Text(deactivate ? 'Deactivate hostel?' : 'Activate hostel?'),
+        content: Text(deactivate
+            ? '${h.hostelName} will no longer accept new caregivers or appear in settlements.'
+            : '${h.hostelName} will accept caregivers again.'),
+        actions: [
+          Obx(() => TextButton(
+                onPressed: c.togglingHostelId.value != null ? null : Get.back,
+                child: const Text('Cancel'),
+              )),
+          Obx(() {
+            final busy = c.togglingHostelId.value != null;
+            return ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: deactivate ? AppColor.calenderRed : AppColor.cAppPrimaryColor,
+                foregroundColor: AppColor.buttonTextWhite,
+              ),
+              onPressed: busy
+                  ? null
+                  : () async {
+                      final ok = await c.toggleStatus(h);
+                      if (ok && (Get.isDialogOpen ?? false)) Get.back();
+                    },
+              child: busy
+                  ? const SizedBox(
+                      width: 16, height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2))
+                  : Text(deactivate ? 'Deactivate' : 'Activate'),
+            );
+          }),
+        ],
+      ),
+      barrierDismissible: false,
     );
   }
 

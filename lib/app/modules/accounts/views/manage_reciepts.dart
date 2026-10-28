@@ -14,7 +14,7 @@ class ManageRecieptsView extends GetView<AccountsController> {
   @override
   Widget build(BuildContext context) {
     SizeConfig.init(context);
-    Get.put(AccountsController());
+    if (!Get.isRegistered<AccountsController>()) Get.put(AccountsController());
     return Scaffold(
       backgroundColor: Colors.transparent,
       floatingActionButton: FloatingActionButton.extended(
@@ -38,8 +38,15 @@ class ManageRecieptsView extends GetView<AccountsController> {
     );
   }
 
-  void _showRecordReceiptSheet(BuildContext context) {
+  /// Opens the record-payment sheet from anywhere (e.g. the invoice list),
+  /// optionally pre-selecting [invoice].
+  static void openRecordSheet(BuildContext context, {InvoiceModel? invoice}) {
+    const ManageRecieptsView()._showRecordReceiptSheet(context, invoice: invoice);
+  }
+
+  void _showRecordReceiptSheet(BuildContext context, {InvoiceModel? invoice}) {
     controller.clearRecordPaymentForm();
+    if (invoice != null) controller.selectInvoiceForPayment(invoice);
     showModalBottomSheet(
       context: context,
       isDismissible: false,
@@ -650,10 +657,7 @@ class ManageRecieptsView extends GetView<AccountsController> {
                   child: SizedBox(
                     height: 44,
                     child: ElevatedButton.icon(
-                      onPressed: () {
-                        controller.selectReceiptForPayment(receipt);
-                        _showRecordReceiptSheet(context);
-                      },
+                      onPressed: () => controller.approveReceipt(receipt),
                       icon: Icon(Icons.check,
                           size: SizeConfig.iconSM, color: AppColor.buttonTextWhite),
                       label: Text('Approve',
@@ -816,11 +820,7 @@ class ManageRecieptsView extends GetView<AccountsController> {
                             Tooltip(
                               message: 'Approve Payment',
                               child: InkWell(
-                                onTap: () {
-                                  controller
-                                      .selectReceiptForPayment(receipt);
-                                  _showRecordReceiptSheet(context);
-                                },
+                                onTap: () => controller.approveReceipt(receipt),
                                 borderRadius: BorderRadius.circular(6),
                                 child: Container(
                                   padding: EdgeInsets.symmetric(
