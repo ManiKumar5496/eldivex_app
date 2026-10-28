@@ -118,14 +118,8 @@ class SettingsView extends GetView<SettingsController> {
     );
   }
 
-  /// The signed-in staff member's role is the org's "Super Admin" (the
-  /// server checks the same rule before any plan request).
-  bool _isSuperAdmin() {
-    if (!Get.isRegistered<RoleController>()) return false;
-    final roles = Get.find<RoleController>().allAccessRoles;
-    return roles.isNotEmpty &&
-        roles.first.roleName.trim().toLowerCase() == 'super admin';
-  }
+  bool _isSuperAdmin() =>
+      Get.isRegistered<RoleController>() && Get.find<RoleController>().isSuperAdmin;
 
   void _showSubscriptionDialog(BuildContext context) {
     final api = ApiService();

@@ -37,6 +37,7 @@ import '../../settings/views/branch_management_view.dart';
 import '../../settings/views/services_management_view.dart';
 import '../../settings/views/service_categories_view.dart';
 import '../../settings/views/org_profile_view.dart';
+import '../../settings/views/plan_view.dart';
 import '../../audit_log/controllers/audit_log_controller.dart';
 import '../../audit_log/views/audit_log_view.dart';
 import '../../reports/controllers/reports_controller.dart';
@@ -49,7 +50,6 @@ import '../../accounts/controllers/internal_transfer_controller.dart';
 import '../../accounts/controllers/outstanding_controller.dart';
 import '../../accounts/views/write_off/write_off_list_view.dart';
 import '../../accounts/views/refund/refund_list_view.dart';
-import '../../accounts/views/credit_note/credit_note_list_view.dart';
 import '../../accounts/views/internal_transfer/transfer_list_view.dart';
 import '../../accounts/views/outstanding/outstanding_dashboard_view.dart';
 import 'package:eldivex_app/app/core/values/lucide_icons.dart';
@@ -171,9 +171,8 @@ class _SideMenuWidgetViewState extends State<SideMenuWidgetView> {
       final finDashboard      = pageIndex + 5;
       final writeOffs         = pageIndex + 6;
       final refunds           = pageIndex + 7;
-      final creditNotesList   = pageIndex + 8;
-      final internalTransfers = pageIndex + 9;
-      final outstanding       = pageIndex + 10;
+      final internalTransfers = pageIndex + 8;
+      final outstanding       = pageIndex + 9;
 
       menuItems.add(
         MenuItemData(
@@ -188,7 +187,6 @@ class _SideMenuWidgetViewState extends State<SideMenuWidgetView> {
             MenuItemData(title: 'User Statement',      pageIndex: userStateMent),
             MenuItemData(title: 'Outstanding',         pageIndex: outstanding),
             MenuItemData(title: 'Credit Notes',        pageIndex: creditNotes),
-            MenuItemData(title: 'Credit Note Mgmt',    pageIndex: creditNotesList),
             MenuItemData(title: 'Refunds',             pageIndex: refunds),
             MenuItemData(title: 'Write-offs',          pageIndex: writeOffs),
             MenuItemData(title: 'Internal Transfers',  pageIndex: internalTransfers),
@@ -205,10 +203,9 @@ class _SideMenuWidgetViewState extends State<SideMenuWidgetView> {
       pages.add(const RevenueRecognitionView());
       pages.add(const WriteOffListView());
       pages.add(const RefundListView());
-      pages.add(const CreditNoteListView());
       pages.add(const TransferListView());
       pages.add(const OutstandingDashboardView());
-      pageIndex += 11;
+      pageIndex += 10;
     }
 
     if (hasAccess('Users')) {
@@ -328,6 +325,9 @@ class _SideMenuWidgetViewState extends State<SideMenuWidgetView> {
     }
 
     if (hasAccess('Settings')) {
+      // Plan & Renewal is the org's Super Admin's only; last, so the other
+      // pages keep their indices.
+      final superAdmin               = rolesController.isSuperAdmin;
       final orgProfileIndex          = pageIndex;
       final manageEmpRolesIndex      = pageIndex + 1;
       final addEmployees             = pageIndex + 2;
@@ -337,6 +337,7 @@ class _SideMenuWidgetViewState extends State<SideMenuWidgetView> {
       final branchManagementIndex    = pageIndex + 6;
       final servicesManagementIndex  = pageIndex + 7;
       final serviceCategoriesIndex   = pageIndex + 8;
+      final planRenewalIndex         = pageIndex + 9;
 
       menuItems.add(
         MenuItemData(
@@ -354,6 +355,8 @@ class _SideMenuWidgetViewState extends State<SideMenuWidgetView> {
             MenuItemData(title: 'Banners',               pageIndex: bannersIndex),
             MenuItemData(title: 'OTP & Coupons',         pageIndex: otpCuponIndex),
             MenuItemData(title: 'Audit Log',             pageIndex: auditLogIndex),
+            if (superAdmin)
+              MenuItemData(title: 'Plan & Renewal',      pageIndex: planRenewalIndex),
           ],
         ),
       );
@@ -367,7 +370,8 @@ class _SideMenuWidgetViewState extends State<SideMenuWidgetView> {
       pages.add(const BranchManagementView());
       pages.add(const ServicesManagementView());
       pages.add(const ServiceCategoriesView());
-      pageIndex += 9;
+      if (superAdmin) pages.add(const PlanView(embedded: true));
+      pageIndex += superAdmin ? 10 : 9;
     }
 
     return {

@@ -14,6 +14,12 @@ class RoleController extends GetxController {
   /// True once a fetch for the current session has finished (success or not),
   /// so route guards can tell "not loaded yet" from "no access".
   final RxBool accessLoaded = false.obs;
+
+  /// The signed-in role is the org's "Super Admin" — the server applies the
+  /// same rule to the plan pages and requests.
+  bool get isSuperAdmin =>
+      allAccessRoles.isNotEmpty &&
+      allAccessRoles.first.roleName.trim().toLowerCase() == 'super admin';
   int roleId = adminRoleId();
   int orgId  = adminOrgId();
   String token = (box.read("user_token") ?? "").toString();

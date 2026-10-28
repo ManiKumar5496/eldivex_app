@@ -22,9 +22,18 @@ String _date(dynamic v, [String fallback = '—']) {
 
 int? _int(dynamic v) => v is int ? v : int.tryParse('${v ?? ''}');
 
-/// Settings → Plan & Renewal (Super Admin only).
+/// Settings → Plan & Renewal (Super Admin only). [embedded]: shown as a page
+/// of the admin shell (sidebar) rather than as its own route.
 class PlanView extends GetView<PlanController> {
-  const PlanView({super.key});
+  const PlanView({super.key, this.embedded = false});
+
+  final bool embedded;
+
+  // The shell page has no route binding.
+  @override
+  PlanController get controller => Get.isRegistered<PlanController>()
+      ? Get.find<PlanController>()
+      : Get.put(PlanController());
 
   @override
   Widget build(BuildContext context) {
@@ -53,7 +62,8 @@ class PlanView extends GetView<PlanController> {
     final header = AppPageHeader(
       title: 'Plan & Renewal',
       subtitle: 'Your Eldivex plan, how much of it you use, and renewal requests.',
-      onBack: () => Get.back(),
+      // Inside the shell, Get.back() would pop the whole shell.
+      onBack: embedded ? null : () => Get.back(),
       actions: [
         ElevatedButton.icon(
           onPressed: sub == null || pending != null ? null : _openRequestDialog,
