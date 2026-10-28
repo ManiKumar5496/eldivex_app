@@ -313,18 +313,12 @@ class DashboardView extends GetView<DashboardController> {
               child: const Text('Apply'),
             ),
 
-            // ── Clear button (visible only when a filter is active) ──────────
-            if (controller.dashFrom.value.isNotEmpty ||
-                controller.dashTo.value.isNotEmpty ||
+            // ── Clear button (visible only when off the default filters) ─────
+            if (controller.activePreset.value !=
+                    DashboardController.defaultPreset ||
                 controller.filterBranchId.value != null)
               TextButton.icon(
-                onPressed: () {
-                  controller.dashFrom.value = '';
-                  controller.dashTo.value = '';
-                  controller.filterBranchId.value = null;
-                  controller.activePreset.value = '';
-                  controller.fetchDashboardStats();
-                },
+                onPressed: controller.resetDashboardFilters,
                 style: TextButton.styleFrom(
                   foregroundColor: AppColor.textSecondary,
                   minimumSize: const Size(0, 36),

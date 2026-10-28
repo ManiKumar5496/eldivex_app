@@ -75,6 +75,9 @@ class DashboardController extends GetxController {
       totalBilled.value > 0 ? (totalCollected.value / totalBilled.value) * 100 : 0;
 
   // ── Date presets + auto-refresh ─────────────────────────────────────────────
+  /// Quick range selected when the dashboard opens and after Clear.
+  static const String defaultPreset = '30d';
+
   /// Currently selected quick-range preset ('today' | '7d' | '30d' | 'month' |
   /// 'all'); empty when a custom range is in effect.
   final RxString activePreset = ''.obs;
@@ -95,7 +98,7 @@ class DashboardController extends GetxController {
     getMasterRoles();
     getMasterModulesApi();
     getAllBranchesApi();
-    fetchDashboardStats();
+    applyDatePreset(defaultPreset);
     // Silently refresh the dashboard every 5 minutes so the data stays current.
     _refreshTimer = Timer.periodic(
       const Duration(minutes: 5),
@@ -299,6 +302,12 @@ class DashboardController extends GetxController {
       return;
     }
     refreshDashboard();
+  }
+
+  /// Back to the opening view: all branches, [defaultPreset] range.
+  void resetDashboardFilters() {
+    filterBranchId.value = null;
+    applyDatePreset(defaultPreset);
   }
 
   /// Re-fetch stats using the current filter selections.
