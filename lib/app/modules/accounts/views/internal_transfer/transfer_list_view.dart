@@ -21,8 +21,9 @@ class _TransferListViewState extends State<TransferListView> {
   late final InternalTransferController ctrl;
 
   // Local filter state
-  int? _selectedClientId;
-  String _selectedStatus = 'All';
+  // Filters live on the controller so they survive reloads and revisits.
+  int? get _selectedClientId => ctrl.filterClientId.value;
+  String get _selectedStatus => ctrl.filterStatus.value;
 
   final List<String> _statusOptions = [
     'All',
@@ -61,12 +62,7 @@ class _TransferListViewState extends State<TransferListView> {
     }
   }
 
-  void _applyFilters() {
-    ctrl.loadTransfers(
-      clientId: _selectedClientId?.toString(),
-      status: _selectedStatus == 'All' ? null : _selectedStatus,
-    );
-  }
+  void _applyFilters() => ctrl.loadTransfers();
 
   // ─────────────────────────────────────────────
   // Build
@@ -217,7 +213,7 @@ class _TransferListViewState extends State<TransferListView> {
                       }),
                     ],
                     onChanged: (v) {
-                      setState(() => _selectedClientId = v);
+                      setState(() => ctrl.filterClientId.value = v);
                       _applyFilters();
                     },
                   ),
@@ -236,7 +232,7 @@ class _TransferListViewState extends State<TransferListView> {
                 selected: isSelected,
                 showCheckmark: false,
                 onSelected: (_) {
-                  setState(() => _selectedStatus = s);
+                  setState(() => ctrl.filterStatus.value = s);
                   _applyFilters();
                 },
                 labelStyle: TextStyle(

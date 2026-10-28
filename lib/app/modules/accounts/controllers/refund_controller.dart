@@ -182,6 +182,28 @@ class RefundController extends GetxController {
   /// POST /api/createRefund
   /// { client_id (= user_id), booking_id, refund_amount, refund_channel,
   ///   refund_reason, notes, receipt_ids, channel_details }. Returns true on success.
+  /// The channel fields the form marks as required; null when complete.
+  String? _missingChannelDetails() {
+    bool empty(TextEditingController c) => c.text.trim().isEmpty;
+    switch (refundChannel.value) {
+      case 'BANK_TRANSFER':
+        if (empty(bankNameCtrl) || empty(accountNumberCtrl) ||
+            empty(ifscCodeCtrl) || empty(accountHolderCtrl)) {
+          return 'Enter the bank name, account number, IFSC and account holder for a bank transfer.';
+        }
+        break;
+      case 'UPI':
+        if (empty(upiIdCtrl)) return 'Enter the UPI ID to refund to.';
+        break;
+      case 'CHEQUE':
+        if (empty(chequeNumberCtrl) || empty(chequeDateCtrl)) {
+          return 'Enter the cheque number and cheque date.';
+        }
+        break;
+    }
+    return null;
+  }
+
   Future<bool> createRefund() async {
     if (selectedClientId.value == null) {
       toastValidation('Please select a client');
@@ -194,6 +216,11 @@ class RefundController extends GetxController {
     final amount = double.tryParse(refundAmountCtrl.text.trim()) ?? 0;
     if (amount <= 0) {
       toastValidation('Please enter a valid refund amount');
+      return false;
+    }
+    final missing = _missingChannelDetails();
+    if (missing != null) {
+      toastValidation(missing);
       return false;
     }
 

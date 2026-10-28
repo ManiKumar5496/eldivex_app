@@ -50,15 +50,12 @@ class BookingOutstandingDetail extends GetView<OutstandingController> {
     final bookingRef = toStrOrNull(field(args, 'booking_ref')) ?? 'Booking #$bookingId';
     final service    = toStr(field(args, 'service'));
 
-    if (bookingId > 0 && controller.lastBookingRequested != bookingId) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        // The ledger is booking-scoped here; client/date filters don't apply.
-        controller.selectedClientId.value = null;
-        controller.fromDateCtrl.clear();
-        controller.toDateCtrl.clear();
-        controller.selectedBookingId.value = bookingId;
+    if (bookingId > 0) {
+      // Fresh figures on every visit. The ledger is scoped to this booking
+      // only — without touching the dashboard's client / date filters.
+      runOncePerRoute(context, 'bookingOutstanding', () {
         controller.loadBookingOutstanding(bookingId);
-        controller.loadLedger();
+        controller.loadLedger(bookingId: bookingId);
       });
     }
 
@@ -99,16 +96,38 @@ class BookingOutstandingDetail extends GetView<OutstandingController> {
 
                   final loaded = controller.bookingOutstanding.value;
                   final obs = loaded?.bookingId == bookingId ? loaded : null;
+                  final error = controller.bookingOutstandingError.value;
+
+                  // Not loaded yet (first frame) — never show a ₹0 balance.
+                  if (obs == null && error == null) {
+                    return const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 64),
+                      child: Center(child: CircularProgressIndicator()),
+                    );
+                  }
 
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      _buildBookingHeader(bookingRef, service, obs),
-                      const SizedBox(height: 20),
-                      if (obs != null) ...[
-                        _buildBreakdownCards(obs),
+                      if (obs == null)
+                        AppCard(
+                          child: AppEmptyState(
+                            icon: LucideIcons.circleAlert,
+                            tone: AppTone.danger,
+                            title: 'Balance unavailable',
+                            message: error,
+                            actionLabel: 'Retry',
+                            actionIcon: LucideIcons.refreshCw,
+                            onAction: () => controller.loadBookingOutstanding(bookingId),
+                            compact: true,
+                          ),
+                        )
+                      else ...[
+                        _buildBookingHeader(bookingRef, service, obs),
                         const SizedBox(height: 20),
+                        _buildBreakdownCards(obs),
                       ],
+                      const SizedBox(height: 20),
                       _buildLedgerSection(bookingId),
                     ],
                   );

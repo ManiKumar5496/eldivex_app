@@ -33,46 +33,51 @@ class CreditNotesView extends GetView<AccountsController> {
     }
     final embedded = accountsIsEmbeddedInTabs(context);
     final isMobile = SizeConfig.isMobile;
-    return Scaffold(
-      backgroundColor: AppColor.cAppBackgroundColor,
-      body: Padding(
-        padding: accountsPagePadding(context, bottom: !isMobile),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            if (!embedded) ...[
-              const AppPageHeader(
-                title: 'Credit notes',
-                subtitle:
-                    'Review credits raised when bookings are put on hold, cancelled or overpaid',
-              ),
-              SizedBox(height: isMobile ? 16 : 20),
-            ],
-            if (isMobile) ...[
-              _buildToolbar(),
-              _buildStatusFilters(),
-              Expanded(child: _buildBody()),
-            ] else
-              Expanded(
-                child: AppCard(
-                  expandChild: true,
-                  padding: EdgeInsets.zero,
-                  title: 'All credit notes',
-                  actions: [
-                    _searchField(width: 300),
-                    _refreshButton(),
-                  ],
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      _buildStatusFilters(),
-                      Divider(height: 1, color: AppColor.borderSubtle),
-                      Expanded(child: _buildBody()),
+    // Refetch whenever the page is opened: newer pages (Credit Note Mgmt,
+    // Write-offs) approve the same records, so a cached list goes stale.
+    return AccountsOnOpen(
+      onOpen: () => Get.find<AccountsController>().fetchCreditNotes(),
+      child: Scaffold(
+        backgroundColor: AppColor.cAppBackgroundColor,
+        body: Padding(
+          padding: accountsPagePadding(context, bottom: !isMobile),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (!embedded) ...[
+                const AppPageHeader(
+                  title: 'Credit notes',
+                  subtitle:
+                      'Review credits raised when bookings are put on hold, cancelled or overpaid',
+                ),
+                SizedBox(height: isMobile ? 16 : 20),
+              ],
+              if (isMobile) ...[
+                _buildToolbar(),
+                _buildStatusFilters(),
+                Expanded(child: _buildBody()),
+              ] else
+                Expanded(
+                  child: AppCard(
+                    expandChild: true,
+                    padding: EdgeInsets.zero,
+                    title: 'All credit notes',
+                    actions: [
+                      _searchField(width: 300),
+                      _refreshButton(),
                     ],
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        _buildStatusFilters(),
+                        Divider(height: 1, color: AppColor.borderSubtle),
+                        Expanded(child: _buildBody()),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-          ],
+            ],
+          ),
         ),
       ),
     );

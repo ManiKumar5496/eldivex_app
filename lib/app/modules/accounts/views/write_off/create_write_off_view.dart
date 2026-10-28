@@ -60,7 +60,7 @@ class _CreateWriteOffViewState extends State<CreateWriteOffView> {
 
   @override
   Widget build(BuildContext context) {
-    applyClientArgument(context, _selectClient);
+    prepareCreateForm(context, reset: ctrl.clearForm, selectClient: _selectClient);
     final pad = MediaQuery.sizeOf(context).width < 600 ? 16.0 : 24.0;
     return Scaffold(
       backgroundColor: AppColor.cAppBackgroundColor,

@@ -167,6 +167,7 @@ class CreditNoteListView extends GetView<CreditNoteController> {
           ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 320),
             child: AppSearchField(
+              controller: controller.searchCtrl,
               hint: 'Search by booking, client, type...',
               onChanged: controller.searchCreditNotes,
             ),

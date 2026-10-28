@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:eldivex_app/app/core/values/color_constants.dart';
+import 'package:eldivex_app/app/core/values/lucide_icons.dart';
 import 'package:get/get.dart';
 import '../../../data/api_constant_url.dart';
 import '../../../data/base_api_services.dart';
 import '../../../widgets/helper_ui.dart';
+import '../../../widgets/ui/ui.dart';
 import '../models/active_booking_client_model.dart';
 import '../models/provisional_receipt_model.dart';
 import '../models/client_statement_model.dart';
@@ -55,6 +57,14 @@ class AccountsController extends GetxController {
 
   RxList<ProvisionalReceipt> receipts = <ProvisionalReceipt>[].obs;
   RxList<ProvisionalReceipt> filteredReceipts = <ProvisionalReceipt>[].obs;
+  /// Receipt list status filter: 'All' | Approved | Pending | Cancelled.
+  RxString receiptStatusFilter = 'All'.obs;
+  final List<String> receiptStatusOptions = const [
+    'All',
+    'Approved',
+    'Pending',
+    'Cancelled',
+  ];
 
   RxList<ClientStatement> statements = <ClientStatement>[].obs;
   RxList<ClientStatement> filteredStatements = <ClientStatement>[].obs;
@@ -71,6 +81,9 @@ class AccountsController extends GetxController {
       TextEditingController();
   final TextEditingController searchWriteOffController =
       TextEditingController();
+  final TextEditingController searchCreditNoteController =
+      TextEditingController();
+  final TextEditingController searchClaimController = TextEditingController();
 
   // ─────────────────────────────────────────────
   // Filter Controllers
@@ -95,6 +108,8 @@ class AccountsController extends GetxController {
   final TextEditingController recordPaymentRemarksController =
       TextEditingController();
 
+  /// Every invoice with a balance, regardless of the invoice list's status /
+  /// search filter ([invoices] is always the unfiltered list).
   List<InvoiceModel> get invoicesWithBalance =>
       invoices.where((i) => i.balanceDue > 0).toList();
 
@@ -151,6 +166,8 @@ class AccountsController extends GetxController {
   // Invoices
   // ─────────────────────────────────────────────
   RxBool isLoadingInvoices = false.obs;
+  /// All invoices (never server-filtered); the list view shows
+  /// [filteredInvoices], the record-receipt sheet uses [invoicesWithBalance].
   RxList<InvoiceModel> invoices         = <InvoiceModel>[].obs;
   RxList<InvoiceModel> filteredInvoices = <InvoiceModel>[].obs;
   RxString invoiceStatusFilter          = ''.obs;
@@ -170,6 +187,11 @@ class AccountsController extends GetxController {
   RxBool isLoadingClaims              = false.obs;
   RxList<InsuranceClaimModel> claims         = <InsuranceClaimModel>[].obs;
   RxList<InsuranceClaimModel> filteredClaims = <InsuranceClaimModel>[].obs;
+  /// Claim list status filter: 'All' | Pending | Submitted | Approved | …
+  RxString claimStatusFilter                 = 'All'.obs;
+  /// Owned here (not by the page) so the search box and the filtered list
+  /// stay in step when the page is revisited.
+  final TextEditingController claimSearchController = TextEditingController();
   // Insurance claim form controllers
   final TextEditingController claimTpaNameController      = TextEditingController();
   final TextEditingController claimPolicyNumberController = TextEditingController();
@@ -253,12 +275,19 @@ class AccountsController extends GetxController {
     'Debit Card',
   ];
 
-  final List<String> statusOptions = [
-    'All',
-    'Active',
-    'On Hold',
-    'Completed',
-  ];
+  /// Active-clients status filter: label → booking status codes ('1'..'7').
+  /// An empty list means no status filter.
+  static const Map<String, List<String>> clientStatusFilters = {
+    'All': [],
+    'Active': ['4'],
+    'Booking Submitted': ['1'],
+    'HP Assigned': ['2'],
+    'On Hold': ['5'],
+    'Suspended': ['7'],
+    'Cancelled': ['3', '6'],
+  };
+
+  List<String> get statusOptions => clientStatusFilters.keys.toList();
 
   final List<String> approverList = [
     'Admin',
@@ -293,6 +322,8 @@ class AccountsController extends GetxController {
     searchReceiptController.dispose();
     searchStatementController.dispose();
     searchWriteOffController.dispose();
+    searchCreditNoteController.dispose();
+    searchClaimController.dispose();
     searchInvoiceController.dispose();
     filterBookingIdController.dispose();
     filterClientNameController.dispose();
@@ -326,7 +357,7 @@ class AccountsController extends GetxController {
         } else {
           activeClients.value = [];
         }
-        filteredClients.value = List.from(activeClients);
+        _reapplyClientView();
       } else {
         toastApiError(response, 'Failed to load clients.');
       }
@@ -348,7 +379,7 @@ class AccountsController extends GetxController {
         } else {
           receipts.value = [];
         }
-        filteredReceipts.value = List.from(receipts);
+        _applyReceiptFilters();
       } else {
         toastApiError(response, 'Failed to load receipts.');
       }
@@ -359,26 +390,31 @@ class AccountsController extends GetxController {
     }
   }
 
+  /// Bumped by every statement-detail request (and when the detail closes) so
+  /// a slow response for a previously selected client is discarded.
+  int _statementRequestSeq = 0;
+
   Future<void> fetchStatements({int? bookingId, int? userId}) async {
+    if (bookingId == null && userId == null) {
+      // Populate summary list from already-loaded active clients
+      statements.value = activeClients.map(_clientToStatement).toList();
+      searchStatements(searchStatementController.text);
+      return;
+    }
+
+    final seq = ++_statementRequestSeq;
     isLoadingStatements.value = true;
     try {
-      if (bookingId == null && userId == null) {
-        // Populate summary list from already-loaded active clients
-        statements.value = activeClients.map(_clientToStatement).toList();
-        filteredStatements.value = List.from(statements);
-        return;
-      }
-
       String url = ApiConstants.getClientStatements;
       if (bookingId != null) url += '?booking_id=$bookingId';
       if (userId != null) url += '${bookingId != null ? '&' : '?'}user_id=$userId';
       final response = await _api.getRaw(url);
+      // A newer request (or closing the detail) superseded this one.
+      if (seq != _statementRequestSeq) return;
       if (response != null && response.statusCode == 200) {
         final data = response.data;
         if (data is List) {
-          final txns = data
-              .map((e) => StatementTransaction.fromJson(e as Map<String, dynamic>))
-              .toList();
+          final txns = parseList(data, StatementTransaction.fromJson);
           final isMultiBooking = bookingId == null && userId != null;
           final client = isMultiBooking
               ? activeClients.firstWhereOrNull((c) => c.userId == userId)
@@ -386,8 +422,20 @@ class AccountsController extends GetxController {
           final userClients = isMultiBooking
               ? activeClients.where((c) => c.userId == userId).toList()
               : <ActiveBookingClient>[];
+          // Statements now carry Write-off / Credit Note / Refund / Transfer
+          // lines too: billed = invoices, received = payments, closing =
+          // every debit minus every credit.
+          double sumOf(String kind) => txns
+              .where((t) => fmt.statementLineKind(t.type) == kind)
+              .fold(0.0, (s, t) => s + (t.credit > 0 ? t.credit : t.debit));
           final totalDebit  = txns.fold(0.0, (s, t) => s + t.debit);
           final totalCredit = txns.fold(0.0, (s, t) => s + t.credit);
+          final billed = txns
+              .where((t) => fmt.statementLineKind(t.type) == 'invoice')
+              .fold(0.0, (s, t) => s + t.debit);
+          final received = txns
+              .where((t) => fmt.statementLineKind(t.type) == 'payment')
+              .fold(0.0, (s, t) => s + t.credit);
           selectedStatement.value = ClientStatement(
             id:            bookingId ?? userId ?? 0,
             userId:        client?.userId ?? userId ?? 0,
@@ -401,9 +449,9 @@ class AccountsController extends GetxController {
                 ? '${userClients.length} booking${userClients.length == 1 ? '' : 's'}'
                 : (client?.serviceName ?? ''),
             transactions:  txns,
-            totalBilled:   totalDebit,
-            totalReceived: totalCredit,
-            totalWriteOff: 0,
+            totalBilled:   billed,
+            totalReceived: received,
+            totalWriteOff: sumOf('writeoff'),
             closingBalance: totalDebit - totalCredit,
           );
         }
@@ -411,9 +459,25 @@ class AccountsController extends GetxController {
         toastApiError(response, 'Failed to load statement.');
       }
     } catch (e) {
-      HelperUi.showToast(message: 'Error loading statements: $e');
+      if (seq == _statementRequestSeq) {
+        HelperUi.showToast(message: 'Error loading statements: $e');
+      }
     } finally {
-      isLoadingStatements.value = false;
+      if (seq == _statementRequestSeq) isLoadingStatements.value = false;
+    }
+  }
+
+  /// Reloads the active clients, then rebuilds the statement summaries and
+  /// the open statement (balances change after payments / write-offs).
+  Future<void> _refreshClientsAndStatements() async {
+    await fetchActiveClients();
+    await fetchStatements();
+    final sel = selectedStatement.value;
+    if (sel == null) return;
+    if (sel.bookingId != 0) {
+      await fetchStatements(bookingId: sel.bookingId);
+    } else if (sel.userId != 0) {
+      await fetchStatements(userId: sel.userId);
     }
   }
 
@@ -471,7 +535,7 @@ class AccountsController extends GetxController {
         } else {
           writeOffs.value = [];
         }
-        filteredWriteOffs.value = List.from(writeOffs);
+        searchWriteOffs(searchWriteOffController.text);
       } else {
         toastApiError(response, 'Failed to load write-offs.');
       }
@@ -495,23 +559,50 @@ class AccountsController extends GetxController {
             c.clientMobile.contains(q) ||
             c.patientName.toLowerCase().contains(q) ||
             c.bookingId.toString().contains(q) ||
-            c.serviceName.toLowerCase().contains(q);
+            c.serviceName.toLowerCase().contains(q) ||
+            c.city.toLowerCase().contains(q);
       }).toList();
     }
   }
 
-  void searchReceipts(String query) {
-    if (query.isEmpty) {
-      filteredReceipts.value = List.from(receipts);
+  bool get _hasClientFilters =>
+      filterBookingIdController.text.isNotEmpty ||
+      filterClientNameController.text.isNotEmpty ||
+      filterMobileController.text.isNotEmpty ||
+      (filterStatus.value.isNotEmpty && filterStatus.value != 'All') ||
+      filterCity.value.isNotEmpty;
+
+  /// Re-applies whichever narrowing the clients tab shows (filter panel or
+  /// search box) after the list reloads.
+  void _reapplyClientView() {
+    if (_hasClientFilters) {
+      applyClientFilters();
     } else {
-      final q = query.toLowerCase();
-      filteredReceipts.value = receipts.where((r) {
-        return r.clientName.toLowerCase().contains(q) ||
-            r.receiptNumber.toLowerCase().contains(q) ||
-            r.clientMobile.contains(q) ||
-            r.patientName.toLowerCase().contains(q);
-      }).toList();
+      searchClients(searchClientController.text);
     }
+  }
+
+  void searchReceipts(String query) => _applyReceiptFilters(search: query);
+
+  void setReceiptStatusFilter(String status) {
+    receiptStatusFilter.value = status;
+    _applyReceiptFilters();
+  }
+
+  /// Receipt list = [receipts] narrowed by the search box and status filter.
+  /// Called after every fetch / approve / cancel so both stay applied.
+  void _applyReceiptFilters({String? search}) {
+    final q = (search ?? searchReceiptController.text).trim().toLowerCase();
+    final status = receiptStatusFilter.value;
+    filteredReceipts.value = receipts.where((r) {
+      if (status != 'All' && r.status != status) return false;
+      if (q.isEmpty) return true;
+      return r.clientName.toLowerCase().contains(q) ||
+          r.receiptNumber.toLowerCase().contains(q) ||
+          r.clientMobile.contains(q) ||
+          r.patientName.toLowerCase().contains(q) ||
+          r.bookingId.toString().contains(q);
+    }).toList();
   }
 
   void searchStatements(String query) {
@@ -558,8 +649,11 @@ class AccountsController extends GetxController {
       if (filterMobileController.text.isNotEmpty) {
         match = match && c.clientMobile.contains(filterMobileController.text);
       }
-      if (filterStatus.value.isNotEmpty && filterStatus.value != 'All') {
-        match = match && c.status == filterStatus.value;
+      // Booking statuses are codes ('1'..'7'); the filter maps a label to
+      // its codes (e.g. Cancelled = '3' or '6').
+      final codes = clientStatusFilters[filterStatus.value] ?? const [];
+      if (codes.isNotEmpty) {
+        match = match && codes.contains(c.status.trim());
       }
       if (filterCity.value.isNotEmpty) {
         match = match &&
@@ -575,7 +669,7 @@ class AccountsController extends GetxController {
     filterMobileController.clear();
     filterStatus.value = '';
     filterCity.value = '';
-    filteredClients.value = List.from(activeClients);
+    searchClients(searchClientController.text);
   }
 
   // ─────────────────────────────────────────────
@@ -635,10 +729,12 @@ class AccountsController extends GetxController {
       });
       if (isOkResponse(response)) {
         await fetchReceipts();
-        fetchActiveClients();
+        _refreshClientsAndStatements();
         fetchInvoices();
         fetchCollectionsKPIs();
-        toastSuccess(successMsg);
+        // Cancelling an Approved receipt may only raise a maker-checker
+        // request — prefer the server's wording when it sends one.
+        toastSuccess(toStrOrNull(field(response?.data, 'message')) ?? successMsg);
       } else {
         toastApiError(response, 'Failed to update receipt.');
       }
@@ -652,48 +748,67 @@ class AccountsController extends GetxController {
   // ─────────────────────────────────────────────
   // Direct Payment: Invoice → create receipt + approve in one step
   // ─────────────────────────────────────────────
-  Future<void> recordDirectPayment() async {
+
+  /// Records a payment against the selected invoice. Returns true only when
+  /// the receipt was created (the record sheet closes on true only).
+  Future<bool> recordDirectPayment() async {
     final inv = selectedInvoiceForPayment.value;
     if (inv == null) {
-      HelperUi.showToast(
-          message: 'Please select an invoice', backgroundColor: Colors.red);
-      return;
+      toastValidation('Please select an invoice');
+      return false;
     }
-    if (recordPaymentAmountController.text.isEmpty) {
-      HelperUi.showToast(
-          message: 'Please enter payment amount', backgroundColor: Colors.red);
-      return;
+    if (recordPaymentAmountController.text.trim().isEmpty) {
+      toastValidation('Please enter payment amount');
+      return false;
     }
     if (recordPaymentMode.value.isEmpty) {
-      HelperUi.showToast(
-          message: 'Please select payment mode', backgroundColor: Colors.red);
-      return;
+      toastValidation('Please select payment mode');
+      return false;
+    }
+    if (inv.bookingId <= 0) {
+      toastValidation('This invoice is not linked to a booking.');
+      return false;
     }
 
-    final client =
-        activeClients.firstWhereOrNull((c) => c.bookingId == inv.bookingId);
-    if (client == null) {
-      HelperUi.showToast(
-        message: 'Client data not found for this invoice. Please refresh.',
-        backgroundColor: Colors.red,
-      );
-      return;
-    }
-
-    final amount = double.tryParse(recordPaymentAmountController.text) ?? 0;
+    final amount =
+        double.tryParse(recordPaymentAmountController.text.trim()) ?? 0;
     if (amount <= 0) {
-      HelperUi.showToast(
-          message: 'Amount must be greater than zero',
-          backgroundColor: Colors.red);
-      return;
+      toastValidation('Amount must be greater than zero');
+      return false;
     }
+
+    // More than the invoice balance: the extra is held as an advance on the
+    // booking — confirm instead of silently accepting it.
+    final balance = inv.balanceDue;
+    if (amount - balance > 0.005) {
+      final excess = amount - (balance > 0 ? balance : 0);
+      final ok = await showAppConfirmDialog(
+        title: 'Record as advance?',
+        message: '${formatCurrency(amount)} is more than the '
+            '${formatCurrency(balance > 0 ? balance : 0)} balance on '
+            '${inv.invoiceId}. The extra ${formatCurrency(excess)} will be '
+            'held as an advance on booking #${inv.bookingId}.\n\n'
+            'Record ${formatCurrency(amount)} as an advance?',
+        confirmLabel: 'Record advance',
+        tone: AppTone.warning,
+        icon: LucideIcons.triangleAlert,
+      );
+      if (!ok) return false;
+    }
+
+    // The invoice already carries the booking; the client list (which may
+    // not include this booking) is only a fallback for user_id.
+    final userId = activeClients
+        .firstWhereOrNull((c) => c.bookingId == inv.bookingId)
+        ?.userId;
 
     isLoadingReceipts.value = true;
     try {
       // Single API call — backend creates receipt as Approved directly
       final resp = await _api.postRaw(ApiConstants.createReceipt, {
-        'booking_id': client.bookingId,
-        'user_id': client.userId,
+        'booking_id': inv.bookingId,
+        'invoice_id': inv.invoiceDbId,
+        if (userId != null && userId > 0) 'user_id': userId,
         'amount': amount,
         'tax_amount': 0,
         'payment_mode': recordPaymentMode.value,
@@ -705,20 +820,20 @@ class AccountsController extends GetxController {
 
       if (!isOkResponse(resp)) {
         toastApiError(resp, 'Failed to record payment.');
-        return;
+        return false;
       }
 
       clearRecordPaymentForm();
       await fetchReceipts();
       await fetchInvoices();
-      fetchActiveClients();
+      _refreshClientsAndStatements();
       fetchCollectionsKPIs();
-      HelperUi.showToast(
-        message: 'Payment of ${formatCurrency(amount)} recorded against ${inv.invoiceId}.',
-        backgroundColor: Colors.green,
-      );
+      toastSuccess(
+          'Payment of ${formatCurrency(amount)} recorded against ${inv.invoiceId}.');
+      return true;
     } catch (e) {
-      HelperUi.showToast(message: 'Error recording payment: $e');
+      toastValidation('Error recording payment: $e');
+      return false;
     } finally {
       isLoadingReceipts.value = false;
     }
@@ -732,6 +847,9 @@ class AccountsController extends GetxController {
   }
 
   void closeStatementDetail() {
+    // Drop any in-flight detail response so it can't reopen the detail.
+    _statementRequestSeq++;
+    isLoadingStatements.value = false;
     selectedStatement.value = null;
   }
 
@@ -899,7 +1017,7 @@ class AccountsController extends GetxController {
   Future<void> cancelReceipt(int id) async {
     final ok = await _confirm(
       'Cancel Receipt',
-      'Cancel receipt #$id? This cannot be undone.',
+      'Cancel receipt #$id? It will no longer count towards what the client has paid. This cannot be undone.',
       confirmLabel: 'Cancel Receipt',
       color: Colors.red,
     );
@@ -910,10 +1028,14 @@ class AccountsController extends GetxController {
   // ─────────────────────────────────────────────
   // Invoice Methods
   // ─────────────────────────────────────────────
+  /// Always loads every invoice: [invoices] also feeds the record-receipt
+  /// sheet, so a server-side status filter would hide open invoices there.
+  /// The list's status chip is applied client-side ([invoiceStatusFilter]);
+  /// `status` is accepted for existing callers and ignored.
   Future<void> fetchInvoices({String? status}) async {
     isLoadingInvoices.value = true;
     try {
-      final url = ApiConstants.getInvoices(status: status);
+      final url = ApiConstants.getInvoices();
       final response = await _api.getRaw(url);
       if (response != null && response.statusCode == 200) {
         final data = response.data;
@@ -1082,7 +1204,7 @@ class AccountsController extends GetxController {
         final data = response.data;
         if (data is List) {
           claims.value = InsuranceClaimModel.listFromJson(data);
-          filteredClaims.value = List.from(claims);
+          applyClaimFilters();
         }
       }
     } catch (e) {
@@ -1098,6 +1220,16 @@ class AccountsController extends GetxController {
       HelperUi.showToast(message: 'Please select a client', backgroundColor: Colors.red);
       return;
     }
+    // The form marks these required; the server rejects a missing amount too.
+    if (claimTpaNameController.text.trim().isEmpty) {
+      HelperUi.showToast(message: 'Please enter the TPA / insurer name', backgroundColor: Colors.red);
+      return;
+    }
+    final claimAmount = double.tryParse(claimAmountController.text.trim()) ?? 0;
+    if (claimAmount <= 0) {
+      HelperUi.showToast(message: 'Please enter a claim amount greater than zero', backgroundColor: Colors.red);
+      return;
+    }
     isLoadingClaims.value = true;
     try {
       final response = await _api.postRaw(ApiConstants.createInsuranceClaim, {
@@ -1106,7 +1238,7 @@ class AccountsController extends GetxController {
         'tpa_name':        claimTpaNameController.text.trim(),
         'policy_number':   claimPolicyNumberController.text.trim(),
         'pre_auth_number': claimPreAuthController.text.trim(),
-        'claim_amount':    double.tryParse(claimAmountController.text) ?? 0,
+        'claim_amount':    claimAmount,
         'remarks':         claimRemarksController.text.trim(),
       });
       if (isOkResponse(response)) {
@@ -1137,6 +1269,24 @@ class AccountsController extends GetxController {
     } catch (e) {
       HelperUi.showToast(message: 'Error: $e');
     }
+  }
+
+  /// Search text and status chip together — the one place [filteredClaims]
+  /// is computed, re-run after every fetch.
+  void applyClaimFilters() {
+    final raw = claimSearchController.text.trim();
+    final q = raw.toLowerCase();
+    final st = claimStatusFilter.value;
+    filteredClaims.value = claims.where((c) {
+      if (st != 'All' && c.status != st) return false;
+      if (q.isEmpty) return true;
+      return (c.clientName ?? '').toLowerCase().contains(q) ||
+          (c.clientMobile ?? '').contains(raw) ||
+          (c.patientName ?? '').toLowerCase().contains(q) ||
+          c.bookingId.toString().contains(raw) ||
+          (c.tpaName ?? '').toLowerCase().contains(q) ||
+          (c.policyNumber ?? '').contains(raw);
+    }).toList();
   }
 
   void _clearClaimForm() {

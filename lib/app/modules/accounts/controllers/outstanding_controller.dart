@@ -60,6 +60,18 @@ class OutstandingController extends GetxController {
   int? lastClientRequested;
   int? lastBookingRequested;
 
+  /// Why the last client / booking outstanding load failed (null while
+  /// loading or after a success) — the detail pages show it with Retry
+  /// instead of a ₹0 balance.
+  final clientOutstandingError  = RxnString();
+  final bookingOutstandingError = RxnString();
+
+  /// Booking the ledger is scoped to on the booking detail page; null on the
+  /// dashboard, where the client / date filters apply. Kept separate so the
+  /// detail page never clears the dashboard's filters.
+  int? _ledgerBookingScope;
+  int _ledgerSeq = 0;
+
   // ─────────────────────────────────────────────
   // Text Controllers
   // ─────────────────────────────────────────────
@@ -176,18 +188,24 @@ class OutstandingController extends GetxController {
     lastClientRequested = clientId;
     isLoading.value = true;
     clientOutstanding.value = null;
+    clientOutstandingError.value = null;
     try {
       final response = await _api.getRaw(ApiConstants.getClientOutstanding(clientId));
+      if (lastClientRequested != clientId) return; // a newer request owns the page
       if (isOkResponse(response) && response!.data is Map) {
         clientOutstanding.value = OutstandingBalanceModel.fromJson(
             Map<String, dynamic>.from(response.data as Map));
       } else {
+        clientOutstandingError.value = 'Could not load this client\'s balance.';
         toastApiError(response, 'Failed to load client outstanding.');
       }
     } catch (e) {
+      if (lastClientRequested == clientId) {
+        clientOutstandingError.value = 'Could not load this client\'s balance.';
+      }
       toastValidation('Error loading client outstanding: $e');
     } finally {
-      isLoading.value = false;
+      if (lastClientRequested == clientId) isLoading.value = false;
     }
   }
 
@@ -196,18 +214,24 @@ class OutstandingController extends GetxController {
     lastBookingRequested = bookingId;
     isLoading.value = true;
     bookingOutstanding.value = null;
+    bookingOutstandingError.value = null;
     try {
       final response = await _api.getRaw(ApiConstants.getBookingOutstanding(bookingId));
+      if (lastBookingRequested != bookingId) return; // a newer request owns the page
       if (isOkResponse(response) && response!.data is Map) {
         bookingOutstanding.value = OutstandingBalanceModel.fromJson(
             Map<String, dynamic>.from(response.data as Map));
       } else {
+        bookingOutstandingError.value = 'Could not load this booking\'s balance.';
         toastApiError(response, 'Failed to load booking outstanding.');
       }
     } catch (e) {
+      if (lastBookingRequested == bookingId) {
+        bookingOutstandingError.value = 'Could not load this booking\'s balance.';
+      }
       toastValidation('Error loading booking outstanding: $e');
     } finally {
-      isLoading.value = false;
+      if (lastBookingRequested == bookingId) isLoading.value = false;
     }
   }
 
@@ -217,11 +241,16 @@ class OutstandingController extends GetxController {
   /// When [reset] is true the list and offset are cleared before fetching
   /// (use for first load and filter changes). When [reset] is false the
   /// response is appended for pagination.
-  Future<void> loadLedger({bool reset = true}) async {
+  /// Pass [bookingId] (booking detail page) to scope the ledger to that
+  /// booking alone; without it the dashboard's client / date filters apply.
+  /// Page loads ([reset] false) keep the scope of the first page.
+  Future<void> loadLedger({bool reset = true, int? bookingId}) async {
     if (reset) {
+      _ledgerBookingScope = bookingId;
       ledgerOffset.value = 0;
       ledgerEntries.clear();
     }
+    final seq = ++_ledgerSeq;
 
     isLedgerLoading.value = true;
     try {
@@ -230,21 +259,26 @@ class OutstandingController extends GetxController {
         'offset=${ledgerOffset.value}',
       ];
 
-      if (selectedClientId.value != null) {
-        params.add('client_id=${selectedClientId.value}');
-      }
-      if (selectedBookingId.value != null) {
-        params.add('booking_id=${selectedBookingId.value}');
-      }
-      if (fromDateCtrl.text.trim().isNotEmpty) {
-        params.add('from_date=${fromDateCtrl.text.trim()}');
-      }
-      if (toDateCtrl.text.trim().isNotEmpty) {
-        params.add('to_date=${toDateCtrl.text.trim()}');
+      if (_ledgerBookingScope != null) {
+        params.add('booking_id=$_ledgerBookingScope');
+      } else {
+        if (selectedClientId.value != null) {
+          params.add('client_id=${selectedClientId.value}');
+        }
+        if (selectedBookingId.value != null) {
+          params.add('booking_id=${selectedBookingId.value}');
+        }
+        if (fromDateCtrl.text.trim().isNotEmpty) {
+          params.add('from_date=${fromDateCtrl.text.trim()}');
+        }
+        if (toDateCtrl.text.trim().isNotEmpty) {
+          params.add('to_date=${toDateCtrl.text.trim()}');
+        }
       }
 
       final response =
           await _api.getRaw(ApiConstants.getTransactionLedger(params.join('&')));
+      if (seq != _ledgerSeq) return; // superseded by a newer ledger request
 
       if (isOkResponse(response)) {
         final data = response!.data;
@@ -276,7 +310,7 @@ class OutstandingController extends GetxController {
     } catch (e) {
       toastValidation('Error loading ledger: $e');
     } finally {
-      isLedgerLoading.value = false;
+      if (seq == _ledgerSeq) isLedgerLoading.value = false;
     }
   }
 

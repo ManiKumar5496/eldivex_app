@@ -7,9 +7,6 @@ class ApiConstants {
   ///   Production : flutter build web --release --dart-define=API_BASE_URL=http://13.233.237.76:4000/api
   static const String baseURL = String.fromEnvironment(
     'API_BASE_URL',
-    //defaultValue: 'http://localhost:4000/api',
-    //defaultValue: 'https://eldivexbe-production.up.railway.app/api',
-    //defaultValue: 'https://api.eldivex.com/api',
     defaultValue: 'http://13.233.237.76:4000/api',
   );
 
@@ -95,7 +92,7 @@ class ApiConstants {
   static const String approveWriteOff      = '$baseURL/approveWriteOff';
   static const String updateWriteOffStatus = '$baseURL/updateWriteOffStatus';
 
-  static String getReceipts({String? status, int? bookingId, String? periodFrom, String? periodTo, int limit = 200}) {
+  static String getReceipts({String? status, int? bookingId, String? periodFrom, String? periodTo, int limit = 1000}) {
     final params = <String>['limit=$limit'];
     if (status    != null) params.add('status=$status');
     if (bookingId != null) params.add('booking_id=$bookingId');
@@ -104,7 +101,7 @@ class ApiConstants {
     return '$baseURL/getReceipts?${params.join('&')}';
   }
 
-  static String getWriteOffs({String? status, int? bookingId, int limit = 200}) {
+  static String getWriteOffs({String? status, int? bookingId, int limit = 1000}) {
     final params = <String>['limit=$limit'];
     if (status    != null) params.add('status=$status');
     if (bookingId != null) params.add('booking_id=$bookingId');
@@ -118,7 +115,7 @@ class ApiConstants {
     String? from,
     String? to,
     int? branchId,
-    int limit = 200,
+    int limit = 1000,
   }) {
     final params = <String>['limit=$limit'];
     if (bookingId != null) params.add('booking_id=$bookingId');
@@ -181,7 +178,7 @@ class ApiConstants {
   static const String createInternalTransfer  = '$baseURL/createInternalTransfer';
   static const String approveInternalTransfer = '$baseURL/approveInternalTransfer';
 
-  static String getInternalTransfers({String? clientId, String? status, int limit = 200}) {
+  static String getInternalTransfers({String? clientId, String? status, int limit = 1000}) {
     final params = <String>['limit=$limit'];
     if (clientId != null) params.add('client_id=$clientId');
     if (status   != null) params.add('status=$status');
@@ -197,7 +194,7 @@ class ApiConstants {
   static const String createRefund  = '$baseURL/createRefund';
   static const String approveRefund = '$baseURL/approveRefund';
 
-  static String getRefunds(String extra, {String? bookingId, String? status, String? fromDate, String? toDate, int limit = 200}) {
+  static String getRefunds(String extra, {String? bookingId, String? status, String? fromDate, String? toDate, int limit = 1000}) {
     final params = <String>['limit=$limit'];
     if (bookingId != null && bookingId.isNotEmpty) params.add('booking_id=$bookingId');
     if (status    != null && status.isNotEmpty)    params.add('status=$status');

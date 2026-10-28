@@ -32,7 +32,7 @@ class CreateRefundView extends GetView<RefundController> {
 
   @override
   Widget build(BuildContext context) {
-    applyClientArgument(context, _selectClient);
+    prepareCreateForm(context, reset: controller.clearForm, selectClient: _selectClient);
     final pad = MediaQuery.sizeOf(context).width < 600 ? 16.0 : 24.0;
     return Scaffold(
       backgroundColor: AppColor.cAppBackgroundColor,
@@ -337,10 +337,11 @@ class CreateRefundView extends GetView<RefundController> {
                         AppTone tone;
                         if (amount <= 0) {
                           return const SizedBox.shrink();
-                        } else if (amount <= 1000) {
+                        // Same thresholds as the server (≤ ₹500 L1, ≤ ₹5,000 L2).
+                        } else if (amount <= 500) {
                           level = 'L1 — Supervisor Approval';
                           tone = AppTone.success;
-                        } else if (amount <= 10000) {
+                        } else if (amount <= 5000) {
                           level = 'L2 — Manager Approval';
                           tone = AppTone.warning;
                         } else {

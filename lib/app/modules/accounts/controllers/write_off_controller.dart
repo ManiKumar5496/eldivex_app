@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import '../../../data/api_constant_url.dart';
 import '../../../data/base_api_services.dart';
 import '../../../widgets/helper_ui.dart';
+import '../models/parse_utils.dart';
 import '../models/write_off_model.dart';
 import 'accounts_feedback.dart';
 
@@ -128,6 +129,19 @@ class WriteOffController extends GetxController {
     if (amount <= 0) {
       toastValidation('Write-off amount must be greater than zero.');
       return false;
+    }
+    // Friendly pre-check: never more than the booking still owes (the server
+    // enforces the same cap). outstanding_amount nets earlier adjustments.
+    final row = activeClients.firstWhereOrNull((r) =>
+        toInt(field(r, 'booking_id'), toInt(field(r, 'id'))) == selectedBookingId.value);
+    if (row != null) {
+      final due = toDouble(field(row, 'outstanding_amount'));
+      if (amount > due + 0.005) {
+        toastValidation(due > 0
+            ? 'Write-off can be at most ₹${due.toStringAsFixed(2)} — what this booking still owes.'
+            : 'This booking has nothing outstanding to write off.');
+        return false;
+      }
     }
 
     isSubmitting.value = true;

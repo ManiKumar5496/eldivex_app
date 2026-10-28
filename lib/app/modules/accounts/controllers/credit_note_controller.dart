@@ -7,6 +7,7 @@ import '../../../widgets/helper_ui.dart';
 import '../../../widgets/ui/ui.dart';
 import '../models/credit_note_model.dart';
 import '../models/credit_note_application_model.dart';
+import '../models/parse_utils.dart';
 import 'accounts_feedback.dart';
 import 'package:eldivex_app/app/core/values/lucide_icons.dart';
 
@@ -20,6 +21,10 @@ class CreditNoteController extends GetxController {
   // by getCreditNotes being org-scoped on the backend.
   var filteredCreditNotes      = <dynamic>[].obs;
   var searchQuery              = ''.obs;
+  /// Bound to the list's search box so its text matches [searchQuery] when
+  /// the page is revisited (the controller outlives the page).
+  late final TextEditingController searchCtrl =
+      TextEditingController(text: searchQuery.value);
   // Server-side status filter: 'All' | Pending | Approved | Rejected
   final statusFilter           = 'All'.obs;
   var selectedCreditNote       = Rxn<dynamic>();
@@ -263,6 +268,19 @@ class CreditNoteController extends GetxController {
   // ─────────────────────────────────────────────
 
   /// PATCH /api/updateCreditNoteStatus { id, status: 'Approved' | 'Rejected' }.
+  /// One credit note, ignoring the list's status filter.
+  Future<CreditNoteModel?> _fetchCreditNote(int id, {int? bookingId}) async {
+    try {
+      final response =
+          await _api.getRaw(ApiConstants.getCreditNotes(bookingId?.toString()));
+      if (!isOkResponse(response) || response!.data is! List) return null;
+      return CreditNoteModel.listFromJson(response.data as List)
+          .firstWhereOrNull((cn) => cn.id == id);
+    } catch (_) {
+      return null;
+    }
+  }
+
   Future<bool> approveCreditNote(int id, String action) async {
     isSubmitting.value = true;
     try {
@@ -274,8 +292,12 @@ class CreditNoteController extends GetxController {
         await loadCreditNotes();
         final sel = selectedCreditNote.value;
         if (sel is CreditNoteModel && sel.id == id) {
+          // The list may be filtered (e.g. "Pending") and no longer contain
+          // this note — re-read it unfiltered rather than keep the stale one.
           selectedCreditNote.value =
-              creditNotes.firstWhereOrNull((cn) => cn is CreditNoteModel && cn.id == id) ?? sel;
+              creditNotes.firstWhereOrNull((cn) => cn is CreditNoteModel && cn.id == id) ??
+                  await _fetchCreditNote(id, bookingId: sel.bookingId) ??
+                  sel;
         }
         toastSuccess('Credit note ${action.toLowerCase()}.');
         return true;
@@ -354,6 +376,16 @@ class CreditNoteController extends GetxController {
       toastValidation('Amount exceeds the remaining credit of ₹${note.available.toStringAsFixed(2)}.');
       return false;
     }
+    // Never credit an invoice past its open balance (the server enforces it).
+    final inv = targetInvoices.firstWhereOrNull(
+        (i) => toInt(field(i, 'invoice_db_id')) == selectedTargetInvoiceId.value);
+    if (inv != null) {
+      final open = toDouble(field(inv, 'balance_due'));
+      if (applyAmount > open + 0.005) {
+        toastValidation('Amount exceeds the invoice\'s open balance of ₹${open.toStringAsFixed(2)}.');
+        return false;
+      }
+    }
 
     isSubmitting.value = true;
     try {
@@ -396,6 +428,8 @@ class CreditNoteController extends GetxController {
     amountCtrl.clear();
     reasonCtrl.clear();
     creditDateCtrl.clear();
+    // Shared with the Apply screen — don't carry another booking's invoices.
+    targetInvoices.clear();
   }
 
   void clearApplyForm() {

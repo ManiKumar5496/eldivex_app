@@ -8,19 +8,73 @@ import 'package:eldivex_app/app/core/values/lucide_icons.dart';
 
 /// Formatting + status-colour helpers shared by every accounts screen.
 
-final Expando<bool> _clientArgApplied = Expando<bool>('clientArgApplied');
+/// Keys already handled per route instance (see [runOncePerRoute]).
+final Expando<Set<String>> _routeOnce = Expando<Set<String>>('accountsRouteOnce');
 
-/// The client outstanding page's Quick Actions open the create screens with
-/// `{'client_id': …}`. Calls [select] with that id once per visit to the
-/// route, after the first frame, so later dropdown changes aren't overridden.
-void applyClientArgument(BuildContext context, void Function(int id) select) {
+/// Runs [action] once per visit to the current route (after the first frame).
+///
+/// Accounts controllers are `fenix` singletons, so their state outlives the
+/// page. Detail/create pages use this to (re)load or reset per visit: a new
+/// `Get.toNamed` (or a browser refresh) creates a new route, rebuilds of the
+/// same route do not re-run [action]. Returns true when [action] was scheduled.
+bool runOncePerRoute(BuildContext context, String key, VoidCallback action) {
   final route = ModalRoute.of(context);
-  if (route == null || _clientArgApplied[route] == true) return;
-  _clientArgApplied[route] = true;
-  final args = route.settings.arguments ?? Get.arguments;
+  if (route == null) return false;
+  final done = _routeOnce[route] ??= <String>{};
+  if (!done.add(key)) return false;
+  WidgetsBinding.instance.addPostFrameCallback((_) => action());
+  return true;
+}
+
+/// Prepares a create screen once per visit: [reset] clears the previous
+/// attempt's form state, then — when the client outstanding page's Quick
+/// Actions passed `{'client_id': …}` — [selectClient] preselects that client.
+/// Runs after the first frame, so later dropdown changes aren't overridden.
+void prepareCreateForm(
+  BuildContext context, {
+  required VoidCallback reset,
+  void Function(int id)? selectClient,
+}) {
+  final route = ModalRoute.of(context);
+  final args = route?.settings.arguments ?? Get.arguments;
   final id = args is Map ? toIntOrNull(args['client_id']) : null;
-  if (id == null) return;
-  WidgetsBinding.instance.addPostFrameCallback((_) => select(id));
+  runOncePerRoute(context, 'prepareCreateForm', () {
+    reset();
+    if (id != null && selectClient != null) selectClient(id);
+  });
+}
+
+/// True when the page is shown as its own route [routeName] (pushed with
+/// `Get.toNamed` or opened by URL) rather than inside the side-menu shell.
+bool accountsIsOwnRoute(BuildContext context, String routeName) {
+  final name = ModalRoute.of(context)?.settings.name ?? '';
+  return name == routeName || name.startsWith('$routeName?');
+}
+
+/// Calls [onOpen] every time the page is shown. The side-menu shell and the
+/// AccountsView tab bar build their pages lazily (PageView / TabBarView), so
+/// the page is mounted afresh each time it is opened.
+class AccountsOnOpen extends StatefulWidget {
+  const AccountsOnOpen({super.key, required this.onOpen, required this.child});
+
+  final VoidCallback onOpen;
+  final Widget child;
+
+  @override
+  State<AccountsOnOpen> createState() => _AccountsOnOpenState();
+}
+
+class _AccountsOnOpenState extends State<AccountsOnOpen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) widget.onOpen();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.child;
 }
 
 final NumberFormat _inr = NumberFormat.currency(locale: 'en_IN', symbol: '₹');
@@ -117,6 +171,62 @@ Widget accountsStatusChip(String status, {double fontSize = 12}) {
     label: humanizeStatus(status),
     tone: _accountsStatusTone(status),
   );
+}
+
+/// Tone for a booking status code ('1'..'7').
+AppTone bookingStatusTone(String code) {
+  switch (code.trim()) {
+    case '4':
+      return AppTone.success;
+    case '1':
+    case '2':
+      return AppTone.info;
+    case '5':
+    case '7':
+      return AppTone.warning;
+    case '3':
+    case '6':
+      return AppTone.danger;
+    default:
+      return _accountsStatusTone(code);
+  }
+}
+
+/// Status pill for a booking: [label] (the backend `status_label` or the
+/// local code map) toned by the numeric [code].
+Widget bookingStatusChip(String code, String label) {
+  return AppStatusBadge(
+    label: label.isEmpty ? '—' : label,
+    tone: bookingStatusTone(code),
+  );
+}
+
+/// Normalises a statement line type: 'Write-off' / 'Write Off' → 'writeoff'.
+String statementLineKind(String type) =>
+    type.toLowerCase().replaceAll(RegExp(r'[^a-z]'), '');
+
+/// Tone for a client statement line type (Invoice, Payment, Write-off,
+/// Credit Note, Refund, Transfer In, Transfer Out).
+AppTone statementLineTone(String type) {
+  switch (statementLineKind(type)) {
+    case 'invoice':
+      return AppTone.info;
+    case 'payment':
+    case 'receipt':
+      return AppTone.success;
+    case 'writeoff':
+      return AppTone.warning;
+    case 'creditnote':
+      return AppTone.primary;
+    case 'refund':
+      return AppTone.violet;
+    case 'transferin':
+      return AppTone.success;
+    case 'transferout':
+      return AppTone.danger;
+    default:
+      return AppTone.neutral;
+  }
 }
 
 /// Wraps a DataTable so it scrolls horizontally on narrow screens while

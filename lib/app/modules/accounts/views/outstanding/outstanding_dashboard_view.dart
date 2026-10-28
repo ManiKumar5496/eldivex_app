@@ -4,6 +4,7 @@ import 'package:eldivex_app/app/core/values/color_constants.dart';
 import 'package:eldivex_app/app/widgets/ui/ui.dart';
 import '../../controllers/outstanding_controller.dart';
 import '../../../../routes/app_pages.dart';
+import '../../../../widgets/helper_ui.dart';
 import '../../models/active_booking_client_model.dart';
 import '../accounts_format.dart';
 import 'package:eldivex_app/app/core/values/lucide_icons.dart';
@@ -39,7 +40,7 @@ class OutstandingDashboardView extends GetView<OutstandingController> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            _buildPageHeader(),
+            _buildPageHeader(context),
             const SizedBox(height: 24),
             Obx(() {
               if (controller.isLoading.value &&
@@ -70,8 +71,12 @@ class OutstandingDashboardView extends GetView<OutstandingController> {
 
   // ─── page header ───────────────────────────────────────────────────────────
 
-  Widget _buildPageHeader() {
+  Widget _buildPageHeader(BuildContext context) {
+    // Back only when opened as its own page (dashboard card, notification) —
+    // inside the side-menu shell the sidebar is the navigation.
+    final ownRoute = accountsIsOwnRoute(context, Routes.OUTSTANDING_DASHBOARD);
     return AppPageHeader(
+      onBack: ownRoute ? () => HelperUi.safeBack(Routes.MAIN) : null,
       title: 'Accounts Receivable',
       subtitle: 'Outstanding balances, collections and invoice aging',
       actions: [

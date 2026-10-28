@@ -1,5 +1,27 @@
 import 'parse_utils.dart';
 
+/// Booking status codes ('1'..'7') stored in edx_bookings.status, with the
+/// same labels BookingsController uses. getActiveClients now also sends
+/// `status_label`; this map is the fallback when it is absent.
+const Map<String, String> kBookingStatusLabels = {
+  '1': 'Booking Submitted',
+  '2': 'HP Assigned',
+  '3': 'Booking Cancelled',
+  '4': 'Service Started',
+  '5': 'service on hold',
+  '6': 'Service cancelled',
+  '7': 'Service Suspended',
+};
+
+/// Codes '3' (booking cancelled) and '6' (service cancelled).
+const Set<String> kCancelledBookingStatuses = {'3', '6'};
+
+/// Display label for a booking status code (unknown values pass through).
+String bookingStatusLabel(String code) {
+  final c = code.trim();
+  return kBookingStatusLabels[c] ?? c;
+}
+
 class ActiveBookingClient {
   final int id;
   final int bookingId;
@@ -18,7 +40,12 @@ class ActiveBookingClient {
   final double totalBilled;
   final double totalPaid;
   final double outstandingAmount;
+
+  /// Booking status code ('1'..'7').
   final String status;
+
+  /// Backend `status_label` (e.g. 'Service Started'), else the local label.
+  final String statusLabel;
 
   const ActiveBookingClient({
     required this.id,
@@ -39,7 +66,14 @@ class ActiveBookingClient {
     required this.totalPaid,
     required this.outstandingAmount,
     required this.status,
-  });
+    String? statusLabel,
+  }) : statusLabel = statusLabel ?? '';
+
+  /// Display label: `status_label` when sent, else mapped from the code.
+  String get statusText =>
+      statusLabel.isNotEmpty ? statusLabel : bookingStatusLabel(status);
+
+  bool get isCancelled => kCancelledBookingStatuses.contains(status.trim());
 
   factory ActiveBookingClient.fromJson(Map<String, dynamic> json) {
     return ActiveBookingClient(
@@ -60,7 +94,8 @@ class ActiveBookingClient {
       totalBilled: toDouble(json['total_billed']),
       totalPaid: toDouble(json['total_paid']),
       outstandingAmount: toDouble(json['outstanding_amount']),
-      status: toStr(json['status'], 'Active'),
+      status: toStr(json['status']),
+      statusLabel: toStrOrNull(json['status_label']),
     );
   }
 

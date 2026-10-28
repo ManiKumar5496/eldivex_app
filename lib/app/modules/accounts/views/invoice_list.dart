@@ -230,8 +230,10 @@ class InvoiceListView extends StatelessWidget {
                 child: InkWell(
                   borderRadius: segRadius,
                   onTap: () {
+                    // Filter the loaded list — the full list also feeds
+                    // the record-receipt sheet.
                     ctrl.invoiceStatusFilter.value = s;
-                    ctrl.fetchInvoices(status: s.isEmpty ? null : s);
+                    ctrl.searchInvoices(ctrl.searchInvoiceController.text);
                   },
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -266,14 +268,17 @@ class InvoiceListView extends StatelessWidget {
       if (ctrl.isLoadingAging.value) return const SizedBox.shrink();
       if (ctrl.agingBuckets.isEmpty) return const SizedBox.shrink();
 
-      // Bucket display config: label → colour (severity increases left→right)
-      final bucketColors = {
-        'Current': AppColor.success,
-        '1-30': AppColor.info,
-        '31-60': AppColor.warning,
-        '61-90': AppColor.danger.withValues(alpha: 0.7),
-        '90+': AppColor.danger,
-      };
+      // Colour by bucket (severity increases left→right). The backend labels
+      // are 'Current (Not Due)', '1–30 Days' (en dash) … '90+ Days'.
+      Color bucketColor(String label) {
+        final l = label.replaceAll('–', '-').toLowerCase();
+        if (l.startsWith('current')) return AppColor.success;
+        if (l.startsWith('1-30')) return AppColor.info;
+        if (l.startsWith('31-60')) return AppColor.warning;
+        if (l.startsWith('61-90')) return AppColor.danger.withValues(alpha: 0.7);
+        if (l.startsWith('90')) return AppColor.danger;
+        return AppColor.textTertiary;
+      }
       final fmt = NumberFormat.compactCurrency(
         locale: 'en_IN',
         symbol: '₹',
@@ -312,8 +317,7 @@ class InvoiceListView extends StatelessWidget {
                                   .clamp(1, 1000),
                               child: Container(
                                 margin: const EdgeInsets.only(right: 2),
-                                color: bucketColors[b.label] ??
-                                    AppColor.textTertiary,
+                                color: bucketColor(b.label),
                               ),
                             ),
                       ],
@@ -327,7 +331,7 @@ class InvoiceListView extends StatelessWidget {
                 maxColumns: 5,
                 spacing: 12,
                 children: buckets.map((b) {
-                  final color = bucketColors[b.label] ?? AppColor.textTertiary;
+                  final color = bucketColor(b.label);
                   return Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 14,

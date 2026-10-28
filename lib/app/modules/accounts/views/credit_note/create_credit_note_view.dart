@@ -21,7 +21,7 @@ class CreateCreditNoteView extends GetView<CreditNoteController> {
     if (!Get.isRegistered<CreditNoteController>()) {
       Get.put(CreditNoteController());
     }
-    applyClientArgument(context, _selectClient);
+    prepareCreateForm(context, reset: controller.clearForm, selectClient: _selectClient);
     final pad = MediaQuery.sizeOf(context).width < 600 ? 16.0 : 24.0;
     return Scaffold(
       backgroundColor: AppColor.cAppBackgroundColor,

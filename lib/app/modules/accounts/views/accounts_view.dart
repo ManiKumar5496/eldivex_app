@@ -14,6 +14,8 @@ import '../../../widgets/common_textfield.dart';
 import '../../../widgets/shimmer_loader.dart';
 import '../controllers/accounts_controller.dart';
 import '../models/active_booking_client_model.dart';
+import '../../../routes/app_pages.dart';
+import '../../../widgets/helper_ui.dart';
 import 'accounts_format.dart';
 import 'package:eldivex_app/app/core/values/lucide_icons.dart';
 
@@ -75,11 +77,23 @@ class AccountsView extends GetView<AccountsController> {
     );
   }
 
+  // Opened from a dashboard card or notification as its own page: give a
+  // way back (the sidebar isn't there).
+  VoidCallback? _backIfOwnRoute(BuildContext context) =>
+      accountsIsOwnRoute(context, Routes.ACCOUNTS)
+          ? () => HelperUi.safeBack(Routes.MAIN)
+          : null;
+
   // Mobile: title + period-close icon button on one line
   Widget _buildMobileHeaderTop(BuildContext context) {
     return Row(
       children: [
-        const Expanded(child: AppPageHeader(title: 'Accounts')),
+        Expanded(
+          child: AppPageHeader(
+            title: 'Accounts',
+            onBack: _backIfOwnRoute(context),
+          ),
+        ),
         const SizedBox(width: 8),
         _buildPeriodCloseButton(context),
       ],
@@ -90,6 +104,7 @@ class AccountsView extends GetView<AccountsController> {
   Widget _buildDesktopHeaderTop(BuildContext context) {
     return AppPageHeader(
       title: 'Accounts',
+      onBack: _backIfOwnRoute(context),
       subtitle: 'Billing, receipts, statements and revenue in one place',
       actions: [_buildPeriodCloseButton(context)],
     );
@@ -680,7 +695,7 @@ class AccountsView extends GetView<AccountsController> {
                   child: accountsCellStack(client.clientName,
                       subtitle: client.clientMobile),
                 ),
-                _buildStatusChip(client.status),
+                _buildStatusChip(client.statusText),
                 const SizedBox(width: 4),
                 _buildClientActions(client),
               ],
@@ -819,7 +834,7 @@ class AccountsView extends GetView<AccountsController> {
                           : AppColor.success,
                     ),
                   )),
-                  DataCell(_buildStatusChip(client.status)),
+                  DataCell(_buildStatusChip(client.statusText)),
                   DataCell(_buildClientActions(client)),
                 ]);
               }).toList(),
@@ -871,7 +886,8 @@ class AccountsView extends GetView<AccountsController> {
         }
       },
       itemBuilder: (context) {
-        final isCancelled = client.status == 'Cancelled';
+        // Status is a code ('3' booking cancelled, '6' service cancelled).
+        final isCancelled = client.isCancelled;
         Widget item(IconData icon, String label, {bool enabled = true}) {
           final color = enabled ? null : AppColor.lightGrey;
           return Row(

@@ -7,6 +7,7 @@ import '../../../widgets/common_textfield.dart';
 import '../../../widgets/shimmer_loader.dart';
 import '../controllers/accounts_controller.dart';
 import '../models/insurance_claim_model.dart';
+import '../../../widgets/helper_ui.dart';
 import 'accounts_format.dart';
 import 'package:eldivex_app/app/core/values/lucide_icons.dart';
 
@@ -194,26 +195,11 @@ class InsuranceClaimsView extends GetView<AccountsController> {
     );
   }
 
-  void _onSearch(String q) {
-    final lq = q.toLowerCase();
-    if (q.isEmpty) {
-      controller.filteredClaims.value =
-          List.from(controller.claims);
-    } else {
-      controller.filteredClaims.value =
-          controller.claims.where((c) {
-        return (c.clientName ?? '').toLowerCase().contains(lq) ||
-            (c.clientMobile ?? '').contains(q) ||
-            (c.patientName ?? '').toLowerCase().contains(lq) ||
-            c.bookingId.toString().contains(q) ||
-            (c.tpaName ?? '').toLowerCase().contains(lq) ||
-            (c.policyNumber ?? '').contains(q);
-      }).toList();
-    }
-  }
+  void _onSearch(String _) => controller.applyClaimFilters();
 
   Widget _searchField({double? width}) {
     return AppSearchField(
+      controller: controller.claimSearchController,
       onChanged: _onSearch,
       hint: 'Search by client, TPA, policy number…',
       width: width,
@@ -248,28 +234,23 @@ class InsuranceClaimsView extends GetView<AccountsController> {
       padding: SizeConfig.isMobile
           ? const EdgeInsets.symmetric(vertical: 12)
           : const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-      child: Row(
+      child: Obx(() => Row(
         children: statuses.map((s) {
           return Padding(
             padding: const EdgeInsets.only(right: 8),
             child: FilterChip(
               label: Text(s),
-              selected: false,
+              selected: controller.claimStatusFilter.value == s,
               onSelected: (_) {
-                if (s == 'All') {
-                  controller.filteredClaims.value =
-                      List.from(controller.claims);
-                } else {
-                  controller.filteredClaims.value =
-                      controller.claims.where((c) => c.status == s).toList();
-                }
+                controller.claimStatusFilter.value = s;
+                controller.applyClaimFilters();
               },
               labelStyle:
                   TextStyle(fontSize: 13, color: AppColor.textSecondary),
             ),
           );
         }).toList(),
-      ),
+      )),
     );
   }
 
@@ -620,7 +601,17 @@ class InsuranceClaimsView extends GetView<AccountsController> {
         ),
         ElevatedButton(
           onPressed: () {
-            final amount = double.tryParse(amtCtrl.text);
+            final amount = double.tryParse(amtCtrl.text.trim());
+            final cap = claim.claimAmount;
+            if (amount == null || amount <= 0 ||
+                (cap != null && amount > cap + 0.005)) {
+              HelperUi.showToast(
+                  message: cap != null
+                      ? 'Enter a settled amount between ₹0 and the claim amount (₹${cap.toStringAsFixed(2)}).'
+                      : 'Enter a settled amount greater than zero.',
+                  backgroundColor: AppColor.danger);
+              return;
+            }
             Get.back();
             controller.updateClaimStatus(claim.id, 'Settled',
                 settledAmount: amount);

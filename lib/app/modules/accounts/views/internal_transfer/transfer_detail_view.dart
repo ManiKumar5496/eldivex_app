@@ -687,6 +687,9 @@ class _TransferDetailViewState extends State<TransferDetailView> {
           ElevatedButton(
             onPressed: () {
               if (!isApprove && notesCtrl.text.trim().isEmpty) {
+                HelperUi.showToast(
+                    message: 'Please enter a reason for rejecting this transfer.',
+                    backgroundColor: AppColor.danger);
                 return;
               }
               Get.back();

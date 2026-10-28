@@ -284,7 +284,7 @@ class RefundDetailView extends GetView<RefundController> {
         if (r.receiptIds != null && r.receiptIds!.isNotEmpty)
           AppInfoRow(
               label: 'Receipts',
-              value: r.receiptIds!.map((id) => 'RC-$id').join(', ')),
+              value: r.receiptIds!.map((id) => 'Receipt #$id').join(', ')),
       ]),
     );
   }
@@ -604,6 +604,9 @@ class RefundDetailView extends GetView<RefundController> {
             onPressed: () async {
               if (isReject &&
                   controller.actionNotesCtrl.text.trim().isEmpty) {
+                HelperUi.showToast(
+                    message: 'Please enter a reason for rejecting this refund.',
+                    backgroundColor: AppColor.danger);
                 return;
               }
               Navigator.of(ctx).pop();
@@ -654,10 +657,16 @@ class RefundDetailView extends GetView<RefundController> {
           ),
           ElevatedButton(
             onPressed: () async {
-              Navigator.of(ctx).pop();
-              final dispatchDetails = <String, dynamic>{};
               final utr = controller.dispatchUtrCtrl.text.trim();
               final date = controller.dispatchDateCtrl.text.trim();
+              if (utr.isEmpty && date.isEmpty) {
+                HelperUi.showToast(
+                    message: 'Enter the UTR number or the dispatch date to complete the refund.',
+                    backgroundColor: AppColor.danger);
+                return;
+              }
+              Navigator.of(ctx).pop();
+              final dispatchDetails = <String, dynamic>{};
               if (utr.isNotEmpty) dispatchDetails['utr_number'] = utr;
               if (date.isNotEmpty) dispatchDetails['dispatch_date'] = date;
 

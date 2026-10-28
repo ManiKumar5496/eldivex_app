@@ -32,11 +32,10 @@ class ClientOutstandingDetail extends GetView<OutstandingController> {
       if (controller.activeClients.isEmpty && !controller.isLoading.value) {
         WidgetsBinding.instance.addPostFrameCallback((_) => controller.loadActiveClients());
       }
-      if (controller.lastClientRequested != clientId) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          controller.loadClientOutstanding(clientId);
-        });
-      }
+      // Fresh figures on every visit (approvals elsewhere change them).
+      runOncePerRoute(context, 'clientOutstanding', () {
+        controller.loadClientOutstanding(clientId);
+      });
     }
 
     final pad = MediaQuery.sizeOf(context).width < 600 ? 16.0 : 24.0;
@@ -74,18 +73,40 @@ class ClientOutstandingDetail extends GetView<OutstandingController> {
 
                   final loaded = controller.clientOutstanding.value;
                   final obs = loaded?.clientId == clientId ? loaded : null;
+                  final error = controller.clientOutstandingError.value;
                   final bookings =
                       bookingRowsForUser(controller.activeClients, clientId);
+
+                  // Not loaded yet (first frame) — never show a ₹0 balance.
+                  if (obs == null && error == null) {
+                    return const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 64),
+                      child: Center(child: CircularProgressIndicator()),
+                    );
+                  }
 
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      _buildClientHeader(clientName, obs),
-                      const SizedBox(height: 20),
-                      if (obs != null) ...[
-                        _buildBreakdownCards(obs),
+                      if (obs == null)
+                        AppCard(
+                          child: AppEmptyState(
+                            icon: LucideIcons.circleAlert,
+                            tone: AppTone.danger,
+                            title: 'Balance unavailable',
+                            message: error,
+                            actionLabel: 'Retry',
+                            actionIcon: LucideIcons.refreshCw,
+                            onAction: () => controller.loadClientOutstanding(clientId),
+                            compact: true,
+                          ),
+                        )
+                      else ...[
+                        _buildClientHeader(clientName, obs),
                         const SizedBox(height: 20),
+                        _buildBreakdownCards(obs),
                       ],
+                      const SizedBox(height: 20),
                       _buildQuickActions(clientId, clientName),
                       const SizedBox(height: 20),
                       _buildBookingTable(bookings),

@@ -128,6 +128,7 @@ class _CreateTransferViewState extends State<CreateTransferView> {
 
   @override
   Widget build(BuildContext context) {
+    prepareCreateForm(context, reset: ctrl.clearForm);
     final pad = MediaQuery.sizeOf(context).width < 600 ? 16.0 : 24.0;
     return Scaffold(
       backgroundColor: AppColor.cAppBackgroundColor,
@@ -506,10 +507,14 @@ class _CreateTransferViewState extends State<CreateTransferView> {
 
   Widget _buildLivePreview() {
     return Obx(() {
-      final amountText = ctrl.transferAmountCtrl.text.trim();
-      final amount = double.tryParse(amountText) ?? 0;
       final src = ctrl.sourceBookingOutstanding.value;
       final tgt = ctrl.targetBookingOutstanding.value;
+      // The amount is a TextEditingController (not observable) — listen to it
+      // so the preview follows typing.
+      return ValueListenableBuilder<TextEditingValue>(
+        valueListenable: ctrl.transferAmountCtrl,
+        builder: (context, value, _) {
+      final amount = double.tryParse(value.text.trim()) ?? 0;
 
       if (amount <= 0 || (src == null && tgt == null)) {
         return const SizedBox.shrink();
@@ -568,6 +573,8 @@ class _CreateTransferViewState extends State<CreateTransferView> {
             ),
           ],
         ),
+      );
+        },
       );
     });
   }

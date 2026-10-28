@@ -18,35 +18,40 @@ class WriteOffView extends GetView<AccountsController> {
     if (!Get.isRegistered<AccountsController>()) Get.put(AccountsController());
     final embedded = accountsIsEmbeddedInTabs(context);
     final isMobile = SizeConfig.isMobile;
-    return Scaffold(
-      backgroundColor: AppColor.cAppBackgroundColor,
-      floatingActionButton: isMobile
-          ? FloatingActionButton.extended(
-              onPressed: () => _showWriteOffFormSheet(context),
-              icon: const Icon(LucideIcons.plus),
-              label: const Text('New write-off',
-                  style: TextStyle(fontWeight: FontWeight.w600)),
-            )
-          : null,
-      body: Padding(
-        padding: accountsPagePadding(context, bottom: !isMobile),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            if (!embedded) ...[
-              const AppPageHeader(
-                title: 'Write-offs',
-                subtitle: 'Write off unrecoverable balances with approval',
-              ),
-              SizedBox(height: isMobile ? 16 : 20),
+    // Refetch whenever the page is opened: newer pages (Credit Note Mgmt,
+    // Write-offs) approve the same records, so a cached list goes stale.
+    return AccountsOnOpen(
+      onOpen: () => Get.find<AccountsController>().fetchWriteOffs(),
+      child: Scaffold(
+        backgroundColor: AppColor.cAppBackgroundColor,
+        floatingActionButton: isMobile
+            ? FloatingActionButton.extended(
+                onPressed: () => _showWriteOffFormSheet(context),
+                icon: const Icon(LucideIcons.plus),
+                label: const Text('New write-off',
+                    style: TextStyle(fontWeight: FontWeight.w600)),
+              )
+            : null,
+        body: Padding(
+          padding: accountsPagePadding(context, bottom: !isMobile),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (!embedded) ...[
+                const AppPageHeader(
+                  title: 'Write-offs',
+                  subtitle: 'Write off unrecoverable balances with approval',
+                ),
+                SizedBox(height: isMobile ? 16 : 20),
+              ],
+              if (isMobile) ...[
+                _buildWriteOffSearchBar(),
+                const SizedBox(height: 12),
+                Expanded(child: _buildMobileLayout(context)),
+              ] else
+                Expanded(child: _buildDesktopLayout()),
             ],
-            if (isMobile) ...[
-              _buildWriteOffSearchBar(),
-              const SizedBox(height: 12),
-              Expanded(child: _buildMobileLayout(context)),
-            ] else
-              Expanded(child: _buildDesktopLayout()),
-          ],
+          ),
         ),
       ),
     );

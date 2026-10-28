@@ -330,8 +330,12 @@ class ManageRecieptsView extends GetView<AccountsController> {
         // Balance preview
         Obx(() {
           final inv = controller.selectedInvoiceForPayment.value;
-          final enteredText = controller.recordPaymentAmountController.text;
-          final entered = double.tryParse(enteredText) ?? 0;
+          // The amount is a TextEditingController (not observable) — listen
+          // to it so the preview follows every keystroke.
+          return ValueListenableBuilder<TextEditingValue>(
+            valueListenable: controller.recordPaymentAmountController,
+            builder: (context, value, _) {
+          final entered = double.tryParse(value.text.trim()) ?? 0;
           if (inv == null || entered <= 0) return const SizedBox.shrink();
           final remaining = inv.balanceDue - entered;
           final settled = remaining <= 0;
@@ -375,6 +379,8 @@ class ManageRecieptsView extends GetView<AccountsController> {
               ],
             ),
           );
+            },
+          );
         }),
 
         SizedBox(
@@ -384,11 +390,9 @@ class ManageRecieptsView extends GetView<AccountsController> {
                 onPressed: controller.isLoadingReceipts.value
                     ? null
                     : () async {
-                        await controller.recordDirectPayment();
-                        if (controller.selectedInvoiceForPayment.value ==
-                            null) {
-                          Get.back();
-                        }
+                        // Close only when the payment was recorded — a
+                        // validation error keeps the sheet open.
+                        if (await controller.recordDirectPayment()) Get.back();
                       },
                 icon: controller.isLoadingReceipts.value
                     ? SizedBox(
@@ -554,7 +558,20 @@ class ManageRecieptsView extends GetView<AccountsController> {
               ],
             ),
 
-            // Bottom: Action buttons for Pending
+            // Bottom: Approve / Cancel for Pending; recorded (Approved)
+            // payments can be cancelled to correct a mistake.
+            if (receipt.status == 'Approved') ...[
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () => controller.cancelReceipt(receipt.id),
+                  style: AppButtonStyles.dangerOutlined,
+                  icon: const Icon(LucideIcons.x, size: 18),
+                  label: const Text('Cancel payment'),
+                ),
+              ),
+            ],
             if (isPending) ...[
               const SizedBox(height: 16),
               Row(
@@ -675,7 +692,18 @@ class ManageRecieptsView extends GetView<AccountsController> {
                           ),
                         ],
                       )
-                    : const SizedBox.shrink(),
+                    : receipt.status == 'Approved'
+                        ? Tooltip(
+                            message: 'Cancel this recorded payment',
+                            child: OutlinedButton(
+                              onPressed: () =>
+                                  controller.cancelReceipt(receipt.id),
+                              style: AppButtonStyles.compact
+                                  .merge(AppButtonStyles.dangerOutlined),
+                              child: const Text('Cancel'),
+                            ),
+                          )
+                        : const SizedBox.shrink(),
               ),
             ]);
           }).toList(),

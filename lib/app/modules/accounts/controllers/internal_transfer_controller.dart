@@ -62,7 +62,15 @@ class InternalTransferController extends GetxController {
   // ─────────────────────────────────────────────
 
   /// GET /api/getInternalTransfers
+  /// The transfer list's filters. Kept here (not on the page) so reloads
+  /// after create / approve / reject keep the rows in step with the chips.
+  final filterClientId = Rxn<int>();
+  final filterStatus   = 'All'.obs;
+
+  /// Without arguments, loads with the list's current filters.
   Future<void> loadTransfers({String? clientId, String? status}) async {
+    clientId ??= filterClientId.value?.toString();
+    status ??= filterStatus.value == 'All' ? null : filterStatus.value;
     isLoading.value = true;
     try {
       final url = ApiConstants.getInternalTransfers(
@@ -284,6 +292,24 @@ class InternalTransferController extends GetxController {
           message: 'Please enter a valid transfer amount',
           backgroundColor: Colors.red);
       return false;
+    }
+    // Friendly pre-check mirroring the server: credit transfers move the
+    // source's credit balance; reallocations move money paid into it.
+    final src = sourceBookingOutstanding.value;
+    if (src != null) {
+      const creditTypes = {'OVERPAYMENT_TRANSFER', 'CREDIT_BALANCE_TRANSFER'};
+      final available = creditTypes.contains(transferType.value)
+          ? -src.outstandingAmount
+          : src.totalPaid + src.totalInternalTransferIn -
+              src.totalInternalTransferOut - src.totalRefunded;
+      if (amount > available + 0.005) {
+        HelperUi.showToast(
+            message: available > 0
+                ? 'The source booking can transfer at most ₹${available.toStringAsFixed(2)}.'
+                : 'The source booking has nothing available to transfer.',
+            backgroundColor: Colors.red);
+        return false;
+      }
     }
     if (reasonCtrl.text.trim().isEmpty) {
       HelperUi.showToast(
