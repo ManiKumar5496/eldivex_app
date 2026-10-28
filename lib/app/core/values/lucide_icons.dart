@@ -75,6 +75,7 @@ class LucideIcons {
   static const IconData download = IconData(0xe0b2, fontFamily: 'Lucide');
   static const IconData ellipsis = IconData(0xe0b6, fontFamily: 'Lucide');
   static const IconData ellipsisVertical = IconData(0xe0b7, fontFamily: 'Lucide');
+  static const IconData externalLink = IconData(0xe0b9, fontFamily: 'Lucide');
   static const IconData eye = IconData(0xe0ba, fontFamily: 'Lucide');
   static const IconData eyeOff = IconData(0xe0bb, fontFamily: 'Lucide');
   static const IconData file = IconData(0xe0c0, fontFamily: 'Lucide');

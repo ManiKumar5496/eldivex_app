@@ -5,3 +5,4 @@ library;
 export 'app_layout.dart';
 export 'app_tokens.dart';
 export 'app_widgets.dart';
+export 'app_document_viewer.dart';

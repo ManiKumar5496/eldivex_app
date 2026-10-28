@@ -353,7 +353,7 @@ class _CgReviewDetailScreenState extends State<CgReviewDetailScreen> {
     return MouseRegion(
       cursor: hasPhoto ? SystemMouseCursors.click : MouseCursor.defer,
       child: GestureDetector(
-        onTap: hasPhoto ? () => _showImageDialog(cgDetails.hpRegPhoto, 'Profile Photo') : null,
+        onTap: hasPhoto ? () => showAppDocumentViewer(cgDetails.hpRegPhoto, 'Profile Photo') : null,
         child: AppAvatar(
           name: _fullName,
           imageUrl: hasPhoto ? cgDetails.hpRegPhoto : null,
@@ -767,17 +767,12 @@ class _CgReviewDetailScreenState extends State<CgReviewDetailScreen> {
       child: Row(
         children: [
           hasValidImage
-              ? Container(
-                  width: thumb,
-                  height: thumb,
-                  decoration: BoxDecoration(
-                    color: AppColor.surfaceMuted,
-                    borderRadius: BorderRadius.circular(AppRadius.sm),
-                    border: Border.all(color: AppColor.borderSubtle),
-                    image: DecorationImage(
-                      image: NetworkImage(imageUrl),
-                      fit: BoxFit.cover,
-                    ),
+              ? Tooltip(
+                  message: 'View',
+                  child: InkWell(
+                    onTap: () => showAppDocumentViewer(imageUrl, title),
+                    borderRadius: BorderRadius.circular(AppRadius.md),
+                    child: AppDocumentThumb(url: imageUrl, size: thumb, fallbackIcon: icon),
                   ),
                 )
               : AppIconTile(icon: icon, tone: AppTone.neutral, size: thumb),
@@ -805,7 +800,7 @@ class _CgReviewDetailScreenState extends State<CgReviewDetailScreen> {
           ),
           if (hasValidImage) ...[
             IconButton(
-              onPressed: () => _showImageDialog(imageUrl, title),
+              onPressed: () => showAppDocumentViewer(imageUrl, title),
               icon: Icon(LucideIcons.eye, size: 18, color: AppColor.textSecondary),
               tooltip: 'View',
               visualDensity: VisualDensity.compact,
@@ -969,51 +964,6 @@ class _CgReviewDetailScreenState extends State<CgReviewDetailScreen> {
 
   // ================= IMAGE VIEWER DIALOG =================
 
-  void _showImageDialog(String imageUrl, String title) {
-    Get.dialog(
-      AppDialog(
-        title: title,
-        icon: LucideIcons.image,
-        maxWidth: 640,
-        onClose: () => Get.back(),
-        bodyPadding: const EdgeInsets.all(16),
-        child: SizedBox(
-          width: double.infinity,
-          height: 460,
-          child: InteractiveViewer(
-            minScale: 0.5,
-            maxScale: 4.0,
-            child: Image.network(
-              imageUrl,
-              fit: BoxFit.contain,
-              loadingBuilder: (context, child, loadingProgress) {
-                if (loadingProgress == null) return child;
-                return Center(
-                  child: CircularProgressIndicator(
-                    value: loadingProgress.expectedTotalBytes != null
-                        ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
-                        : null,
-                  ),
-                );
-              },
-              errorBuilder: (context, error, stackTrace) {
-                return Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(LucideIcons.imageOff, size: 56, color: AppColor.textTertiary),
-                      const SizedBox(height: 8),
-                      Text('Failed to load image', style: TextStyle(color: AppColor.textTertiary)),
-                    ],
-                  ),
-                );
-              },
-            ),
-          ),
-        ),
-      ),
-    );
-  }
 
   // ================= APPROVAL / REJECTION DIALOGS =================
 

@@ -718,9 +718,14 @@ class _CreateTransferViewState extends State<CreateTransferView> {
       padding: EdgeInsets.symmetric(horizontal: pad, vertical: 12),
       child: SafeArea(
         top: false,
+        // heightFactor 1: inside bottomNavigationBar a plain Center grows to
+        // the full screen height and squeezes the page body to nothing.
         child: Center(
+          heightFactor: 1,
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 1100),
+            // Full form width (≤ 1100) so the buttons line up with the form's
+            // right edge instead of centring.
+            constraints: const BoxConstraints(minWidth: 1100, maxWidth: 1100),
             child: Wrap(
               alignment: WrapAlignment.end,
               spacing: 12,
