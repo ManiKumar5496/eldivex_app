@@ -78,7 +78,6 @@ import '../modules/accounts/views/refund/refund_detail_view.dart';
 import '../modules/accounts/views/credit_note/credit_note_list_view.dart';
 import '../modules/accounts/views/credit_note/create_credit_note_view.dart';
 import '../modules/accounts/views/credit_note/credit_note_detail_view.dart';
-import '../modules/accounts/views/credit_note/apply_credit_note_view.dart';
 import '../modules/accounts/views/internal_transfer/transfer_list_view.dart';
 import '../modules/accounts/views/internal_transfer/create_transfer_view.dart';
 import '../modules/accounts/views/internal_transfer/transfer_detail_view.dart';
@@ -319,12 +318,6 @@ class AppPages {
     GetPage(
       name: Routes.CREDIT_NOTE_DETAIL,
       page: () => const CreditNoteDetailView(),
-      binding: CreditNoteBinding(),
-      middlewares: [AuthMiddleware(), RoleMiddleware("Billing")],
-    ),
-    GetPage(
-      name: Routes.APPLY_CREDIT_NOTE,
-      page: () => const ApplyCreditNoteView(),
       binding: CreditNoteBinding(),
       middlewares: [AuthMiddleware(), RoleMiddleware("Billing")],
     ),

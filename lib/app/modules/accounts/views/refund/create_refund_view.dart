@@ -32,7 +32,8 @@ class CreateRefundView extends GetView<RefundController> {
 
   @override
   Widget build(BuildContext context) {
-    prepareCreateForm(context, reset: controller.clearForm, selectClient: _selectClient);
+    prepareCreateForm(context,
+        reset: controller.clearForm, selectClient: _selectClient, prefill: _prefill);
     final pad = MediaQuery.sizeOf(context).width < 600 ? 16.0 : 24.0;
     return Scaffold(
       backgroundColor: AppColor.cAppBackgroundColor,
@@ -408,6 +409,22 @@ class CreateRefundView extends GetView<RefundController> {
     controller.selectedBookingId.value = null;
     controller.selectedReceiptIds.clear();
     controller.clientReceipts.clear();
+  }
+
+  /// {user_id, booking_id, amount} passed in, e.g. a booking's excess after a
+  /// cancellation or hold. Selected once the bookings list has loaded.
+  Future<void> _prefill(Map args) async {
+    final clientId = toIntOrNull(args['user_id']);
+    final bookingId = toIntOrNull(args['booking_id']);
+    if (clientId == null || bookingId == null) return;
+    if (controller.activeClients.isEmpty) await controller.loadActiveClients();
+    _selectClient(clientId);
+    controller.selectedBookingId.value = bookingId;
+    controller.loadClientReceipts(bookingId);
+    final amount = toDoubleOrNull(args['amount']);
+    if (amount != null && amount > 0) {
+      controller.refundAmountCtrl.text = amount.toStringAsFixed(2);
+    }
   }
 
   // ── Bottom action bar (Cancel + Submit) ─────────────────────────────────────

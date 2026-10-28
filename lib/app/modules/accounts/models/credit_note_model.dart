@@ -41,9 +41,6 @@ class CreditNoteModel {
 
   bool get isApproved => status == 'Approved';
 
-  /// Approved notes with a positive balance can be applied to an invoice.
-  bool get canApply => isApproved && available > 0;
-
   /// Status shown in lists: application progress once approved.
   String get displayStatus =>
       isApproved && (extendedStatus ?? '').isNotEmpty ? extendedStatus! : status;

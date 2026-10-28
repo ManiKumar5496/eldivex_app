@@ -8,8 +8,10 @@ import 'package:eldivex_app/app/widgets/date_picker_common.dart';
 import 'package:eldivex_app/app/widgets/ui/ui.dart';
 import '../../../widgets/dropdown_common.dart';
 import '../../settings/models/get_discount_models.dart';
+import '../../../routes/app_pages.dart';
+import '../../accounts/views/accounts_format.dart' show formatInr;
 import '../controllers/bookings_controller.dart';
-import '../../support/views/create_support_ticket.dart';
+import '../models/get_bookings_model.dart';
 import 'assign_cg_dialog.dart';
 import 'cg_review_detail_screen.dart';
 import 'edit_booking_view.dart';
@@ -230,13 +232,10 @@ class _ManageBookingViewState extends State<ManageBookingView> {
           Obx(() {
             if (controller.bookingsByBookingId.value.isEmpty) return const SizedBox.shrink();
             final bk = controller.bookingsByBookingId.value.first;
+            // Shown once a hold request ticket is open; processes it.
             if (bk.holdTicketOpen == 0) return const SizedBox.shrink();
             return OutlinedButton.icon(
-              onPressed: () => Get.to(() => const CreateSupportTicket(), arguments: {
-                'bookingId': widget.bookingId,
-                'userId': bk.userId,
-                'typeId': 4, // Hold Request
-              }),
+              onPressed: () => _showHoldDialog(bk),
               icon: const Icon(LucideIcons.circlePause, size: 18),
               label: Text(isMobile ? 'Hold' : 'Hold Booking'),
               style: OutlinedButton.styleFrom(
@@ -248,13 +247,10 @@ class _ManageBookingViewState extends State<ManageBookingView> {
           Obx(() {
             if (controller.bookingsByBookingId.value.isEmpty) return const SizedBox.shrink();
             final bk = controller.bookingsByBookingId.value.first;
+            // Shown once a cancellation request ticket is open; processes it.
             if (bk.cancellationTicketOpen == 0) return const SizedBox.shrink();
             return OutlinedButton.icon(
-              onPressed: () => Get.to(() => const CreateSupportTicket(), arguments: {
-                'bookingId': widget.bookingId,
-                'userId': bk.userId,
-                'typeId': 5, // Cancellation
-              }),
+              onPressed: () => _showCancelDialog(bk),
               icon: const Icon(LucideIcons.circleX, size: 18),
               label: Text(isMobile ? 'Cancel' : 'Cancel Booking'),
               style: AppButtonStyles.dangerOutlined,
@@ -941,6 +937,363 @@ class _ManageBookingViewState extends State<ManageBookingView> {
               extendNotesController,
               'Add any notes about the extension',
               maxLines: 3,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ─────────────────────────────────────────────
+  // Cancel / Hold — process the open request ticket
+  // ─────────────────────────────────────────────
+
+  /// 'dd-MM-yyyy' (ticket comments) or 'yyyy-MM-dd…' → local date, else null.
+  DateTime? _ticketDate(dynamic value) {
+    final s = value?.toString().trim() ?? '';
+    final dmy = RegExp(r'^(\d{2})-(\d{2})-(\d{4})').firstMatch(s);
+    if (dmy != null) {
+      return DateTime(int.parse(dmy[3]!), int.parse(dmy[2]!), int.parse(dmy[1]!));
+    }
+    final d = DateTime.tryParse(s);
+    if (d == null) return null;
+    final local = d.isUtc ? d.toLocal() : d;
+    return DateTime(local.year, local.month, local.day);
+  }
+
+  /// A "Label: value" part of a ticket's comments
+  /// ("Priority: High | Last Service Date: 28-10-2026 | …").
+  String? _ticketField(Map? ticket, String label) {
+    final comments = ticket?['comments']?.toString() ?? '';
+    for (final part in comments.split('|')) {
+      final i = part.indexOf(':');
+      if (i > 0 && part.substring(0, i).trim().toLowerCase() == label.toLowerCase()) {
+        final v = part.substring(i + 1).trim();
+        return v.isEmpty ? null : v;
+      }
+    }
+    return null;
+  }
+
+  Map? _asMap(dynamic v) => v is Map ? v : null;
+
+  /// What processing the request will do, shown before confirming.
+  Widget _effectsNote(List<String> lines) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColor.surfaceMuted,
+        border: Border.all(color: AppColor.borderSubtle),
+        borderRadius: BorderRadius.circular(AppRadius.md),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          for (final line in lines)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 3),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.only(top: 2),
+                    child: Icon(LucideIcons.check, size: 14, color: AppColor.textSecondary),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(line,
+                        style: TextStyle(fontSize: 13, height: 1.4, color: AppColor.textSecondary)),
+                  ),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _showCancelDialog(GetBookingsModel bk) async {
+    final ticket = _asMap((await controller.fetchOpenTickets(widget.bookingId))['cancellation']);
+    final lastDay = Rx<DateTime?>(
+        _ticketDate(_ticketField(ticket, 'Last Service Date')) ?? DateUtils.dateOnly(DateTime.now()));
+    final reasonCtrl = TextEditingController(
+        text: _ticketField(ticket, 'Cancellation Reason') ?? ticket?['title']?.toString() ?? '');
+
+    final summary = await Get.dialog<Map<String, dynamic>>(
+      AppDialog(
+        title: 'Cancel Booking',
+        subtitle: ticket != null
+            ? 'Cancellation request #${ticket['id']}: ${ticket['title'] ?? ''}'
+            : 'Cancel booking #${widget.bookingId}',
+        icon: LucideIcons.circleX,
+        tone: AppTone.danger,
+        maxWidth: 540,
+        onClose: () => Get.back(),
+        actions: [
+          _cancelButton(),
+          Obx(() {
+            final busy = controller.isCancelBookingLoading.value;
+            return ElevatedButton(
+              style: AppButtonStyles.danger,
+              onPressed: busy
+                  ? null
+                  : () async {
+                      if (lastDay.value == null) {
+                        _showError('Select the last service date');
+                        return;
+                      }
+                      if (reasonCtrl.text.trim().isEmpty) {
+                        _showError('Enter the cancellation reason');
+                        return;
+                      }
+                      final s = await controller.cancelBooking(
+                          widget.bookingId, lastDay.value!, reasonCtrl.text.trim());
+                      if (s != null) Get.back(result: s);
+                    },
+              child: Text(busy ? 'Cancelling…' : 'Cancel Booking'),
+            );
+          }),
+        ],
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Obx(() => CommonDatePicker(
+                  label: 'Last Service Date',
+                  hint: 'Select the last day of service',
+                  selectedDate: lastDay.value,
+                  onDateSelected: (d) => lastDay.value = d,
+                )),
+            const SizedBox(height: 16),
+            _buildTextArea('Cancellation Reason', reasonCtrl, 'Why is the booking cancelled?', maxLines: 2),
+            const SizedBox(height: 16),
+            _effectsNote(const [
+              'Booking status changes to cancelled and the request ticket is resolved.',
+              'Every caregiver on the booking is released and becomes available again.',
+              'Attendance marked after the last service date is removed and blocked.',
+              'Unused invoiced days are credited (or extra used days invoiced) right away.',
+            ]),
+          ],
+        ),
+      ),
+    );
+    reasonCtrl.dispose();
+    if (summary != null) _showSettlementDialog(bk, summary, cancelled: true);
+  }
+
+  Future<void> _showHoldDialog(GetBookingsModel bk) async {
+    final ticket = _asMap((await controller.fetchOpenTickets(widget.bookingId))['hold']);
+    final from = Rx<DateTime?>(
+        _ticketDate(ticket?['start_date']) ?? _ticketDate(_ticketField(ticket, 'Hold Start Date')));
+    final to = Rx<DateTime?>(
+        _ticketDate(ticket?['end_date']) ?? _ticketDate(_ticketField(ticket, 'Hold End Date')));
+    final reasonCtrl = TextEditingController(text: ticket?['title']?.toString() ?? '');
+
+    final summary = await Get.dialog<Map<String, dynamic>>(
+      AppDialog(
+        title: 'Hold Booking',
+        subtitle: ticket != null
+            ? 'Hold request #${ticket['id']}: ${ticket['title'] ?? ''}'
+            : 'Put booking #${widget.bookingId} on hold',
+        icon: LucideIcons.circlePause,
+        tone: AppTone.warning,
+        maxWidth: 540,
+        onClose: () => Get.back(),
+        actions: [
+          _cancelButton(),
+          Obx(() {
+            final busy = controller.isHoldBookingLoading.value;
+            return ElevatedButton(
+              onPressed: busy
+                  ? null
+                  : () async {
+                      if (from.value == null || to.value == null) {
+                        _showError('Select the hold start and end dates');
+                        return;
+                      }
+                      if (to.value!.isBefore(from.value!)) {
+                        _showError('Hold end date cannot be before the start date');
+                        return;
+                      }
+                      final s = await controller.holdBooking(
+                          widget.bookingId, from.value!, to.value!, reasonCtrl.text.trim());
+                      if (s != null) Get.back(result: s);
+                    },
+              child: Text(busy ? 'Putting on hold…' : 'Put on Hold'),
+            );
+          }),
+        ],
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Obx(() => CommonDatePicker(
+                  label: 'Hold Start Date',
+                  hint: 'First day on hold',
+                  selectedDate: from.value,
+                  onDateSelected: (d) => from.value = d,
+                )),
+            const SizedBox(height: 16),
+            Obx(() => CommonDatePicker(
+                  label: 'Hold End Date',
+                  hint: 'Last day on hold',
+                  selectedDate: to.value,
+                  firstDate: from.value,
+                  onDateSelected: (d) => to.value = d,
+                )),
+            const SizedBox(height: 16),
+            _buildTextArea('Reason', reasonCtrl, 'Why is the service on hold?', maxLines: 2),
+            const SizedBox(height: 16),
+            _effectsNote(const [
+              'Booking status changes to On Hold and the request ticket is resolved.',
+              'Every caregiver on the booking is released; assign one again to resume.',
+              'Attendance inside the hold dates is removed and blocked.',
+              'Hold days that were already invoiced are credited right away.',
+            ]),
+          ],
+        ),
+      ),
+    );
+    reasonCtrl.dispose();
+    if (summary != null) _showSettlementDialog(bk, summary, cancelled: false);
+  }
+
+  /// Result of a cancel / hold: what changed, and where the client's account
+  /// stands — excess to refund or transfer, or an amount still owed (kept in
+  /// outstanding, or written off).
+  void _showSettlementDialog(GetBookingsModel bk, Map<String, dynamic> s, {required bool cancelled}) {
+    double n(String k) => double.tryParse('${s[k] ?? ''}') ?? 0;
+    int i(String k) => int.tryParse('${s[k] ?? ''}') ?? 0;
+    final excess = n('excess');
+    final owing = n('owing');
+    final rate = formatInr(n('daily_rate'));
+
+    final changes = <MapEntry<String, String>>[
+      if (cancelled) ...[
+        MapEntry('Last service date', '${s['cancel_date'] ?? '—'}'),
+        if (s['days_used'] != null)
+          MapEntry('Days used', '${i('days_used')} × $rate = ${formatInr(n('amount_due'))}'),
+        if (n('credit_note_amount') > 0)
+          MapEntry('Unused days credited', formatInr(n('credit_note_amount'))),
+        if (n('invoice_amount') > 0)
+          MapEntry('Extra days invoiced', formatInr(n('invoice_amount'))),
+      ] else ...[
+        MapEntry('On hold', '${s['from_date']} → ${s['to_date']} (${i('hold_days')} days)'),
+        MapEntry('Billed hold days credited',
+            '${i('billed_hold_days')} × $rate = ${formatInr(n('credit_amount'))}'),
+      ],
+      MapEntry('Caregivers released', '${i('released_caregivers')}'),
+      MapEntry('Attendance days removed', '${i('attendance_removed')}'),
+    ];
+    final account = <MapEntry<String, String>>[
+      MapEntry('Billed', formatInr(n('total_billed'))),
+      MapEntry('Paid', formatInr(n('total_paid'))),
+      MapEntry('Credited', formatInr(n('total_credited'))),
+    ];
+
+    final AppTone tone;
+    final String headline;
+    final String detail;
+    if (excess > 0) {
+      tone = AppTone.success;
+      headline = 'Excess paid: ${formatInr(excess)}';
+      detail = 'The client paid more than they now owe. Refund it, or transfer it to another booking.';
+    } else if (owing > 0) {
+      tone = AppTone.warning;
+      headline = 'Still owed: ${formatInr(owing)}';
+      detail = 'This stays in the booking\'s outstanding until collected, or you can write it off.';
+    } else {
+      tone = AppTone.info;
+      headline = 'Account settled';
+      detail = 'Nothing is owed either way.';
+    }
+
+    void open(String route, double amount) {
+      Get.back();
+      Get.toNamed(route, arguments: {
+        'user_id': bk.userId,
+        'booking_id': widget.bookingId,
+        'amount': amount,
+      });
+    }
+
+    Widget rows(List<MapEntry<String, String>> items) => Column(
+          children: [
+            for (final e in items)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(e.key,
+                          style: TextStyle(fontSize: 13.5, color: AppColor.textSecondary)),
+                    ),
+                    Text(e.value,
+                        style: TextStyle(
+                            fontSize: 13.5,
+                            fontWeight: FontWeight.w600,
+                            color: AppColor.textPrimary)),
+                  ],
+                ),
+              ),
+          ],
+        );
+
+    Get.dialog(
+      AppDialog(
+        title: cancelled ? 'Booking Cancelled' : 'Booking On Hold',
+        subtitle: 'Booking #${widget.bookingId} — accounts updated',
+        icon: cancelled ? LucideIcons.circleX : LucideIcons.circlePause,
+        tone: cancelled ? AppTone.danger : AppTone.warning,
+        maxWidth: 560,
+        onClose: () => Get.back(),
+        actions: [
+          if (excess > 0) ...[
+            OutlinedButton(
+              onPressed: () => open(Routes.CREATE_TRANSFER, excess),
+              child: const Text('Transfer to Another Booking'),
+            ),
+            ElevatedButton(
+              onPressed: () => open(Routes.CREATE_REFUND, excess),
+              child: Text('Refund ${formatInr(excess)}'),
+            ),
+          ] else if (owing > 0) ...[
+            OutlinedButton(
+              onPressed: () => open(Routes.CREATE_WRITE_OFF, owing),
+              child: Text('Write Off ${formatInr(owing)}'),
+            ),
+            ElevatedButton(
+              onPressed: () => Get.back(),
+              child: const Text('Keep in Outstanding'),
+            ),
+          ] else
+            ElevatedButton(onPressed: () => Get.back(), child: const Text('Done')),
+        ],
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            rows(changes),
+            Divider(height: 24, color: AppColor.borderSubtle),
+            rows(account),
+            const SizedBox(height: 14),
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: tone.color.withValues(alpha: 0.10),
+                borderRadius: BorderRadius.circular(AppRadius.md),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(headline,
+                      style: TextStyle(
+                          fontSize: 16, fontWeight: FontWeight.w700, color: tone.color)),
+                  const SizedBox(height: 4),
+                  Text(detail,
+                      style: TextStyle(fontSize: 13, height: 1.4, color: AppColor.textSecondary)),
+                ],
+              ),
             ),
           ],
         ),

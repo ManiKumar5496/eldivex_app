@@ -1424,23 +1424,27 @@ class BookingsController extends GetxController {
   // ─────────────────────────────────────────────
   final RxBool isCancelBookingLoading = false.obs;
 
-  Future<void> cancelBooking(int bookingId, DateTime endDate, String reason) async {
+  /// POST /cancelUserService. Cancels the booking, releases its caregivers,
+  /// clears attendance after [lastServiceDate] and settles the account.
+  /// Returns the server's billing_summary, or null on failure.
+  Future<Map<String, dynamic>?> cancelBooking(
+      int bookingId, DateTime lastServiceDate, String reason) async {
     isCancelBookingLoading.value = true;
     try {
       final result = await baseApi.postRaw(ApiConstants.cancelBookingApi, {
         'booking_id': bookingId,
-        'term_date': DateFormat('yyyy-MM-dd').format(endDate),
+        'term_date': DateFormat('yyyy-MM-dd').format(lastServiceDate),
         'term_reason': reason,
-        'booking_status': 5,
-        'term_remarks': 'remarks not done',
       });
       if (!_isOk(result)) {
         _showApiError(_errorFrom(result, 'Failed to cancel booking'));
-        return;
+        return null;
       }
-      HelperUi.showToast(message: 'Booking cancelled successfully');
-      Get.back();
-      getBookingsFromApi();
+      HelperUi.showToast(message: 'Booking cancelled');
+      _refreshBooking(bookingId);
+      final data = result!.data;
+      final summary = data is Map ? data['billing_summary'] : null;
+      return summary is Map ? Map<String, dynamic>.from(summary) : <String, dynamic>{};
     } finally {
       isCancelBookingLoading.value = false;
     }
@@ -1451,7 +1455,10 @@ class BookingsController extends GetxController {
   // ─────────────────────────────────────────────
   final RxBool isHoldBookingLoading = false.obs;
 
-  Future<void> holdBooking(
+  /// POST /holdBooking. Puts the booking on hold, releases its caregivers,
+  /// clears attendance inside the hold and credits the billed hold days.
+  /// Returns the server's hold_summary, or null on failure.
+  Future<Map<String, dynamic>?> holdBooking(
       int bookingId,
       DateTime holdStart,
       DateTime holdEnd,
@@ -1461,19 +1468,38 @@ class BookingsController extends GetxController {
     try {
       final result = await baseApi.postRaw(ApiConstants.holdBookingApi, {
         'booking_id': bookingId,
-        'hold_start_date': DateFormat('yyyy-MM-dd').format(holdStart),
-        'hold_end_date': DateFormat('yyyy-MM-dd').format(holdEnd),
-        'hold_reason': reason,
+        'from_date': DateFormat('yyyy-MM-dd').format(holdStart),
+        'to_date': DateFormat('yyyy-MM-dd').format(holdEnd),
+        'reason': reason,
       });
       if (!_isOk(result)) {
         _showApiError(_errorFrom(result, 'Failed to hold booking'));
-        return;
+        return null;
       }
-      HelperUi.showToast(message: 'Service hold successful');
-      getBookingsFromApiByBkId(bookingId);
+      HelperUi.showToast(message: 'Booking put on hold');
+      _refreshBooking(bookingId);
+      final data = result!.data;
+      final summary = data is Map ? data['hold_summary'] : null;
+      return summary is Map ? Map<String, dynamic>.from(summary) : <String, dynamic>{};
     } finally {
       isHoldBookingLoading.value = false;
     }
+  }
+
+  /// Booking, caregivers and list after a cancel / hold changed them.
+  void _refreshBooking(int bookingId) {
+    getBookingsFromApiByBkId(bookingId);
+    getHealthProffApi(bookingId);
+    loadGlobalActiveHpIds();
+    getBookingsFromApi();
+  }
+
+  /// GET /getBookingOpenTickets — the open hold / cancellation request on the
+  /// booking ({hold, cancellation}, each a ticket map or null).
+  Future<Map<String, dynamic>> fetchOpenTickets(int bookingId) async {
+    final result = await baseApi.getRaw(ApiConstants.getBookingOpenTickets(bookingId));
+    final data = result?.data;
+    return _isOk(result) && data is Map ? Map<String, dynamic>.from(data) : <String, dynamic>{};
   }
 
   // ─────────────────────────────────────────────

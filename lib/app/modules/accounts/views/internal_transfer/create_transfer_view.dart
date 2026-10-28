@@ -37,6 +37,23 @@ class _CreateTransferViewState extends State<CreateTransferView> {
     }
   }
 
+  /// {user_id, booking_id, amount} passed in: move a booking's excess (credit
+  /// balance) to another booking of the same client. The client is selected
+  /// once their bookings have loaded, so both dropdowns hold valid values.
+  Future<void> _prefill(Map args) async {
+    final clientId = toIntOrNull(args['user_id']);
+    final bookingId = toIntOrNull(args['booking_id']);
+    if (clientId == null || bookingId == null) return;
+    await ctrl.loadClientBookings(clientId);
+    ctrl.selectedClientId.value = clientId;
+    ctrl.onSourceBookingChanged(bookingId);
+    ctrl.transferType.value = 'CREDIT_BALANCE_TRANSFER';
+    final amount = toDoubleOrNull(args['amount']);
+    if (amount != null && amount > 0) {
+      ctrl.transferAmountCtrl.text = amount.toStringAsFixed(2);
+    }
+  }
+
   // ─────────────────────────────────────────────
   // Helpers
   // ─────────────────────────────────────────────
@@ -128,7 +145,7 @@ class _CreateTransferViewState extends State<CreateTransferView> {
 
   @override
   Widget build(BuildContext context) {
-    prepareCreateForm(context, reset: ctrl.clearForm);
+    prepareCreateForm(context, reset: ctrl.clearForm, prefill: _prefill);
     final pad = MediaQuery.sizeOf(context).width < 600 ? 16.0 : 24.0;
     return Scaffold(
       backgroundColor: AppColor.cAppBackgroundColor,

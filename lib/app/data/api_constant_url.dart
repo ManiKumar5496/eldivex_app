@@ -2,12 +2,13 @@ class ApiConstants {
   /// Base URL is configured via --dart-define at build/run time.
   ///
   /// Usage examples:
-  ///   Local dev  : flutter run   (uses default below)
+  ///   Local dev  : flutter run -d chrome   (uses the local API default below)
   ///   QA         : flutter run   --dart-define=API_BASE_URL=http://43.204.68.253:5004/api
   ///   Production : flutter build web --release --dart-define=API_BASE_URL=http://13.233.237.76:4000/api
+  ///                (always pass it for deploy builds, or the app calls localhost)
   static const String baseURL = String.fromEnvironment(
     'API_BASE_URL',
-    defaultValue: 'http://13.233.237.76:4000/api',
+    defaultValue: 'http://localhost:4000/api',
   );
 
   ///End point
@@ -29,6 +30,11 @@ class ApiConstants {
   static const String getMasterModules = "$baseURL/getAppModules";
   static const String getAllBranches = "$baseURL/getbranches";
   static const String createSupportTicket = "$baseURL/createSupportTicket";
+  /// Client a ticket is for, by client user id or by booking id.
+  static String getSupportClient({int? userId, int? bookingId}) =>
+      bookingId != null
+          ? "$baseURL/getSupportClient?booking_id=$bookingId"
+          : "$baseURL/getSupportClient?user_id=$userId";
   static const String getSupportTicket = "$baseURL/getSupportTickets";
   static const String getSupportCategories = "$baseURL/getSupportCategory";
   static const String createBookingApi = "$baseURL/createBooking";
@@ -41,6 +47,8 @@ class ApiConstants {
   static const String extendServiceApi = '$baseURL/extendBooking';
   static const String holdBookingApi = '$baseURL/holdBooking';
   static const String cancelBookingApi = '$baseURL/cancelUserService';
+  static String getBookingOpenTickets(int bookingId) =>
+      '$baseURL/getBookingOpenTickets?booking_id=$bookingId';
   static const String markCgAttendance = '$baseURL/markAttendance';
   static const String markCgAttendanceBatch = '$baseURL/markAttendanceBatch';
   static const String addClientUser = '$baseURL/login';
@@ -129,7 +137,6 @@ class ApiConstants {
   // ── Advanced Accounts — Credit Notes ──────────────────────────────────────
   static const String createCreditNote       = '$baseURL/createCreditNote';
   static const String updateCreditNoteStatus = '$baseURL/updateCreditNoteStatus';
-  static const String applyCreditNote        = '$baseURL/applyCreditNote';
 
   static String getCreditNotes([String? bookingId, String? status]) {
     final params = <String>[];

@@ -57,12 +57,6 @@ class CreditNoteListView extends GetView<CreditNoteController> {
         parameters: {'id': '${note.id}'},
       );
 
-  void _openApply(CreditNoteModel note) => Get.toNamed(
-        Routes.APPLY_CREDIT_NOTE,
-        arguments: note,
-        parameters: {'id': '${note.id}'},
-      );
-
   @override
   Widget build(BuildContext context) {
     SizeConfig.init(context);
@@ -115,9 +109,11 @@ class CreditNoteListView extends GetView<CreditNoteController> {
       final notes = controller.creditNotes.whereType<CreditNoteModel>().toList();
       final pending = notes.where((n) => n.status == 'Pending').length;
       final total = notes.fold<double>(0, (s, n) => s + n.amount);
-      final available = notes
-          .where((n) => n.canApply)
-          .fold<double>(0, (s, n) => s + n.available);
+      // Approval applies a note to its booking, so its used part is what has
+      // come off the booking's outstanding.
+      final deducted = notes
+          .where((n) => n.isApproved)
+          .fold<double>(0, (s, n) => s + (n.amount - n.available));
       return AppResponsiveGrid(
         minItemWidth: 200,
         maxColumns: 4,
@@ -141,8 +137,8 @@ class CreditNoteListView extends GetView<CreditNoteController> {
             tone: AppTone.info,
           ),
           AppStatCard(
-            label: 'Available to apply',
-            value: _formatCurrency(available),
+            label: 'Deducted from outstanding',
+            value: _formatCurrency(deducted),
             icon: LucideIcons.piggyBank,
             tone: AppTone.success,
           ),
@@ -307,20 +303,6 @@ class CreditNoteListView extends GetView<CreditNoteController> {
               const SizedBox(height: 16),
               _approvalButtons(note),
             ],
-
-            // Bottom: Apply button if applicable
-            if (note.canApply) ...[
-              const SizedBox(height: 16),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: () => _openApply(note),
-                  icon: const Icon(LucideIcons.circleCheck,
-                      size: 18),
-                  label: const Text('Apply Credit Note'),
-                ),
-              ),
-            ],
           ],
         ),
       ),
@@ -414,17 +396,6 @@ class CreditNoteListView extends GetView<CreditNoteController> {
         if (note.status == 'Pending') ...[
           const SizedBox(width: 4),
           _approvalButtons(note, compact: true),
-        ],
-        if (note.canApply) ...[
-          const SizedBox(width: 4),
-          Tooltip(
-            message: 'Apply',
-            child: TextButton(
-              onPressed: () => _openApply(note),
-              style: AppButtonStyles.compact.merge(AppButtonStyles.soft),
-              child: const Text('Apply'),
-            ),
-          ),
         ],
       ],
     );

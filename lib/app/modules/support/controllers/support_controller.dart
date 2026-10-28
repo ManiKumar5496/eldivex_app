@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:dio/dio.dart' as dio;
@@ -84,8 +86,20 @@ class SupportController extends GetxController {
   final TextEditingController bookingIdTextController = TextEditingController();
   final TextEditingController clientUserIdTextController = TextEditingController();
 
-  // Holds the typeId to auto-select after categories finish loading
-  int? _pendingPrefillTypeId;
+  // Client looked up from User Id or Booking ID: name shown under User Id,
+  // errors shown under the field that was looked up.
+  final RxString clientName = ''.obs;
+  final RxString clientPhone = ''.obs;
+  final RxString userIdLookupError = ''.obs;
+  final RxString bookingIdLookupError = ''.obs;
+  final RxBool clientLookupLoading = false.obs;
+  Timer? _lookupDebounce;
+  // Bumped per lookup so a slow, older response never overwrites a newer one.
+  int _lookupSeq = 0;
+
+  // Ticket type to auto-select once categories load: a word its name contains
+  // ('hold', 'cancel'). Category ids differ per org, so never match on id.
+  String? _pendingPrefillTypeName;
   RxString priority = ''.obs;
   RxString subject = ''.obs;
   RxString description = ''.obs;
@@ -113,6 +127,7 @@ class SupportController extends GetxController {
 
   @override
   void onClose() {
+    _lookupDebounce?.cancel();
     supportCommentsController.dispose();
     bookingIdTextController.dispose();
     clientUserIdTextController.dispose();
@@ -124,7 +139,7 @@ class SupportController extends GetxController {
 
   // ── Pre-fill from bookings navigation ─────────────────────────────────────
   /// Called by [CreateSupportTicket] when opened via Get.to() with arguments.
-  /// [typeId] is the edx_support_category.id to auto-select (4=Hold, 5=Cancel).
+  /// typeName is a word in the category name to auto-select ('hold', 'cancel').
   static int? _toIntOrNull(dynamic v) {
     if (v is int) return v;
     if (v is num) return v.toInt();
@@ -132,7 +147,7 @@ class SupportController extends GetxController {
     return null;
   }
 
-  /// Apply {bookingId, userId, typeId} route arguments once per navigation.
+  /// Apply {bookingId, userId, typeName} route arguments once per navigation.
   void applyPrefillArgs(Object? args) {
     if (args is! Map || identical(args, _appliedPrefillArgs)) return;
     _appliedPrefillArgs = args;
@@ -142,32 +157,108 @@ class SupportController extends GetxController {
     prefillFromBooking(
       bookingId: bookingId,
       userId: userId,
-      typeId: _toIntOrNull(args['typeId']),
+      typeName: args['typeName']?.toString(),
     );
   }
 
   void prefillFromBooking({
     required int bookingId,
     required int userId,
-    int? typeId,
+    String? typeName,
   }) {
     bookingIdTextController.text = bookingId.toString();
     clientUserIdTextController.text = userId.toString();
     this.bookingId.value = bookingId.toString();
     clientUserId.value = userId.toString();
-    _pendingPrefillTypeId = typeId;
+    _pendingPrefillTypeName = typeName?.toLowerCase();
     _applyPrefillType(); // apply immediately if categories already loaded
+    _scheduleClientLookup(userId: userId, delay: Duration.zero);
+  }
+
+  // ── Client lookup (name under User Id, User Id from Booking ID) ───────────
+
+  void onUserIdChanged(String value) {
+    clientUserId.value = value;
+    _scheduleClientLookup(userId: int.tryParse(value.trim()));
+  }
+
+  /// A valid Booking ID fills User Id from the booking; clearing it falls
+  /// back to looking up whatever User Id is typed.
+  void onBookingIdChanged(String value) {
+    bookingId.value = value;
+    final id = int.tryParse(value.trim());
+    if (id != null) {
+      _scheduleClientLookup(bookingId: id);
+    } else {
+      bookingIdLookupError.value = '';
+      _scheduleClientLookup(userId: int.tryParse(clientUserId.value.trim()));
+    }
+  }
+
+  void _resetClientLookup() {
+    _lookupDebounce?.cancel();
+    _lookupSeq++;
+    clientName.value = '';
+    clientPhone.value = '';
+    userIdLookupError.value = '';
+    bookingIdLookupError.value = '';
+    clientLookupLoading.value = false;
+  }
+
+  void _scheduleClientLookup({
+    int? userId,
+    int? bookingId,
+    Duration delay = const Duration(milliseconds: 400),
+  }) {
+    _resetClientLookup();
+    if (userId == null && bookingId == null) return;
+    final seq = _lookupSeq;
+    clientLookupLoading.value = true;
+    _lookupDebounce = Timer(
+      delay,
+      () => _lookupClient(seq, userId: userId, bookingId: bookingId),
+    );
+  }
+
+  Future<void> _lookupClient(int seq, {int? userId, int? bookingId}) async {
+    final response = await baseApi.getRaw(
+      ApiConstants.getSupportClient(userId: userId, bookingId: bookingId),
+    );
+    if (seq != _lookupSeq) return; // a newer lookup has started
+    clientLookupLoading.value = false;
+
+    final data = response?.data;
+    if (ApiService.isOk(response) && data is Map) {
+      final foundId = _toIntOrNull(data['user_id']);
+      clientName.value = data['user_name']?.toString().trim() ?? '';
+      clientPhone.value = data['phone_number']?.toString().trim() ?? '';
+      if (bookingId != null && foundId != null) {
+        clientUserIdTextController.text = foundId.toString();
+        clientUserId.value = foundId.toString();
+      }
+      return;
+    }
+
+    final notFound = response?.statusCode == 404;
+    if (bookingId != null) {
+      bookingIdLookupError.value = notFound
+          ? 'No booking #$bookingId in your organisation'
+          : 'Could not look up this booking';
+    } else {
+      userIdLookupError.value = notFound
+          ? 'No client with User Id $userId'
+          : 'Could not look up this client';
+    }
   }
 
   void _applyPrefillType() {
-    if (_pendingPrefillTypeId == null) return;
-    if (getSupportCategoriesData.isEmpty) return;
-    final matches = getSupportCategoriesData
-        .where((c) => c.id == _pendingPrefillTypeId);
-    final match = matches.isEmpty ? null : matches.first;
+    final word = _pendingPrefillTypeName;
+    if (word == null || getSupportCategoriesData.isEmpty) return;
+    final match = getSupportCategoriesData.firstWhereOrNull(
+        (c) => (c.name ?? '').toLowerCase().contains(word));
     if (match != null) {
       selectedTicketType.value = match;
-      _pendingPrefillTypeId = null;
+      _pendingPrefillTypeName = null;
     }
   }
 
@@ -463,13 +554,14 @@ class SupportController extends GetxController {
     clientUserId.value = '';
     bookingIdTextController.clear();
     clientUserIdTextController.clear();
+    _resetClientLookup();
     selectedTicketType.value = null;
     priority.value = '';
     subject.value = '';
     description.value = '';
     subjectTextController.clear();
     descriptionTextController.clear();
-    _pendingPrefillTypeId = null;
+    _pendingPrefillTypeName = null;
     resetDynamicFields();
   }
 

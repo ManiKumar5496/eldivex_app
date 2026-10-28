@@ -34,6 +34,7 @@ void prepareCreateForm(
   BuildContext context, {
   required VoidCallback reset,
   void Function(int id)? selectClient,
+  void Function(Map args)? prefill,
 }) {
   final route = ModalRoute.of(context);
   final args = route?.settings.arguments ?? Get.arguments;
@@ -41,6 +42,8 @@ void prepareCreateForm(
   runOncePerRoute(context, 'prepareCreateForm', () {
     reset();
     if (id != null && selectClient != null) selectClient(id);
+    // Further arguments (booking_id, amount, …) a page knows how to apply.
+    if (args is Map && prefill != null) prefill(args);
   });
 }
 

@@ -58,9 +58,26 @@ class _CreateWriteOffViewState extends State<CreateWriteOffView> {
     ctrl.selectedInvoiceIds.clear();
   }
 
+  /// {user_id, booking_id, amount} passed in, e.g. what a client still owes
+  /// after a cancellation. Selected once the bookings list has loaded.
+  Future<void> _prefill(Map args) async {
+    final clientId = toIntOrNull(args['user_id']);
+    final bookingId = toIntOrNull(args['booking_id']);
+    if (clientId == null || bookingId == null) return;
+    if (ctrl.activeClients.isEmpty) await ctrl.loadActiveClients();
+    _selectClient(clientId);
+    ctrl.selectedBookingId.value = bookingId;
+    ctrl.loadBookingInvoices(bookingId);
+    final amount = toDoubleOrNull(args['amount']);
+    if (amount != null && amount > 0) {
+      ctrl.writeOffAmountCtrl.text = amount.toStringAsFixed(2);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    prepareCreateForm(context, reset: ctrl.clearForm, selectClient: _selectClient);
+    prepareCreateForm(context,
+        reset: ctrl.clearForm, selectClient: _selectClient, prefill: _prefill);
     final pad = MediaQuery.sizeOf(context).width < 600 ? 16.0 : 24.0;
     return Scaffold(
       backgroundColor: AppColor.cAppBackgroundColor,

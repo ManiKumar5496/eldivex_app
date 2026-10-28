@@ -57,7 +57,6 @@ abstract class Routes {
   static const String CREDIT_NOTE_LIST     = '/accounts/credit-note';
   static const String CREATE_CREDIT_NOTE   = '/accounts/credit-note/create';
   static const String CREDIT_NOTE_DETAIL   = '/accounts/credit-note/detail';
-  static const String APPLY_CREDIT_NOTE    = '/accounts/credit-note/apply';
   static const String TRANSFER_LIST        = '/accounts/transfer';
   static const String CREATE_TRANSFER      = '/accounts/transfer/create';
   static const String TRANSFER_DETAIL      = '/accounts/transfer/detail';

@@ -301,20 +301,6 @@ class _CreditNoteDetailViewState extends State<CreditNoteDetailView> {
         }),
       );
     }
-    if (note.canApply) {
-      return AppCard(
-        title: 'Apply credit',
-        subtitle: 'Use the remaining balance against an open invoice.',
-        icon: LucideIcons.listChecks,
-        iconTone: AppTone.success,
-        child: ElevatedButton.icon(
-          onPressed: () => Get.toNamed(Routes.APPLY_CREDIT_NOTE,
-              arguments: note, parameters: {'id': '${note.id}'}),
-          icon: const Icon(LucideIcons.listChecks, size: 18),
-          label: const Text('Apply to Invoice'),
-        ),
-      );
-    }
     return const SizedBox.shrink();
   }
 
@@ -332,7 +318,8 @@ class _CreditNoteDetailViewState extends State<CreditNoteDetailView> {
           return const AppEmptyState(
             icon: LucideIcons.listChecks,
             title: 'Not applied yet',
-            message: 'This credit note has not been applied yet.',
+            message: "The credit is applied to this booking's invoices "
+                'when the note is approved.',
             compact: true,
           );
         }

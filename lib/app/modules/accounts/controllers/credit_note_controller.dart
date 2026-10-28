@@ -7,7 +7,6 @@ import '../../../widgets/helper_ui.dart';
 import '../../../widgets/ui/ui.dart';
 import '../models/credit_note_model.dart';
 import '../models/credit_note_application_model.dart';
-import '../models/parse_utils.dart';
 import 'accounts_feedback.dart';
 import 'package:eldivex_app/app/core/values/lucide_icons.dart';
 
@@ -39,9 +38,6 @@ class CreditNoteController extends GetxController {
   var selectedBookingId        = Rxn<int>();
   var selectedInvoiceId        = Rxn<int>();
   var creditType               = 'Hold'.obs;
-  var selectedCreditNoteId     = Rxn<int>();
-  var selectedTargetBookingId  = Rxn<int>();
-  var selectedTargetInvoiceId  = Rxn<int>();
 
   // ─────────────────────────────────────────────
   // Text Editing Controllers
@@ -49,8 +45,6 @@ class CreditNoteController extends GetxController {
   final TextEditingController amountCtrl       = TextEditingController();
   final TextEditingController reasonCtrl       = TextEditingController();
   final TextEditingController creditDateCtrl   = TextEditingController();
-  final TextEditingController applyAmountCtrl  = TextEditingController();
-  final TextEditingController applyNotesCtrl   = TextEditingController();
   final TextEditingController approvalNotesCtrl = TextEditingController();
 
   // ─────────────────────────────────────────────
@@ -73,8 +67,6 @@ class CreditNoteController extends GetxController {
     amountCtrl.dispose();
     reasonCtrl.dispose();
     creditDateCtrl.dispose();
-    applyAmountCtrl.dispose();
-    applyNotesCtrl.dispose();
     approvalNotesCtrl.dispose();
     super.onClose();
   }
@@ -299,7 +291,10 @@ class CreditNoteController extends GetxController {
                   await _fetchCreditNote(id, bookingId: sel.bookingId) ??
                   sel;
         }
-        toastSuccess('Credit note ${action.toLowerCase()}.');
+        // Approval reports how much was deducted from which booking.
+        final data = response!.data;
+        final message = data is Map ? data['message']?.toString() : null;
+        toastSuccess(message ?? 'Credit note ${action.toLowerCase()}.');
         return true;
       }
       toastApiError(response, 'Failed to update credit note status.');
@@ -335,8 +330,13 @@ class CreditNoteController extends GetxController {
           ),
         ],
         child: Text(
-          '${approving ? 'Approve' : 'Reject'} CN-${note.id} for booking '
-          '#${note.bookingId} (₹${note.amount.toStringAsFixed(2)})?',
+          approving
+              ? 'Approve CN-${note.id}? ₹${note.amount.toStringAsFixed(2)} will be '
+                  'deducted from booking #${note.bookingId}\'s outstanding right away. '
+                  'If the client has already paid more than the new total, the excess '
+                  'can then be refunded or transferred to another booking.'
+              : 'Reject CN-${note.id} for booking #${note.bookingId} '
+                  '(₹${note.amount.toStringAsFixed(2)})?',
           style: TextStyle(
               fontSize: 14, height: 1.5, color: AppColor.textSecondary),
         ),
@@ -344,76 +344,6 @@ class CreditNoteController extends GetxController {
     );
     if (ok != true) return false;
     return approveCreditNote(note.id, action);
-  }
-
-  // ─────────────────────────────────────────────
-  // Apply Credit Note
-  // ─────────────────────────────────────────────
-
-  /// POST /api/applyCreditNote
-  /// { credit_note_id, target_booking_id, target_invoice_id, amount_to_apply, notes? }.
-  Future<bool> applyCreditNote() async {
-    final cnId = selectedCreditNoteId.value;
-    if (cnId == null) {
-      toastValidation('Please select a credit note.');
-      return false;
-    }
-    if (selectedTargetBookingId.value == null) {
-      toastValidation('Please select a target booking.');
-      return false;
-    }
-    if (selectedTargetInvoiceId.value == null) {
-      toastValidation('Please select a target invoice.');
-      return false;
-    }
-    final applyAmount = double.tryParse(applyAmountCtrl.text.trim()) ?? 0;
-    if (applyAmount <= 0) {
-      toastValidation('Apply amount must be greater than zero.');
-      return false;
-    }
-    final note = selectedCreditNote.value;
-    if (note is CreditNoteModel && note.id == cnId && applyAmount > note.available) {
-      toastValidation('Amount exceeds the remaining credit of ₹${note.available.toStringAsFixed(2)}.');
-      return false;
-    }
-    // Never credit an invoice past its open balance (the server enforces it).
-    final inv = targetInvoices.firstWhereOrNull(
-        (i) => toInt(field(i, 'invoice_db_id')) == selectedTargetInvoiceId.value);
-    if (inv != null) {
-      final open = toDouble(field(inv, 'balance_due'));
-      if (applyAmount > open + 0.005) {
-        toastValidation('Amount exceeds the invoice\'s open balance of ₹${open.toStringAsFixed(2)}.');
-        return false;
-      }
-    }
-
-    isSubmitting.value = true;
-    try {
-      final body = <String, dynamic>{
-        'credit_note_id':    cnId,
-        'target_booking_id': selectedTargetBookingId.value,
-        'target_invoice_id': selectedTargetInvoiceId.value,
-        'amount_to_apply':   applyAmount,
-        if (applyNotesCtrl.text.trim().isNotEmpty)
-          'notes':           applyNotesCtrl.text.trim(),
-      };
-
-      final response = await _api.postRaw(ApiConstants.applyCreditNote, body);
-      if (isOkResponse(response)) {
-        clearApplyForm();
-        await loadCreditNotes();
-        await loadCreditNoteById(cnId);
-        await loadApplications(cnId);
-        toastSuccess('Credit note applied successfully.');
-        return true;
-      }
-      toastApiError(response, 'Failed to apply credit note.');
-    } catch (e) {
-      toastValidation('Error applying credit note: $e');
-    } finally {
-      isSubmitting.value = false;
-    }
-    return false;
   }
 
   // ─────────────────────────────────────────────
@@ -428,16 +358,7 @@ class CreditNoteController extends GetxController {
     amountCtrl.clear();
     reasonCtrl.clear();
     creditDateCtrl.clear();
-    // Shared with the Apply screen — don't carry another booking's invoices.
+    // Don't carry another booking's invoices into the next credit note.
     targetInvoices.clear();
-  }
-
-  void clearApplyForm() {
-    selectedCreditNoteId.value    = null;
-    selectedTargetBookingId.value = null;
-    selectedTargetInvoiceId.value = null;
-    applyAmountCtrl.clear();
-    applyNotesCtrl.clear();
-    targetInvoices.value = [];
   }
 }

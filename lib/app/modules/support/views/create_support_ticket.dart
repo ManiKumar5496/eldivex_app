@@ -77,20 +77,36 @@ class CreateSupportTicket extends GetView<SupportController> {
                     children: [
                       /// BASIC DETAILS
                       _twoFieldRow(
-                        CommonTextField(
-                          label: 'User Id',
-                          hint: 'Client User Id',
-                          isMandatory: true,
-                          keyboardType: TextInputType.number,
-                          controller: controller.clientUserIdTextController,
-                          onChanged: (v) => controller.clientUserId.value = v,
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            CommonTextField(
+                              label: 'User Id',
+                              hint: 'Client User Id',
+                              isMandatory: true,
+                              keyboardType: TextInputType.number,
+                              controller: controller.clientUserIdTextController,
+                              onChanged: controller.onUserIdChanged,
+                            ),
+                            Obx(_buildClientStatus),
+                          ],
                         ),
-                        CommonTextField(
-                          label: 'Booking ID',
-                          hint: 'Enter booking ID',
-                          isMandatory: true,
-                          controller: controller.bookingIdTextController,
-                          onChanged: (v) => controller.bookingId.value = v,
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            CommonTextField(
+                              label: 'Booking ID',
+                              hint: 'Enter booking ID',
+                              isMandatory: true,
+                              keyboardType: TextInputType.number,
+                              controller: controller.bookingIdTextController,
+                              onChanged: controller.onBookingIdChanged,
+                            ),
+                            Obx(() => _fieldStatus(
+                                  controller.bookingIdLookupError.value,
+                                  isError: true,
+                                )),
+                          ],
                         ),
                       ),
 
@@ -191,6 +207,50 @@ class CreateSupportTicket extends GetView<SupportController> {
                 ),
         ),
       ],
+    );
+  }
+
+  /// Under User Id: looking up…, the client's name (and phone), or an error.
+  Widget _buildClientStatus() {
+    if (controller.clientLookupLoading.value) {
+      return _fieldStatus('Looking up client…');
+    }
+    if (controller.userIdLookupError.value.isNotEmpty) {
+      return _fieldStatus(controller.userIdLookupError.value, isError: true);
+    }
+    final name = controller.clientName.value;
+    if (name.isEmpty) return const SizedBox.shrink();
+    final phone = controller.clientPhone.value;
+    return _fieldStatus(
+      phone.isEmpty || phone == 'NA' ? name : '$name · $phone',
+      icon: LucideIcons.user,
+    );
+  }
+
+  /// One line of feedback under a field; empty text renders nothing.
+  Widget _fieldStatus(String text, {bool isError = false, IconData? icon}) {
+    if (text.isEmpty) return const SizedBox.shrink();
+    final color = isError ? AppColor.danger : AppColor.textSecondary;
+    return Padding(
+      padding: const EdgeInsets.only(top: 6, left: 2),
+      child: Row(
+        children: [
+          Icon(isError ? LucideIcons.circleAlert : icon ?? LucideIcons.user,
+              size: 14, color: color),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Text(
+              text,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 13,
+                color: color,
+                fontWeight: isError ? FontWeight.w400 : FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
